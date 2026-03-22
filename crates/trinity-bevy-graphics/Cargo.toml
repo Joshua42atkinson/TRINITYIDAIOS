@@ -1,0 +1,45 @@
+[package]
+name = "trinity-bevy-graphics"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "3D Yard — Bevy studio sandbox for Trinity (vision, meshes, materials, shaders)"
+
+[dependencies]
+# Core Trinity Integration
+trinity-protocol = { path = "../trinity-protocol" }
+
+# Bevy ECS — minimal features for library crate (no windowing)
+bevy = { version = "0.18.1", default-features = false, features = ["bevy_render", "bevy_asset", "bevy_color", "bevy_mesh"] }
+
+# Async Runtime
+tokio = { workspace = true }
+async-trait = { workspace = true }
+reqwest = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error Handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+image = { workspace = true }
+base64 = "0.22"
+dirs = { workspace = true }
+
+# Utilities
+uuid = { workspace = true }
+chrono = { workspace = true }
+half = "2.4" # For f16 conversion
+
+[features]
+default = []
+desktop = ["bevy/bevy_winit"]
+inference = []
+vision = []

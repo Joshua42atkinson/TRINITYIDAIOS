@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO context_allocations \n            (document_id, allocation_type, allocated_tokens, actual_tokens)\n            VALUES ($1, $2, $3, $4)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b424daa2dedd087d4ace73c91ea75a1124f0fb293b357fd1a2efeb991aa212a8"
+}

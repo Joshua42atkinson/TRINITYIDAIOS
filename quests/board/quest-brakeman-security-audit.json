@@ -1,0 +1,26 @@
+{
+  "id": "quest-brakeman-security-audit",
+  "title": "Security audit of trinity-server tools.rs",
+  "description": "Perform a security audit of the agentic tool system in trinity-server/src/tools.rs. Check for: path traversal vulnerabilities in file operations, command injection in the shell tool, proper sandboxing boundaries, and error information leakage. Generate test cases for each vulnerability class found.",
+  "quest_type": "test",
+  "priority": 8,
+  "addie_phase": "evaluation",
+  "difficulty_class": 16,
+  "status": "available",
+  "context_files": [
+    "crates/trinity-server/src/tools.rs"
+  ],
+  "target_files": [
+    "tests/security_tools_test.rs"
+  ],
+  "verify_commands": [
+    "cargo clippy -p trinity-server -- -D warnings 2>&1 | tail -5"
+  ],
+  "notes": "Brakeman quest. Focus on the validate_path function, shell command blocklist, and file size limits. Generate regression tests.",
+  "plan": null,
+  "results": null,
+  "log": [],
+  "created_at": "2026-03-14T18:10:00Z",
+  "started_at": null,
+  "completed_at": null
+}

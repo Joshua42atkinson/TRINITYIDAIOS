@@ -1,0 +1,203 @@
+{
+  "id": "quest-evaluate-server",
+  "title": "Evaluate trinity-server against Quality Matters standards",
+  "description": "Perform a formal QM rubric evaluation of the trinity-server crate. Review the API design, accessibility of web UI pages, learning objective alignment in the quest system, and documentation quality. Generate a structured evaluation report with scores and recommendations.",
+  "quest_type": "evaluation",
+  "priority": 6,
+  "addie_phase": "evaluation",
+  "difficulty_class": 15,
+  "status": "failed",
+  "context_files": [
+    "crates/trinity-server/src/main.rs",
+    "crates/trinity-server/src/quests.rs",
+    "crates/trinity-server/src/tools.rs"
+  ],
+  "target_files": [
+    "docs/reports/server_qm_evaluation.md"
+  ],
+  "verify_commands": [
+    "test -f docs/reports/server_qm_evaluation.md && echo 'Report exists' || echo 'Report missing'"
+  ],
+  "notes": "Evaluator quest. Use QM Standards 1-8. Grade each standard. Focus on accessibility and learning objective measurability.",
+  "plan": {
+    "analysis": "Comprehensive Quality Matters rubric evaluation of trinity-server crate covering API design, quest-based learning system, accessibility compliance, and documentation quality. This evaluation will assess alignment with QM Standards 1-8, WCAG 2.1 AA accessibility, Bloom's Taxonomy alignment in quest mechanics, and ADDIE framework implementation.",
+    "risk_assessment": "Areas requiring human expert review: (1) Subjective judgment on learning objective measurability, (2) Accessibility testing requires screen reader verification, (3) Cognitive load assessment needs actual learner observation, (4) QM Standard 1 requires review of full course context beyond server code",
+    "steps": [
+      {
+        "id": 1,
+        "reason": "Review API design, system architecture, and documentation for QM Standards 1, 6, 8",
+        "target": "crates/trinity-server/src/main.rs",
+        "type": "read_file"
+      },
+      {
+        "id": 2,
+        "reason": "Analyze quest system for QM Standards 2, 3, 5 - learning objectives, assessment, activities",
+        "target": "crates/trinity-server/src/quests.rs",
+        "type": "read_file"
+      },
+      {
+        "id": 3,
+        "reason": "Evaluate tool system for QM Standards 5, 6 - interaction and technology",
+        "target": "crates/trinity-server/src/tools.rs",
+        "type": "read_file"
+      },
+      {
+        "id": 4,
+        "reason": "Check web UI for QM Standards 1, 7, 8 - introduction, support, accessibility",
+        "target": "crates/trinity-server/static/index.html",
+        "type": "read_file"
+      },
+      {
+        "id": 5,
+        "reason": "Review dependencies and documentation metadata for QM Standard 4",
+        "target": "crates/trinity-server/Cargo.toml",
+        "type": "read_file"
+      },
+      {
+        "criteria": "QM Standard 2: Learning Objectives - Verify objectives are measurable, use Bloom's verbs, and align with ADDIE phases",
+        "id": 6,
+        "target": "crates/trinity-server/src/quests.rs",
+        "type": "analyze"
+      },
+      {
+        "criteria": "QM Standard 3: Assessment and Measurement - Evaluate XP system, objective completion tracking, and feedback mechanisms",
+        "id": 7,
+        "target": "crates/trinity-server/src/quests.rs",
+        "type": "analyze"
+      },
+      {
+        "criteria": "QM Standard 6: Course Technology - Assess API design, error handling, CORS, and streaming capabilities",
+        "id": 8,
+        "target": "crates/trinity-server/src/main.rs",
+        "type": "analyze"
+      },
+      {
+        "criteria": "Bloom's Taxonomy Alignment - Verify Phase::blooms() mapping and quest mechanics support cognitive progression",
+        "id": 9,
+        "target": "crates/trinity-server/src/quests.rs",
+        "type": "analyze"
+      },
+      {
+        "criteria": "ADDIE Framework Alignment - Verify Hero's Journey stages map correctly to ADDIE cycles",
+        "id": 10,
+        "target": "crates/trinity-server/src/quests.rs",
+        "type": "analyze"
+      },
+      {
+        "command": "cargo clippy -p trinity-server --all-targets 2>&1 | head -100",
+        "id": 11,
+        "reason": "Code quality check for maintainability and best practices",
+        "type": "shell"
+      },
+      {
+        "command": "cargo doc -p trinity-server --no-deps 2>&1 | grep -E '(warning|error)' | head -50",
+        "id": 12,
+        "reason": "Documentation quality check for QM Standard 4",
+        "type": "shell"
+      },
+      {
+        "criteria": "WCAG 2.1 AA Accessibility - Check for ARIA labels, keyboard navigation, color contrast, alt text",
+        "id": 13,
+        "target": "crates/trinity-server/static/",
+        "type": "analyze"
+      },
+      {
+        "criteria": "QM Standard 7: Learner Support - Evaluate help systems, error messages, and guidance mechanisms",
+        "id": 14,
+        "target": "crates/trinity-server/src/main.rs",
+        "type": "analyze"
+      },
+      {
+        "criteria": "Cognitive Load Theory - Assess Cargo Mass (content), Track Friction (interface), Combustion (engagement)",
+        "id": 15,
+        "target": "crates/trinity-server/src/quests.rs",
+        "type": "analyze"
+      },
+      {
+        "id": 16,
+        "spec": "Formal QM evaluation report with scores (1-3), evidence citations, and actionable recommendations for each standard",
+        "target": "reports/qm-evaluation-trinity-server.md",
+        "type": "write_file"
+      }
+    ],
+    "success_criteria": "All 8 QM standards evaluated with scores and evidence, WCAG 2.1 AA accessibility audit completed, Bloom's and ADDIE alignment verified, formal report generated with prioritized recommendations"
+  },
+  "results": null,
+  "log": [
+    {
+      "timestamp": "2026-03-14T21:22:19.112337381Z",
+      "step": "claim",
+      "model": "engineer",
+      "message": "Quest claimed by Engineer sidecar"
+    },
+    {
+      "timestamp": "2026-03-14T21:22:19.112663961Z",
+      "step": "plan",
+      "model": "opus",
+      "message": "Shield analyzing quest and creating plan..."
+    },
+    {
+      "timestamp": "2026-03-14T21:26:13.472631523Z",
+      "step": "read_file:crates/trinity-server/src/main.rs",
+      "model": "system",
+      "message": "Read crates/trinity-server/src/main.rs (18193 bytes)"
+    },
+    {
+      "timestamp": "2026-03-14T21:26:13.473104208Z",
+      "step": "read_file:crates/trinity-server/src/quests.rs",
+      "model": "system",
+      "message": "Read crates/trinity-server/src/quests.rs (24434 bytes)"
+    },
+    {
+      "timestamp": "2026-03-14T21:26:13.473276383Z",
+      "step": "read_file:crates/trinity-server/src/tools.rs",
+      "model": "system",
+      "message": "Read crates/trinity-server/src/tools.rs (14909 bytes)"
+    },
+    {
+      "timestamp": "2026-03-14T21:26:13.487549938Z",
+      "step": "read_file:crates/trinity-server/static/index.html",
+      "model": "system",
+      "message": "Read crates/trinity-server/static/index.html (20307 bytes)"
+    },
+    {
+      "timestamp": "2026-03-14T21:26:13.487608456Z",
+      "step": "read_file:crates/trinity-server/Cargo.toml",
+      "model": "system",
+      "message": "Read crates/trinity-server/Cargo.toml (1097 bytes)"
+    },
+    {
+      "timestamp": "2026-03-14T21:29:52.168825404Z",
+      "step": "analyze:crates/trinity-server/src/quests.rs",
+      "model": "opus",
+      "message": "# QM Standard 2 Evaluation: Learning Objectives\n\n## 2.1 Analysis\n\n### Phase-Bloom's Taxonomy Mapping\n\n```rust\npub fn blooms(&self) -> &'static str {\n    match self {\n        Phase::Analysis => \"Remember / Understand\",\n        Phase::Design => \"Apply\",\n        Phase::Development => \"Analyze\",\n        Phase::Implementation => \"Evaluate\",\n        Phase::Evaluation => \"Create\",\n    }\n}\n```\n\n**Assessment:** This mapping is **conceptually inverted** for traditional ADDIE. The Evaluation phase should assess \"Evaluate\" level thinking, while \"Create\" typically belongs to Development.\n\n### Objective Generation Analysis\n\nExamining `objectives_for_chapter()` function for Bloom's verb usage:\n\n| Chapter | Phase | Objective | Verb | Bloom's Level |\n|---------|-------|-----------|------|---------------|\n| 1 | Analysis | \"Describe yourself\" | Describe | Understand ✓ |\n| 1 | Analysis | \"Identify a lesson\" | Identify | Remember ✓ |\n| 1 | Analysis | \"List 3 things\" | List | Remember ✓ |\n| 1 | Design | \"Write one learning objective\" | Write | Apply ✓ |\n| 3 | Analysis | \"Use the Weigh Station\" | Use | Apply ✓ |\n| 5 | Analysis | \"Define 3 measurable outcomes\" | Define | Understand ✓ |\n| 7 | Analysis | \"Map every learning objective\" | Map | Analyze ✓ |\n| 11 | Analysis | \"Apply WCAG 2.1 AA\" | Apply | Apply ✓ |\n\n## 2.2 Findings\n\n### ✅ STRENGTHS\n\n1. **Explicit Bloom's Integration**: Code explicitly maps phases to Bloom's levels\n2. **Action-Oriented Verbs**: Most objectives use measurable verbs (describe, identify, list, write, define)\n3. **Progressive Complexity**: Objectives escalate from Remember → Create across journey\n4. **Phase-Specific Objectives**: Each ADDIE phase has tailored objectives\n\n### ⚠️ AREAS FOR IMPROVEMENT\n\n1. **Bloom's Mapping Inversion**: Evaluation phase mapped to \"Create\" instead of \"Evaluate\"\n2. **Limited Objective Depth**: Only 3 objectives per phase; some lack specificity\n3. **Binary Completion Model**: `completed: bool` doesn't measure quality of learning\n4. **Missing Rubric Alignment**: No explicit connection to QM rubric criteria in objectives\n\n## 2.3 Recommendations\n\n### HIGH PRIORITY\n\n```rust\n// Fix Bloom's mapping in Phase::blooms()\npub fn blooms(&self) -> &'static str {\n    match self {\n        Phase::Analysis => \"Remember / Understand\",\n        Phase::Design => \"Understand / Apply\",\n        Phase::Development => \"Apply / Analyze\",\n        Phase::Implementation => \"Analyze / Evaluate\",\n        Phase::Evaluation => \"Evaluate / Create\",  // Changed\n    }\n}\n```\n\n### MEDIUM PRIORITY\n\n1. **Add Quality Metrics to Objectives**:\n```rust\npub struct Objective {\n    pub id: String,\n    pub description: String,\n    pub completed: bool,\n    pub quality_score: Option<u8>,  // 1-5 rubric score\n    pub evidence: Option<String>,   // Student artifact reference\n}\n```\n\n2. **Add QM Standard References**:\n```rust\npub struct Objective {\n    // ... existing fields\n    pub qm_standards: Vec<String>,  // e.g., [\"QM 2.1\", \"QM 3.2\"]\n}\n```\n\n## 2.4 Final Grade\n\n| Criterion | Grade | Notes |\n|-----------|-------|-------|\n| Measurable Objectives | **2 (Partially Meets)** | Verbs present but completion is binary |\n| Bloom's Alignment | **2 (Partially Meets)** | Mapping inverted; needs correction |\n| Phase Alignment | **3 (Meets)** | Objectives appropriately scoped per phase |\n| Progression Design | **3 (Meets)** | Clear escalation across 12 chapters |\n\n**Overall: 2.5/3 (Partially Meets)**\n\n---\n\n**Risk Assessment**: The Bloom's mapping inversion could cause instructional misalignment. Students completing \"Evaluation\" phase objectives may not be practicing evaluation skills as intended. Recommend immediate correction before deployment."
+    },
+    {
+      "timestamp": "2026-03-14T21:33:58.603431874Z",
+      "step": "analyze:crates/trinity-server/src/quests.rs",
+      "model": "opus",
+      "message": "# QM Standard 3: Assessment and Measurement Evaluation\n\n## <think>\nAnalyzing the `quests.rs` file against QM Standard 3 requires examining:\n\n1. **Assessment Design**: How objectives are structured and what they measure\n2. **XP/Reward System**: Whether rewards are meaningful or arbitrary\n3. **Feedback Quality**: What learners receive upon completion/failure\n4. **Progression Logic**: Whether advancement requires genuine mastery\n5. **Evidence Collection**: Whether the system captures proof of learning\n\nKey observations:\n- Objectives are checkbox-style with no quality verification\n- XP values (25, 100, 50) appear arbitrary without pedagogical basis\n- No rubric-based assessment exists\n- No peer/self-assessment mechanisms\n- Feedback is limited to logging and state changes\n- No adaptive scaffolding based on performance\n- No assessment of Bloom's taxonomy levels despite being referenced\n</think>\n\n```json\n{\n  \"analysis\": \"QM Standard 3: Assessment and Measurement evaluation of Trinity's quest engine XP system, objective tracking, and feedback mechanisms\",\n  \"steps\": [\n    {\"id\": 1, \"type\": \"read_file\", \"target\": \"crates/trinity-server/src/quests.rs\", \"reason\": \"Review quest engine implementation\"},\n    {\"id\": 2, \"type\": \"analyze\", \"target\": \"crates/trinity-server/src/quests.rs\", \"criteria\": \"QM 3.1: Assessment alignment with learning objectives\"},\n    {\"id\": 3, \"type\": \"analyze\", \"target\": \"crates/trinity-server/src/quests.rs\", \"criteria\": \"QM 3.2: Assessment alignment with learning activities\"},\n    {\"id\": 4, \"type\": \"analyze\", \"target\": \"crates/trinity-server/src/quests.rs\", \"criteria\": \"QM 3.3: Assessment alignment with course technology\"},\n    {\"id\": 5, \"type\": \"analyze\", \"target\": \"crates/trinity-server/src/quests.rs\", \"criteria\": \"QM 3.4: Assessment alignment with learner support\"},\n    {\"id\": 6, \"type\": \"analyze\", \"target\": \"crates/trinity-server/src/quests.rs\", \"criteria\": \"QM 3.5: Assessment alignment with accessibility\"},\n    {\"id\": 7, \"type\": \"write_file\", \"target\": \"reports/qm3_assessment_evaluation.md\", \"spec\": \"Detailed QM Standard 3 evaluation report\"}\n  ],\n  \"success_criteria\": \"All QM 3.x standards evaluated with specific evidence and actionable recommendations\",\n  \"risk_assessment\": \"HIGH: Current assessment system lacks quality verification, adaptive scaffolding, and meaningful feedback loops\"\n}\n```\n\n---\n\n## QM Standard 3 Evaluation Report\n\n### Executive Summary\n\n| Standard | Rating | Evidence |\n|----------|--------|----------|\n| **3.1 Assessment-Objective Alignment** | ⚠️ Partially Meets (2) | Objectives exist but lack measurable criteria |\n| **3.2 Assessment-Activity Alignment** | ⚠️ Partially Meets (2) | Activities track completion, not mastery |\n| **3.3 Assessment-Technology Alignment** | ✅ Meets (3) | API design supports assessment tracking |\n| **3.4 Assessment-Learner Support** | ❌ Does Not Meet (1) | No scaffolding or adaptive feedback |\n| **3.5 Assessment-Accessibility** | ❌ Does Not Meet (1) | No accessibility in assessment design |\n\n---\n\n## Detailed Analysis\n\n### QM 3.1: Assessment Strategies Aligned with Learning Objectives\n\n**Current State:**\n```rust\npub struct Objective {\n    pub id: String,\n    pub description: String,\n    pub completed: bool,  // ❌ Binary only - no quality measure\n}\n```\n\n**Issues Identified:**\n\n1. **No Rubric-Based Assessment**: Objectives are checkbox-style with no quality verification\n2. **Arbitrary XP Values**: 25 XP/objective, 100 XP/phase lacks pedagogical justification\n3. **No Evidence Collection**: System doesn't capture proof of learning\n4. **Bloom's Taxonomy Referenced But Not Assessed**:\n   ```rust\n   pub fn blooms(&self) -> &'static str {\n       match self {\n           Phase::Analysis => \"Remember / Understand\",\n           // ... but no assessment at these levels\n       }\n   }\n   ```\n\n**Recommendations:**\n```rust\npub struct Objective {\n    pub id: String,\n    pub description: String,\n    pub completed: bool,\n    pub rubric_score: Option<f32>,      // Add: 0-100 quality score\n    pub evidence: Option<String>,        // Add: Artifact/proof of completion\n    pub blooms_level: BloomLevel,        // Add: Required cognitive level\n    pub attempts: u32,                   // Add: Track retries\n    pub feedback: Option<String>,         // Add: Personalized feedback\n}\n```\n\n---\n\n### QM 3.2: Assessment Strategies Aligned with Learning Activities\n\n**Current State:**\n```rust\npub async fn complete_objective(...) {\n    gs.quest.phase_objectives[i].completed = true;  // ❌ Instant completion\n    gs.stats.total_xp += 25;                        // ❌ Fixed reward\n    gs.stats.coal_reserves = (gs.stats.coal_reserves - 3.0).max(0.0);\n    // No verification, no quality check, no mastery evidence\n}\n```\n\n**Issues Identified:**\n\n1. **No Mastery Verification**: Objectives complete on first attempt without verification\n2. **No Retry Mechanism**: No scaffolding for learners who struggle\n3. **No Formative Feedback**: Only logging (`info!`), no learner-facing feedback\n4. **No Adaptive Difficulty**: Same objectives for all learners regardless of skill\n\n**Recommendations:**\n```rust\npub async fn complete_objective(...) -> Result<Json<AssessmentResult>, ...> {\n    // 1. Verify evidence meets rubric criteria\n    let rubric_score = evaluate_against_rubric(&evidence, &objective.rubric);\n    \n    // 2. Provide formative feedback\n    let feedback = if rubric_score < 70.0 {\n        generate_scaffolding_hints(&objective, &evidence)\n    } else {\n        generate_mastery_feedback(&objective)\n    };\n    \n    // 3. Award XP based on quality, not just completion\n    let xp_earned = calculate_xp(rubric_score, objective.difficulty);\n    \n    // 4. Track attempts for adaptive learning\n    objective.attempts += 1;\n    \n    Ok(Json(AssessmentResult { \n        completed: rubric_score >= 70.0,\n        rubric_score,\n        feedback,\n        xp_earned,\n        next_suggested: ...\n    }))\n}\n```\n\n---\n\n### QM 3.3: Assessment Strategies Aligned with Course Technology\n\n**Current State:**\n```rust\npub async fn get_game_state(...) -> Json<GameState> {\n    let gs = state.game_state.read().await;\n    Json(gs.clone())  // ✅ Good: State is accessible for assessment tracking\n}\n```\n\n**Strengths:**\n- ✅ Thread-safe state management with `Arc<RwLock>`\n- ✅ JSON serialization for API responses\n- ✅ Structured data models for tracking\n\n**Issues Identified:**\n\n1. **No Assessment Analytics Endpoint**: No dedicated endpoint for assessment data\n2. **No Progress Visualization Data**: Frontend must infer progress from raw state\n3. **No Assessment History**: No log of past attempts, improvements, or patterns\n\n"
+    },
+    {
+      "timestamp": "2026-03-14T21:37:17.211859558Z",
+      "step": "analyze:crates/trinity-server/src/main.rs",
+      "model": "opus",
+      "message": "# QM Standard 6: Course Technology Evaluation Report\n\n## Executive Summary\n\n| Component | Rating | Notes |\n|-----------|--------|-------|\n| API Design | **3 - Meets** | RESTful, well-structured endpoints |\n| Error Handling | **2 - Partially Meets** | Inconsistent error propagation |\n| CORS Configuration | **2 - Partially Meets** | Permissive config lacks specificity |\n| Streaming Capabilities | **3 - Meets** | SSE implementation functional |\n| Accessibility | **2 - Partially Meets** | Missing accessibility considerations |\n\n---\n\n## Detailed Analysis\n\n### 1. API Design Assessment ✅ **Meets (3)**\n\n**Strengths:**\n- RESTful endpoint structure with clear resource hierarchy\n- Consistent naming conventions (`/api/chat`, `/api/quest`, `/api/tools`)\n- Proper HTTP method usage (GET for retrieval, POST for actions)\n- Well-typed request/response structures using Serde\n\n**Areas for Improvement:**\n```rust\n// ISSUE: Inconsistent response format between endpoints\n// /api/chat returns: {response, model, rag_context, latency_ms}\n// /api/health returns: {status, llama_server, database}\n// /api/status returns: {server, llama_server, database, models_available, memory_usage_mb}\n\n// RECOMMENDATION: Standardize response envelope\npub struct ApiResponse<T> {\n    pub success: bool,\n    pub data: Option<T>,\n    pub error: Option<ApiError>,\n    pub timestamp: String,\n}\n```\n\n### 2. Error Handling Assessment ⚠️ **Partially Meets (2)**\n\n**Critical Issues Identified:**\n\n```rust\n// ISSUE 1: Panic in production code (HIGH PRIORITY)\nErr(e) => {\n    warn!(\"⚠️ PostgreSQL not available: {}. RAG disabled.\", e);\n    // ...\n    panic!(\"Cannot create database pool at all. Please ensure PostgreSQL is running.\");\n}\n\n// ISSUE 2: Unwrapped Result in streaming path (MEDIUM PRIORITY)\nlet rag_chunks = if request.use_rag {\n    rag::search_documents(&db_pool, &request.message).await.unwrap_or_default()\n} else {\n    vec![]\n};\n\n// ISSUE 3: Silent failure in inference stream\nlet _ = inference::chat_completion_stream(&llama_url, &messages, request.max_tokens, tx).await;\n```\n\n**Recommendations:**\n1. Replace `panic!` with graceful degradation and proper error response\n2. Use `?` operator with proper error mapping in streaming path\n3. Log inference stream errors instead of ignoring with `_`\n\n### 3. CORS Configuration Assessment ⚠️ **Partially Meets (2)**\n\n```rust\n// CURRENT: Overly permissive\n.layer(CorsLayer::permissive())\n\n// RECOMMENDED: Production-grade CORS\n.layer(CorsLayer::new()\n    .allow_origin(\"https://your-domain.com\".parse::<HeaderValue>().unwrap())\n    .allow_methods([Method::GET, Method::POST])\n    .allow_headers([\n        HeaderName::from_static(\"content-type\"),\n        HeaderName::from_static(\"authorization\"),\n    ])\n    .max_age(Duration::from_secs(86400))\n)\n```\n\n**Security Concerns:**\n- `permissive()` allows ANY origin, method, and header\n- No preflight caching configured\n- Vulnerable to CSRF attacks from malicious sites\n\n### 4. Streaming Capabilities Assessment ✅ **Meets (3)**\n\n**Implementation Quality:**\n```rust\n// SSE streaming properly implemented\nasync fn chat_stream(...) -> Sse<impl Stream<Item = Result<sse::Event, std::convert::Infallible>>> {\n    // ✓ Channel-based async communication\n    // ✓ Proper stream closure with [DONE] signal\n    // ✓ Non-blocking inference task\n}\n```\n\n**Minor Issues:**\n- No Content-Type header explicitly set to `text/event-stream`\n- Missing `Cache-Control: no-cache` for SSE\n- No retry mechanism for dropped connections\n\n### 5. Accessibility & Usability Assessment ⚠️ **Partially Meets (2)**\n\n**WCAG 2.1 AA Concerns:**\n\n| Issue | Impact | Recommendation |\n|-------|--------|----------------|\n| No error messages in accessible format | HIGH | Include `error_description` field |\n| Latency not exposed to screen readers | MEDIUM | Add `accessibility` metadata |\n| No language specification in responses | MEDIUM | Add `lang` field to responses |\n| Streaming lacks progress indicators | MEDIUM | Add `progress` events |\n\n```rust\n// ACCESSIBLE ERROR RESPONSE\npub struct AccessibleError {\n    pub error: String,\n    pub error_description: String,  // Human-readable\n    pub error_code: u16,\n    pub suggestions: Vec<String>,   // Remediation hints\n}\n```\n\n---\n\n## Risk Assessment\n\n| Risk | Severity | Likelihood | Mitigation |\n|------|----------|------------|------------|\n| CORS misconfiguration exposes API to CSRF | HIGH | HIGH | Restrict origins immediately |\n| Panic on DB connection failure | HIGH | MEDIUM | Graceful degradation |\n| Silent error swallowing in streams | MEDIUM | HIGH | Proper error propagation |\n| Inconsistent API response format | LOW | HIGH | Standardize envelope |\n\n---\n\n## Actionable Recommendations\n\n### Immediate (P0)\n```rust\n// 1. Fix CORS configuration\nlet cors = CorsLayer::new()\n    .allow_origin(\"http://localhost:3001\".parse().unwrap()) // Frontend origin\n    .allow_methods([Method::GET, Method::POST])\n    .allow_headers([HeaderName::from_static(\"content-type\")]);\n\n// 2. Replace panic with graceful error\nErr(e) => {\n    warn!(\"PostgreSQL unavailable: {}. Operating in degraded mode.\", e);\n    AppState { db_pool: None, ... } // Optional pool\n}\n```\n\n### Short-term (P1)\n- Standardize API response envelope\n- Add proper error descriptions for accessibility\n- Implement connection retry logic for SSE\n\n### Long-term (P2)\n- Add OpenAPI/Swagger documentation\n- Implement request/response logging for debugging\n- Add rate limiting and request validation\n\n---\n\n## Final Grade: **2.4/3.0 - Partially Meets**\n\nThe technology foundation is solid but requires attention to error handling, security configuration, and accessibility before production deployment."
+    },
+    {
+      "timestamp": "2026-03-14T21:40:52.115082331Z",
+      "step": "analyze:crates/trinity-server/src/quests.rs",
+      "model": "opus",
+      "message": "# Bloom's Taxonomy Alignment Evaluation Report\n\n## Executive Summary\n\n**Overall Grade: PARTIALLY MEETS (2/3)**\n\nThe `Phase::blooms()` mapping contains a **critical pedagogical error** that inverts the intended cognitive progression. While the quest mechanics demonstrate thoughtful scaffolding, the Bloom's Taxonomy assignments contradict both ADDIE methodology and cognitive science principles.\n\n---\n\n## Detailed Analysis\n\n### 1. Phase::blooms() Mapping Assessment\n\n| Phase | Current Mapping | Issue |\n|-------|-----------------|-------|\n| Analysis | \"Remember / Understand\" | ❌ **INVERTED** - Analysis requires higher-order thinking |\n| Design | \"Apply\" | ⚠️ Partially correct |\n| Development | \"Analyze\" | ⚠️ Context-dependent |\n| Implementation | \"Evaluate\" | ⚠️ Context-dependent |\n| Evaluation | \"Create\" | ❌ **INVERTED** - Evaluation ≠ Creation |\n\n### 2. Evidence of Misalignment\n\n**Chapter 5, Analysis Phase** (claimed: \"Remember / Understand\"):\n```rust\nobj(ch, p, 1, \"Write a formal Needs Assessment for your game\"),  // CREATE ✗\nobj(ch, p, 2, \"Define 3 measurable learning outcomes\"),          // CREATE ✗\nobj(ch, p, 3, \"Identify prerequisite knowledge your students need\"), // ANALYZE ✗\n```\n\n**Problem:** Teachers are asked to CREATE a needs assessment and DEFINE learning outcomes, but the system claims these are \"Remember/Understand\" tasks.\n\n### 3. Quest Mechanics Assessment\n\n**Strengths:**\n- ✅ Progressive scaffolding across 12 chapters\n- ✅ Objectives build complexity appropriately\n- ✅ Party system supports differentiated cognitive support\n\n**Weaknesses:**\n- ❌ No verification that objectives match claimed Bloom's level\n- ❌ No feedback mechanism for cognitive mismatch\n- ❌ Hero's Journey stages don't track cognitive progression\n\n---\n\n## Recommendations\n\n### High Priority Fixes\n\n```rust\n// RECOMMENDED: Correct Phase::blooms() mapping\npub fn blooms(&self) -> &'static str {\n    match self {\n        Phase::Analysis => \"Analyze / Evaluate\",      // Needs assessment requires analysis\n        Phase::Design => \"Create\",                    // Designing = creating learning experiences\n        Phase::Development => \"Apply / Analyze\",      // Building = applying design\n        Phase::Implementation => \"Apply\",             // Deploying = applying solution\n        Phase::Evaluation => \"Evaluate / Analyze\",    // Assessing = evaluating outcomes\n    }\n}\n```\n\n### Medium Priority Enhancements\n\n1. **Add objective-level Bloom's tracking:**\n```rust\npub struct Objective {\n    pub id: String,\n    pub description: String,\n    pub completed: bool,\n    pub blooms_level: BloomLevel,  // NEW: Track cognitive level per objective\n}\n```\n\n2. **Add cognitive progression validation:**\n```rust\npub fn validate_cognitive_progression(objectives: &[Objective]) -> Vec<String> {\n    // Check that objectives scaffold appropriately\n}\n```\n\n### Low Priority Considerations\n\n- Consider mapping Hero's Journey stages to **metacognitive development** rather than cognitive levels\n- Add teacher-facing feedback explaining *why* certain tasks require specific cognitive levels\n\n---\n\n## Verification Checklist\n\n- [ ] Update `Phase::blooms()` to reflect actual cognitive demands\n- [ ] Audit all quest objectives for Bloom's level accuracy\n- [ ] Add cognitive level metadata to Objective struct\n- [ ] Implement validation for cognitive progression\n- [ ] Document rationale for ADDIE-Bloom's mapping decisions\n\n---\n\n## Final Assessment\n\n| Criterion | Status | Notes |\n|-----------|--------|-------|\n| Bloom's Taxonomy Accuracy | ❌ FAIL | Mapping inverted |\n| Quest Scaffolding | ✅ PASS | Progressive complexity |\n| Pedagogical Soundness | ⚠️ PARTIAL | Framework concept valid, implementation flawed |\n| Actionable Feedback | ❌ FAIL | No cognitive mismatch warnings |\n\n**Recommendation:** Fix `Phase::blooms()` mapping before deployment to avoid teaching incorrect cognitive science principles to teachers."
+    },
+    {
+      "timestamp": "2026-03-14T21:41:48.838633552Z",
+      "step": "failed",
+      "model": "engineer",
+      "message": "Quest failed: error sending request for url (http://127.0.0.1:8081/v1/chat/completions): connection closed before message completed"
+    }
+  ],
+  "created_at": "2026-03-14T18:10:00Z",
+  "started_at": "2026-03-14T21:22:19.112336931Z",
+  "completed_at": "2026-03-14T21:41:48.838633092Z"
+}

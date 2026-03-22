@@ -1,0 +1,308 @@
+/* ═══════════════════════════════════════════════
+   TRINITY DESIGN TOKENS — The Iron Road
+   ═══════════════════════════════════════════════ */
+
+:root {
+  /* ── Purdue / Trinity Palette ── */
+  --gold:         #CFB991;
+  --gold-dark:    #8E7744;
+  --gold-bright:  #E8D5A3;
+  --black:        #0C0B09;
+  --bg:           #131210;
+  --bg-surface:   #1A1916;
+  --bg-card:      rgba(24, 22, 18, 0.88);
+  --bg-glass:     rgba(24, 22, 18, 0.72);
+
+  /* ── Book Texture ── */
+  --bg-parchment: #16140F;
+  --bg-page:      linear-gradient(
+    180deg,
+    rgba(207, 185, 145, 0.06) 0%,
+    rgba(18, 17, 14, 1) 20%,
+    rgba(16, 15, 12, 1) 80%,
+    rgba(207, 185, 145, 0.04) 100%
+  );
+  --bg-vellum:    rgba(207, 185, 145, 0.035);
+  --border-spine: linear-gradient(180deg,
+    rgba(207, 185, 145, 0.05),
+    rgba(207, 185, 145, 0.2) 20%,
+    rgba(207, 185, 145, 0.2) 80%,
+    rgba(207, 185, 145, 0.05)
+  );
+
+  /* ── Semantic Colors ── */
+  --green:        #10B981;
+  --red:          #EF4444;
+  --blue:         #3B82F6;
+  --accent:       #4EC9B0;
+  --purple:       #A78BFA;
+
+  /* ── ADDIECRAPEYE Group Accents ── */
+  --group-addie:  #CFB991;   /* Gold — Instructional Design */
+  --group-crap:   #4EC9B0;   /* Teal — Visual Design */
+  --group-eye:    #A78BFA;   /* Violet — Metacognition */
+
+  /* ── Text ── */
+  --text:         #E2E8F0;
+  --text-dim:     #6B7280;
+  --text-muted:   #4B5563;
+  --text-pete:    #D4C9B8;   /* Warm parchment text for Pete's prose */
+
+  /* ── Borders ── */
+  --border:       #1F2937;
+  --border-glass: rgba(207, 185, 145, 0.15);
+  --border-gold:  rgba(207, 185, 145, 0.3);
+
+  /* ── Typography ── */
+  --font-display:     'Cinzel', serif;
+  --font-decorative:  'Cinzel Decorative', 'Cinzel', serif;
+  --font-body:        'Crimson Text', serif;
+  --font-ui:          'Inter', sans-serif;
+  --font-mono:        'JetBrains Mono', monospace;
+
+  /* ── Type Scale (modular, 1.25 ratio) ── */
+  --type-xs:   10px;
+  --type-sm:   12px;
+  --type-base: 14px;
+  --type-md:   16px;
+  --type-lg:   20px;
+  --type-xl:   26px;
+  --type-2xl:  32px;
+  --type-3xl:  42px;
+
+  /* ── Spacing ── */
+  --sp-xs: 4px;
+  --sp-sm: 8px;
+  --sp-md: 16px;
+  --sp-lg: 24px;
+  --sp-xl: 32px;
+  --sp-2xl: 48px;
+
+  /* ── Radii ── */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+
+  /* ── Transitions ── */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+
+  /* ── Shadows ── */
+  --shadow-glow-gold: 0 0 20px rgba(207, 185, 145, 0.15), 0 0 40px rgba(207, 185, 145, 0.05);
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.3);
+  --shadow-card-hover: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow-page: inset 4px 0 16px -8px rgba(0, 0, 0, 0.5),
+                 inset -4px 0 16px -8px rgba(0, 0, 0, 0.5);
+  --shadow-spine: -6px 0 20px -6px rgba(0, 0, 0, 0.6);
+
+  /* ── Layout ── */
+  --chapter-rail-width: 220px;
+  --hud-width: 260px;
+  --nav-height: 52px;
+  --footer-height: 36px;
+  --reading-width: 640px;
+}
+
+/* ═══════════════════════════════════════════════
+   GLOBAL RESET
+   ═══════════════════════════════════════════════ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold-dark); }
+
+/* ═══════════════════════════════════════════════
+   GLASS CARD PRIMITIVE
+   ═══════════════════════════════════════════════ */
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--r-lg);
+  padding: var(--sp-md);
+  backdrop-filter: blur(12px);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* ── Button States ── */
+.chat-send:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: var(--border);
+  color: var(--text-dim);
+}
+
+.chat-send:disabled:hover {
+  background: transparent;
+  color: var(--text-dim);
+}
+
+.card-header {
+  font-family: var(--font-display);
+  color: var(--gold);
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: var(--sp-sm);
+}
+
+.card-subtitle {
+  font-family: var(--font-mono);
+  font-size: var(--type-xs);
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  margin-bottom: var(--sp-sm);
+}
+
+/* ═══════════════════════════════════════════════
+   PROGRESS BAR
+   ═══════════════════════════════════════════════ */
+
+.progress-bar {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(to right, var(--gold-dark), var(--gold));
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+/* ═══════════════════════════════════════════════
+   TAMING BAR (red → gold → green)
+   ═══════════════════════════════════════════════ */
+
+.taming-bar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.taming-fill { height: 100%; border-radius: 2px; transition: width 0.4s; }
+.taming-fill.low  { background: var(--red); }
+.taming-fill.mid  { background: var(--gold); }
+.taming-fill.high { background: var(--green); }
+
+/* ═══════════════════════════════════════════════
+   BOOK ORNAMENTS — Decorative Elements
+   ═══════════════════════════════════════════════ */
+
+/* Ornamental divider — ❧ fleuron style, CSS-only */
+.book-divider {
+  text-align: center;
+  margin: var(--sp-lg) 0;
+  color: var(--gold-dark);
+  font-size: 14px;
+  opacity: 0.4;
+  letter-spacing: 8px;
+  user-select: none;
+}
+
+.book-divider::before {
+  content: '— ❦ —';
+}
+
+/* Lighter variant for tight spaces */
+.book-divider--light {
+  margin: var(--sp-md) 0;
+  opacity: 0.25;
+}
+
+.book-divider--light::before {
+  content: '· · ·';
+  letter-spacing: 12px;
+}
+
+/* Horizontal rule — gradient line */
+.book-rule {
+  border: none;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--gold-dark),
+    transparent
+  );
+  margin: var(--sp-lg) 0;
+  opacity: 0.3;
+}
+
+/* Chapter ornament — used above chapter headings */
+.chapter-ornament {
+  text-align: center;
+  font-size: 18px;
+  color: var(--gold-dark);
+  opacity: 0.35;
+  margin-bottom: var(--sp-sm);
+  letter-spacing: 6px;
+  user-select: none;
+}
+
+.chapter-ornament::before {
+  content: '⟡ ⟡ ⟡';
+}
+
+/* Page edge — subtle shadow suggesting book binding */
+.page-edge-left {
+  box-shadow: inset -8px 0 16px -8px rgba(0, 0, 0, 0.4);
+}
+
+.page-edge-right {
+  box-shadow: inset 8px 0 16px -8px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Separator helper ── */
+.sep {
+  opacity: 0.4;
+}
+
+/* ═══════════════════════════════════════════════
+   HUD SECTION GROUPS
+   ═══════════════════════════════════════════════ */
+
+.hud-section {
+  margin-bottom: var(--sp-sm);
+}
+
+.hud-section__header {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 3px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: var(--sp-xs);
+  padding-bottom: var(--sp-xs);
+  border-bottom: 1px solid rgba(207, 185, 145, 0.06);
+}

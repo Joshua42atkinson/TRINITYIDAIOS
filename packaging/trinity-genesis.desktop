@@ -1,0 +1,24 @@
+[Desktop Entry]
+Name=Trinity Genesis
+Comment=AI-Powered Learning Companion with Cognitive Load Management
+Exec=trinity-ui
+Icon=trinity-genesis
+Type=Application
+Categories=Education;Development;Game;
+Keywords=learning;education;ai;programming;rust;tutor;
+Terminal=false
+StartupNotify=true
+StartupWMClass=trinity-genesis
+MimeType=text/markdown;text/x-rust;
+
+Actions=NewCurriculum;GenerateLesson;
+
+[Desktop Action NewCurriculum]
+Name=Create New Curriculum
+Exec=trinity create-curriculum
+Icon=document-new
+
+[Desktop Action GenerateLesson]
+Name=Generate Lesson
+Exec=trinity generate-lesson
+Icon=document-edit

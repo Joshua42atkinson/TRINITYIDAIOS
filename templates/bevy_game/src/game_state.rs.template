@@ -1,0 +1,146 @@
+//! Game state management — ADDIECRAPEYE-aligned state machine
+
+use bevy::prelude::*;
+use crate::config::GameConfig;
+use crate::player::Player;
+
+/// Game phases — maps to ADDIECRAPEYE progression
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum GamePhase {
+    #[default]
+    Menu,
+    Playing,
+    Paused,
+    Complete,
+}
+
+/// Word collectible entity
+#[derive(Component)]
+pub struct WordOrb {
+    pub word: String,
+    pub definition: String,
+    pub collected: bool,
+}
+
+/// Level marker component
+#[derive(Component)]
+pub struct LevelEntity;
+
+/// Quest objective tracker
+#[derive(Resource, Default)]
+pub struct QuestTracker {
+    pub words_collected: Vec<String>,
+    pub words_needed: usize,
+    pub score: u32,
+    pub quest_title: String,
+}
+
+/// Handle phase transitions based on game state
+pub fn handle_phase_transitions(
+    tracker: Res<QuestTracker>,
+    current_state: Res<State<GamePhase>>,
+    mut next_state: ResMut<NextState<GamePhase>>,
+) {
+    if *current_state.get() == GamePhase::Playing 
+        && tracker.words_collected.len() >= tracker.words_needed 
+        && tracker.words_needed > 0 
+    {
+        next_state.set(GamePhase::Complete);
+    }
+}
+
+/// Spawn the game level with word orbs scattered around "Purdue campus"
+pub fn spawn_level(
+    mut commands: Commands,
+    config: Res<GameConfig>,
+) {
+    // Initialize quest tracker
+    commands.insert_resource(QuestTracker {
+        words_collected: Vec::new(),
+        words_needed: config.vocabulary.len(),
+        score: 0,
+        quest_title: config.game_title.clone(),
+    });
+
+    // Spawn player
+    commands.spawn((
+        Player { speed: 200.0 },
+        Sprite {
+            color: Color::srgb(0.2, 0.6, 1.0),
+            custom_size: Some(Vec2::new(32.0, 32.0)),
+            ..default()
+        },
+        Transform::from_xyz(0.0, 0.0, 1.0),
+        LevelEntity,
+    ));
+
+    // Spawn word orbs at positions around the "campus"
+    let positions = [
+        Vec2::new(-300.0, 200.0),
+        Vec2::new(250.0, -150.0),
+        Vec2::new(-100.0, -280.0),
+        Vec2::new(350.0, 250.0),
+        Vec2::new(-250.0, -50.0),
+        Vec2::new(100.0, 300.0),
+        Vec2::new(-350.0, -200.0),
+        Vec2::new(200.0, 50.0),
+    ];
+
+    for (i, vocab) in config.vocabulary.iter().enumerate() {
+        let pos = positions[i % positions.len()];
+        commands.spawn((
+            WordOrb {
+                word: vocab.word.clone(),
+                definition: vocab.definition.clone(),
+                collected: false,
+            },
+            Sprite {
+                color: Color::srgb(1.0, 0.84, 0.0), // Gold orbs
+                custom_size: Some(Vec2::new(24.0, 24.0)),
+                ..default()
+            },
+            Transform::from_xyz(pos.x, pos.y, 0.5),
+            LevelEntity,
+        ));
+    }
+
+    // Spawn campus landmarks (visual reference points)
+    let landmarks = [
+        ("Engineering Fountain", Vec2::new(0.0, 250.0), Color::srgb(0.5, 0.5, 0.8)),
+        ("Bell Tower", Vec2::new(-200.0, 0.0), Color::srgb(0.8, 0.6, 0.4)),
+        ("Memorial Union", Vec2::new(200.0, -200.0), Color::srgb(0.6, 0.4, 0.3)),
+    ];
+
+    for (name, pos, color) in landmarks {
+        commands.spawn((
+            Sprite {
+                color,
+                custom_size: Some(Vec2::new(48.0, 48.0)),
+                ..default()
+            },
+            Transform::from_xyz(pos.x, pos.y, 0.0),
+            LevelEntity,
+        ));
+        // Label
+        commands.spawn((
+            Text2d::new(name),
+            TextFont {
+                font_size: 12.0,
+                ..default()
+            },
+            TextColor(Color::WHITE),
+            Transform::from_xyz(pos.x, pos.y - 32.0, 0.2),
+            LevelEntity,
+        ));
+    }
+}
+
+/// Despawn all level entities
+pub fn despawn_level(
+    mut commands: Commands,
+    query: Query<Entity, With<LevelEntity>>,
+) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+}

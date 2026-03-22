@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT id, document_id, chunk_index, content, tags,\n                   priority_level, token_count, last_updated, created_at\n            FROM document_chunks\n            WHERE priority_level = 3\n            ORDER BY token_count DESC\n            LIMIT $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "document_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "chunk_index",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "tags",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 5,
+        "name": "priority_level",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "token_count",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "last_updated",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "bd6ada2ca1258b6b82d100c1386eb9ba8ae717f59d24862d1e83a0c9c5849dba"
+}

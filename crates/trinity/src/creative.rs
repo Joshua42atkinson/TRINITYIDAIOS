@@ -1,0 +1,1155 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — trinity-server
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:        creative.rs
+// PURPOSE:     Creative Sidecar API — ComfyUI image + MusicGPT audio generation
+//
+// ARCHITECTURE:
+//   • ComfyUI client for SDXL-Turbo image generation (NPU optimized)
+//   • MusicGPT client for procedural audio/music generation
+//   • CRAP design system: Contrast, Repetition, Alignment, Proximity
+//   • Iron Road visual enhancement: generates game assets on demand
+//   • Character sheet integration for style persistence
+//
+// DEPENDENCIES:
+//   - axum — HTTP handlers for creative endpoints
+//   - serde — Image/audio request serialization
+//   - tracing — Generation operation logging
+//   - trinity_sidecar_engineer — ComfyUI client re-export
+//
+// CHANGES:
+//   2026-03-16  Cascade  Migrated to §17 comment standard
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
+use axum::{
+    extract::{Path, State},
+    http::{header, StatusCode},
+    response::{Json, Response},
+};
+use serde::{Deserialize, Serialize};
+use tracing::info;
+
+use crate::character_sheet;
+use crate::AppState;
+
+// TODO: Re-enable when trinity_sidecar_engineer crate is available
+// pub use trinity_sidecar_engineer::comfyui::ComfyUIClient;
+
+// ============================================================================
+// REQUEST/RESPONSE TYPES
+// ============================================================================
+
+/// Image generation request
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)] // Fields populated via serde deserialization
+pub struct ImageRequest {
+    /// The prompt describing the desired image
+    pub prompt: String,
+    /// Optional negative prompt (what to avoid)
+    #[serde(default)]
+    pub negative_prompt: Option<String>,
+    /// Visual style (steampunk, cyberpunk, etc.)
+    #[serde(default)]
+    pub style: Option<String>,
+    /// Override width
+    #[serde(default = "default_width")]
+    pub width: u32,
+    /// Override height
+    #[serde(default = "default_height")]
+    pub height: u32,
+}
+
+fn default_width() -> u32 {
+    1024
+}
+fn default_height() -> u32 {
+    1024
+}
+
+/// Image generation response
+#[derive(Debug, Serialize)]
+pub struct ImageResponse {
+    pub success: bool,
+    /// Base64-encoded image data
+    pub image_data: Option<String>,
+    /// Path to saved image if stored
+    pub image_path: Option<String>,
+    /// HTTP-accessible URL for the generated image
+    pub image_url: Option<String>,
+    pub message: String,
+    pub generation_time_ms: u64,
+}
+
+/// Music generation request
+#[derive(Debug, Deserialize)]
+pub struct MusicRequest {
+    /// Music style (orchestral, lofi, etc.)
+    #[serde(default)]
+    pub style: Option<String>,
+    /// Duration in seconds
+    #[serde(default = "default_duration")]
+    pub duration_secs: u32,
+    /// Optional mood description
+    #[serde(default)]
+    pub mood: Option<String>,
+}
+
+fn default_duration() -> u32 {
+    60
+}
+
+/// Music generation response
+#[derive(Debug, Serialize)]
+pub struct MusicResponse {
+    pub success: bool,
+    /// Path to generated audio file
+    pub audio_path: Option<String>,
+    pub message: String,
+    pub generation_time_ms: u64,
+}
+
+/// Video generation request
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)] // Fields populated via serde deserialization
+pub struct VideoRequest {
+    /// The prompt describing the desired video
+    pub prompt: String,
+    /// Video duration in seconds (default 4)
+    #[serde(default = "default_video_duration")]
+    pub duration_secs: u32,
+    /// Frames per second (default 24)
+    #[serde(default = "default_fps")]
+    pub fps: u32,
+    /// Resolution height (720 or 480)
+    #[serde(default = "default_resolution")]
+    pub height: u32,
+}
+
+fn default_video_duration() -> u32 {
+    4
+}
+fn default_fps() -> u32 {
+    24
+}
+fn default_resolution() -> u32 {
+    720
+}
+
+/// Video generation response
+#[derive(Debug, Serialize)]
+pub struct VideoResponse {
+    pub success: bool,
+    /// Path to generated video file
+    pub video_path: Option<String>,
+    /// Base64-encoded video data (for small videos)
+    pub video_data: Option<String>,
+    pub message: String,
+    pub generation_time_ms: u64,
+}
+
+/// 3D mesh generation request — Hunyuan3D-2.1 via Gradio API
+#[derive(Debug, Deserialize)]
+pub struct Mesh3DRequest {
+    /// The prompt describing the desired 3D mesh (or image path for image-to-3D)
+    pub prompt: String,
+    /// Optional: base64-encoded image for image-to-3D mode
+    #[serde(default)]
+    pub image_base64: Option<String>,
+    /// Output format: glb, obj (default: glb)
+    #[serde(default = "default_mesh_format")]
+    pub format: String,
+}
+
+fn default_mesh_format() -> String {
+    "glb".to_string()
+}
+
+/// 3D mesh generation response
+#[derive(Debug, Serialize)]
+pub struct Mesh3DResponse {
+    pub success: bool,
+    /// Path to generated mesh file
+    pub mesh_path: Option<String>,
+    pub message: String,
+    pub generation_time_ms: u64,
+}
+
+/// Creative sidecar status
+#[derive(Debug, Serialize)]
+pub struct CreativeStatus {
+    pub comfyui: SidecarStatus,
+    pub musicgpt: SidecarStatus,
+    pub hunyuan3d: SidecarStatus,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SidecarStatus {
+    pub running: bool,
+    pub endpoint: String,
+    pub message: String,
+}
+
+/// Creative settings update request
+#[derive(Debug, Deserialize)]
+pub struct CreativeSettingsRequest {
+    #[serde(default)]
+    pub visual_style: Option<String>,
+    #[serde(default)]
+    pub music_style: Option<String>,
+    #[serde(default)]
+    pub creative_enabled: Option<bool>,
+}
+
+/// Creative settings response
+#[derive(Debug, Serialize)]
+pub struct CreativeSettingsResponse {
+    pub visual_style: String,
+    pub music_style: String,
+    pub creative_enabled: bool,
+}
+
+// ============================================================================
+// HEALTH PROBES (used by startup auto-launch)
+// ============================================================================
+
+/// Quick health check for ComfyUI — returns true if responding on :8188
+pub async fn check_comfyui_health_quick() -> bool {
+    crate::http::QUICK
+        .get("http://127.0.0.1:8188/system_stats")
+        .send()
+        .await
+        .map(|r| r.status().is_success())
+        .unwrap_or(false)
+}
+
+// ============================================================================
+// API HANDLERS
+// ============================================================================
+
+/// Check creative sidecar status
+pub async fn creative_status() -> Json<CreativeStatus> {
+    let comfyui = check_comfyui().await;
+    let musicgpt = check_musicgpt().await;
+    let hunyuan3d = check_hunyuan3d().await;
+
+    Json(CreativeStatus {
+        comfyui,
+        musicgpt,
+        hunyuan3d,
+    })
+}
+
+async fn check_comfyui() -> SidecarStatus {
+    let running = crate::http::QUICK
+        .get("http://127.0.0.1:8188/system_stats")
+        .send()
+        .await
+        .map(|r| r.status().is_success())
+        .unwrap_or(false);
+
+    SidecarStatus {
+        running,
+        endpoint: "http://127.0.0.1:8188".to_string(),
+        message: if running {
+            "ComfyUI running".to_string()
+        } else {
+            "ComfyUI not running. Start with: cd ~/ComfyUI && python main.py --port 8188"
+                .to_string()
+        },
+    }
+}
+
+async fn check_musicgpt() -> SidecarStatus {
+    let running = crate::http::check_health("http://127.0.0.1:8189").await;
+
+    SidecarStatus {
+        running,
+        endpoint: "http://127.0.0.1:8189".to_string(),
+        message: if running {
+            "MusicGPT running".to_string()
+        } else {
+            "MusicGPT not running. Install: pip install musicgpt && musicgpt serve --port 8189"
+                .to_string()
+        },
+    }
+}
+
+async fn check_hunyuan3d() -> SidecarStatus {
+    let running = crate::http::QUICK
+        .get("http://127.0.0.1:7860/api/predict")
+        .send()
+        .await
+        .map(|_| true)
+        .unwrap_or(false);
+
+    SidecarStatus {
+        running,
+        endpoint: "http://127.0.0.1:7860".to_string(),
+        message: if running {
+            "Hunyuan3D-2.1 running".to_string()
+        } else {
+            "Hunyuan3D-2.1 not running. Start: cd Hunyuan3D-2.1 && python app.py".to_string()
+        },
+    }
+}
+
+/// Generate an image via ComfyUI
+pub async fn generate_image(
+    Json(request): Json<ImageRequest>,
+) -> Result<Json<ImageResponse>, (StatusCode, String)> {
+    let start = std::time::Instant::now();
+
+    let client = &*crate::http::LONG;
+
+    // Check if ComfyUI is running
+    let healthy = client
+        .get("http://127.0.0.1:8188/system_stats")
+        .timeout(std::time::Duration::from_secs(3))
+        .send()
+        .await
+        .map(|r| r.status().is_success())
+        .unwrap_or(false);
+
+    if !healthy {
+        return Err((
+            StatusCode::SERVICE_UNAVAILABLE,
+            "ComfyUI not running. Start with: cd ~/ComfyUI && python main.py --port 8188"
+                .to_string(),
+        ));
+    }
+
+    // Build style suffix
+    let style_suffix = get_style_prompt_suffix(&request.style);
+    let negative = request
+        .negative_prompt
+        .as_deref()
+        .unwrap_or("blurry, low quality, distorted, watermark, text");
+    let full_prompt = format!("{}, {}", request.prompt, style_suffix);
+
+    info!(
+        "Generating image: {} ({}x{})",
+        full_prompt, request.width, request.height
+    );
+
+    // ComfyUI API workflow for SDXL Turbo (simple txt2img)
+    let workflow = serde_json::json!({
+        "prompt": {
+            "1": {
+                "class_type": "CheckpointLoaderSimple",
+                "inputs": { "ckpt_name": "sd_xl_turbo_1.0_fp16.safetensors" }
+            },
+            "2": {
+                "class_type": "CLIPTextEncode",
+                "inputs": { "text": full_prompt, "clip": ["1", 1] }
+            },
+            "3": {
+                "class_type": "CLIPTextEncode",
+                "inputs": { "text": negative, "clip": ["1", 1] }
+            },
+            "4": {
+                "class_type": "EmptyLatentImage",
+                "inputs": { "width": request.width, "height": request.height, "batch_size": 1 }
+            },
+            "5": {
+                "class_type": "KSampler",
+                "inputs": {
+                    "model": ["1", 0], "positive": ["2", 0], "negative": ["3", 0],
+                    "latent_image": ["4", 0],
+                    "seed": rand::random::<u64>(), "steps": 4, "cfg": 1.0,
+                    "sampler_name": "euler", "scheduler": "normal", "denoise": 1.0
+                }
+            },
+            "6": {
+                "class_type": "VAEDecode",
+                "inputs": { "samples": ["5", 0], "vae": ["1", 2] }
+            },
+            "7": {
+                "class_type": "SaveImage",
+                "inputs": { "images": ["6", 0], "filename_prefix": "trinity" }
+            }
+        }
+    });
+
+    // Queue the prompt
+    let response = client
+        .post("http://127.0.0.1:8188/prompt")
+        .json(&workflow)
+        .send()
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("ComfyUI error: {}", e),
+            )
+        })?;
+
+    if !response.status().is_success() {
+        let body = response.text().await.unwrap_or_default();
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("ComfyUI rejected: {}", body),
+        ));
+    }
+
+    let result: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let prompt_id = result["prompt_id"].as_str().unwrap_or("").to_string();
+
+    // Poll for completion (max 60s)
+    for _ in 0..60 {
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        let history = client
+            .get(format!("http://127.0.0.1:8188/history/{}", prompt_id))
+            .send()
+            .await;
+        if let Ok(resp) = history {
+            if let Ok(hist) = resp.json::<serde_json::Value>().await {
+                if let Some(outputs) = hist.get(&prompt_id).and_then(|h| h.get("outputs")) {
+                    // Find the saved image
+                    for (_node, output) in outputs.as_object().unwrap_or(&serde_json::Map::new()) {
+                        if let Some(images) = output.get("images").and_then(|i| i.as_array()) {
+                            if let Some(img) = images.first() {
+                                let filename = img["filename"].as_str().unwrap_or("");
+                                let subfolder = img["subfolder"].as_str().unwrap_or("");
+                                let comfyui_path = if subfolder.is_empty() {
+                                    let home = std::env::var("HOME")
+                                        .unwrap_or_else(|_| "/tmp".to_string());
+                                    std::path::PathBuf::from(format!(
+                                        "{}/ComfyUI/output/{}",
+                                        home, filename
+                                    ))
+                                } else {
+                                    let home = std::env::var("HOME")
+                                        .unwrap_or_else(|_| "/tmp".to_string());
+                                    std::path::PathBuf::from(format!(
+                                        "{}/ComfyUI/output/{}/{}",
+                                        home, subfolder, filename
+                                    ))
+                                };
+
+                                // Copy to unified Desktop app storage
+                                let home = std::env::var("HOME")
+                                    .unwrap_or_else(|_| "/home/joshua".to_string());
+                                let workspace_dir = std::path::PathBuf::from(home)
+                                    .join(".local/share/trinity/workspace/assets/images");
+                                let _ = std::fs::create_dir_all(&workspace_dir);
+
+                                let final_path = workspace_dir.join(filename);
+                                let _ = std::fs::copy(&comfyui_path, &final_path);
+
+                                info!(
+                                    "Image generated and stored in unified workspace: {} in {}ms",
+                                    final_path.display(),
+                                    start.elapsed().as_millis()
+                                );
+                                return Ok(Json(ImageResponse {
+                                    success: true,
+                                    image_data: None,
+                                    image_path: Some(final_path.to_string_lossy().to_string()),
+                                    image_url: Some(format!("/api/creative/assets/{}", filename)),
+                                    message: "Image generated".to_string(),
+                                    generation_time_ms: start.elapsed().as_millis() as u64,
+                                }));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Err((
+        StatusCode::REQUEST_TIMEOUT,
+        "Image generation timed out after 60s".to_string(),
+    ))
+}
+
+/// Generate music via MusicGPT
+pub async fn generate_music(
+    Json(request): Json<MusicRequest>,
+) -> Result<Json<MusicResponse>, (StatusCode, String)> {
+    let start = std::time::Instant::now();
+
+    // Check MusicGPT health
+    let client = &*crate::http::LONG;
+
+    // Check if running
+    let healthy = client
+        .get("http://127.0.0.1:8189/health")
+        .timeout(std::time::Duration::from_secs(3))
+        .send()
+        .await
+        .map(|r| r.status().is_success())
+        .unwrap_or(false);
+
+    if !healthy {
+        return Err((
+            StatusCode::SERVICE_UNAVAILABLE,
+            "MusicGPT not running. Start with: musicgpt serve --port 8189".to_string(),
+        ));
+    }
+
+    // Build prompt from style and mood
+    let style_prompt = get_music_style_prompt(&request.style);
+    let mood_suffix = request.mood.as_deref().unwrap_or("");
+    let full_prompt = if mood_suffix.is_empty() {
+        style_prompt.to_string()
+    } else {
+        format!("{}, {}", style_prompt, mood_suffix)
+    };
+
+    info!("Generating music: {}", full_prompt);
+
+    // Call MusicGPT API
+    let response = client
+        .post("http://127.0.0.1:8189/generate")
+        .json(&serde_json::json!({
+            "prompt": full_prompt,
+            "duration_secs": request.duration_secs,
+        }))
+        .send()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    if !response.status().is_success() {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("MusicGPT error: {}", response.status()),
+        ));
+    }
+
+    // Parse response
+    let result: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let audio_path = result["audio_path"].as_str().map(|s| s.to_string());
+
+    Ok(Json(MusicResponse {
+        success: true,
+        audio_path,
+        message: "Music generated successfully".to_string(),
+        generation_time_ms: start.elapsed().as_millis() as u64,
+    }))
+}
+
+/// Generate a video via ComfyUI with HunyuanVideo
+pub async fn generate_video(
+    Json(request): Json<VideoRequest>,
+) -> Result<Json<VideoResponse>, (StatusCode, String)> {
+    let start = std::time::Instant::now();
+
+    let client = &*crate::http::LONG;
+
+    // Check ComfyUI health
+    let healthy = client
+        .get("http://127.0.0.1:8188/system_stats")
+        .timeout(std::time::Duration::from_secs(3))
+        .send()
+        .await
+        .map(|r| r.status().is_success())
+        .unwrap_or(false);
+
+    if !healthy {
+        return Err((
+            StatusCode::SERVICE_UNAVAILABLE,
+            "ComfyUI not running on :8188. Start ComfyUI with HunyuanVideo nodes.".to_string(),
+        ));
+    }
+
+    info!(
+        "Generating video: {} ({}s @ {}fps)",
+        request.prompt, request.duration_secs, request.fps
+    );
+
+    // Build and queue the HunyuanVideo workflow
+    let workflow = build_hunyuan_workflow(&request);
+    let response = client
+        .post("http://127.0.0.1:8188/prompt")
+        .json(&serde_json::json!({ "prompt": workflow }))
+        .send()
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("ComfyUI queue failed: {}", e),
+            )
+        })?;
+
+    if !response.status().is_success() {
+        let err_text = response.text().await.unwrap_or_default();
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("ComfyUI rejected workflow: {}", err_text),
+        ));
+    }
+
+    let result: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let prompt_id = result["prompt_id"]
+        .as_str()
+        .ok_or((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "No prompt_id in ComfyUI response".to_string(),
+        ))?
+        .to_string();
+
+    info!("Video queued: prompt_id={}", prompt_id);
+
+    // Wait for completion (up to 10 minutes)
+    let video_path = wait_for_video(client, &prompt_id).await?;
+
+    Ok(Json(VideoResponse {
+        success: true,
+        video_path: Some(video_path),
+        video_data: None,
+        message: "Video generated successfully".to_string(),
+        generation_time_ms: start.elapsed().as_millis() as u64,
+    }))
+}
+
+/// Generate a 3D mesh via Hunyuan3D-2.1 (Gradio API on :7860)
+/// WHY: Replaces broken Trellis pipeline. Hunyuan3D-2.1 produces high-fidelity
+///      3D meshes with PBR materials from text or image input.
+pub async fn generate_3d_mesh(
+    Json(request): Json<Mesh3DRequest>,
+) -> Result<Json<Mesh3DResponse>, (StatusCode, String)> {
+    let start = std::time::Instant::now();
+
+    let client = &*crate::http::LONG;
+
+    // Check Hunyuan3D-2.1 Gradio health
+    let healthy = client
+        .get("http://127.0.0.1:7860/api/predict")
+        .timeout(std::time::Duration::from_secs(3))
+        .send()
+        .await
+        .map(|_| true)
+        .unwrap_or(false);
+
+    if !healthy {
+        return Err((
+            StatusCode::SERVICE_UNAVAILABLE,
+            "Hunyuan3D-2.1 not running. Start with: python app.py (port 7860)".to_string(),
+        ));
+    }
+
+    info!("Generating 3D mesh: {}", request.prompt);
+
+    // Call Gradio API — text-to-3D or image-to-3D depending on input
+    let payload = if let Some(ref img_b64) = request.image_base64 {
+        // Image-to-3D mode
+        serde_json::json!({
+            "data": [img_b64, request.prompt, 50, 7.5],
+            "fn_index": 1
+        })
+    } else {
+        // Text-to-3D mode
+        serde_json::json!({
+            "data": [request.prompt, 50, 7.5],
+            "fn_index": 0
+        })
+    };
+
+    let response = client
+        .post("http://127.0.0.1:7860/api/predict")
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Hunyuan3D request failed: {}", e),
+            )
+        })?;
+
+    if !response.status().is_success() {
+        let err_text = response.text().await.unwrap_or_default();
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Hunyuan3D error: {}", err_text),
+        ));
+    }
+
+    let result: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Gradio returns file paths in data array
+    let mesh_path = result["data"]
+        .as_array()
+        .and_then(|a| a.first())
+        .and_then(|v| v.as_str())
+        .map(|s| {
+            // Copy to Trinity workspace
+            let home = std::env::var("HOME").unwrap_or_else(|_| "/home/joshua".to_string());
+            let workspace_dir = std::path::PathBuf::from(&home)
+                .join(".local/share/trinity/workspace/assets/meshes");
+            let _ = std::fs::create_dir_all(&workspace_dir);
+
+            let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
+            let filename = format!("trinity_mesh_{}.{}", timestamp, request.format);
+            let final_path = workspace_dir.join(&filename);
+            let _ = std::fs::copy(s, &final_path);
+            final_path.to_string_lossy().to_string()
+        });
+
+    Ok(Json(Mesh3DResponse {
+        success: mesh_path.is_some(),
+        mesh_path,
+        message: "3D mesh generated via Hunyuan3D-2.1".to_string(),
+        generation_time_ms: start.elapsed().as_millis() as u64,
+    }))
+}
+
+/// Build HunyuanVideo workflow for ComfyUI
+fn build_hunyuan_workflow(request: &VideoRequest) -> serde_json::Value {
+    // Calculate frames from duration and fps
+    let frames = request.duration_secs * request.fps;
+
+    serde_json::json!({
+        "1": {
+            "class_type": "HunyuanVideoModelLoader",
+            "inputs": {
+                "model": "hunyuan-video-t2v-720p",
+                "quantization": "fp8_scaled",
+            }
+        },
+        "2": {
+            "class_type": "HunyuanVideoPromptEncoder",
+            "inputs": {
+                "prompt": request.prompt,
+                "negative_prompt": "blurry, low quality, distorted",
+            }
+        },
+        "3": {
+            "class_type": "HunyuanVideoSampler",
+            "inputs": {
+                "model": ["1", 0],
+                "prompt_embeds": ["2", 0],
+                "frames": frames,
+                "height": request.height,
+                "width": (request.height * 16 / 9),
+                "steps": 30,
+                "guidance_scale": 7.0,
+            }
+        },
+        "4": {
+            "class_type": "HunyuanVideoDecode",
+            "inputs": {
+                "latents": ["3", 0],
+                "vae": ["1", 1],
+            }
+        },
+        "5": {
+            "class_type": "SaveVideo",
+            "inputs": {
+                "video": ["4", 0],
+                "filename_prefix": "trinity_video",
+                "fps": request.fps,
+            }
+        }
+    })
+}
+
+/// Wait for video generation to complete
+async fn wait_for_video(
+    client: &reqwest::Client,
+    prompt_id: &str,
+) -> Result<String, (StatusCode, String)> {
+    let mut elapsed = 0u64;
+    let max_wait = 600_000; // 10 minutes max
+
+    loop {
+        if elapsed > max_wait {
+            return Err((
+                StatusCode::REQUEST_TIMEOUT,
+                "Video generation timed out".to_string(),
+            ));
+        }
+
+        // Check history for completed prompt
+        let response = client
+            .get(format!("http://127.0.0.1:8188/history/{}", prompt_id))
+            .send()
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+        if response.status().is_success() {
+            let history: serde_json::Value = response
+                .json()
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+            // Check if outputs exist
+            if let Some(outputs) = history.get(prompt_id).and_then(|h| h.get("outputs")) {
+                for (_node_id, output) in outputs.as_object().unwrap_or(&serde_json::Map::new()) {
+                    if let Some(videos) = output.get("videos") {
+                        if let Some(video) = videos.as_array().and_then(|v| v.first()) {
+                            if let Some(filename) = video.get("filename").and_then(|f| f.as_str()) {
+                                let subfolder = video
+                                    .get("subfolder")
+                                    .and_then(|s| s.as_str())
+                                    .unwrap_or("");
+                                let comfyui_path = if subfolder.is_empty() {
+                                    let home = std::env::var("HOME")
+                                        .unwrap_or_else(|_| "/tmp".to_string());
+                                    std::path::PathBuf::from(format!(
+                                        "{}/ComfyUI/output/{}",
+                                        home, filename
+                                    ))
+                                } else {
+                                    let home = std::env::var("HOME")
+                                        .unwrap_or_else(|_| "/tmp".to_string());
+                                    std::path::PathBuf::from(format!(
+                                        "{}/ComfyUI/output/{}/{}",
+                                        home, subfolder, filename
+                                    ))
+                                };
+
+                                // Copy to unified Desktop app storage
+                                let home = std::env::var("HOME")
+                                    .unwrap_or_else(|_| "/home/joshua".to_string());
+                                let workspace_dir = std::path::PathBuf::from(home)
+                                    .join(".local/share/trinity/workspace/assets/videos");
+                                let _ = std::fs::create_dir_all(&workspace_dir);
+
+                                let final_path = workspace_dir.join(filename);
+                                let _ = std::fs::copy(&comfyui_path, &final_path);
+
+                                return Ok(final_path.to_string_lossy().to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Wait and retry
+        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+        elapsed += 5000;
+    }
+}
+
+/// Get current creative settings from character sheet
+pub async fn get_creative_settings(
+    State(state): State<AppState>,
+) -> Json<CreativeSettingsResponse> {
+    let sheet = state.character_sheet.read().await;
+    Json(CreativeSettingsResponse {
+        visual_style: format!("{:?}", sheet.creative_config.visual_style).to_lowercase(),
+        music_style: format!("{:?}", sheet.creative_config.music_style).to_lowercase(),
+        creative_enabled: sheet.creative_config.creative_enabled,
+    })
+}
+
+/// Update creative settings in character sheet and persist to disk
+pub async fn update_creative_settings(
+    State(state): State<AppState>,
+    Json(request): Json<CreativeSettingsRequest>,
+) -> Result<Json<CreativeSettingsResponse>, (StatusCode, String)> {
+    let mut sheet = state.character_sheet.write().await;
+
+    // Update visual style
+    if let Some(visual) = request.visual_style.as_deref() {
+        sheet.creative_config.visual_style = match visual {
+            "cyberpunk" => trinity_protocol::character_sheet::VisualStyle::Cyberpunk,
+            "fantasy" => trinity_protocol::character_sheet::VisualStyle::Fantasy,
+            "minimalist" => trinity_protocol::character_sheet::VisualStyle::Minimalist,
+            "retro" => trinity_protocol::character_sheet::VisualStyle::Retro,
+            "noir" => trinity_protocol::character_sheet::VisualStyle::Noir,
+            _ => trinity_protocol::character_sheet::VisualStyle::Steampunk,
+        };
+    }
+
+    // Update music style
+    if let Some(music) = request.music_style.as_deref() {
+        sheet.creative_config.music_style = match music {
+            "lofi" => trinity_protocol::character_sheet::MusicStyle::Lofi,
+            "electronic" => trinity_protocol::character_sheet::MusicStyle::Electronic,
+            "jazz" => trinity_protocol::character_sheet::MusicStyle::Jazz,
+            "ambient" => trinity_protocol::character_sheet::MusicStyle::Ambient,
+            "classical" => trinity_protocol::character_sheet::MusicStyle::Classical,
+            _ => trinity_protocol::character_sheet::MusicStyle::Orchestral,
+        };
+    }
+
+    // Update enabled flag
+    if let Some(enabled) = request.creative_enabled {
+        sheet.creative_config.creative_enabled = enabled;
+    }
+
+    // Persist to disk
+    if let Err(e) = character_sheet::save_character_sheet(&sheet) {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to save settings: {}", e),
+        ));
+    }
+
+    info!(
+        "Updated creative settings: visual={:?}, music={:?}, enabled={}",
+        sheet.creative_config.visual_style,
+        sheet.creative_config.music_style,
+        sheet.creative_config.creative_enabled
+    );
+
+    Ok(Json(CreativeSettingsResponse {
+        visual_style: format!("{:?}", sheet.creative_config.visual_style).to_lowercase(),
+        music_style: format!("{:?}", sheet.creative_config.music_style).to_lowercase(),
+        creative_enabled: sheet.creative_config.creative_enabled,
+    }))
+}
+
+/// Get logs from the creative sidecar
+pub async fn get_creative_logs() -> Json<serde_json::Value> {
+    let log_path = std::path::Path::new("/tmp/trinity_art_sidecar.log");
+    let mut logs = Vec::new();
+
+    if log_path.exists() {
+        if let Ok(content) = std::fs::read_to_string(log_path) {
+            for line in content.lines().rev().take(50) {
+                if let Ok(entry) = serde_json::from_str::<serde_json::Value>(line) {
+                    logs.push(entry);
+                }
+            }
+        }
+    } else {
+        logs.push(serde_json::json!({
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+            "tag": "SYSTEM",
+            "message": "Creative log file not found. Waiting for first action..."
+        }));
+    }
+
+    Json(serde_json::json!({
+        "logs": logs
+    }))
+}
+
+// ============================================================================
+// ASSET MANAGEMENT — List and serve generated creative assets
+// ============================================================================
+
+/// Individual asset metadata returned by list_assets
+#[derive(Debug, Serialize)]
+pub struct AssetEntry {
+    pub filename: String,
+    pub asset_type: String, // "image", "video", "audio", "mesh"
+    pub size_bytes: u64,
+    pub created_at: String,
+    pub url: String, // /api/creative/assets/<filename>
+}
+
+/// Get the unified workspace assets directory
+fn get_workspace_assets_dir() -> std::path::PathBuf {
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/home/joshua".to_string());
+    std::path::PathBuf::from(home).join(".local/share/trinity/workspace/assets")
+}
+
+/// Classify a file extension into an asset type
+fn classify_asset(ext: &str) -> Option<&'static str> {
+    match ext {
+        "png" | "jpg" | "jpeg" | "webp" | "bmp" | "gif" => Some("image"),
+        "mp4" | "webm" | "avi" | "mov" | "mkv" => Some("video"),
+        "wav" | "mp3" | "ogg" | "flac" | "aac" => Some("audio"),
+        "glb" | "gltf" | "obj" | "fbx" | "stl" => Some("mesh"),
+        _ => None,
+    }
+}
+
+/// MIME type for an extension
+fn mime_for_ext(ext: &str) -> &'static str {
+    match ext {
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "webp" => "image/webp",
+        "gif" => "image/gif",
+        "bmp" => "image/bmp",
+        "mp4" => "video/mp4",
+        "webm" => "video/webm",
+        "avi" => "video/x-msvideo",
+        "mov" => "video/quicktime",
+        "mkv" => "video/x-matroska",
+        "wav" => "audio/wav",
+        "mp3" => "audio/mpeg",
+        "ogg" => "audio/ogg",
+        "flac" => "audio/flac",
+        "aac" => "audio/aac",
+        "glb" => "model/gltf-binary",
+        "gltf" => "model/gltf+json",
+        "obj" => "text/plain",
+        "fbx" => "application/octet-stream",
+        "stl" => "model/stl",
+        _ => "application/octet-stream",
+    }
+}
+
+/// List all generated assets across images/videos/meshes/audio subdirs
+pub async fn list_assets() -> Json<serde_json::Value> {
+    let base = get_workspace_assets_dir();
+    let subdirs = ["images", "videos", "meshes", "audio"];
+    let mut assets: Vec<AssetEntry> = Vec::new();
+
+    for subdir in &subdirs {
+        let dir = base.join(subdir);
+        if !dir.exists() {
+            continue;
+        }
+        if let Ok(entries) = std::fs::read_dir(&dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if !path.is_file() {
+                    continue;
+                }
+                let filename = path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("")
+                    .to_string();
+                let ext = path
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .unwrap_or("")
+                    .to_lowercase();
+
+                if let Some(asset_type) = classify_asset(&ext) {
+                    let meta = std::fs::metadata(&path).ok();
+                    let size_bytes = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+                    let created_at = meta
+                        .and_then(|m| m.modified().ok())
+                        .map(|t| {
+                            let dt: chrono::DateTime<chrono::Utc> = t.into();
+                            dt.to_rfc3339()
+                        })
+                        .unwrap_or_default();
+
+                    assets.push(AssetEntry {
+                        url: format!("/api/creative/assets/{}", filename),
+                        filename,
+                        asset_type: asset_type.to_string(),
+                        size_bytes,
+                        created_at,
+                    });
+                }
+            }
+        }
+    }
+
+    // Sort newest first
+    assets.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+
+    Json(serde_json::json!({
+        "assets": assets,
+        "total": assets.len(),
+    }))
+}
+
+/// Serve a generated asset file by filename
+pub async fn serve_asset(Path(filename): Path<String>) -> Result<Response, (StatusCode, String)> {
+    // Sanitize: no path traversal
+    if filename.contains("..") || filename.contains('/') || filename.contains('\\') {
+        return Err((StatusCode::BAD_REQUEST, "Invalid filename".to_string()));
+    }
+
+    let base = get_workspace_assets_dir();
+    let subdirs = ["images", "videos", "meshes", "audio"];
+
+    // Search all subdirs for the file
+    for subdir in &subdirs {
+        let path = base.join(subdir).join(&filename);
+        if path.exists() && path.is_file() {
+            let ext = path
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+            let content_type = mime_for_ext(&ext);
+
+            match tokio::fs::read(&path).await {
+                Ok(bytes) => {
+                    return Ok(Response::builder()
+                        .status(StatusCode::OK)
+                        .header(header::CONTENT_TYPE, content_type)
+                        .header(header::CACHE_CONTROL, "public, max-age=3600")
+                        .body(axum::body::Body::from(bytes))
+                        .unwrap());
+                }
+                Err(e) => {
+                    return Err((
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Failed to read file: {}", e),
+                    ));
+                }
+            }
+        }
+    }
+
+    Err((
+        StatusCode::NOT_FOUND,
+        format!("Asset not found: {}", filename),
+    ))
+}
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+#[allow(dead_code)] // Called by generate_image when user specifies art style
+fn get_style_prompt_suffix(style: &Option<String>) -> &'static str {
+    match style.as_deref() {
+        Some("steampunk") => "steampunk aesthetic, brass gears, steam pipes, Victorian industrial, warm amber lighting",
+        Some("cyberpunk") => "cyberpunk aesthetic, neon lights, holographic displays, futuristic cityscape",
+        Some("fantasy") => "fantasy aesthetic, magical atmosphere, ethereal glow, medieval architecture",
+        Some("minimalist") => "minimalist aesthetic, clean lines, simple shapes, neutral colors",
+        Some("retro") => "retro pixel art style, 8-bit graphics, nostalgic gaming aesthetic",
+        Some("noir") => "noir aesthetic, dramatic shadows, black and white, film noir lighting",
+        _ => "steampunk aesthetic, brass gears, steam pipes, Victorian industrial, warm amber lighting",
+    }
+}
+
+fn get_music_style_prompt(style: &Option<String>) -> &'static str {
+    match style.as_deref() {
+        Some("orchestral") => "epic orchestral background music, cinematic, adventure theme",
+        Some("lofi") => "lofi hip hop beats, chill focus music, relaxed",
+        Some("electronic") => "synthwave electronic music, ambient synthesizer",
+        Some("jazz") => "smooth jazz background music, noir detective vibes",
+        Some("ambient") => "ambient atmospheric music, minimal, spacey",
+        Some("classical") => "classical orchestral music, baroque style, elegant",
+        _ => "epic orchestral background music, cinematic, adventure theme",
+    }
+}
+
+#[allow(dead_code)] // Used when returning inline image data to frontend
+fn base64_encode(data: &[u8]) -> String {
+    use base64::Engine;
+    base64::engine::general_purpose::STANDARD.encode(data)
+}
+
+#[allow(dead_code)] // Used when ComfyUI returns raw bytes for workspace storage
+async fn save_image(image_bytes: Vec<u8>) -> Result<String, std::io::Error> {
+    let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
+    let filename = format!("trinity_creative_{}.png", timestamp);
+
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/home/joshua".to_string());
+    let path = std::path::Path::new(&home)
+        .join(".local/share/trinity/workspace/assets/images")
+        .join(&filename);
+
+    // Create directory if needed
+    std::fs::create_dir_all(path.parent().unwrap())?;
+
+    // Write file
+    std::fs::write(&path, &image_bytes)?;
+
+    Ok(path.to_string_lossy().to_string())
+}

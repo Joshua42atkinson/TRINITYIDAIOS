@@ -1,0 +1,140 @@
+// Trinity AI Agent System
+// Copyright (c) Joshua
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+// 📡 ZONE: PROTOCOL | Module: ID Contract
+// ═══════════════════════════════════════════════════════════════════════════════
+// The Instructional Design Contract — the core output type of the Trinity pipeline.
+// Every Quest is a formal ID Contract. See TRINITY_TECHNICAL_BIBLE.md for the
+// full lifecycle: Proposal → Contract Design → Negotiation → Execution.
+
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+use crate::character_sheet::{BloomLevel, UserClass};
+
+/// The Instructional Design Contract — the formal bounded lesson plan that
+/// Trinity negotiates with the user before any content is built.
+///
+/// A Quest is an accepted IdContract. It lives in the `QuestManager` ECS resource
+/// as an Entity with this data attached as a Component.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IdContract {
+    /// Unique ID for this contract (also used as the Quest entity key).
+    pub id: Uuid,
+    /// Human-readable title for the learning unit.
+    pub title: String,
+    /// The raw subject/topic string submitted by the user.
+    pub subject: String,
+    /// The role the user is playing in this contract.
+    pub user_class: UserClass,
+    /// The measurable learning outcomes this contract targets.
+    pub learning_objectives: Vec<LearningObjective>,
+    /// Ordered milestones that must be completed to fulfil the contract.
+    pub milestones: Vec<QuestMilestone>,
+    /// Total coal (attention units) estimated for the full contract.
+    pub estimated_coal_cost: f32,
+    /// The highest Bloom's Taxonomy level targeted by this contract.
+    pub bloom_level: BloomLevel,
+    /// The measurable business/learning goal and actionable behaviors (Action Mapping step 1 & 2).
+    pub action_map: Option<ActionMap>,
+    pub created_at: DateTime<Utc>,
+    pub status: ContractStatus,
+}
+
+impl IdContract {
+    pub fn new(
+        title: impl Into<String>,
+        subject: impl Into<String>,
+        user_class: UserClass,
+    ) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            title: title.into(),
+            subject: subject.into(),
+            user_class,
+            learning_objectives: Vec::new(),
+            milestones: Vec::new(),
+            estimated_coal_cost: 0.0,
+            bloom_level: BloomLevel::Understand,
+            action_map: None,
+            created_at: Utc::now(),
+            status: ContractStatus::Draft,
+        }
+    }
+
+    /// Total coal cost across all milestones, recalculated from milestone data.
+    pub fn recalculate_coal(&mut self) {
+        self.estimated_coal_cost = self.milestones.iter().map(|m| m.coal_cost).sum();
+    }
+
+    /// Number of completed milestones.
+    pub fn completed_milestone_count(&self) -> usize {
+        self.milestones.iter().filter(|m| m.completed).count()
+    }
+
+    /// True when all milestones are completed.
+    pub fn is_fulfilled(&self) -> bool {
+        !self.milestones.is_empty() && self.milestones.iter().all(|m| m.completed)
+    }
+}
+
+/// A structured container for Cathy Moore's Action Mapping (Steps 1 & 2),
+/// which forces the SME to define the performance problem before generating content.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActionMap {
+    /// The measurable business or real-world learning goal.
+    pub measurable_goal: String,
+    /// The specific, observable behaviors people must execute to reach that goal.
+    pub observable_behaviors: String,
+}
+
+/// A single measurable learning outcome, written in Bloom's Taxonomy format:
+/// "Given [condition], the learner will [verb] [content] as measured by [criterion]."
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LearningObjective {
+    /// A Bloom's taxonomy action verb (e.g., "Explain", "Demonstrate", "Analyze").
+    pub verb: String,
+    /// What is being learned.
+    pub content: String,
+    /// The conditions under which the learner performs (e.g., "given a diagram").
+    pub condition: String,
+    /// The measurable success benchmark (e.g., "without reference materials").
+    pub criterion: String,
+}
+
+/// A milestone is a discrete, deliverable step toward completing an ID Contract.
+/// It maps 1:1 to a Quest node in the Bevy ECS.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QuestMilestone {
+    /// Position in the ordered sequence (1-indexed).
+    pub order: u32,
+    /// Short milestone title shown in the HUD.
+    pub title: String,
+    /// The tangible output required to mark this milestone complete.
+    pub deliverable: String,
+    /// Attention cost (coal units) for this milestone.
+    pub coal_cost: f32,
+    /// Whether this milestone has been completed by the user.
+    pub completed: bool,
+}
+
+/// The lifecycle state of an ID Contract.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum ContractStatus {
+    /// Generated by the LLM, not yet shown to the user.
+    Draft,
+    /// The OS forces the SME to define the Action Mapping criteria before full generation.
+    Negotiating,
+    /// Displayed to the user — awaiting their accept/reject.
+    PendingReview,
+    /// User accepted — spawned into the QuestManager as an active quest.
+    Accepted,
+    /// User is actively working through the milestones.
+    InProgress,
+    /// All milestones completed. Crate Economy export available.
+    Completed,
+    /// User rejected or abandoned the contract.
+    Rejected,
+}

@@ -1,0 +1,101 @@
+[workspace]
+members = [
+    # Core System — 3 Screen UI (ID/Pete, AI/Mini, OS/ZEB)
+    "crates/trinity",                  # Main entry, HTTP server, UI shell
+    "crates/trinity-protocol",         # Shared types, ADDIE enums, HeroStage
+    
+    # ADDIE Sidecar — Conductor/GREAT RECYCLER — ID/Pete UI
+                # A-D-D-I-E phases, orchestration
+    "crates/trinity-quest",            # Quest board, XP/Coal/Steam
+    "crates/trinity-iron-road",        # Book writing, narrative
+    "crates/trinity-voice",            # PersonaPlex, Ask Pete
+           # Hands-free voice conversation loop (Rust)
+    
+    # CRAP-E Sidecar — ART — AI/Mini-Trinity UI  
+                 # C-R-A-P phases, contrast/repetition
+                # ComfyUI, Music AI, creative
+    
+    # YE Sidecar — Y/EYE — OS/ZEBLITS UI
+                  # Dev workflow, code editor, rolling context
+                  # E-Y-E phases, coding, ZEBLITS
+    
+    # Shared Infrastructure
+    "crates/trinity-bevy-graphics",    # Bevy 3D Yard — the blank canvas where users build
+                 # PostgreSQL, pgvector, RAG
+               # llama.cpp, Hotel Pattern
+]
+
+exclude = [
+    "plugins/*",                     # WASM plugins compiled separately
+    "crates/archive/*",              # Archived legacy crates
+    "archive/crates/*",              # New archive location
+    "personaplex-7b-v1-onnx",        # Model files
+]
+
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/joshua42atkinson/desktop_trinity"
+authors = ["Joshua Atkinson"]
+
+[workspace.dependencies]
+bevy-inspector-egui = "0.36.0"
+# Async
+tokio = { version = "1.0", features = ["full"] }
+tokio-util = "0.7"
+futures = "0.3"
+async-trait = "0.1"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "2.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
+
+# Utils
+uuid = { version = "1.0", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+dirs = "5"
+regex = "1"
+rand = "0.8"
+md5 = "0.7"
+reqwest = { version = "0.11", features = ["json", "blocking"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# ECS & Game Engine
+bevy = { version = "0.18.1", default-features = false, features = ["bevy_state", "bevy_pbr", "bevy_sprite", "bevy_render", "bevy_core_pipeline", "bevy_asset", "bevy_scene", "bevy_text", "bevy_window", "bevy_winit", "bevy_log", "bevy_mesh", "multi_threaded", "bevy_ui"] }
+bevy_egui = "0.39.1"
+image = "0.25"
+
+# Web / Network
+scraper = "0.18"
+bincode = "1.3"
+
+# RPC
+tarpc = { version = "0.35", features = ["tokio1", "serde-transport", "serde-transport-bincode"] }
+
+# Testing
+tokio-test = "0.4"
+reqwest-eventsource = "0.5"
+pgvector = "0.3"
+tokio-postgres = "0.7"
+polars = "0.39"
+pulldown-cmark = "0.9"
+rodio = "0.17"
+cpal = "0.15"
+
+#[patch.crates-io]
+#winit = { path = ".cargo_patches/winit" }
+

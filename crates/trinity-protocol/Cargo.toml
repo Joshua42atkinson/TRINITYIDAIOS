@@ -1,0 +1,39 @@
+[package]
+name = "trinity-protocol"
+version.workspace = true
+edition.workspace = true
+description = "Trinity AI Agent System"
+
+[features]
+default = []
+memory_bridge = ["memmap2"]
+bevy = ["dep:bevy"]
+
+[dependencies]
+# Bevy integration (optional)
+bevy = { workspace = true, optional = true }
+
+# RPC
+tarpc = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+bincode = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Memory Management
+memmap2 = { version = "0.9", optional = true }
+
+# Utils
+uuid = { workspace = true }
+chrono = { workspace = true }
+crossbeam-channel = "0.5" # Added for Bridge support
+
+[dev-dependencies]
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+futures = { workspace = true }

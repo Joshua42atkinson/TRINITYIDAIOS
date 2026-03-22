@@ -1,0 +1,17 @@
+# Trinity Code Quality Configuration
+# Ensures consistent, high-quality code across all packages
+
+# Enable more strict checks for production code
+too-many-arguments-threshold = 7
+enum-variant-name-threshold = 3
+struct-field-name-threshold = 3
+
+# Memory and performance optimizations  
+vec-box-size-threshold = 4096
+trivial-copy-size-limit = 256
+
+# Cognitive complexity for educational code
+cognitive-complexity-threshold = 15  # Keep functions understandable for students
+
+# Educational project specific allowances
+# These settings balance code quality with learning objectives

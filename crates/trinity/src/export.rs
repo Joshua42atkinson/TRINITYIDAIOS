@@ -1,0 +1,333 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — trinity-server
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:        export.rs
+// PURPOSE:     Export engine — transforms EYE Containers into deliverable HTML5
+//
+// ARCHITECTURE:
+//   • Reads HTML templates from templates/export/
+//   • Injects quest data (vocabulary, objectives, metadata) into templates
+//   • Produces self-contained HTML files that work offline
+//   • The Gym Coach downloads these and hands them to students
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
+use crate::eye_container::{ExportFormat, EyeContainer};
+
+/// Export an EYE Container to the specified format.
+/// Returns (filename, content_bytes, content_type).
+pub fn export(container: &EyeContainer, format: &ExportFormat) -> (String, Vec<u8>, &'static str) {
+    match format {
+        ExportFormat::Html5Quiz => export_html5_quiz(container),
+        ExportFormat::Html5Adventure => export_html5_adventure(container),
+        ExportFormat::RawJson => export_raw_json(container),
+    }
+}
+
+/// Generate a self-contained HTML5 quiz from the EYE container
+fn export_html5_quiz(container: &EyeContainer) -> (String, Vec<u8>, &'static str) {
+    let title = &container.metadata.title;
+    let subject = &container.metadata.subject;
+
+    // Build quiz questions from objectives
+    let mut questions_js = String::from("[");
+    for (i, obj) in container.objectives.iter().enumerate() {
+        if i > 0 {
+            questions_js.push(',');
+        }
+        let escaped = obj
+            .description
+            .replace('\\', "\\\\")
+            .replace('"', "\\\"")
+            .replace('\n', "\\n");
+        questions_js.push_str(&format!(
+            r#"{{"id":{},"question":"{}","phase":"{}","completed":{}}}"#,
+            i, escaped, obj.phase, obj.completed
+        ));
+    }
+    questions_js.push(']');
+
+    // Build vocabulary flashcards
+    let mut vocab_js = String::from("[");
+    for (i, v) in container.vocabulary.iter().enumerate() {
+        if i > 0 {
+            vocab_js.push(',');
+        }
+        let word = v.word.replace('"', "\\\"");
+        let def = v.definition.replace('"', "\\\"");
+        vocab_js.push_str(&format!(r#"{{"word":"{}","definition":"{}"}}"#, word, def));
+    }
+    vocab_js.push(']');
+
+    let html = format!(
+        r#"<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{title} — Quiz</title>
+<style>
+*{{margin:0;padding:0;box-sizing:border-box}}
+body{{font-family:'Segoe UI',system-ui,sans-serif;background:#0a0a0f;color:#e0dcd0;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:2rem}}
+.container{{max-width:700px;width:100%}}
+h1{{font-size:1.8rem;color:#cfb991;margin-bottom:.5rem;text-align:center}}
+.subtitle{{color:#888;text-align:center;margin-bottom:2rem;font-size:.9rem}}
+.card{{background:#14141e;border:1px solid #2a2a3a;border-radius:12px;padding:1.5rem;margin-bottom:1rem;transition:all .3s}}
+.card:hover{{border-color:#cfb991;box-shadow:0 0 20px rgba(207,185,145,.1)}}
+.question-num{{color:#cfb991;font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.5rem}}
+.question-text{{font-size:1.1rem;line-height:1.6;margin-bottom:1rem}}
+.phase-tag{{display:inline-block;background:#1a1a2e;border:1px solid #333;border-radius:6px;padding:.15rem .5rem;font-size:.7rem;color:#888;margin-bottom:.75rem}}
+.answer-input{{width:100%;background:#0e0e18;border:1px solid #333;border-radius:8px;padding:.75rem;color:#e0dcd0;font-size:.95rem;resize:vertical;min-height:60px}}
+.answer-input:focus{{outline:none;border-color:#cfb991}}
+.submit-btn{{display:block;width:100%;padding:1rem;margin-top:2rem;background:linear-gradient(135deg,#8b6914,#cfb991);color:#0a0a0f;border:none;border-radius:10px;font-size:1.1rem;font-weight:700;cursor:pointer;transition:all .3s}}
+.submit-btn:hover{{transform:translateY(-2px);box-shadow:0 4px 20px rgba(207,185,145,.3)}}
+.score-panel{{text-align:center;padding:2rem;background:#14141e;border-radius:12px;border:1px solid #cfb991;margin-top:2rem}}
+.score-value{{font-size:3rem;color:#cfb991;font-weight:700}}
+.score-label{{color:#888;font-size:.9rem;margin-top:.5rem}}
+.vocab-section{{margin-top:2rem}}
+.vocab-card{{background:#14141e;border:1px solid #2a2a3a;border-radius:12px;padding:1rem;margin-bottom:.75rem;cursor:pointer;transition:all .3s}}
+.vocab-card:hover{{border-color:#4ec9b0}}
+.vocab-word{{color:#4ec9b0;font-weight:600;font-size:1.1rem}}
+.vocab-def{{color:#aaa;margin-top:.5rem;display:none;font-size:.9rem}}
+.vocab-card.open .vocab-def{{display:block}}
+.hidden{{display:none}}
+footer{{margin-top:3rem;color:#555;font-size:.75rem;text-align:center}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>📝 {title}</h1>
+<p class="subtitle">{subject} — Generated by Trinity ID AI OS</p>
+
+<div id="quiz-section"></div>
+<button class="submit-btn" id="submit-btn" onclick="submitQuiz()">✅ Submit Answers</button>
+<div class="score-panel hidden" id="score-panel">
+<div class="score-value" id="score-value">0%</div>
+<div class="score-label">Questions Answered</div>
+</div>
+
+<div class="vocab-section" id="vocab-section"></div>
+
+<footer>Built with Trinity ID AI OS · The Iron Road</footer>
+</div>
+<script>
+const questions={questions_js};
+const vocab={vocab_js};
+const quizEl=document.getElementById('quiz-section');
+questions.forEach((q,i)=>{{
+  const card=document.createElement('div');
+  card.className='card';
+  card.innerHTML=`
+    <div class="question-num">Question ${{i+1}}</div>
+    <div class="phase-tag">${{q.phase}}</div>
+    <div class="question-text">${{q.question}}</div>
+    <textarea class="answer-input" id="answer-${{i}}" placeholder="Your answer..."></textarea>
+  `;
+  quizEl.appendChild(card);
+}});
+const vocabEl=document.getElementById('vocab-section');
+if(vocab.length>0){{
+  const h=document.createElement('h2');
+  h.style.cssText='color:#cfb991;margin-bottom:1rem;font-size:1.3rem';
+  h.textContent='📚 Vocabulary Flashcards';
+  vocabEl.appendChild(h);
+  vocab.forEach(v=>{{
+    const card=document.createElement('div');
+    card.className='vocab-card';
+    card.innerHTML=`<div class="vocab-word">${{v.word}}</div><div class="vocab-def">${{v.definition}}</div>`;
+    card.onclick=()=>card.classList.toggle('open');
+    vocabEl.appendChild(card);
+  }});
+}}
+function submitQuiz(){{
+  let answered=0;
+  questions.forEach((q,i)=>{{
+    const val=document.getElementById('answer-'+i).value.trim();
+    if(val)answered++;
+  }});
+  const pct=questions.length?Math.round((answered/questions.length)*100):0;
+  document.getElementById('score-value').textContent=pct+'%';
+  document.getElementById('score-panel').classList.remove('hidden');
+  document.getElementById('submit-btn').textContent='🔄 Resubmit';
+}}
+</script>
+</body>
+</html>"#
+    );
+
+    let filename = format!("{}_quiz.html", slug(&container.metadata.title));
+    (filename, html.into_bytes(), "text/html")
+}
+
+/// Generate a choose-your-adventure style game from the EYE container
+fn export_html5_adventure(container: &EyeContainer) -> (String, Vec<u8>, &'static str) {
+    let title = &container.metadata.title;
+    let subject = &container.metadata.subject;
+
+    // Build scenes from objectives (each objective = one scene)
+    let mut scenes_js = String::from("[");
+    for (i, obj) in container.objectives.iter().enumerate() {
+        if i > 0 {
+            scenes_js.push(',');
+        }
+        let escaped = obj
+            .description
+            .replace('\\', "\\\\")
+            .replace('"', "\\\"")
+            .replace('\n', "\\n");
+        scenes_js.push_str(&format!(
+            r#"{{"id":{},"phase":"{}","text":"{}","completed":{}}}"#,
+            i, obj.phase, escaped, obj.completed
+        ));
+    }
+    scenes_js.push(']');
+
+    let html = format!(
+        r#"<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{title} — Adventure</title>
+<style>
+*{{margin:0;padding:0;box-sizing:border-box}}
+body{{font-family:'Segoe UI',system-ui,sans-serif;background:#0a0a0f;color:#e0dcd0;min-height:100vh;display:flex;justify-content:center;padding:2rem}}
+.container{{max-width:650px;width:100%}}
+h1{{font-size:1.8rem;color:#cfb991;text-align:center}}
+.subtitle{{color:#888;text-align:center;margin:.5rem 0 2rem;font-size:.9rem}}
+.scene{{background:#14141e;border:1px solid #2a2a3a;border-radius:12px;padding:2rem;margin-bottom:1.5rem;opacity:0;transform:translateY(20px);animation:fadeIn .6s ease forwards}}
+@keyframes fadeIn{{to{{opacity:1;transform:translateY(0)}}}}
+.scene-num{{color:#cfb991;font-size:.7rem;text-transform:uppercase;letter-spacing:.15em;margin-bottom:.5rem}}
+.scene-phase{{display:inline-block;background:#1a1a2e;border:1px solid #333;border-radius:6px;padding:.15rem .5rem;font-size:.7rem;color:#888;margin-bottom:.75rem}}
+.scene-text{{font-size:1.15rem;line-height:1.7;margin-bottom:1.5rem}}
+.choice-btn{{display:block;width:100%;padding:.85rem 1.2rem;margin-bottom:.5rem;background:#0e0e18;border:1px solid #333;border-radius:8px;color:#e0dcd0;font-size:.95rem;cursor:pointer;text-align:left;transition:all .3s}}
+.choice-btn:hover{{border-color:#cfb991;background:#1a1a2e;transform:translateX(4px)}}
+.progress{{background:#1a1a2e;border-radius:20px;height:6px;margin-bottom:2rem;overflow:hidden}}
+.progress-fill{{height:100%;background:linear-gradient(to right,#8b6914,#cfb991);transition:width .6s ease;border-radius:20px}}
+.ending{{text-align:center;padding:3rem;background:#14141e;border:1px solid #cfb991;border-radius:12px}}
+.ending-icon{{font-size:4rem;margin-bottom:1rem}}
+.ending-title{{font-size:1.5rem;color:#cfb991;margin-bottom:.5rem}}
+.hidden{{display:none}}
+footer{{margin-top:3rem;color:#555;font-size:.75rem;text-align:center}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🗺️ {title}</h1>
+<p class="subtitle">{subject} — Choose Your Path</p>
+<div class="progress"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+<div id="scenes"></div>
+<div class="ending hidden" id="ending">
+<div class="ending-icon">🎓</div>
+<div class="ending-title">Journey Complete!</div>
+<p style="color:#aaa;margin-top:.5rem">You navigated all stations of the Iron Road.</p>
+</div>
+<footer>Built with Trinity ID AI OS · The Iron Road</footer>
+</div>
+<script>
+const scenes={scenes_js};
+let current=0;
+const scenesEl=document.getElementById('scenes');
+const progressEl=document.getElementById('progress');
+function renderScene(idx){{
+  if(idx>=scenes.length){{
+    document.getElementById('ending').classList.remove('hidden');
+    progressEl.style.width='100%';
+    return;
+  }}
+  const s=scenes[idx];
+  scenesEl.innerHTML='';
+  const div=document.createElement('div');
+  div.className='scene';
+  div.style.animationDelay=(0.1)+'s';
+  div.innerHTML=`
+    <div class="scene-num">Scene ${{idx+1}} of ${{scenes.length}}</div>
+    <div class="scene-phase">${{s.phase}}</div>
+    <div class="scene-text">${{s.text}}</div>
+    <button class="choice-btn" onclick="advance()">▶ Continue the journey</button>
+    ${{idx>0?'<button class="choice-btn" onclick="goBack()">◀ Look back</button>':''}}
+  `;
+  scenesEl.appendChild(div);
+  progressEl.style.width=(((idx+1)/scenes.length)*100)+'%';
+}}
+function advance(){{current++;renderScene(current);}}
+function goBack(){{if(current>0){{current--;renderScene(current);}}}}
+renderScene(0);
+</script>
+</body>
+</html>"#
+    );
+
+    let filename = format!("{}_adventure.html", slug(&container.metadata.title));
+    (filename, html.into_bytes(), "text/html")
+}
+
+/// Export raw JSON (for developers/integration)
+fn export_raw_json(container: &EyeContainer) -> (String, Vec<u8>, &'static str) {
+    let json = serde_json::to_string_pretty(container).unwrap_or_default();
+    let filename = format!("{}_export.json", slug(&container.metadata.title));
+    (filename, json.into_bytes(), "application/json")
+}
+
+/// Convert title to URL-safe slug
+fn slug(title: &str) -> String {
+    title
+        .to_lowercase()
+        .chars()
+        .map(|c| if c.is_alphanumeric() { c } else { '_' })
+        .collect::<String>()
+        .trim_matches('_')
+        .to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::eye_container::compile_container;
+
+    #[test]
+    fn test_export_quiz_produces_html() {
+        let gs = trinity_quest::state::GameState::default();
+        let container = compile_container(&gs);
+        let (filename, bytes, content_type) = export(&container, &ExportFormat::Html5Quiz);
+        assert!(filename.ends_with("_quiz.html"));
+        assert_eq!(content_type, "text/html");
+        let html = String::from_utf8(bytes).unwrap();
+        assert!(html.contains("<!DOCTYPE html>"));
+        assert!(html.contains("Quiz"));
+    }
+
+    #[test]
+    fn test_export_adventure_produces_html() {
+        let gs = trinity_quest::state::GameState::default();
+        let container = compile_container(&gs);
+        let (filename, bytes, content_type) = export(&container, &ExportFormat::Html5Adventure);
+        assert!(filename.ends_with("_adventure.html"));
+        assert_eq!(content_type, "text/html");
+        let html = String::from_utf8(bytes).unwrap();
+        assert!(html.contains("<!DOCTYPE html>"));
+        assert!(html.contains("Adventure"));
+    }
+
+    #[test]
+    fn test_export_json() {
+        let gs = trinity_quest::state::GameState::default();
+        let container = compile_container(&gs);
+        let (filename, bytes, content_type) = export(&container, &ExportFormat::RawJson);
+        assert!(filename.ends_with("_export.json"));
+        assert_eq!(content_type, "application/json");
+        let json_str = String::from_utf8(bytes).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+        assert!(parsed.get("metadata").is_some());
+    }
+
+    #[test]
+    fn test_slug() {
+        assert_eq!(slug("My Cool Game!"), "my_cool_game");
+        assert_eq!(
+            slug("Photosynthesis Learning Experience"),
+            "photosynthesis_learning_experience"
+        );
+    }
+}

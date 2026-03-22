@@ -1,0 +1,68 @@
+[package]
+name = "trinity"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Trinity ID AI OS — HTTP server with restored working implementation"
+
+[dependencies]
+
+# Trinity ecosystem
+trinity-protocol = { path = "../trinity-protocol" }
+trinity-quest = { path = "../trinity-quest" }
+
+# HTTP & Web
+axum = { version = "0.7", features = ["macros", "multipart"] }
+tower-http = { version = "0.5", features = ["cors", "fs"] }
+reqwest = { version = "0.12", features = ["json", "stream"] }
+async-stream = "0.3"
+
+# Async
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+futures = "0.3"
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio", "postgres", "json"] }
+
+# Error handling
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# File paths
+dirs = "5.0"
+
+# Hardware detection
+sysinfo = "0.30"
+
+# Random number generation (d20 skill checks)
+rand = "0.8"
+
+# UUID generation
+uuid = { version = "1.0", features = ["v4"] }
+
+# File upload
+multer = "3.0"
+rodio.workspace = true
+cpal.workspace = true
+trinity-voice = { version = "0.1.0", path = "../trinity-voice" }
+base64 = "0.22.1"
+async-openai = "0.33.1"
+trinity-iron-road = { version = "0.1.0", path = "../trinity-iron-road" }
+
+# Embedded inference — llama.cpp via Vulkan GPU
+llama-cpp-2 = { version = "0.1", features = ["vulkan", "sampler"] }
+encoding_rs = "0.8"
+toml = "0.8"
+
+[dev-dependencies]
+tokio-test = { workspace = true }
+

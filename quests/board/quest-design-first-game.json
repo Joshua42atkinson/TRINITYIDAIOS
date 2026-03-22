@@ -1,0 +1,28 @@
+{
+  "id": "quest-design-first-game",
+  "title": "Design a 2D educational puzzle game template",
+  "description": "Create a complete Game Design Document for a 2D educational puzzle game template that teachers can customize. Include: game mechanic-to-learning-objective mapping, Bevy ECS architecture (sprites, tilemaps, UI), asset manifest, color palette with WCAG contrast ratios, and cognitive load estimates. The template should work for any K-12 subject.",
+  "quest_type": "design",
+  "priority": 7,
+  "addie_phase": "design",
+  "difficulty_class": 18,
+  "status": "available",
+  "context_files": [
+    "TRINITY_TECHNICAL_BIBLE.md",
+    "crates/trinity-server/src/quests.rs"
+  ],
+  "target_files": [
+    "docs/game_templates/2d_puzzle_gdd.md",
+    "docs/game_templates/2d_puzzle_assets.md"
+  ],
+  "verify_commands": [
+    "test -f docs/game_templates/2d_puzzle_gdd.md && echo 'GDD exists' || echo 'GDD missing'"
+  ],
+  "notes": "Artist quest. Design for the XR game economy — this template will be reusable by teachers. Include Dumpster Universe lore hooks.",
+  "plan": null,
+  "results": null,
+  "log": [],
+  "created_at": "2026-03-14T18:10:00Z",
+  "started_at": null,
+  "completed_at": null
+}

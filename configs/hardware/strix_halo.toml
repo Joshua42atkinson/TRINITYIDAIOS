@@ -1,0 +1,48 @@
+# Trinity Genesis - Strix Halo Configuration
+# GMKtec Evo X2 128GB with AMD Ryzen AI Max+ 395
+
+[node]
+type = "Brain"
+
+[hardware]
+# AMD Ryzen AI Max+ 395 (Strix Halo)
+cpu_cores = 16
+cpu_threads = 32
+cpu_boost_mhz = 5100
+
+# Radeon 8060S (40 CUs)
+gpu_cores = 40
+gpu_freq_mhz = 2900
+
+# XDNA 2 NPU
+npu_tops = 52
+
+# Memory: 128GB LPDDR5X-8000, 256-bit bus
+memory_total_gb = 128
+memory_speed_mhz = 8000
+memory_bus_width = 256
+memory_bandwidth_theoretical_gb_s = 256
+memory_bandwidth_measured_gb_s = 212
+
+# VRAM allocation via UMA_SPECIFIED (BIOS v1.05)
+vram_gb = 96
+system_ram_gb = 32
+
+# ROCm environment for Strix Halo
+gfx_version = "gfx1151"
+
+[model]
+path = "/home/joshua/trinity_models/Nemotron_ggml/Nemotron-3-Super-120B-Q4_K.gguf"
+n_gpu_layers = 999
+context_size = 131072
+batch_size = 512
+n_threads = 16
+
+[memory]
+vector_store_path = "/home/joshua/.trinity/vectors"
+embedding_dim = 384
+max_recall = 20
+
+[network]
+listen_addr = "0.0.0.0:9000"
+body_addr = "100.84.217.60:9000"

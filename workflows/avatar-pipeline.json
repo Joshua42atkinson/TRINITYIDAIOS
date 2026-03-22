@@ -1,0 +1,102 @@
+{
+  "id": "avatar-pipeline",
+  "name": "Avatar Pipeline — Full NPC Character Creation",
+  "description": "Creates a complete humanoid NPC with backstory, portrait, 3D mesh, voice, theme music, and Bevy ECS entity",
+  "version": "1.0.0",
+  "inputs": {
+    "concept": "A grizzled steam engineer who maintains the Iron Road locomotive fleet",
+    "style": "steampunk",
+    "voice_reference": null,
+    "output_dir": "assets/avatars"
+  },
+  "steps": [
+    {
+      "id": "backstory",
+      "name": "Write Character Sheet",
+      "tool": "llm",
+      "prompt": "Create a complete NPC character sheet for: {concept}. Include: name, age, backstory (3 paragraphs), personality traits, visual description (detailed for image generation), voice description, theme music mood, 3 sample dialogue lines. Output as JSON.",
+      "output": "character.json"
+    },
+    {
+      "id": "portrait",
+      "name": "Generate Character Portrait",
+      "tool": "comfyui",
+      "workflow": "sdxl_turbo_portrait",
+      "params": {
+        "prompt": "{character.visual_description}, {style} aesthetic, character portrait, detailed face, upper body",
+        "negative": "blurry, low quality, distorted, watermark, text, multiple people",
+        "width": 1024,
+        "height": 1024,
+        "steps": 4,
+        "seed": -1
+      },
+      "output": "portrait.png"
+    },
+    {
+      "id": "evaluate_portrait",
+      "name": "Mistral Vision Evaluation",
+      "tool": "llm_vision",
+      "prompt": "Evaluate this character portrait against the description: {character.visual_description}. Score 1-10 on: accuracy, quality, style consistency. If score < 7, suggest specific refinements.",
+      "input_image": "portrait.png",
+      "output": "evaluation.json"
+    },
+    {
+      "id": "mesh_3d",
+      "name": "Generate 3D Mesh from Portrait",
+      "tool": "trellis",
+      "params": {
+        "input_image": "portrait.png",
+        "output_format": "glb",
+        "quality": "high"
+      },
+      "output": "model.glb"
+    },
+    {
+      "id": "theme_music",
+      "name": "Generate Character Theme Music",
+      "tool": "ace_step",
+      "params": {
+        "prompt": "{character.theme_music_mood}, {style} soundtrack",
+        "duration_secs": 30,
+        "output_format": "wav"
+      },
+      "output": "theme.wav"
+    },
+    {
+      "id": "voice_sample",
+      "name": "Generate NPC Voice Sample",
+      "tool": "kokoro_tts",
+      "params": {
+        "text": "{character.dialogue_lines[0]}",
+        "voice": "am_fenrir"
+      },
+      "output": "voice_sample.wav"
+    },
+    {
+      "id": "bevy_entity",
+      "name": "Generate Bevy ECS Entity Definition",
+      "tool": "llm",
+      "prompt": "Generate a Rust Bevy ECS entity definition for NPC '{character.name}'. Include: Transform, mesh handle (model.glb), audio source (theme.wav), dialogue component with {character.dialogue_lines}, personality traits as components. Use Bevy 0.18 API.",
+      "output": "entity.rs"
+    },
+    {
+      "id": "presentation",
+      "name": "Create Presentation Video",
+      "tool": "hunyuan_video",
+      "params": {
+        "prompt": "{character.visual_description}, walking toward camera, {style} environment, cinematic lighting",
+        "duration_secs": 4,
+        "fps": 24,
+        "height": 720
+      },
+      "output": "presentation.mp4",
+      "optional": true
+    },
+    {
+      "id": "package",
+      "name": "Package Avatar",
+      "tool": "shell",
+      "command": "mkdir -p {output_dir}/{character.name} && cp character.json portrait.png model.glb theme.wav voice_sample.wav entity.rs presentation.mp4 {output_dir}/{character.name}/ 2>/dev/null; echo 'Avatar packaged: {output_dir}/{character.name}'"
+    }
+  ]
+}

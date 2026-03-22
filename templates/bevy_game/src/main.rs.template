@@ -1,0 +1,47 @@
+//! {{GAME_NAME}} — Built with Trinity ID AI OS
+//! 
+//! An educational game set at Purdue University where players explore campus,
+//! collect vocabulary words, and complete learning quests.
+//! 
+//! Generated from Game Design Document via the ADDIECRAPEYE pipeline.
+
+mod game_state;
+mod player;
+mod ui;
+mod config;
+
+use bevy::prelude::*;
+use game_state::GamePhase;
+
+fn main() {
+    App::new()
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                title: "{{GAME_TITLE}} — Purdue Campus".to_string(),
+                resolution: (1280.0, 720.0).into(),
+                ..default()
+            }),
+            ..default()
+        }))
+        .init_state::<GamePhase>()
+        .insert_resource(config::GameConfig::load())
+        .add_systems(Startup, setup)
+        .add_systems(Update, (
+            game_state::handle_phase_transitions,
+            player::player_movement.run_if(in_state(GamePhase::Playing)),
+            player::collect_word.run_if(in_state(GamePhase::Playing)),
+            ui::update_hud.run_if(in_state(GamePhase::Playing)),
+            ui::menu_interaction.run_if(in_state(GamePhase::Menu)),
+        ))
+        .add_systems(OnEnter(GamePhase::Menu), ui::spawn_menu)
+        .add_systems(OnExit(GamePhase::Menu), ui::despawn_menu)
+        .add_systems(OnEnter(GamePhase::Playing), game_state::spawn_level)
+        .add_systems(OnExit(GamePhase::Playing), game_state::despawn_level)
+        .add_systems(OnEnter(GamePhase::Complete), ui::spawn_completion_screen)
+        .run();
+}
+
+fn setup(mut commands: Commands) {
+    // 2D Camera
+    commands.spawn(Camera2d);
+}

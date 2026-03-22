@@ -1,0 +1,33 @@
+[package]
+name = "trinity-iron-road"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Trinity ID AI OS — Iron Road narrative system, book writing, Great Recycler"
+
+[dependencies]
+# Trinity ecosystem
+trinity-protocol = { path = "../trinity-protocol" }
+trinity-quest = { path = "../trinity-quest" }
+
+# Async
+tokio = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Markdown processing
+pulldown-cmark = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+text-size = "1.1.1"
+readability = "0.3.0"
+chrono = { workspace = true, features = ["serde"] }
+reqwest.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]

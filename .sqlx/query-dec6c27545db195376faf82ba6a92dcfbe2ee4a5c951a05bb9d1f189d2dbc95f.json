@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE documents \n        SET total_chunks = $1, total_tokens = $2, processing_status = 'completed'\n        WHERE id = $3\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "dec6c27545db195376faf82ba6a92dcfbe2ee4a5c951a05bb9d1f189d2dbc95f"
+}

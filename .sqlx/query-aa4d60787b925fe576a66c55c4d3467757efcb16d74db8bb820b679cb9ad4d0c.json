@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO rico_screens \n            (ui_id, app_name, screen_type, visual_embedding)\n            VALUES ($1, $2, $3, $4)\n            ON CONFLICT (ui_id) DO UPDATE SET\n                visual_embedding = EXCLUDED.visual_embedding\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        {
+          "Custom": {
+            "name": "vector",
+            "kind": "Simple"
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "aa4d60787b925fe576a66c55c4d3467757efcb16d74db8bb820b679cb9ad4d0c"
+}

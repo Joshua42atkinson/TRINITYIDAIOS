@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE document_chunks \n            SET embedding = ($1::text)::vector\n            WHERE document_id = $2 AND chunk_index = $3\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0706ddcf0c48e0f5092e7d5ffb4340b845951d3362419c151889e66f486dd0f8"
+}

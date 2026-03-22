@@ -1,0 +1,33 @@
+{
+  "id": "quest-iron-road-awakening",
+  "title": "The Awakening — Station 1: Analysis",
+  "description": "Begin the Iron Road tutorial. Pete guides you through the Analysis phase of ADDIECRAPEYE. Define your target audience, identify learning objectives, and scope your first educational game. This is where the journey starts — meaning-making through Socratic dialogue.",
+  "quest_type": "tutorial",
+  "priority": 10,
+  "addie_phase": "analysis",
+  "difficulty_class": 8,
+  "status": "available",
+  "context_files": [
+    "docs/bible/01-ARCHITECTURE.md",
+    "docs/plans/PLAN_1_ARCHITECTURE_v2.md"
+  ],
+  "target_files": [
+    "docs/books_of_the_bible/ch-001.md"
+  ],
+  "verify_commands": [
+    "test -f docs/books_of_the_bible/ch-001.md && echo 'Chapter 1 written' || echo 'Chapter 1 missing'"
+  ],
+  "objectives": [
+    "Define target audience (grade level, subject area)",
+    "Identify 3-5 learning objectives using Bloom's Taxonomy",
+    "Select a Genre for the game (Cyberpunk, Steampunk, Solarpunk, DarkFantasy)",
+    "Identify 10 VAAM vocabulary words for the subject"
+  ],
+  "notes": "This is the first quest every Iron Road player completes. Pete asks Socratic questions to extract the user's teaching intent. No code is written yet — this is pure instructional design.",
+  "plan": null,
+  "results": null,
+  "log": [],
+  "created_at": "2026-03-18T16:00:00Z",
+  "started_at": null,
+  "completed_at": null
+}

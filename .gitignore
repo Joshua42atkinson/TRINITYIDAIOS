@@ -1,0 +1,134 @@
+# Trinity ID AI OS - Clean Repository for GitHub
+# Ready for public demonstration and institutional sharing
+
+# Dependencies
+/target/
+**/target/
+**/*.rs.bk
+Cargo.lock
+
+# Data files (parquets, vocab — generated or downloaded at runtime)
+data/
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Local development artifacts
+*.log
+*.tmp
+*.bak
+*.old
+*.orig
+*.rej
+
+# Model files (too large for GitHub)
+*.gguf
+*.onnx
+*.safetensors
+models/
+
+# Generated assets and temporary files
+/generated_assets/
+/temp_assets/
+
+# Local configuration and secrets
+.local/
+.env.local
+*.local
+.env
+secrets/
+config/local_*
+
+# Backup directories (keep development history local)
+backup_old*/
+old_*/
+archive/
+
+# Verification logs and test outputs
+verification_logs/
+*.dump
+test_output/
+
+# Local scripts that shouldn't be committed
+scripts/local_*
+
+# Development databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary build artifacts
+/build/
+/dist/
+*.so
+*.dylib
+*.dll
+
+# Documentation build
+docs/build/
+docs/_build/
+
+# Local cache
+.cache/
+.cache-*/
+
+# Python environments
+**/.venv/
+**/venv/
+phi4_env/
+trinity_ai_env/
+
+# Scope-creep local sandboxes (experimental branches)
+FastFlowLM/
+Phi-4-mini-reasoning-onnx-ryzenai-hybrid/
+xdna-driver/
+windsurf-conductor-mcp/
+
+# Performance profiling
+*.prof
+*.perf
+
+# Local development tools
+tools/local_*
+
+# Node.js (if any web components)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Audio/Video recordings (demo files)
+*.mp4
+*.webm
+*.wav
+*.mp3
+recordings/
+demo_videos/
+
+# Personal notes and drafts
+notes/
+drafts/
+TODO.md
+SCRATCH.md
+llama.cpp
+
+# Security - never commit keys
+trinity_key
+trinity_key.pub
+*.pem
+*.key
+id_rsa
+id_ed25519

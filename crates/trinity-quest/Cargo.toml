@@ -1,0 +1,39 @@
+[package]
+name = "trinity-quest"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Trinity ID AI OS — Quest board, XP/Coal/Steam, Hero's Journey"
+
+[dependencies]
+# Trinity ecosystem
+trinity-protocol = { path = "../trinity-protocol" }
+
+# Async
+tokio = { workspace = true }
+
+# Utils
+uuid = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Database
+sqlx = { workspace = true }
+
+# Time
+chrono = { workspace = true }
+
+# HTTP (for quest_system.rs handlers)
+axum = { version = "0.7", default-features = false, features = ["json"] }
+
+# Logging
+tracing = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+
+[dev-dependencies]

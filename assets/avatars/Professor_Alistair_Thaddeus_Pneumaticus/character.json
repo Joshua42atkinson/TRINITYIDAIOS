@@ -1,0 +1,39 @@
+{
+  "name": "Professor Alistair Thaddeus Pneumaticus",
+  "age": 58,
+  "backstory": "Born in the industrial heartland of New Albion, Professor Pneumaticus was raised among towering brass automatons and the ever-present hiss of steam engines. A former apprentice to the famed inventor Ignatius Ironfoot, he inherited a love for the intricate workings of machinery and a deep-seated belief in the union of man and technology. After a tragic accident left him with a permanent limp\u2014now replaced by a hydraulic exoskeleton of his own design\u2014he dedicated his life to perfecting steam-powered prosthetics and creating wonders of Victorian-era ingenuity. Rumors persist that he once worked on a secret project for Queen Victoria herself, though the details remain shrouded in mystery. Now retired but still active in the underground steampunk community, he hosts salons in his floating workshop aboard a converted airship docked in the city's upper districts.",
+  "personality_traits": [
+    "Brilliant but eccentric",
+    "Charismatic with a dry wit",
+    "Morally ambiguous but charming",
+    "Obsessed with technological progress",
+    "Secretly sentimental about old-world craftsmanship"
+  ],
+  "visual_description": {
+    "overall_style": "A distinguished but unconventional steampunk inventor with a mix of Victorian elegance and industrial grit.",
+    "head": "A well-groomed, silver-streaked mustache frames his sharp features. His hair is neatly tied back in a thin braid secured with a polished brass hairpin. A pair of round, wire-rimmed goggles with amber-tinted lenses rests on his forehead, ready to be pulled down over his eyes at a moment's notice.",
+    "face": "Wrinkled but dignified, with a prominent nose and deep-set eyes that gleam with mischief and wisdom. His face is partially obscured by a small, leather-bound respirator mask attached to his exoskeleton's left arm, which he occasionally uses to enhance his breathing\u2014though whether it's mechanical or just a quirky habit is unclear.",
+    "body": "His tall, lean frame is clad in a tailored, high-collared black frock coat with deep burgundy velvet lapels, accented by intricate gold embroidery. Beneath the coat, a fitted waistcoat of dark brown leather and polished brass buttons holds his pocket watch, which is connected to a series of tiny gears and pipes. The left side of his torso features a gleaming, riveted metal exoskeleton that extends from his shoulder to his calf, giving him a slightly hunched but imposing presence.",
+    "hands": "His hands are long-fingered and delicate, though calloused from years of tinkering. The left hand is encased in a bronze and copper prosthetic glove that hums faintly with steam. The glove is adorned with ivory inlays and has a small, retractable toolset built into the palm. His right hand is flesh and bone, though he often wears a fingerless glove with brass knuckles for added grip when handling delicate instruments.",
+    "clothing": "He wears a knee-length, charcoal gray skirt with a subtle gear-patterned hem, layered over black trousers. His boots are polished black leather with hidden air pockets and spring-loaded soles, giving him an unnatural bounce when he walks. A long, brown leather coat with multiple brass buckles and a high collar drapes over his shoulders, held in place by a silver chain harness.",
+    "accessories": [
+      "A pocket watch with visible inner workings, connected to a series of tiny copper tubes that wind around his waist.",
+      "A cane with a hidden steam-powered blade, which he uses more as a tool than a walking aid.",
+      "Several brass goggles with adjustable lenses, currently perched on his forehead.",
+      "A leather-bound satchel filled with blueprints, spare parts, and an odd assortment of trinkets from his travels."
+    ],
+    "posture": "Standing with a slight stoop due to his exoskeleton, but his posture is otherwise upright and commanding. His movements are precise and deliberate, with occasional mechanical whirring sounds from his prosthetic leg.",
+    "special_features": [
+      "A brass respirator mask attached to his exoskeleton arm, which he occasionally adjusts as if breathing through it.",
+      "His left eye is partially obscured by a monocle with a built-in magnifying lens, though it's purely decorative.",
+      "A faint, rhythmic ticking sound emanates from his exoskeleton whenever he shifts his weight."
+    ]
+  },
+  "voice_style": "A deep, resonant voice with a slight mechanical rasp, as if his words are being filtered through an old phonograph or a brass vocal modulator. His tone is formal yet laced with a dry, sarcastic humor, and he often speaks in a measured, deliberate pace.",
+  "theme_music_mood": "A grand, orchestral piece with a mix of Victorian waltz and industrial steam-punk elements. The music features a dominant brass section with prominent tubas and clarinets, accompanied by the steady beat of a mechanical drumroll and the occasional hiss of steam pistons. It evokes a sense of adventure, mystery, and the clash between old-world elegance and the relentless march of technology.",
+  "dialogue_lines": [
+    "Ah, my dear, you\u2019ve arrived just in time to witness the marvel of my latest creation\u2014the 'Chronovore,' a device capable of bending time itself through the power of compressed steam and clockwork precision.",
+    "I must admit, I find your lack of a mechanical augment rather... quaint. Though, I suppose even flesh-and-blood has its charms.",
+    "You wouldn\u2019t believe the bureaucratic nightmare I endured to get this airship docked in the upper districts. The paperwork alone was enough to power a small village for a decade."
+  ]
+}

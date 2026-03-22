@@ -1,0 +1,27 @@
+{
+  "id": "quest-fix-standalone-test",
+  "title": "Fix trinity-standalone-test compilation error",
+  "description": "The trinity-standalone-test crate has 1 compilation error. Run `cargo check -p trinity-standalone-test`, read the source files, diagnose the root cause, and generate a minimal fix.",
+  "quest_type": "bugfix",
+  "priority": 8,
+  "addie_phase": "development",
+  "difficulty_class": 12,
+  "status": "available",
+  "context_files": [
+    "trinity-standalone-test/src/main.rs",
+    "trinity-standalone-test/Cargo.toml"
+  ],
+  "target_files": [
+    "trinity-standalone-test/src/main.rs"
+  ],
+  "verify_commands": [
+    "cargo check -p trinity-standalone-test 2>&1"
+  ],
+  "notes": "Bible Section 9 lists trinity-standalone-test as having 1 error.",
+  "plan": null,
+  "results": null,
+  "log": [],
+  "created_at": "2026-03-14T18:00:00Z",
+  "started_at": null,
+  "completed_at": null
+}

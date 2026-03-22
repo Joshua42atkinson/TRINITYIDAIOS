@@ -1,0 +1,89 @@
+//! Player controller — movement and word collection
+
+use bevy::prelude::*;
+use crate::game_state::{WordOrb, QuestTracker, LevelEntity};
+
+/// Player component
+#[derive(Component)]
+pub struct Player {
+    pub speed: f32,
+}
+
+/// Handle WASD/Arrow key movement
+pub fn player_movement(
+    time: Res<Time>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut query: Query<(&Player, &mut Transform)>,
+) {
+    for (player, mut transform) in query.iter_mut() {
+        let mut direction = Vec2::ZERO;
+
+        if keyboard.pressed(KeyCode::KeyW) || keyboard.pressed(KeyCode::ArrowUp) {
+            direction.y += 1.0;
+        }
+        if keyboard.pressed(KeyCode::KeyS) || keyboard.pressed(KeyCode::ArrowDown) {
+            direction.y -= 1.0;
+        }
+        if keyboard.pressed(KeyCode::KeyA) || keyboard.pressed(KeyCode::ArrowLeft) {
+            direction.x -= 1.0;
+        }
+        if keyboard.pressed(KeyCode::KeyD) || keyboard.pressed(KeyCode::ArrowRight) {
+            direction.x += 1.0;
+        }
+
+        if direction != Vec2::ZERO {
+            direction = direction.normalize();
+            transform.translation.x += direction.x * player.speed * time.delta_secs();
+            transform.translation.y += direction.y * player.speed * time.delta_secs();
+
+            // Clamp to play area
+            transform.translation.x = transform.translation.x.clamp(-500.0, 500.0);
+            transform.translation.y = transform.translation.y.clamp(-400.0, 400.0);
+        }
+    }
+}
+
+/// Check for word orb collection (proximity-based)
+pub fn collect_word(
+    mut commands: Commands,
+    player_query: Query<&Transform, With<Player>>,
+    mut orb_query: Query<(Entity, &Transform, &mut WordOrb)>,
+    mut tracker: ResMut<QuestTracker>,
+) {
+    let Ok(player_transform) = player_query.get_single() else { return };
+    let player_pos = player_transform.translation.truncate();
+
+    for (entity, orb_transform, mut orb) in orb_query.iter_mut() {
+        if orb.collected { continue; }
+
+        let orb_pos = orb_transform.translation.truncate();
+        let distance = player_pos.distance(orb_pos);
+
+        if distance < 40.0 {
+            // Collect the word!
+            orb.collected = true;
+            tracker.words_collected.push(orb.word.clone());
+            tracker.score += 100;
+
+            // Spawn floating text showing the word
+            commands.spawn((
+                Text2d::new(format!("✨ {} — {}", orb.word, orb.definition)),
+                TextFont {
+                    font_size: 16.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(1.0, 0.84, 0.0)),
+                Transform::from_xyz(orb_pos.x, orb_pos.y + 30.0, 2.0),
+                LevelEntity,
+                CollectedWordFade(Timer::from_seconds(2.0, TimerMode::Once)),
+            ));
+
+            // Remove the orb sprite
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
+/// Component for fading collected word text
+#[derive(Component)]
+pub struct CollectedWordFade(pub Timer);

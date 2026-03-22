@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                document_id,\n                allocation_type,\n                SUM(allocated_tokens) as allocated_tokens,\n                SUM(actual_tokens) as actual_tokens\n            FROM context_allocations\n            GROUP BY document_id, allocation_type\n            ORDER BY allocation_type, actual_tokens DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "document_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "allocation_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "allocated_tokens",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "actual_tokens",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "08d5efb72c32ccf5214d4c7fbd02dfe17c8da8218c87c057cfd89ffb011caacc"
+}

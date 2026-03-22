@@ -1,0 +1,27 @@
+{
+  "id": "quest-dev-console-engineer",
+  "title": "Wire Engineer Sidecar to Dev Console",
+  "description": "Update the trinity-server Dev Console page (dev.html) to add a UI panel that shows the Engineer sidecar status (port 8090), displays the quest board, and allows triggering quest execution. Add JavaScript fetch calls to the Engineer API endpoints. Read the existing dev.html first.",
+  "quest_type": "feature",
+  "priority": 7,
+  "addie_phase": "implementation",
+  "difficulty_class": 18,
+  "status": "available",
+  "context_files": [
+    "crates/trinity-server/static/dev.html",
+    "crates/trinity-sidecar-engineer/src/api.rs"
+  ],
+  "target_files": [
+    "crates/trinity-server/static/dev.html"
+  ],
+  "verify_commands": [
+    "test -f crates/trinity-server/static/dev.html && echo 'dev.html exists' || echo 'dev.html missing'"
+  ],
+  "notes": "The Dev Console at localhost:3000/dev.html should become the command center for the Engineer. Show quest board, model health, and allow manual quest execution.",
+  "plan": null,
+  "results": null,
+  "log": [],
+  "created_at": "2026-03-14T18:05:00Z",
+  "started_at": null,
+  "completed_at": null
+}
