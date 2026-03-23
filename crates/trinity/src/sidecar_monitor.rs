@@ -1,42 +1,88 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — trinity-server
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:        sidecar_monitor.rs
+// PURPOSE:     Sidecar health monitor — checks real sidecars, not phantom ports
+//
+// ARCHITECTURE:
+//   • Periodically checks the actual sidecars: ComfyUI (:8188), Voice (:7777),
+//     Researcher (:8081)
+//   • Only reports to CowCatcher if a sidecar was previously healthy and
+//     then went down — avoids false obstacles from optional/uninstalled services
+//   • The LLM backend is handled by the InferenceRouter's own health loop
+//
+// CHANGES:
+//   2026-03-22  Cascade  Fixed phantom port pinging (8090-8092 → real sidecars)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 use crate::cow_catcher::CowCatcher;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{info, warn};
 
-pub async fn monitor_sidecars(cow_catcher: Arc<RwLock<CowCatcher>>) {
-    info!("Starting Sidecar Autopoiesis Monitor...");
+/// A sidecar we monitor — `required=false` means it's optional (no obstacle if down)
+struct SidecarTarget {
+    name: &'static str,
+    url: &'static str,
+    /// Has this sidecar ever responded healthy during this server's lifetime?
+    was_healthy: bool,
+}
 
-    // In a full implementation, this would track actual tokio::process::Child handles
-    // For now, it periodically checks known sidecar ports and triggers self-repair quests
-    // if it detects a crash or timeout.
+pub async fn monitor_sidecars(cow_catcher: Arc<RwLock<CowCatcher>>) {
+    info!("Starting Sidecar Health Monitor — real targets only");
+
+    // The sidecars we actually run. LLM health is handled by InferenceRouter.
+    let mut targets: Vec<SidecarTarget> = vec![
+        SidecarTarget {
+            name: "comfyui",
+            url: "http://127.0.0.1:8188/system_stats",
+            was_healthy: false,
+        },
+        SidecarTarget {
+            name: "voice",
+            url: "http://127.0.0.1:7777/api/health",
+            was_healthy: false,
+        },
+        SidecarTarget {
+            name: "researcher",
+            url: "http://127.0.0.1:8081/health",
+            was_healthy: false,
+        },
+    ];
 
     loop {
         tokio::time::sleep(tokio::time::Duration::from_secs(30)).await;
 
-        let ports = [("yardmaster", 8090), ("art", 8091), ("iron_road", 8092)];
+        let client = &*crate::http::QUICK;
 
-        for (name, port) in ports.iter() {
-            let client = &*crate::http::QUICK;
-            let url = format!("http://127.0.0.1:{}/status", port);
+        for target in targets.iter_mut() {
+            let healthy = client
+                .get(target.url)
+                .send()
+                .await
+                .map(|r| r.status().is_success())
+                .unwrap_or(false);
 
-            match client.get(&url).send().await {
-                Ok(_) => {
-                    // Sidecar is healthy
+            if healthy {
+                if !target.was_healthy {
+                    info!("✅ Sidecar {} is now healthy", target.name);
                 }
-                Err(e) => {
-                    // Only report if it was previously running (we'd track state in a real impl)
-                    // For demonstration, we just log and potentially trigger a quest
-                    warn!("Sidecar {} on port {} is unreachable: {}", name, port, e);
-
-                    let mut cc = cow_catcher.write().await;
-                    cc.report_sidecar_crash(name, None, &e.to_string());
-
-                    // Here we would spawn an autopoiesis quest:
-                    // 1. Read the sidecar's last log lines
-                    // 2. Generate a JSON quest in `quests/board/`
-                    // 3. Assign it to the Engineer sidecar to fix the bug
-                }
+                target.was_healthy = true;
+            } else if target.was_healthy {
+                // Was healthy, now down — this is a real crash, report it
+                warn!(
+                    "⚠️ Sidecar {} went down (was previously healthy)",
+                    target.name
+                );
+                let mut cc = cow_catcher.write().await;
+                cc.report_sidecar_crash(target.name, None, "Sidecar went down after being healthy");
+                // Don't keep re-reporting — reset until it comes back
+                target.was_healthy = false;
             }
+            // If was_healthy == false and still not healthy, that's fine — it's just not running.
+            // No obstacle generated. Optional sidecars shouldn't pollute the CowCatcher.
         }
     }
 }

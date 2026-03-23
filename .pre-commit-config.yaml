@@ -1,0 +1,91 @@
+# Trinity Pre-commit Hooks Configuration
+# Ensures code quality before every commit
+
+repos:
+  # Rust-specific hooks - Only run on Rust files
+  - repo: local
+    hooks:
+      # Format all Rust code
+      - id: rustfmt
+        name: rustfmt
+        entry: /home/joshua/Workflow/desktop_trinity/trinity-genesis/scripts/format-rust.sh
+        language: script
+        pass_filenames: false
+        files: '\.rs$'
+
+      # Run clippy on all changed files  
+      - id: clippy
+        name: clippy
+        entry: /home/joshua/Workflow/desktop_trinity/trinity-genesis/scripts/clippy-check.sh
+        language: script
+        pass_filenames: false
+        files: '\.rs$'
+
+      # Basic cargo check for Rust files
+      - id: cargo-check
+        name: cargo check
+        entry: /home/joshua/Workflow/desktop_trinity/trinity-genesis/scripts/cargo-check.sh
+        language: script
+        pass_filenames: false
+        files: '\.rs$'
+
+  # General file hooks - Exclude large binary directories
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      # Remove trailing whitespace
+      - id: trailing-whitespace
+        exclude: |
+          (?x)^(
+            trinity_ai_env/.*|
+            _tools/.*|
+            reference/.*|
+            .*\.onnx|
+            .*\.gguf|
+            .*\.so|
+            .*\.pyc
+          )$
+
+      # Ensure reasonable file sizes (exclude AI models)
+      - id: check-added-large-files
+        args: ['--maxkb=5000']  # Increased for AI models
+        exclude: |
+          (?x)^(
+            trinity_ai_env/.*|
+            _tools/.*|
+            reference/.*|
+            .*\.onnx|
+            .*\.gguf
+          )$
+
+      # Check for merge conflicts
+      - id: check-merge-conflict
+
+      # Check YAML syntax (exclude complex configs)
+      - id: check-yaml
+        exclude: |
+          (?x)^(
+            trinity_ai_env/.*|
+            _tools/.*
+          )$
+
+      # Check TOML syntax
+      - id: check-toml
+        exclude: |
+          (?x)^(
+            trinity_ai_env/.*|
+            _tools/.*
+          )$
+
+      # Check JSON syntax  
+      - id: check-json
+        exclude: |
+          (?x)^(
+            trinity_ai_env/.*|
+            _tools/.*
+          )$
+
+# Global configuration
+default_language_version:
+  python: python3
+fail_fast: false

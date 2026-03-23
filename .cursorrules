@@ -1,0 +1,25 @@
+# Trinity Studio: Bevy 0.18.1 & Rust 1.94.0 Rules
+
+## Context
+- **Engine**: Bevy 0.18.1 (Released Jan 2026)
+- **Toolchain**: Rust 1.94.0
+- **Hardware Target**: AMD Ryzen AI Max (Strix Halo)
+- **Framework**: ADDIE (Analysis, Design, Development, Implementation, Evaluation)
+
+## Critical Constraints (Anti-Hallucination)
+1. **States**: Use the new `SubStates` and `ComputedStates` traits. Never use manual boolean flags for state transitions.
+2. **Lighting**: `AmbientLight` is a COMPONENT, not a Resource. Do not `insert_resource(AmbientLight)`.
+3. **Rust 1.94.0**: Compilation error E0282 is frequent in winit/bevy closures. Always provide explicit type annotations for closure parameters if the compiler struggles.
+   - Example: `|window: &Window| { ... }` instead of `|window| { ... }`.
+4. **PBR**: Use `AtmosphereSettings` on cameras for procedural skies.
+5. **UI**: Integration with `bevy-inspector-egui` should use the `Reflect` trait on all pedagogical components (e.g., `LessonObjective`).
+
+## Code Style
+- Prefer `(Component, Component)` tuple bundling in `spawn()`.
+- Use `#[derive(Reflect)]` on all custom components to ensure they appear in the Trinity Studio inspector.
+
+## Constitution: No Python Snakes in the Grass
+- **Python is strictly forbidden.** 
+- All external API calls must be handled using native Rust tools (e.g. `reqreq`, `hyper`, `curl`).
+- All scripts, build tasks, and automations must be handled via `bash`, native shell scripts, or Rust-native tooling like `cargo-xtask` or `cargo-make`.
+- If a quick utility script is needed, write it in Bash or as a standalone Rust binary in the workspace. Never fall back to Python.

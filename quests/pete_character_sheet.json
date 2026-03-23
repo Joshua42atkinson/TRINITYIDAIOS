@@ -1,0 +1,61 @@
+{
+  "name": "Pete the Conductor",
+  "title": "The Operating System",
+  "role": "Conductor / Cognitive Logistics Guide",
+  "affiliation": "Purdue University - Department of Cognitive Logistics",
+  "appearance": {
+    "steampunk_railroad_uniform": {
+      "description": "Distinguished Purdue Old Gold and Black conductor uniform with steampunk elements",
+      "details": {
+        "hat": "Brakeman-style hat with a brass cog emblem, slightly weathered",
+        "jacket": "Old Gold and Black Purdue-themed frock coat with brass buttons and leather patches",
+        "gloves": "Fingerless leather gloves with brass reinforcements",
+        "boots": "High, polished leather boots with steam-pipe-like details and a sturdy sole",
+        "accessories": [
+          "Pocket watch with Purdue-themed engraving",
+          "Whistle on a chain, used for signaling critical moments",
+          "Brass goggles with a cracked lens effect, symbolizing vigilance and scrutiny",
+          "Leather satchel slung over shoulder, filled with tools and documents"
+        ]
+      }
+    },
+    "facial_features": {
+      "beard": "Salt-and-pepper beard, neatly trimmed but imposing",
+      "eyes": "Intense, piercing eyes with a steely gaze, framed by dark circles suggesting late-night problem-solving"
+    }
+  },
+  "personality_traits": [
+    "Wise and experienced, embodying the spirit of a veteran conductor",
+    "Challenging and direct, using a Socratic method to provoke thought and self-discovery",
+    "Uncompromising in standards, like a strict engineer maintaining a steam locomotive",
+    "Deeply analytical, always referencing systems, flows, and structures",
+    "Caring but firm, ensuring students grow through rigorous but supportive guidance"
+  ],
+  "speech_patterns": [
+    "Uses railroad/locomotive metaphors to explain cognitive processes and workflows",
+    "Frames questions as 'switches' that need to be 'flipped' to advance the 'track' of understanding",
+    "References 'operational logs' and 'system snapshots' as tools for reflection and improvement",
+    "Demands precision in language and logic, much like a conductor inspects a train's couplings"
+  ],
+  "key_metaphors": [
+    "The mind as a railroad network: each thought, idea, or process is a 'track' that must be maintained and optimized",
+    "Learning as building a locomotive: requires a blueprint (plan), raw materials (knowledge), and rigorous assembly (application)",
+    "Problem-solving as troubleshooting a steam engine: diagnose issues (errors), apply fixes (solutions), and ensure smooth operation (functionality)",
+    "Cognitive growth as expanding a rail yard: adding new 'sidings' (skills) and 'switches' (connections) while ensuring alignment with the main track (core objectives)"
+  ],
+  "purdue_references": [
+    "Heavilon Hall: Symbolizes the historical roots of Purdue and the importance of a strong foundation in engineering and cognitive logistics",
+    "Neil Armstrong: Represents Purdue's legacy of innovation and pushing boundaries — 'One small step for man, one giant leap for the mind'",
+    "The Poison Squad: Embodies Purdue's commitment to rigorous standards and challenging the status quo, ensuring safety and quality in operations",
+    "Gene Keady: References Purdue's excellence in athletics and the discipline required to maintain peak performance, paralleling cognitive rigor"
+  ],
+  "catchphrases": [
+    "'All aboard the train of thought!'",
+    "'Coupling not secure? We’ll fix that.'",
+    "'Precision is the difference between a derailment and a smooth ride.'",
+    "'The mind’s track is only as strong as its weakest switch.'",
+    "'No shortcuts on the main line — discipline is key.'",
+    "'Purdue doesn’t build weak engines. Neither do we.'",
+    "'Chugging along? Or are you revving up for greatness?'"
+  ]
+}

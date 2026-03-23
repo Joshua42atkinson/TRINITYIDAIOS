@@ -52,6 +52,7 @@ mod health;
 pub mod http;
 mod inference;
 mod inference_router;
+mod gpu_guard;
 mod journal;
 mod music_streamer;
 mod narrative;
@@ -408,113 +409,104 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         inference_router.auto_detect().await;
 
         if !inference_router.any_healthy() {
-            // ── Auto-launch llama-server if we can find model + binary ──
-            let llama_server_paths = [
-                "/home/joshua/Workflow/desktop_trinity/trinity-genesis/llama.cpp/build-vulkan/bin/llama-server",
-                "/home/joshua/Workflow/desktop_trinity/bin/llama-server",
-                "/usr/local/bin/llama-server",
-                "/usr/bin/llama-server",
-            ];
-            let model_dirs = ["/home/joshua/trinity-models/gguf"];
+            // ═══════════════════════════════════════════════════════════
+            // HOTEL STARTUP PROTOCOL — Hardware-Safe GPU Loading
+            // ═══════════════════════════════════════════════════════════
+            // Rule: One Heavyweight at a Time. Never double-load the GPU.
+            // Three guards: port check, process check, memory budget.
+            // If llama-server is already running → connect, don't spawn.
 
-            let server_bin = llama_server_paths
-                .iter()
-                .find(|p| std::path::Path::new(p).exists());
-            let gguf_model = model_dirs.iter().find_map(|dir| {
-                let dir_path = std::path::Path::new(dir);
-                if !dir_path.exists() {
-                    return None;
-                }
-                let mut files: Vec<_> = std::fs::read_dir(dir_path)
-                    .ok()?
-                    .filter_map(|e| e.ok())
-                    .map(|e| e.path())
-                    .filter(|p| p.extension().map(|e| e == "gguf").unwrap_or(false))
-                    .filter(|p| {
-                        let name = p
-                            .file_name()
-                            .unwrap_or_default()
-                            .to_string_lossy()
-                            .to_lowercase();
-                        !name.contains("00002-of-") && !name.contains("00003-of-")
-                    })
-                    .collect();
-                files.sort();
-                files
-                    .iter()
-                    .find(|p| {
-                        let name = p
-                            .file_name()
-                            .unwrap_or_default()
-                            .to_string_lossy()
-                            .to_lowercase();
-                        name.contains("mistral") || name.contains("00001-of-")
-                    })
-                    .cloned()
-                    .or_else(|| files.first().cloned())
-            });
+            let decision = gpu_guard::pre_launch_check(8080, 70.0);
 
-            if server_bin.is_none() || gguf_model.is_none() {
-                if server_bin.is_none() {
-                    warn!("⚠️ No llama-server binary found.");
+            match decision {
+                gpu_guard::LaunchDecision::AlreadyRunning { .. } => {
+                    // llama-server is alive — just re-probe to connect
+                    inference_router.auto_detect().await;
                 }
-                if gguf_model.is_none() {
-                    warn!("⚠️ No GGUF model found in ~/trinity-models/gguf/");
-                }
-            } else if let (Some(bin), Some(model)) = (server_bin, gguf_model) {
-                info!("🚀 Auto-launching llama-server...");
-                info!("   Binary: {}", bin);
-                info!("   Model:  {}", model.display());
-
-                let model_str = model.to_string_lossy().to_string();
-                let bin_dir = std::path::Path::new(bin)
-                    .parent()
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_default();
-                match std::process::Command::new(bin)
-                    .env("LD_LIBRARY_PATH", &bin_dir)
-                    .args([
-                        "--model",
-                        &model_str,
-                        "--port",
-                        "8080",
-                        "--host",
-                        "127.0.0.1",
-                        "--ctx-size",
-                        "262144",
-                        "--n-gpu-layers",
-                        "99",
-                        "--flash-attn",
-                        "on",
-                        "--jinja",
-                        "--parallel",
-                        "2", // Duality KV Cache: slot 0 = Great Recycler, slot 1 = Programmer Pete
-                    ])
-                    .stdout(std::process::Stdio::null())
-                    .stderr(std::process::Stdio::piped())
-                    .spawn()
-                {
-                    Ok(_child) => {
-                        info!("⏳ Waiting for llama-server to start (up to 60s)...");
-                        let start_time = std::time::Instant::now();
-                        loop {
-                            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-                            if inference::check_health("http://127.0.0.1:8080").await {
-                                info!("✅ llama-server auto-launched successfully!");
-                                // Re-probe to pick up the newly launched server
-                                inference_router.auto_detect().await;
-                                break;
-                            }
-                            if start_time.elapsed() >= std::time::Duration::from_secs(60) {
-                                warn!("⚠️ llama-server launched but didn't become healthy in 60s.");
-                                info!("   Check: ps aux | grep llama-server");
-                                info!("   TRINITY will keep trying to connect.");
-                                break;
-                            }
+                gpu_guard::LaunchDecision::StillLoading { pid } => {
+                    // Process exists but model not loaded yet — wait for it
+                    info!("⏳ Waiting for existing llama-server (pid {}) to finish loading...", pid);
+                    let start_time = std::time::Instant::now();
+                    loop {
+                        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                        if inference::check_health("http://127.0.0.1:8080").await {
+                            info!("✅ llama-server (pid {}) is now healthy!", pid);
+                            inference_router.auto_detect().await;
+                            break;
+                        }
+                        if start_time.elapsed() >= std::time::Duration::from_secs(120) {
+                            warn!("⚠️ llama-server (pid {}) didn't become healthy in 120s", pid);
+                            info!("   Background health loop will keep trying.");
+                            break;
                         }
                     }
-                    Err(e) => {
-                        warn!("⚠️ Failed to launch llama-server: {}", e);
+                }
+                gpu_guard::LaunchDecision::InsufficientMemory { available_gb, required_gb } => {
+                    warn!("🏨 Hotel Guard: Not enough memory to load model");
+                    warn!("   Available: {:.1} GB, Required: {:.1} GB", available_gb, required_gb);
+                    warn!("   Skipping auto-launch. Start llama-server manually when resources are free.");
+                }
+                gpu_guard::LaunchDecision::SafeToLaunch => {
+                    // All guards pass — safe to spawn
+                    let server_bin = gpu_guard::find_llama_server_binary();
+                    let gguf_model = gpu_guard::find_gguf_model();
+
+                    if server_bin.is_none() || gguf_model.is_none() {
+                        if server_bin.is_none() {
+                            warn!("⚠️ No llama-server binary found.");
+                        }
+                        if gguf_model.is_none() {
+                            warn!("⚠️ No GGUF model found in ~/trinity-models/gguf/");
+                        }
+                    } else if let (Some(bin), Some(model)) = (server_bin, gguf_model) {
+                        info!("🏨 Hotel: Launching llama-server (Gear P — Conductor)");
+                        info!("   Binary: {}", bin.display());
+                        info!("   Model:  {}", model.display());
+
+                        let model_str = model.to_string_lossy().to_string();
+                        let bin_str = bin.to_string_lossy().to_string();
+                        let bin_dir = bin
+                            .parent()
+                            .map(|p| p.to_string_lossy().to_string())
+                            .unwrap_or_default();
+                        match std::process::Command::new(&bin_str)
+                            .env("LD_LIBRARY_PATH", &bin_dir)
+                            .args([
+                                "--model", &model_str,
+                                "--port", "8080",
+                                "--host", "127.0.0.1",
+                                "--ctx-size", "262144",
+                                "--n-gpu-layers", "99",
+                                "--flash-attn", "on",
+                                "--jinja",
+                                "--parallel", "2",
+                            ])
+                            .stdout(std::process::Stdio::null())
+                            .stderr(std::process::Stdio::piped())
+                            .spawn()
+                        {
+                            Ok(child) => {
+                                gpu_guard::write_pid_file(child.id());
+                                info!("⏳ Waiting for llama-server (pid {}) to start...", child.id());
+                                let start_time = std::time::Instant::now();
+                                loop {
+                                    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                                    if inference::check_health("http://127.0.0.1:8080").await {
+                                        info!("✅ llama-server auto-launched successfully!");
+                                        inference_router.auto_detect().await;
+                                        break;
+                                    }
+                                    if start_time.elapsed() >= std::time::Duration::from_secs(120) {
+                                        warn!("⚠️ llama-server launched but didn't become healthy in 120s.");
+                                        info!("   Background health loop will keep trying.");
+                                        break;
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                warn!("⚠️ Failed to launch llama-server: {}", e);
+                            }
+                        }
                     }
                 }
             }
@@ -524,7 +516,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 warn!("   Option 1: Set GGUF_MODEL_PATH=/path/to/model.gguf (embedded Vulkan)");
                 warn!("   Option 2: Set LLM_URL=http://your-server:port (HTTP)");
                 warn!("   Option 3: Download LM Studio, Ollama, or vLLM");
-                info!("   TRINITY will keep checking and auto-connect when a server appears.");
+                info!("   Background health loop will auto-connect when a server appears.");
             }
         }
     } else {
@@ -731,6 +723,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     cow_catcher::start_hardware_monitor(cow_catcher.clone());
     music_streamer::start_music_streamer(state.character_sheet.clone());
     tokio::spawn(sidecar_monitor::monitor_sidecars(cow_catcher.clone()));
+
+    // ── Background Inference Health Loop ──
+    // Re-probes the inference router so it picks up llama-server once it
+    // finishes loading the model (119B takes time). Checks every 15s until
+    // healthy, then every 60s to detect crashes/restarts.
+    {
+        let router = state.inference_router.clone();
+        tokio::spawn(async move {
+            loop {
+                let interval = {
+                    let r = router.read().await;
+                    if r.is_healthy() { 60 } else { 15 }
+                };
+                tokio::time::sleep(tokio::time::Duration::from_secs(interval)).await;
+                let mut r = router.write().await;
+                r.auto_detect().await;
+            }
+        });
+    }
 
     let frontend_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("frontend")
@@ -2121,7 +2132,7 @@ async fn orchestrate_quest(
 }
 
 /// Request to compile the Game Design Document
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct CompileGddRequest {
     /// Phase notes collected from the Iron Road chat (one entry per ADDIECRAPEYE phase)
     #[serde(default)]
@@ -2133,8 +2144,9 @@ pub struct CompileGddRequest {
 /// HOW: Collects quest state, character sheet, bestiary, and chat notes into a single JSON document
 async fn compile_game_design_document(
     State(state): State<AppState>,
-    Json(request): Json<CompileGddRequest>,
+    body: Option<Json<CompileGddRequest>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let request = body.map(|Json(r)| r).unwrap_or_default();
     let game = state.game_state.read().await;
     let sheet = state.character_sheet.read().await;
     let bestiary = state.bestiary.read().await;

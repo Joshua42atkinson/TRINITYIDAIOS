@@ -96,6 +96,6 @@ pulldown-cmark = "0.9"
 rodio = "0.17"
 cpal = "0.15"
 
-#[patch.crates-io]
-#winit = { path = ".cargo_patches/winit" }
+[patch.crates-io]
+winit = { path = ".cargo_patches/winit" }
 

@@ -5,6 +5,7 @@ export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) 
     { id: 'ironroad', label: 'Iron Road' },
     { id: 'art',      label: 'ART Studio' },
     { id: 'yard',     label: 'Yardmaster' },
+    { id: 'scorecard', label: 'Scorecard' },
     { id: 'voice',    label: 'Voice' },
   ];
 

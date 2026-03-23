@@ -1,0 +1,21 @@
+{
+    "mcpServers": [
+        {
+            "name": "trinity-local",
+            "command": "cd /home/joshua/Workflow/desktop_trinity/trinity-genesis && cargo run --bin trinity-mcp-working",
+            "description": "Trinity AI with local MiniMax-M2.1-REAP-50 model",
+            "capabilities": [
+                "curriculum_design",
+                "code_analysis",
+                "learning_sessions",
+                "autonomous_insights",
+                "mcp_orchestration"
+            ]
+        }
+    ],
+    "preferences": {
+        "defaultModel": "trinity-local",
+        "offlineMode": true,
+        "localFallback": true
+    }
+}

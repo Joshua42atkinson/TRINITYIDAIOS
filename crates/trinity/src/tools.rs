@@ -823,26 +823,32 @@ async fn tool_system_info() -> Result<String, String> {
 async fn tool_sidecar_status() -> Result<String, String> {
     let mut status = Vec::new();
 
-    // Check P-ART-Y Sidecar (port 8090 - Pete, Aesthetics, Researcher, Timing, Yardman)
-    let party_ok = crate::inference::check_health("http://127.0.0.1:8090").await;
+    // Check LLM brain (port 8080 — Pete/Conductor)
+    let llm_ok = crate::inference::check_health("http://127.0.0.1:8080").await;
     status.push(format!(
-        "P-ART-Y Sidecar (port 8090): {}",
-        if party_ok {
-            "✅ running"
-        } else {
-            "❌ stopped"
-        }
+        "LLM Brain (port 8080 — Pete/Conductor): {}",
+        if llm_ok { "✅ running" } else { "❌ stopped" }
     ));
 
-    // Check base brain (port 8080)
-    let yardmaster_ok = crate::inference::check_health("http://127.0.0.1:8080").await;
+    // Check Researcher sub-agent (port 8081 — Qianfan-OCR)
+    let researcher_ok = crate::inference::check_health("http://127.0.0.1:8081").await;
     status.push(format!(
-        "Base Brain (port 8080): {}",
-        if yardmaster_ok {
-            "✅ running"
-        } else {
-            "❌ stopped"
-        }
+        "Researcher (port 8081 — Qianfan-OCR): {}",
+        if researcher_ok { "✅ running" } else { "⏸ not started" }
+    ));
+
+    // Check ComfyUI (port 8188 — image generation)
+    let comfyui_ok = crate::http::check_health("http://127.0.0.1:8188").await;
+    status.push(format!(
+        "ComfyUI (port 8188 — image gen): {}",
+        if comfyui_ok { "✅ running" } else { "⏸ not started" }
+    ));
+
+    // Check Voice pipeline (port 7777 — Whisper + Kokoro)
+    let voice_ok = crate::http::check_health("http://127.0.0.1:7777").await;
+    status.push(format!(
+        "Voice (port 7777 — Whisper + Kokoro): {}",
+        if voice_ok { "✅ running" } else { "⏸ not started" }
     ));
 
     // Check for model files — REAL inventory verified from filesystem
@@ -892,33 +898,9 @@ async fn tool_sidecar_start(params: &serde_json::Value) -> Result<String, String
         .ok_or("Missing 'model' parameter")?;
 
     if let Some(role) = resolve_sidecar_role(model) {
-        if crate::inference::check_health("http://127.0.0.1:8090").await {
-            return Ok("A sidecar is already running on port 8090. Stop it first.".to_string());
-        }
-
-        info!("🚀 Starting {} sidecar...", role);
-
-        let bin = sidecar_binary().ok_or_else(|| {
-            "Sidecar binary not found. Run: cargo build -p trinity-sidecar".to_string()
-        })?;
-
-        Command::new(&bin)
-            .args(["--role", role])
-            .current_dir(workspace_root())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-            .map_err(|e| format!("Failed to start {}: {}", role, e))?;
-
-        for _ in 0..180 {
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-            if crate::inference::check_health("http://127.0.0.1:8090").await {
-                return Ok(format!("✅ {} sidecar started on port 8090", role));
-            }
-        }
-
+        // trinity-sidecar is not active in the workspace — direct to proper launch tools
         return Err(format!(
-            "{} sidecar started but not responding after 180s",
+            "Sidecar role '{}' is not available. Use 'conductor-llama' or 'pete-llama' to launch the LLM via llama-server.",
             role
         ));
     }

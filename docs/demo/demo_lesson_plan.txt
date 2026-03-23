@@ -1,0 +1,28 @@
+Lesson Plan: Introduction to Photosynthesis (7th Grade Biology)
+
+Objectives:
+- Students will identify the reactants and products of photosynthesis (Remember)
+- Students will explain the role of chlorophyll in light absorption (Understand)
+- Students will compare photosynthesis and cellular respiration (Analyze)
+- Students will design an experiment testing light intensity's effect on plant growth (Create)
+
+Materials: Elodea plants, beakers, sodium bicarbonate solution, light source, ruler, data sheets
+
+Instructional Sequence:
+1. Hook (5 min): Show time-lapse video of plant growth. Ask: "Where does the mass of a tree come from?"
+2. Direct Instruction (15 min): Diagram the light-dependent and light-independent reactions. Key vocabulary: chloroplast, thylakoid, stroma, ATP, NADPH, Calvin cycle.
+3. Guided Practice (10 min): Students label a photosynthesis diagram and trace the path of a carbon atom from CO2 to glucose.
+4. Collaborative Activity (15 min): In pairs, students design a controlled experiment varying light intensity. They must write a hypothesis, identify variables, and predict outcomes.
+5. Closure (5 min): Exit ticket — "Explain in 2 sentences why photosynthesis matters for life on Earth."
+
+Assessment:
+- Formative: Exit ticket, diagram labeling accuracy
+- Summative: Lab report with rubric (hypothesis clarity, data collection, analysis, conclusion)
+- Rubric criteria: Scientific accuracy (25%), Experimental design (25%), Data analysis (25%), Written communication (25%)
+
+Differentiation:
+- ELL students receive bilingual vocabulary cards
+- Advanced learners explore C4 and CAM photosynthesis pathways
+- Students with IEPs receive graphic organizers with partially completed diagrams
+
+Standards Alignment: NGSS MS-LS1-6, Bloom's Taxonomy levels 1-6 addressed

@@ -1,5 +1,5 @@
 # Trinity ID AI OS — Research Bible & Session Context
-## March 22, 2026 — Production Prototype v13.1.0 (Phase 6: Graduation)
+## March 22, 2026 — Production Prototype v13.2.0 (Beta Launch Prep)
 
 ---
 
@@ -115,15 +115,15 @@ User Message → VAAM Bridge (Style/Vocab detect) → Pete Orchestration (VAAM a
 
 ---
 
-## 6. CODEBASE STATE (as of March 22, 2026 — Phase 6 Graduation)
+## 6. CODEBASE STATE (as of March 22, 2026 — Beta Launch Prep)
 
-**6 workspace crates, 0 compile errors, 0 warnings, 175 tests pass.**
-**32,000+ active LOC | 150K+ archive LOC | 638 template LOC | React frontend (14 components, 7 hooks)**
+**6 workspace crates, 0 compile errors, 0 warnings, 179 tests pass.**
+**32,000+ active LOC | 150K+ archive LOC | 638 template LOC | React frontend (15 components, 7 hooks)**
 
 ### Workspace Crates
 | Crate | LOC | Tests | Description |
 |-------|:---:|:-----:|-------------|
-| trinity | 17,000+ | 51 | Axum server :3000, agent (29 tools, structured function calling, **dual persona**: Great Recycler/Programmer Pete), inference (reasoning_effort + tool_calls), **inference_router** (multi-backend auto-detect + failover), persistence (tool call logging), creative, RAG, auto-launch LLM, **EYE export** (HTML5 quiz/adventure/JSON), **eye_container**, **http** (shared clients + unified health checks), **Ring 2 permission enforcement**, **Ring 3 rolling context summary**, **Ring 5 rate limiting + sandboxing** |
+| trinity | 17,000+ | 53 | Axum server :3000, agent (29 tools, structured function calling, **dual persona**: Great Recycler/Programmer Pete), inference (reasoning_effort + tool_calls), **inference_router** (multi-backend auto-detect + failover), persistence (tool call logging), creative, RAG, auto-launch LLM, **EYE export** (HTML5 quiz/adventure/JSON), **eye_container**, **http** (shared clients + unified health checks), **GPU Guard** (Hotel protocol — prevents double llama-server loads), **Quality Scorecard** (5-dimension pedagogical evaluation), **Ring 2 permission enforcement**, **Ring 3 rolling context summary**, **Ring 5 rate limiting + sandboxing** |
 | trinity-protocol | 10,400+ | 67 | Shared types, ADDIE+PEARL+VAAM+vocabulary+sacred circuitry+TamingProgress |
 | trinity-iron-road | 1,000+ | 16 | Iron Road narrative, game loop, bestiary, Pete core, MadLibs |
 | trinity-quest | 1,550 | 18 | Quest board, XP/Coal/Steam, objectives, save/load, circuitry state |
@@ -149,10 +149,13 @@ User Message → VAAM Bridge (Style/Vocab detect) → Pete Orchestration (VAAM a
 | Music Generation | ✅ WIRED | MusicGPT API client. Needs MusicGPT installed |
 | Health/Hardware | ✅ LIVE | Real CPU/RAM/GPU/NPU telemetry, subsystem health checks |
 | Unified API | ✅ WIRED | `POST /api/v1/trinity` — single endpoint, routes by mode |
-| GDD Compilation | ✅ WIRED | Compiles 12-phase chat into structured game design document |
+| GDD Compilation | ✅ FIXED | Compiles 12-phase chat into structured game design document. Accepts optional JSON body (no more 415). |
+| **Quality Scorecard** | ✅ FULL STACK | `POST /api/yard/score` backend (5 pedagogical dimensions) + `QualityScorecard.jsx` frontend (grade circle, score bars, recommendations). Scorecard tab in nav. |
+| **GPU Guard** | ✅ BUILT | `gpu_guard.rs` Hotel protocol: port check + process check + memory budget. Prevents double llama-server loads that crash the GPU driver. PID file tracking for crash recovery. |
+| **Sidecar Monitor** | ✅ FIXED | Was pinging phantom ports 8090-8092 → now checks real sidecars (ComfyUI :8188, Voice :7777, Researcher :8081). Only reports when a previously-healthy sidecar goes down. |
 | **App Modes** | ✅ PHASE 5A | 3 modes: `IronRoad` (gamified), `Express` (wizard), `Yardmaster` (IDE). Auto-starts sidecars. |
 | **Express Mode** | ✅ BUILT | 3-step wizard in frontend (`ExpressWizard.jsx`) → Subject, Goal, Format → quick game generation. |
-| **React Frontend** | ✅ BUILT | Vite+React 3-column layout. **PhaseWorkspace**, **TrainStatus**, **ChapterRail**, **ArtStudio**, **Yardmaster**, **ExpressWizard**. Mode toggle 🚂⚡🔧. |
+| **React Frontend** | ✅ BUILT | Vite+React 3-column layout. **PhaseWorkspace**, **TrainStatus**, **ChapterRail**, **ArtStudio**, **Yardmaster**, **ExpressWizard**, **QualityScorecard**. Mode toggle 🚂⚡🔧. |
 | **Book-View UI** | ✅ LIVE | Chat bubbles → flowing serif prose. Pete's messages as book text, user words as italic quoted journal entries. Narrator (Great Recycler) golden centered prose. System messages as mono gold-bordered margin notes. |
 | **Station Navigation** | ✅ LIVE | All 12 ADDIECRAPEYE phases clickable as book chapters. Station overview pages show Hero's Journey title, Bloom's level, fill badge (COMPLETE/ACTIVE/LOCKED), blurb, 3 quest objectives. Return button restores narrative. |
 | **Live LLM (256K)** | ✅ VERIFIED | Mistral Small 4 119B running on Vulkan with 256K context. Pete responds with DM-style narrative, references quest objectives, drives Socratic protocol. Tested live with Physics subject. |
@@ -229,6 +232,9 @@ User Message → VAAM Bridge (Style/Vocab detect) → Pete Orchestration (VAAM a
 | **POST** | **`/api/eye/compile`** | **Compile EYE container from quest data** |
 | **GET** | **`/api/eye/preview`** | **Preview EYE container JSON** |
 | **GET** | **`/api/eye/export`** | **Export HTML5 quiz/adventure/JSON (?format=)** |
+| **POST** | **`/api/yard/score`** | **Quality Scorecard — 5-dimension pedagogical evaluation (Bloom's, ADDIE, Accessibility, Engagement, Assessment)** |
+| **GET** | **`/api/journal`** | **List journal entries (chapter milestones, reflections)** |
+| **POST** | **`/api/journal`** | **Create journal entry from current game state** |
 
 ### Key API Endpoints (Voice server :7777)
 - `POST /api/say` — Text-to-voice
@@ -310,7 +316,7 @@ Pete speaks     → Player reads/plays → Yardmaster builds
 ```
 
 ### Priority 1: Build & Verify
-1. `/build-and-test` — verify 5-crate workspace compiles, 175+ tests pass (includes zombie cleanup step)
+1. `/build-and-test` — verify 6-crate workspace compiles, 179+ tests pass (includes zombie cleanup step)
 2. Verify Pete's Socratic Protocol — `/wire-pete-socratic`
 
 ### Priority 2: The Yard (Document Management)
@@ -366,6 +372,7 @@ crates/trinity/frontend/src/components/GameHUD.jsx        ← Right sidebar: PEA
 crates/trinity/frontend/src/components/ChapterRail.jsx    ← Left rail: 12-phase navigation
 crates/trinity/frontend/src/components/ArtStudio.jsx      ← Creative tools + asset gallery
 crates/trinity/frontend/src/components/Yardmaster.jsx     ← Agentic IDE with SSE + image rendering
+crates/trinity/frontend/src/components/QualityScorecard.jsx ← 5-dimension pedagogical evaluation UI
 crates/trinity/frontend/src/hooks/useQuest.js             ← Quest state polling (5s interval)
 crates/trinity/frontend/src/hooks/usePearl.js             ← PEARL fetch + refine
 crates/trinity/frontend/src/hooks/useSSE.js               ← Server-sent events listener

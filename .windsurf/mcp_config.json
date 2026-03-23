@@ -1,0 +1,195 @@
+{
+  "mcpServers": {
+    "trinity-addie": {
+      "command": "cargo",
+      "args": [
+        "run",
+        "--bin",
+        "trinity-mcp-server",
+        "--manifest-path",
+        "/home/joshua/Workflow/desktop_trinity/trinity-genesis/Cargo.toml"
+      ],
+      "env": {
+        "RUST_LOG": "info",
+        "TRINITY_MODEL_PATH": "/home/joshua/Workflow/desktop_trinity/trinity-genesis/models/Qwen3.5-REAP-97B.Q4_K_M.gguf",
+        "TRINITY_ROCM_ENABLED": "true"
+      }
+    }
+  },
+  "tools": {
+    "analysis": [
+      "conduct_needs_assessment",
+      "enhance_sme_interview",
+      "target_audience_analysis"
+    ],
+    "design": [
+      "generate_learning_objectives",
+      "create_assessment_strategy",
+      "design_content_structure"
+    ],
+    "development": [
+      "generate_content",
+      "create_multimedia",
+      "develop_interactive_elements"
+    ],
+    "implementation": [
+      "deploy_to_lms",
+      "setup_analytics",
+      "create_learner_support"
+    ],
+    "evaluation": [
+      "conduct_evaluation",
+      "generate_report",
+      "recommend_improvements"
+    ],
+    "quality": [
+      "qm_compliance_check",
+      "ibstpi_compliance_check",
+      "accessibility_check"
+    ],
+    "professional": [
+      "query_professional_standards",
+      "retrieve_design_patterns",
+      "apply_evidence_based_design"
+    ]
+  },
+  "workflowPhases": {
+    "analysis": {
+      "description": "Conduct comprehensive needs assessment and analysis",
+      "tools": ["conduct_needs_assessment", "enhance_sme_interview", "target_audience_analysis"],
+      "qualityChecks": ["qm_compliance_check", "ibstpi_compliance_check"],
+      "deliverables": ["needs_assessment_report", "sme_interview_summary", "audience_analysis"]
+    },
+    "design": {
+      "description": "Design learning objectives, assessments, and content structure",
+      "tools": ["generate_learning_objectives", "create_assessment_strategy", "design_content_structure"],
+      "qualityChecks": ["qm_compliance_check", "ibstpi_compliance_check", "accessibility_check"],
+      "deliverables": ["learning_objectives", "assessment_strategy", "content_structure"]
+    },
+    "development": {
+      "description": "Develop content, multimedia, and interactive elements",
+      "tools": ["generate_content", "create_multimedia", "develop_interactive_elements"],
+      "qualityChecks": ["qm_compliance_check", "accessibility_check"],
+      "deliverables": ["course_content", "multimedia_assets", "interactive_activities"]
+    },
+    "implementation": {
+      "description": "Deploy to LMS and setup analytics",
+      "tools": ["deploy_to_lms", "setup_analytics", "create_learner_support"],
+      "qualityChecks": ["qm_compliance_check"],
+      "deliverables": ["lms_deployment", "analytics_dashboard", "learner_support_materials"]
+    },
+    "evaluation": {
+      "description": "Conduct evaluation and generate reports",
+      "tools": ["conduct_evaluation", "generate_report", "recommend_improvements"],
+      "qualityChecks": ["qm_compliance_check"],
+      "deliverables": ["evaluation_report", "improvement_recommendations", "effectiveness_analysis"]
+    }
+  },
+  "professionalStandards": {
+    "ibstpi": {
+      "domains": [
+        "Professional Foundations",
+        "Planning and Analysis", 
+        "Design and Development",
+        "Evaluation and Implementation",
+        "Management"
+      ],
+      "competencies": [
+        "Communicate effectively",
+        "Apply research and theory",
+        "Conduct needs assessment",
+        "Design instructional interventions",
+        "Revise based on data"
+      ]
+    },
+    "atd": {
+      "capabilities": [
+        "Instructional design models",
+        "Needs assessment approaches",
+        "Instructional modalities",
+        "Outcome definition methods",
+        "SME knowledge elicitation"
+      ]
+    },
+    "aect": {
+      "standards": [
+        "Content Knowledge",
+        "Content Pedagogy",
+        "Learning Environments",
+        "Professional Knowledge",
+        "Research"
+      ]
+    }
+  },
+  "qualityMatters": {
+    "generalStandards": [
+      "Course Overview and Introduction",
+      "Learning Objectives (Competencies)",
+      "Assessment and Measurement",
+      "Instructional Materials",
+      "Learning Activities and Learner Interaction",
+      "Course Technology",
+      "Learner Support",
+      "Accessibility and Usability"
+    ],
+    "specificStandards": 44,
+    "complianceThreshold": 80.0
+  },
+  "suggestions": {
+    "confidenceThreshold": 0.7,
+    "maxSuggestionsPerFile": 5,
+    "autoApplyThreshold": 0.9,
+    "suggestionTypes": {
+      "needs_assessment": {
+        "priority": "high",
+        "icon": "🔍",
+        "color": "#3498db"
+      },
+      "learning_objective": {
+        "priority": "high", 
+        "icon": "🎯",
+        "color": "#e74c3c"
+      },
+      "assessment_strategy": {
+        "priority": "high",
+        "icon": "📊",
+        "color": "#f39c12"
+      },
+      "content_structure": {
+        "priority": "medium",
+        "icon": "📝",
+        "color": "#27ae60"
+      },
+      "quality_check": {
+        "priority": "high",
+        "icon": "✅",
+        "color": "#9b59b6"
+      },
+      "professional_standards": {
+        "priority": "medium",
+        "icon": "🎓",
+        "color": "#34495e"
+      },
+      "accessibility": {
+        "priority": "medium",
+        "icon": "♿",
+        "color": "#16a085"
+      },
+      "lms_integration": {
+        "priority": "low",
+        "icon": "🚀",
+        "color": "#e67e22"
+      },
+      "analytics": {
+        "priority": "low",
+        "icon": "📈",
+        "color": "#2c3e50"
+      },
+      "evaluation": {
+        "priority": "medium",
+        "icon": "📋",
+        "color": "#8e44ad"
+      }
+    }
+  }
+}

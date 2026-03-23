@@ -24,7 +24,15 @@ pub struct HealthResponse {
     pub database: DbHealth,
     pub creative: CreativeHealth,
     pub voice: VoiceHealth,
+    pub cow_catcher: CowCatcherHealth,
     pub uptime_secs: u64,
+}
+
+#[derive(Serialize)]
+pub struct CowCatcherHealth {
+    pub obstacle_count: usize,
+    pub critical_count: usize,
+    pub should_restart: bool,
 }
 
 #[derive(Serialize)]
@@ -91,9 +99,22 @@ pub async fn health_check(State(state): State<AppState>) -> Json<HealthResponse>
 
     let voice_ok = crate::http::check_health("http://127.0.0.1:7777").await;
 
+    // Read cow_catcher diagnostics
+    let cc = state.cow_catcher.read().await;
+    let obstacle_count = cc.get_obstacles().len();
+    let critical_count = cc.get_obstacles().iter().filter(|o| o.severity >= 8).count();
+    let should_restart = cc.should_restart();
+    drop(cc);
+
     let uptime = START_TIME.get().map(|t| t.elapsed().as_secs()).unwrap_or(0);
 
-    let overall = if llm_connected { "healthy" } else { "degraded" };
+    let overall = if !llm_connected {
+        "degraded"
+    } else if critical_count > 0 {
+        "warning"
+    } else {
+        "healthy"
+    };
 
     Json(HealthResponse {
         status: overall.to_string(),
@@ -133,6 +154,11 @@ pub async fn health_check(State(state): State<AppState>) -> Json<HealthResponse>
         voice: VoiceHealth {
             connected: voice_ok,
             url: "http://127.0.0.1:7777".to_string(),
+        },
+        cow_catcher: CowCatcherHealth {
+            obstacle_count,
+            critical_count,
+            should_restart,
         },
         uptime_secs: uptime,
     })

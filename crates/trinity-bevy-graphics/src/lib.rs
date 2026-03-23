@@ -7,8 +7,18 @@
 
 use std::path::PathBuf;
 
+pub mod addiecrapeye;
+#[cfg(feature = "desktop")]
+pub mod avatar;
+#[cfg(feature = "desktop")]
+pub mod bridge;
 pub mod meshes;
 pub mod vision;
+
+#[cfg(feature = "desktop")]
+pub mod art_panels;
+#[cfg(feature = "desktop")]
+pub mod creative_bridge;
 
 pub use meshes::*;
 pub use vision::*;

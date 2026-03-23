@@ -7,6 +7,7 @@ import ArtStudio from './components/ArtStudio';
 import Yardmaster from './components/Yardmaster';
 import ExpressWizard from './components/ExpressWizard';
 import OnboardingTour from './components/OnboardingTour';
+import QualityScorecard from './components/QualityScorecard';
 import { useQuest } from './hooks/useQuest';
 import { useBestiary } from './hooks/useBestiary';
 import { useSSE } from './hooks/useSSE';
@@ -164,6 +165,10 @@ export default function App() {
       {activeTab === 'art' ? (
         <div style={{ gridColumn: '1 / -1', gridRow: 2, overflow: 'auto' }}>
           <ArtStudio />
+        </div>
+      ) : activeTab === 'scorecard' ? (
+        <div style={{ gridColumn: '1 / -1', gridRow: 2, overflow: 'auto' }}>
+          <QualityScorecard />
         </div>
       ) : activeTab === 'yard' || appMode === 'yardmaster' ? (
         <div className="full-span-tab">
