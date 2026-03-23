@@ -767,6 +767,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let assets_service = tower_http::services::ServeDir::new(&assets_dir);
 
+    // Portfolio static files (LDTAtkinson website — embedded in Trinity UI)
+    let portfolio_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("LDTAtkinson/client/dist");
+    let portfolio_service = tower_http::services::ServeDir::new(&portfolio_dir)
+        .fallback(tower_http::services::ServeFile::new(
+            portfolio_dir.join("index.html"),
+        ));
+
     // Clone db_pool before state is consumed by the router
     let ingest_pool = state.db_pool.clone();
 
@@ -775,6 +787,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/hardware", get(get_hardware_status))
         .route("/api/v1/trinity", post(trinity_api::trinity_chat))
         .nest_service("/assets", assets_service)
+        .nest_service("/portfolio", portfolio_service)
         .route("/api/chat", post(chat))
         .route("/api/chat/stream", post(chat_stream))
         .route("/api/chat/yardmaster", post(agent::agent_chat_stream))
@@ -830,6 +843,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/book", get(get_book))
         .route("/api/bevy/state", get(quests::get_bevy_state))
         .route("/api/voice/loop/start", post(voice_loop::start_voice_loop))
+        .route("/api/tts", post(tts_proxy))
         .route("/api/book/stream", get(book_stream))
         // EYE Container Export API — the product
         .route("/api/eye/compile", post(eye_compile))
@@ -1389,6 +1403,59 @@ When all objectives for {phase_label} are complete, narrate the station being cl
         latency_ms: latency,
         detected_circuit,
     }))
+}
+
+/// Proxy TTS requests to the voice sidecar (Piper on port 8200)
+async fn tts_proxy(
+    Json(body): Json<serde_json::Value>,
+) -> Result<axum::response::Response<axum::body::Body>, (StatusCode, String)> {
+    let text = body
+        .get("text")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+
+    if text.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "Missing 'text' field".to_string()));
+    }
+
+    // Forward to voice sidecar TTS
+    let resp = crate::http::STANDARD
+        .post("http://127.0.0.1:8200/tts")
+        .json(&serde_json::json!({ "text": text }))
+        .send()
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::SERVICE_UNAVAILABLE,
+                format!("Voice sidecar not available: {}", e),
+            )
+        })?;
+
+    if !resp.status().is_success() {
+        return Err((
+            StatusCode::BAD_GATEWAY,
+            "Voice sidecar TTS failed".to_string(),
+        ));
+    }
+
+    let wav_bytes = resp.bytes().await.map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to read TTS response: {}", e),
+        )
+    })?;
+
+    axum::response::Response::builder()
+        .status(StatusCode::OK)
+        .header("Content-Type", "audio/wav")
+        .body(axum::body::Body::from(wav_bytes))
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to build response: {}", e),
+            )
+        })
 }
 
 async fn chat_stream(

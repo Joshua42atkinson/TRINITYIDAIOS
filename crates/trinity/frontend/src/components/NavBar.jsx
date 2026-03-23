@@ -7,8 +7,7 @@ export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) 
     { id: 'character', label: 'Character' },
     { id: 'yard',     label: 'Yardmaster' },
     { id: 'scorecard', label: 'Scorecard' },
-    { id: 'voice',    label: 'Voice' },
-    { id: 'creator',  label: 'Creator' },
+    { id: 'voice',    label: 'Zen Mode' },
   ];
 
   // Help Menu — The Four Chariots
@@ -59,6 +58,15 @@ export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) 
           >
             ❓
           </button>
+          <button
+            id="nav-author-btn"
+            className={`nav-link ${activeTab === 'portfolio' ? 'active' : ''}`}
+            onClick={() => onTabChange('portfolio')}
+            style={{ fontSize: '14px', cursor: 'pointer', padding: '4px 10px', marginLeft: '4px' }}
+            title="Author Portfolio — LDTAtkinson.com"
+          >
+            👤 Author
+          </button>
           {helpOpen && (
             <div style={{
               position: 'absolute', right: 0, top: '100%', marginTop: '8px',
@@ -77,16 +85,19 @@ export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) 
                 The Four Chariots
               </div>
               {chariots.map((c) => (
-                <a
+                <button
                   key={c.file}
-                  href={`/docs/${c.file}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  onClick={() => {
+                    onTabChange(`chariot:${c.file}`);
+                    setHelpOpen(false);
+                  }}
                   style={{
                     display: 'flex', gap: '10px', alignItems: 'flex-start',
                     padding: '8px', borderRadius: '6px', textDecoration: 'none',
                     color: '#E2E8F0', marginBottom: '4px',
                     transition: 'background 0.15s',
+                    background: 'transparent', border: 'none',
+                    cursor: 'pointer', width: '100%', textAlign: 'left',
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(207, 185, 145, 0.08)'}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
@@ -106,7 +117,7 @@ export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) 
                       {c.desc}
                     </div>
                   </div>
-                </a>
+                </button>
               ))}
             </div>
           )}

@@ -22,6 +22,7 @@ When PersonaPlex ONNX is wired via FastFlowLM, this sidecar becomes optional.
 
 import io
 import os
+import sys
 import json
 import time
 import wave
@@ -124,17 +125,14 @@ def tts():
     if not text:
         return jsonify({"error": "No text provided"}), 400
 
-    # Use piper CLI for synthesis
+    # Use piper CLI for synthesis (full path to venv binary)
+    piper_bin = os.path.join(os.path.dirname(sys.executable), "piper")
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
         tmp_path = f.name
 
     try:
         proc = subprocess.run(
-            [
-                "piper",
-                "-m", PIPER_MODEL,
-                "-f", tmp_path,
-            ],
+            [piper_bin, "-m", PIPER_MODEL, "-f", tmp_path],
             input=text.encode(),
             capture_output=True,
             timeout=30,

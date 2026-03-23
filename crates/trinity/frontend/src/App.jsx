@@ -9,6 +9,8 @@ import Yardmaster from './components/Yardmaster';
 import ExpressWizard from './components/ExpressWizard';
 import OnboardingTour from './components/OnboardingTour';
 import QualityScorecard from './components/QualityScorecard';
+import ChariotViewer from './components/ChariotViewer';
+import ZenMode from './components/ZenMode';
 import { useQuest } from './hooks/useQuest';
 import { useBestiary } from './hooks/useBestiary';
 import { useSSE } from './hooks/useSSE';
@@ -114,6 +116,7 @@ export default function App() {
   const [started, setStarted] = useState(false);
   const [viewPhase, setViewPhase] = useState(null);
   const [appMode, setAppMode] = useState('iron_road'); // iron_road | express | yardmaster
+  const [chariotDoc, setChariotDoc] = useState(null);  // filename of chariot doc to view
   const { quest, phases, currentPhaseIndex, refetch } = useQuest();
   const { bestiary } = useBestiary();
   const { events, dismissEvent } = useSSE();
@@ -159,106 +162,61 @@ export default function App() {
       <NavBar
         quest={quest}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tab) => {
+          // Handle chariot doc requests: 'chariot:FILENAME.md'
+          if (tab.startsWith('chariot:')) {
+            setChariotDoc(tab.split(':')[1]);
+            setActiveTab('chariot');
+          } else {
+            setActiveTab(tab);
+          }
+        }}
         onNewJourney={newJourney}
       />
 
-      {activeTab === 'creator' ? (
-        <div style={{ gridColumn: '1 / -1', gridRow: 2, overflow: 'auto', padding: '40px 20px' }}>
-          <div style={{
-            maxWidth: '720px', margin: '0 auto',
-            fontFamily: "'Inter', sans-serif", color: '#E2E8F0',
-          }}>
-            <div style={{
-              textAlign: 'center', marginBottom: '32px',
-              borderBottom: '1px solid rgba(207, 185, 145, 0.15)', paddingBottom: '24px',
-            }}>
-              <div style={{
-                fontFamily: "'Cinzel', serif", fontSize: '28px', color: '#CFB991',
-                letterSpacing: '3px', marginBottom: '8px',
-              }}>
-                JOSHUA ATKINSON
-              </div>
-              <div style={{ fontSize: '14px', color: '#9CA3AF', lineHeight: 1.6 }}>
-                Marine Veteran · Father of Six · Graduate Student, Learning Design & Technology
-                <br />Purdue University
-              </div>
-            </div>
-
-            <div style={{
-              fontSize: '15px', lineHeight: 1.8, color: '#CBD5E1', marginBottom: '32px',
-            }}>
-              <p style={{ marginBottom: '16px' }}>
-                <em>"We are the stories we tell ourselves."</em>
-                <br />And then I built a literal game engine to prove it.
-              </p>
-              <p style={{ marginBottom: '16px' }}>
-                I built Trinity ID AI OS on a single machine in my house because I believe that the most
-                powerful educational technology is the one that belongs to the learner — not to a corporation,
-                not to a cloud, and not to an institution.
-              </p>
-              <p style={{ marginBottom: '16px' }}>
-                Trinity is the product of three complete rebuilds, three operating systems, a decade of
-                military service, seminary studies, bartending, fathering six children, and the persistent
-                belief that the meek shall inherit the earth — because the meek are the ones who've done
-                the hard work of knowing themselves.
-              </p>
-            </div>
-
-            <div style={{
-              display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px',
-            }}>
-              <a href="https://ldtatkinson.com" target="_blank" rel="noopener noreferrer"
-                style={{
-                  display: 'block', padding: '20px', borderRadius: '10px',
-                  background: 'rgba(207, 185, 145, 0.06)', border: '1px solid rgba(207, 185, 145, 0.15)',
-                  textDecoration: 'none', color: '#E2E8F0', transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(207, 185, 145, 0.4)'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(207, 185, 145, 0.15)'}
-              >
-                <div style={{ fontSize: '22px', marginBottom: '8px' }}>🎓</div>
-                <div style={{ fontWeight: 600, marginBottom: '4px' }}>LDT Portfolio</div>
-                <div style={{ fontSize: '12px', color: '#6B7280' }}>
-                  LDTAtkinson.com — Academic portfolio with evidence-based artifacts
-                </div>
-              </a>
-              <a href="/docs/PLAYERS_HANDBOOK.md" target="_blank" rel="noopener noreferrer"
-                style={{
-                  display: 'block', padding: '20px', borderRadius: '10px',
-                  background: 'rgba(207, 185, 145, 0.06)', border: '1px solid rgba(207, 185, 145, 0.15)',
-                  textDecoration: 'none', color: '#E2E8F0', transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(207, 185, 145, 0.4)'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(207, 185, 145, 0.15)'}
-              >
-                <div style={{ fontSize: '22px', marginBottom: '8px' }}>🎮</div>
-                <div style={{ fontWeight: 600, marginBottom: '4px' }}>Player's Handbook</div>
-                <div style={{ fontSize: '12px', color: '#6B7280' }}>
-                  The philosophy behind Trinity — 15 chapters of why this game exists
-                </div>
-              </a>
-            </div>
-
-            <div style={{
-              padding: '20px', borderRadius: '10px',
-              background: 'rgba(207, 185, 145, 0.04)', border: '1px solid rgba(207, 185, 145, 0.1)',
-            }}>
-              <div style={{
-                fontFamily: "'Cinzel', serif", fontSize: '12px', color: '#CFB991',
-                letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '12px',
-              }}>
-                Contact & Links
-              </div>
-              <div style={{ fontSize: '13px', lineHeight: 2, color: '#9CA3AF' }}>
-                <div>📧 Portfolio: <a href="https://ldtatkinson.com" target="_blank" rel="noopener noreferrer" style={{ color: '#CFB991', textDecoration: 'none' }}>LDTAtkinson.com</a></div>
-                <div>💻 Source: <a href="https://github.com/Joshua42atkinson/trinity-genesis" target="_blank" rel="noopener noreferrer" style={{ color: '#CFB991', textDecoration: 'none' }}>GitHub</a></div>
-                <div>🔮 Framework: <a href="https://consciousframework.com" target="_blank" rel="noopener noreferrer" style={{ color: '#CFB991', textDecoration: 'none' }}>ConsciousFramework.com</a></div>
-                <div>♻️ Recycler: <a href="https://greatrecycler.com" target="_blank" rel="noopener noreferrer" style={{ color: '#CFB991', textDecoration: 'none' }}>GreatRecycler.com</a></div>
-              </div>
-            </div>
-          </div>
+      {activeTab === 'chariot' && chariotDoc ? (
+        <ChariotViewer
+          filename={chariotDoc}
+          onBack={() => setActiveTab('ironroad')}
+        />
+      ) : activeTab === 'portfolio' ? (
+        <div style={{ gridColumn: '1 / -1', gridRow: 2, position: 'relative', overflow: 'hidden' }}>
+          <button
+            onClick={() => setActiveTab('ironroad')}
+            style={{
+              position: 'absolute', top: '12px', left: '12px', zIndex: 10,
+              padding: '8px 16px', borderRadius: '8px',
+              background: 'rgba(24, 22, 18, 0.9)',
+              border: '1px solid rgba(207, 185, 145, 0.3)',
+              color: '#CFB991', cursor: 'pointer',
+              fontFamily: "'Cinzel', serif", fontSize: '12px',
+              letterSpacing: '1px', textTransform: 'uppercase',
+              backdropFilter: 'blur(8px)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(207, 185, 145, 0.6)';
+              e.currentTarget.style.background = 'rgba(207, 185, 145, 0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(207, 185, 145, 0.3)';
+              e.currentTarget.style.background = 'rgba(24, 22, 18, 0.9)';
+            }}
+          >
+            ← Back to Trinity
+          </button>
+          <iframe
+            src="/portfolio/"
+            title="Author Portfolio — LDTAtkinson.com"
+            style={{
+              width: '100%', height: '100%',
+              border: 'none', display: 'block',
+            }}
+          />
         </div>
+      ) : activeTab === 'voice' ? (
+        <ZenMode />
       ) : activeTab === 'art' ? (
         <div style={{ gridColumn: '1 / -1', gridRow: 2, overflow: 'auto' }}>
           <ArtStudio />

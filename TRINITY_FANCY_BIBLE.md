@@ -1,5 +1,7 @@
 # ⛪ THE TRINITY BIBLE — Definitive Edition
 
+![The Five Ring Architecture — Soul at the center](/images/five_ring_architecture.png)
+
 > *"The Bible is the train. Trinity's pedagogy is the payload. The destination is the student."*
 
 **System**: TRINITY ID AI OS — Instructional Design Artificial Intelligence Operating System
@@ -480,6 +482,7 @@ Grouped by responsibility:
 
 ## 🚃 Car 3: DEVELOP — The ADDIECRAPEYE Framework
 
+![The 12 ADDIECRAPEYE stations — a circular journey through instructional design](/images/addiecrapeye_phases.png)
 > **Bloom's Level**: Create
 > **Sacred Circuit**: Prepare (circuit #4)
 > **Body Metaphor**: The Skeleton — building the frame that holds everything
@@ -806,7 +809,7 @@ pub enum ToolPermission {
 ```
 
 > 📍 `tools.rs:L58-67` — `ToolPermission` enum (3 variants)
-> 📍 `tools.rs:L70-106` — `tool_permission()`: maps 30+ tool names to permission levels
+> 📍 `tools.rs:L70-106` — `tool_permission()`: maps 30 tool names to permission levels
 
 **Permission distribution:**
 - **Safe** (11 tools): `read_file`, `list_dir`, `list_files`, `search_files`, `quest_status`, `cowcatcher_log`, `sidecar_status`, `process_list`, `system_info`, `load_session_context`, `zombie_check`
@@ -834,7 +837,7 @@ The KV cache slot system enables **instant persona switching** without re-tokeni
 
 ### 5.4 Ring 5: Command Sandboxing
 
-The shell tool blocks **42+ dangerous command patterns** across 6 categories:
+The shell tool blocks **44 dangerous command patterns** across 6 categories:
 
 | Category | Examples | Count |
 |----------|---------|-------|
@@ -1169,7 +1172,7 @@ Users have cognitive processing archetypes named after railroad locomotive types
 
 ---
 
-## 🚃 Car 8: ALIGNMENT — The Inhale/Exhale Protocol
+## 🚃 Car 8: ALIGNMENT — Pete's Socratic Protocol
 
 > **Bloom's Level**: Evaluate
 > **Sacred Circuit**: Relate (circuit #10)
@@ -1344,11 +1347,11 @@ Trinity's **Help Menu** (accessible via ❓ icon in NavBar) provides direct acce
 | Chariot | File | Reader | Purpose |
 |---------|------|--------|---------|
 | 📖 **The Bible** | `TRINITY_FANCY_BIBLE.md` | Developers | Technical spec, every line of code explained |
-| 🤝 **Field Manual** | `ASK_PETE_FIELD_MANUAL.md` | Educators | "Terms & conditions" — how Pete works, what to expect |
+| 🤝 **Field Manual** | `ASK_PETE_FIELD_MANUAL.md` | Educators | Pete's operating philosophy & cognitive logistics |
 | 🎓 **Professor** | `PROFESSOR.md` | Stakeholders | Standards alignment, privacy, institutional evaluation |
-| 🚂 **README** | `README.md` | Players | Quick start, what Trinity *is* |
+| 🎮 **Player's Handbook** | `PLAYERS_HANDBOOK.md` | Players | Philosophy, identity & conscious learning |
 
-When a user encounters unfamiliar terminology (e.g., "Subconscious Inventory"), Pete can direct them to the relevant Chariot. When a stakeholder questions the "gamification" approach, the Professor document provides the pedagogical justification with ISTE/AECT/QM standards alignment.
+When a user encounters unfamiliar terminology (e.g., "Subconscious Inventory"), Pete can direct them to the relevant Chariot. When a stakeholder questions the "gamification" approach, the Professor document provides the pedagogical justification with IBSTPI/AECT/QM standards alignment.
 
 > 📍 `NavBar.jsx:L12-43` — Help menu dropdown with Four Chariots links
 > 📍 `main.rs:L813-824` — Static file routes serving root `.md` documents via `/docs/`
@@ -1557,7 +1560,7 @@ This is achieved through llama-server's `-np 2` (2 parallel slots) with Q4 KV ca
 ```
 Layer 1: Headless Server (trinity crate)
   ├── Axum HTTP/SSE server on :3000
-  ├── 100+ API endpoints across 15 groups
+  ├── 85+ API endpoints across 15 groups
   ├── SQLx database (PostgreSQL)
   ├── InferenceRouter (model health + failover)
   └── Tool dispatch (30 tools, 3 permission tiers)
@@ -1608,11 +1611,11 @@ Trinity is in **late prototype** stage. The Golem has its skeleton, muscles, and
 - **ONNX Runtime** — NPU-accelerated embedding and speculative decoding
 - **Gate Review API** — Formal instructor review workflow for LDT Portfolio
 - **Purdue Pilot** — First classroom deployment with LDT students
-- **LDTAtkinson.com** — Portfolio website hosted from the same Strix Halo (Caddy reverse proxy + auto-HTTPS)
+- **LDTAtkinson.com** — Portfolio website live at [LDTAtkinson.com](https://LDTAtkinson.com), hosted from the same Strix Halo (Caddy reverse proxy + auto-HTTPS)
 
 > *The Golem breathes. The iron has been laid. The next train is loading.*
 >
-> *The portfolio is at [LDTAtkinson/](LDTAtkinson/) — 23 artifacts, 4 competency domains, powered by the same `#CFB991` gold that lights this Bible.*
+> *The portfolio is at [LDTAtkinson.com](https://LDTAtkinson.com) — 23 artifacts, 4 competency domains, powered by the same `#CFB991` gold that lights this Bible.*
 
 ---
 

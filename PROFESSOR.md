@@ -1,5 +1,7 @@
 # 🎓 PROFESSOR — The Stakeholder's Guide to TRINITY ID AI OS
 
+![The Professor's Desk — Standards, Privacy, and Evaluation](/images/professor_evaluation.png)
+
 > *"I know what success looks like."* — The Stakeholder's Tagline
 
 **Version 1.0** — March 2026
@@ -15,9 +17,9 @@ This is one of **four root documents** — the "Four Chariots" of Trinity's iden
 | Chariot | Document | UserClass | Perspective |
 |---------|----------|-----------|-------------|
 | 📖 **The Bible** | [TRINITY_FANCY_BIBLE.md](TRINITY_FANCY_BIBLE.md) | Instructional Designer 🎓 | Full technical reference |
-| 🤝 **The Field Manual** | [ASK_PETE_FIELD_MANUAL.md](ASK_PETE_FIELD_MANUAL.md) | Subject Matter Expert 🧑‍🏫 | How Pete scaffolds your expertise |
+| 🤝 **The Field Manual** | [ASK_PETE_FIELD_MANUAL.md](ASK_PETE_FIELD_MANUAL.md) | Subject Matter Expert 🧑‍🏫 | Pete's operating philosophy & cognitive logistics |
 | 🎓 **The Professor** | [PROFESSOR.md](PROFESSOR.md) *(this file)* | Stakeholder 📊 | Institutional adoption & evaluation |
-| 🚂 **The README** | [README.md](README.md) | Player 🎮 | Entry point, first contact |
+| 🎮 **The Player's Handbook** | [PLAYERS_HANDBOOK.md](PLAYERS_HANDBOOK.md) | Player 🎮 | Philosophy, identity & conscious learning |
 
 Each document serves a different reader. This one is for **administrators, department chairs, and evaluators** who need to understand *what Trinity does, why it works, and how it maps to existing standards*.
 
@@ -78,7 +80,7 @@ Trinity's LDT Portfolio tracks alignment to four professional standards:
 Trinity uses **two AI personas** sharing one brain (Mistral Small 4 119B) with separate KV cache memory:
 
 - **Great Recycler 🔮** (Inhale — Slot 0): The Socratic mentor. Asks WHY, challenges assumptions, guides reflection. Never produces deliverables directly. Makes the user *think*.
-- **Programmer Pete ⚙️** (Exhale — Slot 1): The executor. Builds lesson plans, rubrics, code, artifacts. Acts first, explains after. Makes the user *things*.
+- **Programmer Pete ⚙️** (Exhale — Slot 1): The executor. Builds lesson plans, rubrics, code, artifacts. Acts first, explains after. Produces *things* for the user.
 
 The Recycler breathes IN (questioning, metacognition). Pete breathes OUT (deliverables, execution). Together they form an instructional cycle: **reflect before you build, then build what you reflected on.**
 
@@ -91,7 +93,7 @@ Both personas:
 
 - **100% local execution** — no data ever leaves the machine
 - **No API keys required** — all AI models run on local hardware
-- **42+ blocked command patterns** — prevents destructive system operations
+- **44 blocked command patterns** — prevents destructive system operations
 - **Path sandboxing** — AI can only read/write within approved directories
 - **Three-tier tool permissions** — Safe, NeedsApproval, Destructive
 
@@ -217,8 +219,8 @@ Zero data leaves campus. No API keys. No student PII in third-party logs. And th
 | **Socratic Protocol** | 11 phase-specific instruction sets in conductor | ✅ 12/12 claims verified |
 | **QM Scoring** | Automated Bloom's + ADDIE + engagement analysis | ✅ Returns real scores |
 | **VAAM** | Vocabulary Acquisition And Mastery — word scanning + Coal | ✅ Scanning works |
-| **30 Agentic Tools** | File I/O, quest, shell, image gen, lesson plans, rubrics | ✅ All dispatched |
-| **Security** | 44 blocked command patterns, 3-tier permissions, path sandboxing | ✅ Verified |
+| **30 Agentic Tools** | File I/O, quest, shell, image gen, lesson plans, rubrics | ✅ All 30 dispatched |
+| **Security** | 44 blocked command patterns, 3-tier tool permissions, path sandboxing | ✅ Verified |
 | **User Model** | Single-user prototype — one CharacterSheet per instance | ✅ By design |
 
 ### What COULD BE (Realistic Institutional Roadmap)
@@ -277,10 +279,10 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 
 ### 4. Key Things to Notice
 - **No cloud dependencies** — all AI runs locally on the machine
-- **Pete never generates content** — he asks Socratic questions, enforced architecturally
+- **The Great Recycler never generates deliverables** — he asks Socratic questions, enforced architecturally; *Pete* builds
 - **Quality Matters integration** — every artifact is scored against QM standards automatically
 - **Game mechanics map to academics** — XP = competency, quests = assignments, vocabulary = creatures
-- **42+ blocked command patterns** — the AI cannot execute destructive operations
+- **44 blocked command patterns** — the AI cannot execute destructive operations
 
 ---
 
@@ -289,12 +291,12 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 - **Live Demo**: [https://LDTAtkinson.com](https://LDTAtkinson.com)
 - **Trinity App**: [https://LDTAtkinson.com/trinity/](https://LDTAtkinson.com/trinity/)
 - **Source Archive**: [Download v1.0](https://LDTAtkinson.com/downloads/TRINITY_ID_AI_OS_v1.0_source.tar.gz)
-- **GitHub**: [github.com/Joshua42atkinson/trinity-genesis](https://github.com/Joshua42atkinson/trinity-genesis)
+- **GitHub**: [github.com/Joshua42atkinson/TRINITYIDAIOS](https://github.com/Joshua42atkinson/TRINITYIDAIOS)
 - **Bible** (full technical reference): [TRINITY_FANCY_BIBLE.md](TRINITY_FANCY_BIBLE.md)
 - **Field Manual** (Pete's persona & philosophy): [ASK_PETE_FIELD_MANUAL.md](ASK_PETE_FIELD_MANUAL.md)
 - **README** (quick start): [README.md](README.md)
 - **Install Guide**: [INSTALL.md](INSTALL.md)
-- **Portfolio** (LDT competency evidence): [LDTAtkinson/](LDTAtkinson/) — 23 artifacts across 4 competency domains
+- **Portfolio** (LDT competency evidence): [LDTAtkinson.com](https://LDTAtkinson.com) — 23 artifacts across 4 competency domains
 
 ---
 
@@ -307,13 +309,13 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 ## Addendum: Claims Validation Audit
 
 > **Validation Date**: March 23, 2026 — 12:18 PM EDT
-> **Validated By**: Claude Opus 4.6 (Anthropic) — automated audit against running prototype
-> **Method**: Each claim was verified against the live Trinity server (port 3000), source code (192K lines Rust), and API responses.
+> **Validated By**: Automated audit against running prototype
+> **Method**: Each claim was verified against the live Trinity server (port 3000), source code (190K+ lines Rust), and API responses.
 
 | # | Claim | Document Source | Verified Value | Method | Result |
 |:-:|-------|----------------|----------------|--------|:------:|
 | 1 | **30 agentic tools** | PROFESSOR §How to Review | 30 tools returned by `GET /api/tools` | API endpoint | ✅ |
-| 2 | **44 blocked command patterns** | Bible §5.4 Ring 5 | 44 string patterns in `tools.rs:L434-478` across 6 categories (filesystem, system, privilege, process, network, pipe-to-exec) | Source grep | ✅ |
+| 2 | **44 blocked command patterns** | Bible §5.4 Ring 5 | 44 string patterns in `tools.rs` across 6 categories (filesystem, system, privilege, process, network, pipe-to-exec) | Source grep | ✅ |
 | 3 | **31 CharacterSheet fields** | Bible §6.5, PROFESSOR §How to Review | 31 top-level JSON keys from `GET /api/character` | API endpoint | ✅ |
 | 4 | **Socratic Protocol enforced** | PROFESSOR §Key Things to Notice | 11 explicit `SOCRATIC PROTOCOL:` instruction blocks in `conductor_leader.rs`, one per ADDIECRAPEYE phase | Source grep | ✅ |
 | 5 | **QM automated scoring** | Bible §5.6 | `POST /api/yard/score` returns Bloom's coverage, ADDIE alignment, accessibility, engagement, assessment clarity, overall grade, and actionable recommendations | API endpoint | ✅ |
