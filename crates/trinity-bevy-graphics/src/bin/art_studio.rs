@@ -49,21 +49,11 @@ fn main() {
         .run();
 }
 
-/// Set up a minimal 3D viewport for future asset preview.
-/// The egui panels overlay this viewport.
+/// Set up a minimal viewport for egui panels.
+/// A 3D camera for asset preview can be added later.
 fn setup_viewport(mut commands: Commands) {
-    // Camera (looking at origin — will be used for 3D asset preview later)
-    commands.spawn((
-        Camera3d::default(),
-        Transform::from_xyz(0.0, 2.0, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
-    ));
+    // 2D camera for egui panel rendering
+    commands.spawn(Camera2d);
 
-    // Ambient light
-    commands.spawn(AmbientLight {
-        color: Color::srgb(0.12, 0.12, 0.18),
-        brightness: 150.0,
-        ..default()
-    });
-
-    info!("🎬 ART Studio viewport ready");
+    info!("🎬 ART Studio viewport ready — egui panels active");
 }
