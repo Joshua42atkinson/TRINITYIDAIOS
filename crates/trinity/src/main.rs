@@ -925,6 +925,7 @@ async fn serve_chariot_doc(
         "ASK_PETE_FIELD_MANUAL.md",
         "PROFESSOR.md",
         "README.md",
+        "PLAYERS_HANDBOOK.md",
     ];
     if !ALLOWED.contains(&filename.as_str()) {
         return Err((StatusCode::NOT_FOUND, "Document not found".to_string()));

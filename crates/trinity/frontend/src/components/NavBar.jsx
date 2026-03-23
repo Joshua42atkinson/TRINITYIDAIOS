@@ -8,6 +8,7 @@ export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) 
     { id: 'yard',     label: 'Yardmaster' },
     { id: 'scorecard', label: 'Scorecard' },
     { id: 'voice',    label: 'Voice' },
+    { id: 'creator',  label: 'Creator' },
   ];
 
   // Help Menu — The Four Chariots
@@ -25,10 +26,10 @@ export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) 
   }, []);
 
   const chariots = [
-    { emoji: '📖', label: 'The Bible',     desc: 'Technical spec — every line explained',     file: 'TRINITY_FANCY_BIBLE.md' },
-    { emoji: '🤝', label: 'Field Manual',  desc: 'How Pete works — what to expect',           file: 'ASK_PETE_FIELD_MANUAL.md' },
-    { emoji: '🎓', label: 'Professor',     desc: 'Standards, privacy, institutional eval',     file: 'PROFESSOR.md' },
-    { emoji: '🚂', label: 'README',        desc: 'Quick start — what Trinity is',              file: 'README.md' },
+    { emoji: '🔮', label: 'The Bible',            desc: 'Technical spec — every line explained',        file: 'TRINITY_FANCY_BIBLE.md' },
+    { emoji: '🎮', label: "Player's Handbook",    desc: 'The philosophy behind the game',               file: 'PLAYERS_HANDBOOK.md' },
+    { emoji: '🤝', label: 'Field Manual',          desc: 'How Pete works — what to expect',              file: 'ASK_PETE_FIELD_MANUAL.md' },
+    { emoji: '🎓', label: 'Professor',              desc: 'Standards, privacy, institutional eval',        file: 'PROFESSOR.md' },
   ];
 
   return (
