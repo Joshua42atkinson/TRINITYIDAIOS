@@ -304,29 +304,30 @@ TRINITY is built to be a cross-disciplinary tool for the West Lafayette campus a
 
 ---
 
-## P-ART-Y AI Agents (v4.2.0)
+## P-ART-Y AI Agents (v5.0.0)
 
 **The Triple-A Engine**: All agents share the same high-functioning brain (Mistral Small 4) but perform different roles in the Studio.
 
-**Important Architecture Note**: **Pete** is the *only* characterized AI personality within TRINITY. One brain, one static RAM load (Mistral Small 4 119B, ~68GB). The ART modes (Aesthetics, Research, Tempo) are just different system prompts routed through Pete's brain. You (the Yardmaster) choose which mode to engage.
+**Important Architecture Note**: **Pete** is the *only* characterized AI personality within TRINITY. One brain, one static RAM load (Mistral Small 4 119B, ~68GB). **ART has no persona** — it is pure tooling: sidecars for image generation (ComfyUI), document intelligence (Qianfan-OCR), 3D mesh, music, and voice. You (the Yardmaster) choose which tools to engage.
 
-| Agent | Pillar | Purpose | Model / Engine | Interface |
-|-------|--------|---------|----------------|-----------|
+| Agent | Pillar | Purpose | Engine / Sidecars | Interface |
+|-------|--------|---------|-------------------|-----------|
 | **Pete** | **ID** | Conductor / Mentor (Purdue LDT) | Mistral @ :8000 | Iron Road (L1) |
-| **ART** | **AI** | Asset Generation | ComfyUI @ :8188 | ART Studio (L2) |
-| **Yardmaster**| **OS** | System Orchestrator | User + Mistral @ :8000 | Yardmaster (L3) |
+| **ART** | **AI** | Asset Generation + Document Intelligence (no persona) | ComfyUI :8188, Qianfan-OCR, Kokoro TTS, Hunyuan3D | ART Studio (L2) |
+| **You** | **OS** | System Orchestrator (the Yardmaster) | User + Mistral @ :8000 | Yardmaster (L3) |
 
 ---
 
 ## Memory Architecture
 
 ```
-128GB Unified Memory (AMD Strix Halo)
+137.4GB Unified Memory (AMD Strix Halo — Ryzen AI Max+ 395)
 ├── OS + Trinity + Postgres: 10GB (reserve)
-├── Mistral Small 4 (119B):  68GB (Always resident)
-├── ComfyUI + SDXL Turbo:     7GB (Loaded on demand)
+├── Mistral Small 4 (119B):  68GB (Always resident, mmap)
+├── ComfyUI + SDXL Turbo:     7GB (Loaded on demand — PROVEN LIVE)
+├── Qianfan-OCR:              2GB (Document ingestion sidecar)
 ├── Asset compute buffer:    15GB (Hunyuan3D-2.1 / HunyuanVideo)
-└── Available Headroom:     ~28GB
+└── Available Headroom:     ~35GB
 ```
 
 ---
@@ -1020,6 +1021,56 @@ Each step maps to a station. EYE evaluates the output via Mistral vision.
 
 ---
 
+## ART Tools Architecture — The Creative Sidecar Stack
+
+> *ART has no persona. ART is pure tooling — the instruments in the studio.*
+
+ART is the second letter in P-ART-Y. It is NOT an AI personality — it is the collection of creative sidecars that the Yardmaster and Pete can invoke. Each tool runs as an independent process, communicates via HTTP, and shares GPU resources with Mistral through dual-channel compute.
+
+```
+ART Sidecar Stack (all via HTTP, all local-first)
+┌─────────────────────────────────────────────────────────────┐
+│  VISUAL                                                      │
+│  ├── ComfyUI :8188          → SDXL Turbo (PROVEN LIVE)       │
+│  ├── Hunyuan3D :7860        → 3D mesh from portrait          │
+│  └── HunyuanVideo :8188     → 4s cinematic video             │
+├─────────────────────────────────────────────────────────────┤
+│  DOCUMENT INTELLIGENCE                                       │
+│  ├── Qianfan-OCR            → Syllabus/PDF/textbook ingestion│
+│  │   ├── Feeds VAAM vocabulary extraction                    │
+│  │   ├── Feeds Quality Scorecard document input              │
+│  │   └── Apache 2.0 license (Purdue-compatible)              │
+│  └── beast_logger           → Creative pipeline telemetry    │
+│      └── Already LIVE on ART page (ArtStudio.jsx)            │
+├─────────────────────────────────────────────────────────────┤
+│  AUDIO                                                       │
+│  ├── Kokoro TTS             → 54 voices, <1s generation      │
+│  ├── ACE-Step 1.7B          → AI music composition           │
+│  └── Chatterbox Turbo       → Voice cloning                  │
+├─────────────────────────────────────────────────────────────┤
+│  SPATIAL (Bevy Desktop — Archive Ready)                      │
+│  ├── 3D Avatar rendering    → Spirit Crystal + orbital rings │
+│  ├── ADDIE egui panels      → 1,416 lines, all 12 phases    │
+│  ├── Asset preview          → Load .glb meshes + textures    │
+│  └── OBS capture            → Real-time visual feedback      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Bevy + OBS Code Preview — The Game Development Loop
+
+Trinity's endgame for the ART Studio is a **real-time code-to-visual feedback loop**:
+
+1. **Yardmaster** asks Pete: *"Create a food web game where students connect organisms"*
+2. **Pete** (via SCOUT SNIPER) generates 12-phase quest + Bevy ECS code
+3. **Bevy desktop window** compiles and renders the game in real-time
+4. **OBS Studio** captures the Bevy window frame-by-frame
+5. **Mistral Vision** evaluates the visual output against the PEARL alignment
+6. **beast_logger** records every creative event for telemetry
+
+This is the **Purdue literal game engine** — an AI that doesn't just describe a game, it *builds and runs one while you watch*. The archive contains 913 lines of Bevy main.rs, 367 lines of 3D avatar animations, and a full HTTP bridge to Axum. Estimated revival: ~3–4 hours of focused work.
+
+---
+
 ## Hardware (Verified)
 
 - **Machine**: GMKtek EVO X2 128GB (headless server target)
@@ -1096,12 +1147,12 @@ while ART generates, resume after. Both stay in RAM via mmap — no reload from 
 
 ---
 
-## Maturity Assessment (March 22, 2026 — Ring Security Release)
+## Maturity Assessment (March 22, 2026 — ComfyUI + OCR Release)
 
 ### Codebase Numbers
 
 ```
-Total workspace:   ~32,000+ LOC Rust (Active)
+Total workspace:   ~39,000 LOC Rust (Active) + 8,155 LOC frontend
 ├── Active crates:  6 (trinity, protocol, quest, iron-road, voice, sidecar)
 ├── Archive:       ~150,000+ LOC (restorable, not deleted)
 ├── Frontend:       React (14 components, 7 hooks, Cinzel/Crimson typography)
@@ -1109,8 +1160,8 @@ Total workspace:   ~32,000+ LOC Rust (Active)
 ├── Scripts:        125+ shell/utility scripts
 └── Quest files:    8 JSON quest definitions
 
-Tests: 175 passing, 0 failures, 0 warnings
-  ├── trinity:          79 tests (agent, VAAM bridge, inference router, Ring 2/3/5/6, Perspective Engine, Quality Scorecard, Journal States)
+Tests: 179 passing, 0 failures, 0 warnings
+  ├── trinity:          83 tests (agent, VAAM bridge, inference router, Ring 2/3/5/6, PEARL, Perspective Engine, Quality Scorecard, Journal States)
   ├── trinity-protocol: 67 tests (sacred circuitry, VaamProfile, SemanticCreep)
   ├── trinity-quest:    16 tests (quest board, objectives, phase logic)
   ├── trinity-iron-road: 16 tests (narrative, game loop, bestiary)
@@ -1169,32 +1220,39 @@ AVATAR PIPELINE:
       → character.json + portrait.png + entity.rs + voice_sample.wav
 ```
 
-### What's WORKING for Offline Agentic Trinity (Updated March 22, 2026)
+### What's WORKING for Offline Agentic Trinity (Updated March 22, 2026 — 9:25 PM)
 
-**Core (✅ LIVE)**:
+**Core (✅ LIVE — PROVEN TONIGHT)**:
 - Mistral Small 4 119B via llama.cpp (256K ctx, MLA, vision, thinking mode)
-- 29 agentic tools (shell+cwd, read/write/list/search files, creative, quest, lesson plans, etc.)
+- 30 agentic tools (shell+cwd, read/write/list/search files, creative, quest, lesson plans, etc.)
 - **Ring 2**: Destructive tool gate — persona-based tool permission enforcement
 - **Ring 3**: Rolling context summary — deterministic digest compression for old messages
 - **Ring 5**: Rate limiting (60 calls/min, 5 destructive/min) + 40+ shell blocked patterns
 - Quest/workflow system (12 ADDIECRAPEYE phases, PostgreSQL persistence)
+- PEARL focusing agent — subject/medium/vision with alignment scoring
 - RAG via PostgreSQL + pgvector (107 chunks)
 - VAAM vocabulary tracking + Bestiary (persists on every scan)
 - Character sheet persistence (JSON on disk)
 - Voice pipeline (Python sidecar — openwakeword + whisper + Kokoro TTS)
-- ComfyUI image generation (SDXL Turbo, 4s per 1024x1024)
-- Avatar Pipeline v1 (backstory → portrait → entity.rs)
+- **ComfyUI image generation — PROVEN LIVE** (SDXL Turbo, 25.5s first gen via Trinity API, PyTorch 2.5.1+rocm6.2)
+- Avatar Pipeline v1 (backstory → portrait → entity.rs → 8-step workflow defined)
 - Mode gating: dev (Yardmaster, no game mechanics) vs ironroad (Pete, full LitRPG)
+- Quality Scorecard — 5-dimension pedagogical evaluation via LLM scoring
 - Blender 4.0 + OBS Studio installed
+- **137.4 GB VRAM** detected (Strix Halo unified memory, ROCm 7.2)
+
+**Committed Upgrades (🔧 In Progress)**:
+1. **Qianfan-OCR** → Document intelligence sidecar (ART persona). Ingest syllabi, PDFs, textbooks → VAAM vocabulary extraction + Quality Scorecard input. Apache 2.0 license.
+2. **beast_logger** → ✅ ALREADY LIVE on ART page (`ArtStudio.jsx`). Color-coded creative pipeline logger (COMFYUI/ACE_STEP/AVATAR/SUCCESS/ERROR tags). Currently tracks creative events — extend to VAAM creature encounters and mastery rates for Purdue research telemetry.
+3. **Bevy ART Studio** → Native desktop window (separate process, HTTP to Axum). 913-line main.rs + 367-line avatar.rs + 1,416-line ADDIE UI already in archive. ~3-4 hours to revive.
+4. **Bevy + OBS Code Preview** → Trinity writes Bevy game code, compiles it, OBS captures the Bevy window in real-time for visual feedback loop. The professor sees code → game in one flow.
 
 **Still needed (🔧)**:
 1. ~~**Trellis 3D meshing**~~ → **Replaced by Hunyuan3D-2.1** (POST /api/creative/mesh3d)
-2. **ACE-Step music** — GGUF on disk, needs local server (pip broken)
+2. **ACE-Step music** — GGUF on disk, needs local server
 3. **Chatterbox voice cloning** — cached, needs GPU compute switch
 4. ~~**HunyuanVideo**~~ → **Wired** (POST /api/creative/video → ComfyUI workflow)
-5. **Yardmaster UI workflows** — run Avatar Pipeline from web UI
-6. **CharacterSheet in Yardmaster UI** — preferences surface
-7. **Dual-channel compute** — pause Mistral during ART generation
+5. **Dual-channel compute** — pause Mistral during ART generation
 
 **Still needs pruning (🗑️)**:
 1. **trinity-inference** — 33K LOC, mostly dead. Cut to ~3K.
@@ -1204,11 +1262,12 @@ AVATAR PIPELINE:
 ### Engineering Quality Summary
 
 ```
-Functional LOC:     ~32K (what actually executes on :3000 + sidecar)
-Archive:            ~150K LOC (safely archived, restorable)
-Test coverage:      175 tests on 35K functional LOC = solid
+Functional LOC:     ~39K Rust + 8K frontend (what actually executes on :3000 + sidecar)
+Archive:            ~150K LOC (safely archived, restorable — includes full Bevy desktop app)
+Test coverage:      179 tests on 39K functional LOC = solid
 Security:           Ring 2 (permission gates) + Ring 3 (context management) + Ring 5 (rate limiting + sandboxing)
-Git:                Clean history, 4 commits, SSH keys purged from history
+Git:                Clean history, SSH keys purged from history
+ComfyUI:            LIVE on :8188 — PyTorch 2.5.1+rocm6.2, SDXL Turbo checkpoint loaded, 25.5s generation
 ```
 
 ### Recommended Priority Path
@@ -1529,9 +1588,9 @@ This table is the spell check for the system itself.*
 
 | | |
 |---|---|
-| **Stands For** | **P**ete + **A**esthetics, **R**esearch, **T**empo + **Y**ou (the Yardmaster) |
-| **Pedagogy** | The AI is not one agent — it's a *party* of specialists led by **You**. **P** (Pete) is the permanent Socratic mirror — he asks, never tells. **ART** are three functional modes: **A**esthetics (ComfyUI, visual design), **R**esearch (QM rubrics, testing, scope pruning), **T**empo (code generation, momentum). **Y** (You) is the user, the Yardmaster — the one who decides direction. The party structure teaches delegation and role awareness. |
-| **Architecture** | `conductor_leader.rs` — `manage_hotel_sidecars()` maps phases to ART gears. `character_sheet.rs` — `PartyRole`, `PartyConfig`. Frontend: party member badges in `GameHUD.jsx`. |
+| **Stands For** | **P**ete + **ART** (tools, no persona) + **Y**ou (the Yardmaster) |
+| **Pedagogy** | The AI is not one agent — it's a *party* of three roles. **P** (Pete) is the sole AI personality — Socratic mentor, conductor, the only character. **ART** is pure tooling with no persona: ComfyUI (images), Qianfan-OCR (document intelligence), Kokoro TTS (voice), Hunyuan3D (mesh), beast_logger (telemetry), and the archived Bevy desktop engine. **Y** (You) is the user — the Yardmaster who directs everything. The structure teaches that AI is a tool, not a peer — Pete guides, ART executes, You decide. |
+| **Architecture** | `conductor_leader.rs` — `manage_hotel_sidecars()` maps phases to ART tools. `creative.rs` — ComfyUI integration (1,156 lines). `ArtStudio.jsx` — beast_logger + image/music/video controls. Frontend: party member badges in `GameHUD.jsx`. |
 | **Status** | 🟢 |
 
 ---
