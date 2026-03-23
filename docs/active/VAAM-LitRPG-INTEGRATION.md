@@ -11,7 +11,7 @@
 This implementation transforms Trinity ID AI OS from a traditional IDE into a **LitRPG-style learning game** where vocabulary usage becomes a tangible game mechanic. The system rewards players for using domain-specific vocabulary correctly in context, earning "Coal" (potential ideas) which can be burned to generate "Steam" (actual work output).
 
 ### Key Innovation
-**VAAM (Vocabulary As A Mechanism)** bridges the gap between learning and doing:
+**VAAM (Vocabulary Acquisition And Mastery)** bridges the gap between learning and doing:
 - Player says: "I want to use the NPU for multi-threading"
 - VAAM detects: `[NPU]` `[multi-threading]` in correct context
 - System rewards: +15 Coal

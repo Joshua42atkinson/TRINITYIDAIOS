@@ -53,7 +53,7 @@ This script provides a step-by-step demonstration of the TRINITY ID AI OS "Iron 
 **Screen**: Chat interface with Pete's Socratic questions
 
 ### Step 4: VAAM System in Action
-**Speaker**: "Notice the VAAM (Vocabulary As A Mechanism) system tracking our vocabulary complexity. We're currently at Tier 1 - using accessible language."
+**Speaker**: "Notice the VAAM (Vocabulary Acquisition And Mastery) system tracking our vocabulary complexity. We're currently at Tier 1 - using accessible language."
 
 **Actions**:
 1. Point to VAAM tier indicator

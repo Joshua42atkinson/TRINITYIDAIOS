@@ -1,5 +1,5 @@
 # Trinity ID AI OS — Research Bible & Session Context
-## March 22, 2026 — Production Prototype v13.2.0 (Beta Launch Prep)
+## March 23, 2026 — Production Prototype v14.0.0 (Purdue LDT Portfolio Integration)
 
 ---
 
@@ -33,9 +33,12 @@ Trinity ensures functional alignment across every level of the system:
 2. **User Preference (WHAT user prefers)**: **VAAM Bridge** (Profile + Word Weights) — 49 tests passing.
 3. **Methodology (WHAT to do)**: **ADDIECRAPEYE** (12 stations) lifecycle — 18 tests passing.
 4. **Identity (WHO the user is)**: **Character Sheet** (Skill Boosts per station completion).
+5. **Academic Progress (HOW graduation is measured)**: **LDT Portfolio** — 12 portfolio artifacts mapped to ADDIECRAPEYE phases, QM alignment scoring, IBSTPI/ATD/AECT competency tracking, Gate Review graduation gate.
 
 **Functional Flow:**
-User Message → VAAM Bridge (Style/Vocab detect) → Pete Orchestration (VAAM aligned) → Quest Objective Complete → Station Advance → **Character Skill Boost** (Curriculum, Gamification, Narrative, or Assessment Design).
+User Message → VAAM Bridge (Style/Vocab detect) → Pete Orchestration (VAAM + LDT Portfolio aligned) → Quest Objective Complete → Station Advance → **Portfolio Artifact Vaulted** → QM/Competency Recalculation → **Character Sheet Updated** (Coal/Steam/Friction physics + academic progress).
+
+**The Isomorphism:** Purdue LDT program requirements are mapped 1:1 to Iron Road game physics. Completing an instructional design artifact is the same as adding coal to the locomotive. QM rubric alignment is the same as reducing track friction. Gate Review is the same as reaching the end of the Iron Road.
 
 ---
 
@@ -115,20 +118,20 @@ User Message → VAAM Bridge (Style/Vocab detect) → Pete Orchestration (VAAM a
 
 ---
 
-## 6. CODEBASE STATE (as of March 22, 2026 — Beta Launch Prep)
+## 6. CODEBASE STATE (as of March 23, 2026 — LDT Portfolio + ART Canvas)
 
-**6 workspace crates, 0 compile errors, 0 warnings, 179 tests pass.**
-**32,000+ active LOC | 150K+ archive LOC | 638 template LOC | React frontend (15 components, 7 hooks)**
+**7 workspace crates, 0 compile errors, 179+ tests pass.**
+**33,000+ active LOC | 150K+ archive LOC | 638 template LOC | React frontend (16 components, 7 hooks)**
 
 ### Workspace Crates
 | Crate | LOC | Tests | Description |
 |-------|:---:|:-----:|-------------|
-| trinity | 17,000+ | 53 | Axum server :3000, agent (29 tools, structured function calling, **dual persona**: Great Recycler/Programmer Pete), inference (reasoning_effort + tool_calls), **inference_router** (multi-backend auto-detect + failover), persistence (tool call logging), creative, RAG, auto-launch LLM, **EYE export** (HTML5 quiz/adventure/JSON), **eye_container**, **http** (shared clients + unified health checks), **GPU Guard** (Hotel protocol — prevents double llama-server loads), **Quality Scorecard** (5-dimension pedagogical evaluation), **Ring 2 permission enforcement**, **Ring 3 rolling context summary**, **Ring 5 rate limiting + sandboxing** |
-| trinity-protocol | 10,400+ | 67 | Shared types, ADDIE+PEARL+VAAM+vocabulary+sacred circuitry+TamingProgress |
+| trinity | 17,500+ | 53 | Axum server :3000, agent (29 tools, structured function calling, **dual persona**: Great Recycler/Programmer Pete), inference (reasoning_effort + tool_calls), **inference_router** (multi-backend auto-detect + failover), persistence (tool call logging), creative, RAG, auto-launch LLM, **EYE export** (HTML5 quiz/adventure/JSON), **eye_container**, **http** (shared clients + unified health checks), **GPU Guard** (Hotel protocol — prevents double llama-server loads), **Quality Scorecard** (5-dimension pedagogical evaluation), **Ring 2 permission enforcement**, **Ring 3 rolling context summary**, **Ring 5 rate limiting + sandboxing**, **character_api** (LDT Portfolio artifact vaulting + Pete system prompt generation) |
+| trinity-protocol | 10,600+ | 67 | Shared types, ADDIE+PEARL+VAAM+vocabulary+sacred circuitry+TamingProgress+**LdtPortfolio**+**PortfolioArtifact**+**LocomotiveProfile**+**ShadowStatus** |
 | trinity-iron-road | 1,000+ | 16 | Iron Road narrative, game loop, bestiary, Pete core, MadLibs |
 | trinity-quest | 1,550 | 18 | Quest board, XP/Coal/Steam, objectives, save/load, circuitry state |
 | trinity-voice | 576 | 10 | SSML injection, VAAM vocal emphasis |
-| trinity-bevy-graphics | 908 | 0 | 3D Yard — vision processing, mesh generation, materials (restored from archive) |
+| trinity-bevy-graphics | 1,100+ | 0 | **ART Canvas** — ambient particle system (80 particles), pulsing glow ring, title text, 90% canvas / 10% control rail. Desktop binary `art_studio`. |
 | *(trinity-sidecar)* | *3,815* | *0* | *Model loading, sidecar workflow — exists in crates/ but NOT in workspace members* |
 
 ### Feature Status (HONEST)
@@ -138,7 +141,10 @@ User Message → VAAM Bridge (Style/Vocab detect) → Pete Orchestration (VAAM a
 | Yardmaster Chat | ✅ FIXED | SSE streaming with JSON-wrapped responses. Needs llama-server running |
 | VAAM/Bestiary | ✅ WORKING | Vocab detection, semantic creeps, coal economy. 49 tests |
 | Quest/ADDIECRAPEYE | ✅ WORKING | 12-phase lifecycle, objectives, party, save/load. 18+15 tests |
-| Character Sheet | ✅ FIXED | Flexible JSON handler — accepts UI's full payload. Persists to disk |
+| Character Sheet | ✅ FULL STACK | **LDT Portfolio Character Sheet** — glassmorphism HUD (`CharacterSheet.jsx`), Character tab in NavBar. `LdtPortfolio` struct with 12-artifact graduation track, QM alignment, IBSTPI/ATD/AECT scores, Gate Review status. Cognitive logistics: Coal/Steam/Friction progress bars, LocomotiveProfile, ShadowStatus, cargo_slots. Intent Engineering: posture, vulnerability, grounding. Persists to disk. |
+| **LDT Portfolio API** | ✅ BUILT | `character_api.rs`: `POST /api/character/portfolio/artifact` — vaults artifact, recalculates QM average + gate review status, updates XP/Steam/resonance. `generate_pete_system_prompt()` — injects cognitive logistics + portfolio status + Iron Road Laws into Pete's LLM context. |
+| **Pete System Prompt** | ✅ BUILT | `generate_pete_system_prompt()` in `character_api.rs` — enforces Action Mapping Mandate (blocks artifact generation without outcomes), QM Rubric cross-reference, Heavilon Protocol (failed QM → reflection journal), vulnerability-adaptive scaffolding. |
+| **ART Canvas (Bevy)** | ✅ BUILT | `art_studio.rs` desktop binary — 90% immersive canvas / 10% egui control rail. 80 ambient particles (gold sparks + cyan wisps), pulsing glow ring, centered title text, deep navy ClearColor. `art_panels.rs` minimal control rail with lane selector, style presets, prompt input. |
 | RLHF Feedback | ✅ FIXED | Accepts UI's {message_id, score, phase} payload. Logs for future use |
 | Persistence | ✅ LIVE | PostgreSQL sessions, messages, projects. DAYDREAM archive |
 | pgvector RAG | ✅ LIVE | Semantic search (HNSW), auto-ingest, tiered search |
@@ -155,16 +161,16 @@ User Message → VAAM Bridge (Style/Vocab detect) → Pete Orchestration (VAAM a
 | **Sidecar Monitor** | ✅ FIXED | Was pinging phantom ports 8090-8092 → now checks real sidecars (ComfyUI :8188, Voice :7777, Researcher :8081). Only reports when a previously-healthy sidecar goes down. |
 | **App Modes** | ✅ PHASE 5A | 3 modes: `IronRoad` (gamified), `Express` (wizard), `Yardmaster` (IDE). Auto-starts sidecars. |
 | **Express Mode** | ✅ BUILT | 3-step wizard in frontend (`ExpressWizard.jsx`) → Subject, Goal, Format → quick game generation. |
-| **React Frontend** | ✅ BUILT | Vite+React 3-column layout. **PhaseWorkspace**, **TrainStatus**, **ChapterRail**, **ArtStudio**, **Yardmaster**, **ExpressWizard**, **QualityScorecard**. Mode toggle 🚂⚡🔧. |
+| **React Frontend** | ✅ BUILT | Vite+React 3-column layout. **PhaseWorkspace**, **TrainStatus**, **ChapterRail**, **ArtStudio**, **CharacterSheet**, **Yardmaster**, **ExpressWizard**, **QualityScorecard**. Mode toggle 🚂⚡🔧. 6 tabs: Iron Road / ART Studio / Character / Yardmaster / Scorecard / Voice. |
 | **Book-View UI** | ✅ LIVE | Chat bubbles → flowing serif prose. Pete's messages as book text, user words as italic quoted journal entries. Narrator (Great Recycler) golden centered prose. System messages as mono gold-bordered margin notes. |
 | **Station Navigation** | ✅ LIVE | All 12 ADDIECRAPEYE phases clickable as book chapters. Station overview pages show Hero's Journey title, Bloom's level, fill badge (COMPLETE/ACTIVE/LOCKED), blurb, 3 quest objectives. Return button restores narrative. |
 | **Live LLM (256K)** | ✅ VERIFIED | Mistral Small 4 119B running on Vulkan with 256K context. Pete responds with DM-style narrative, references quest objectives, drives Socratic protocol. Tested live with Physics subject. |
 | **PEARL** | ✅ LIVE | Focusing agent: subject, medium, vision, ADDIE/CRAP/EYE alignment scores, phase sync. 13 unit tests. API: GET/POST /api/pearl, PUT /api/pearl/refine. |
 | **Game Loop** | ✅ WIRED | Click objectives → POST /api/quest/complete → advance phases → POST /api/quest/advance. Coal burns, steam rises, XP earned. |
-| **Lexicon Appendix** | ✅ DONE | 13 concepts defined in TRINITY_FANCY_BIBLE.md Appendix A. Every acronym: pedagogy + architecture + status. |
+| **Lexicon Appendix** | ✅ DONE | 14 concepts defined in TRINITY_FANCY_BIBLE.md Appendix A. Every acronym: pedagogy + architecture + status. |
 | Video Generation | ✅ WIRED | HunyuanVideo + ComfyUI endpoint `/api/creative/video`. Needs ComfyUI + HunyuanVideo running |
 | 3D Mesh | ✅ WIRED | Hunyuan3D-2.1 endpoint `/api/creative/mesh3d`. Needs Hunyuan3D running |
-| **1D-2D-3D Architecture** | ✅ ACTIVE | Audio-1D (Pete narrates), Book-2D (React LitRPG), Yard-3D (Bevy WASM sandbox). 2D playable, 3D Yard next. |
+| **1D-2D-3D Architecture** | ✅ ACTIVE | Audio-1D (Pete narrates), Book-2D (React LitRPG), ART-3D (Bevy desktop canvas). 2D playable, ART canvas running. |
 | **Narrative API** | ✅ WIRED | `GET /api/narrative/generate` — Great Recycler prose from live game state. Station description, success prose, failure narratives. |
 | **VAAM Persistence** | ✅ WIRED | Vocabulary mastery + detection audit trail saved to PostgreSQL after every chat via `tokio::spawn`. |
 | **NPU Detection** | ✅ WIRED | `VoiceStatus.npu_available` reports XDNA hardware availability to HUD. |
@@ -204,7 +210,8 @@ User Message → VAAM Bridge (Style/Vocab detect) → Pete Orchestration (VAAM a
 | GET | `/api/quest` | Full game state + ADDIECRAPEYE phases |
 | POST | `/api/quest/advance` | Advance to next phase |
 | POST | `/api/quest/compile` | Compile GDD from quest progress |
-| GET | `/api/character` | Character sheet |
+| GET | `/api/character` | Character sheet (full JSON including LDT Portfolio) |
+| **POST** | **`/api/character/portfolio/artifact`** | **Vault a portfolio artifact — recalculates QM, gate status, updates XP/Steam/resonance** |
 | **POST** | **`/api/ground`** | **I AM grounding ritual — Intent Engineering** |
 | **POST** | **`/api/intent`** | **Set session posture (Mastery/Efficiency) + purpose** |
 | **POST** | **`/api/bestiary/tame`** | **Scope Hope / Scope Nope decisions** |
@@ -276,68 +283,63 @@ User Message → VAAM Bridge (Style/Vocab detect) → Pete Orchestration (VAAM a
 ## 9. WHAT NEEDS TO HAPPEN NEXT
 
 > **Completed: March 22, 2026 (Trinity Industrialization Day):**
-> - **Phase 5B** — In-chat creative generation (SSE image events, inline rendering)
-> - **Phase 5C** — EYE export system (`eye_container.rs`, `export.rs`, HTML5 quiz/adventure/JSON)
-> - **Phase 5D** — Onboarding tour (3-step tooltip, localStorage-gated)
-> - **ART Fix** — `base64_encode()` stub fixed, `[creative]` config section added
-> - **Researcher** — Qianfan-OCR 4B integrated as sub-agent (`analyze_document` tool on :8081)
-> - **Vision** — `analyze_image` tool for primary LLM vision
-> - **Config** — `default.toml` updated with researcher backend, creative endpoints, model paths
-> - Dead code pruning (44→34 annotations, all with intent comments), compiler warning cleanup, 175 tests passing
-> - Shared HTTP client (`http.rs`) — 20 client duplications → 3 shared lazy-static clients
-> - Dual persona system: 🔮 Great Recycler / ⚙️ Programmer Pete + Scout Sniper tool
-> - **Duality KV Cache**: `id_slot` in inference, persona→slot routing, auto-launch with `--parallel 2`
-> - Competitive evaluation: `docs/research/MATURATION_EVALUATION.md`
+> - Phase 5B-D, ART Fix, Researcher, Vision, Config, Dead code pruning, HTTP client consolidation
+> - Dual persona system (Great Recycler / Programmer Pete) + Duality KV Cache + Scout Sniper
+> - Ring Security System (Rings 2/3/5)
 >
-> **Phase 6 — Graduation (IN PROGRESS):**
-> - 6A: Documentation honesty (CONTEXT.md, FUTURE_IDEAS.md refresh)
-> - 6B: End-to-end Gym Coach smoke test
-> - 6C: Config & model cleanup (consolidate GGUF paths)
-> - 6D: Tidy loose ends (audit stubs, park explicitly)
-> - 6E: Professor README (one-page institutional doc)
->
-> **Ring Security System (March 22, 2026 PM):**
-> - **Ring 2** ✅ — Destructive tool gate: `execute_tool_internal` blocks Destructive tools unless persona has dev/programmer clearance. Recycler/IronRoad blocked from shell/python_exec/etc.
-> - **Ring 3** ✅ — Rolling context summary: old messages compressed into deterministic digest (topics, directives, tools, files) instead of hard-truncated. 10 recent messages kept verbatim.
-> - **Ring 5** ✅ — Rate limiting (60 calls/min global, 5 destructive/min) + enhanced shell sandboxing (40+ blocked patterns: network exfiltration, pipe-to-exec, privilege escalation).
-> - **Ring 6** — Perspective Engine (design work — deferred)
+> **Completed: March 23, 2026 (LDT Portfolio + ART Canvas):**
+> - **LDT Portfolio** — `LdtPortfolio` struct (12-artifact graduation track, flat competency scores, Gate Review)
+> - **Portfolio Artifacts** — `PortfolioArtifact` struct with `addiecrapeye_phase`, QM score, reflection, ethics
+> - **Cognitive Logistics** — `current_steam`, `track_friction`, `cargo_slots`, `LocomotiveProfile`, `ShadowStatus`
+> - **Portfolio API** — `POST /api/character/portfolio/artifact` (vault + recalculate + XP/Steam update)
+> - **Pete System Prompt** — `generate_pete_system_prompt()` with Iron Road Laws, Action Mapping Mandate, Heavilon Protocol
+> - **Character Sheet HUD** — `CharacterSheet.jsx` glassmorphism LitRPG HUD, new Character tab in NavBar
+> - **ART Canvas** — `art_studio.rs` desktop binary: 80 ambient particles, pulsing glow ring, title text, 90/10 canvas/rail split
+> - **ART Panel** — `art_panels.rs` minimal egui control rail: lane selector, style presets, prompt input, sidecar status
 
 ### THE PLAN: 1D-2D-3D Layered UI
 
-The Iron Road (2D) scaffolds instructional design. The Yard (3D Bevy) is the blank canvas
-where users build their game/experience. The AI automates Yard work but the user is in
-the loop as EYE (Envision → Yoke → Evolve). Everything in the archive once compiled and
-ran locally — we're bringing it forward to Bevy 0.18.1.
+The Iron Road (2D) scaffolds instructional design. The ART Canvas (Bevy desktop) is the
+immersive creative sandbox. The AI automates design work but the user is in the loop
+as EYE (Envision → Yoke → Evolve).
 
 ```
-1D(Audio) feeds → 2D(Book) narrates → 3D(Yard) creates
-ADDIE + CRAP    → Iron Road LitRPG  → Bevy studio sandbox
+1D(Audio) feeds → 2D(Book) narrates → ART(Bevy) creates
+ADDIE + CRAP    → Iron Road LitRPG  → Bevy ART canvas
 Pete speaks     → Player reads/plays → Yardmaster builds
 ```
 
-### Priority 1: Build & Verify
-1. `/build-and-test` — verify 6-crate workspace compiles, 179+ tests pass (includes zombie cleanup step)
-2. Verify Pete's Socratic Protocol — `/wire-pete-socratic`
+---
 
-### Priority 2: The Yard (Document Management)
-3. Build `YardWorkspace.jsx` — drag-and-drop document upload, inventory display
-4. Create `/api/yard/upload` — multipart file upload → RAG ingest pipeline
-5. Wire Yard tab in App.jsx — separate workspace for user-provided content
-6. Pete catalogs and digitizes user documents (PDF, text, images)
+### TODO — Purdue Presentation Prep
 
-### Priority 3: Bring Back the Yard (3D)
-7. Restore `trinity-bevy-graphics` to workspace — update deps from archive version to `bevy = "0.18.1"`
-8. Update `templates/first-game/` from bevy 0.14 → 0.18.1
-9. Compile and test Bevy crate independently (`cargo check -p trinity-bevy-graphics`)
-10. Wire Bevy WASM `<canvas>` into React frontend (the 3D Yard tab)
+#### 🔴 Priority 1: ART Canvas Polish (Next Session)
+- [ ] Visual polish — color palette, particle tweaking, responsive layout
+- [ ] Wire ART canvas to ComfyUI pipeline (image generation in Bevy window)
+- [ ] Add lane-based rendering (text lane, image lane, audio lane)
+- [ ] Connect ART control rail inputs to actual sidecar calls
 
-### Priority 4: End-to-End
-11. End-to-end test — llama-server → Pete chat → all 12 phases → GDD compile
-12. Scaffold test — scaffold_bevy_game → Bevy project compiles
-13. Professor README — one-page institutional review doc
+#### 🟡 Priority 2: Pete System Prompt Integration
+- [ ] Wire `generate_pete_system_prompt()` into `agent.rs` / `conductor_leader.rs`
+- [ ] Test: Pete blocks artifact without defined outcomes (Action Mapping Mandate)
+- [ ] Test: Pete invokes Heavilon Protocol on failed QM review
+- [ ] Verify vulnerability-adaptive scaffolding (gentle vs. direct modes)
 
-### Deferred (post-Purdue)
+#### 🟢 Priority 3: End-to-End Verification
+- [ ] Full 12-phase walkthrough: llama-server → Pete chat → all phases → GDD compile
+- [ ] Portfolio artifact vaulting: POST artifact → verify QM recalculation → verify XP update
+- [ ] Character Sheet HUD: verify all sections render with real data from /api/character
+- [ ] Frontend build + deploy: `npm run build` → serve from `frontend/dist/`
+
+#### 🔵 Priority 4: Full Documentation Review (After ART)
+- [ ] TRINITY_FANCY_BIBLE.md — full fact-check pass
+- [ ] CONTEXT.md — verify all features match codebase reality
+- [ ] README.md — update for Purdue reviewers
+- [ ] Professor README — one-page institutional review doc
+
+#### ⏳ Deferred (post-Purdue)
 - Video Generation (HunyuanVideo), Knowledge Tracing (BKT), RLHF fine-tuning
+- Bevy WASM `<canvas>` in React (blocked by winit 0.30.13 + Rust 1.94)
 
 ---
 
@@ -346,8 +348,9 @@ Pete speaks     → Player reads/plays → Yardmaster builds
 ```
 CONTEXT.md                              ← YOU ARE HERE (research bible)
 TRINITY_FANCY_BIBLE.md                  ← The Iron Road design bible (lore + mechanics + pedagogy + lexicon)
-crates/trinity/src/main.rs              ← Axum server (2,000+ lines)
+crates/trinity/src/main.rs              ← Axum server (3,000+ lines)
 crates/trinity/src/agent.rs             ← Agent chat with tool-calling + [CONTINUE] + AUTONOMOUS WORK (900+ lines)
+crates/trinity/src/character_api.rs     ← LDT Portfolio API (artifact vaulting + Pete system prompt generation)
 crates/trinity/src/tools.rs             ← 29 agentic tools incl. analyze_document, analyze_image, scout_sniper (2,200+ lines)
 crates/trinity/src/http.rs              ← Shared HTTP clients (QUICK/STANDARD/LONG) + unified check_health()
 crates/trinity/src/persistence.rs       ← PostgreSQL sessions/messages/projects + tool_calls
@@ -355,16 +358,14 @@ crates/trinity/src/rag.rs               ← pgvector semantic search + RAG
 crates/trinity/src/inference.rs         ← LLM client (OpenAI API to :8080) + structured tool calling
 crates/trinity/src/inference_router.rs   ← Multi-backend auto-detect + failover (6 backends incl. Researcher)
 crates/trinity/src/creative.rs          ← ComfyUI + MusicGPT + HunyuanVideo + Hunyuan3D (1,132 lines)
-crates/trinity/src/eye_container.rs     ← EYE container: bundle quest data into exportable artifact
-crates/trinity/src/export.rs            ← HTML5 quiz/adventure/JSON export engine
-crates/trinity/src/conductor_leader.rs  ← ADDIECRAPEYE orchestration (Lone Wolf)
-crates/trinity/src/health.rs            ← Real subsystem health checks
-crates/trinity/src/trinity_api.rs       ← Unified /api/v1/trinity endpoint
-crates/trinity/src/quests.rs            ← ADDIECRAPEYE quest handlers + PEARL API
-crates/trinity/src/vaam.rs              ← VAAM alignment (message scanning)
 crates/trinity/src/vaam_bridge.rs       ← VAAM → system prompt injection
+crates/trinity-protocol/src/character_sheet.rs ← CharacterSheet, LdtPortfolio, PortfolioArtifact, LocomotiveProfile, ShadowStatus
+crates/trinity-bevy-graphics/src/bin/art_studio.rs ← ART Canvas Bevy desktop (particles, glow ring, title text)
+crates/trinity-bevy-graphics/src/art_panels.rs     ← ART Canvas egui control rail
 crates/trinity/frontend/src/App.jsx     ← Main app (SubjectPicker + PEARL creation + OnboardingTour)
+crates/trinity/frontend/src/components/CharacterSheet.jsx  ← LDT Portfolio HUD (glassmorphism)
 crates/trinity/frontend/src/components/PhaseWorkspace.jsx ← Center panel: objectives + chat + export buttons
+crates/trinity/frontend/src/components/NavBar.jsx          ← Top nav: 6 tabs (Iron Road/ART/Character/Yard/Scorecard/Voice)
 crates/trinity/frontend/src/components/OnboardingTour.jsx ← 3-step tooltip onboarding
 crates/trinity/frontend/src/components/TrainStatus.jsx    ← Coal/Steam/Velocity locomotive meters
 crates/trinity/frontend/src/components/PearlCard.jsx      ← PEARL alignment display

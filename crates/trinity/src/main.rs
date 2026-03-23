@@ -42,6 +42,7 @@ use tracing::{info, warn};
 
 mod agent;
 mod character_sheet;
+mod character_api;
 mod conductor_leader;
 mod cow_catcher;
 mod creative;
@@ -807,6 +808,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             get(get_character_sheet).post(update_character_sheet),
         )
         .route("/api/character/detect", post(detect_hardware))
+        .route("/api/character/portfolio/artifact", post(character_api::vault_portfolio_artifact))
         .route("/api/mcp", post(mcp_proxy))
         // ADDIECRAPEYE Orchestration API
         .route("/api/orchestrate", post(orchestrate_quest))
@@ -868,6 +870,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/journal/:id", delete(journal_delete))
         // Perspective Feedback API — Ring 6 training data
         .route("/api/perspective/feedback", post(perspective_feedback))
+        // Four Chariots — root documentation served as raw markdown
+        .route("/docs/:filename", get(serve_chariot_doc))
         .route(
             "/",
             get(|| async { axum::response::Redirect::permanent("/index.html") }),
@@ -908,6 +912,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     axum::serve(listener, app).await?;
 
     Ok(())
+}
+
+/// Serve the Four Chariots — root documentation as raw markdown
+/// WHY: Teachers encountering unfamiliar terms can be directed here by Pete.
+///      Only the 4 known Chariot files are served (whitelist for security).
+async fn serve_chariot_doc(
+    axum::extract::Path(filename): axum::extract::Path<String>,
+) -> Result<axum::response::Response, (StatusCode, String)> {
+    const ALLOWED: &[&str] = &[
+        "TRINITY_FANCY_BIBLE.md",
+        "ASK_PETE_FIELD_MANUAL.md",
+        "PROFESSOR.md",
+        "README.md",
+    ];
+    if !ALLOWED.contains(&filename.as_str()) {
+        return Err((StatusCode::NOT_FOUND, "Document not found".to_string()));
+    }
+    // Resolve relative to the binary's working directory (project root)
+    let path = std::path::PathBuf::from(&filename);
+    match tokio::fs::read_to_string(&path).await {
+        Ok(content) => Ok(axum::response::Response::builder()
+            .header("Content-Type", "text/markdown; charset=utf-8")
+            .body(axum::body::Body::from(content))
+            .unwrap()),
+        Err(_) => Err((StatusCode::NOT_FOUND, format!("{} not found on disk", filename))),
+    }
 }
 
 /// Get current character sheet

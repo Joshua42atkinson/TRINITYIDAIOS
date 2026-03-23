@@ -178,6 +178,41 @@ pub struct CharacterSheet {
     #[serde(default)]
     pub grounding_complete: bool,
 
+    /// Shadow status — tracks the "Ghost Train" (Imposter Syndrome/Anxiety).
+    /// The Shadow isn't the enemy — it's unprocessed telemetry.
+    #[serde(default)]
+    pub shadow_status: ShadowStatus,
+
+    // --- COGNITIVE LOGISTICS (The Engine Vitals) ---
+    /// Current Steam — germane cognitive load / momentum.
+    /// Spent to power ART sidecars and creative generation.
+    /// Earned by completing lessons and taming vocabulary.
+    #[serde(default = "default_steam")]
+    pub current_steam: f32,
+
+    /// Track Friction — extraneous cognitive load penalty.
+    /// Mitigated by the Gilbreth Protocol (minimize friction).
+    /// High friction = slower XP, harder generation.
+    #[serde(default)]
+    pub track_friction: f32,
+
+    /// Cargo Slots — working memory capacity (Miller's Law: 7 ± 2).
+    /// Limits how many active concepts the user can juggle at once.
+    #[serde(default = "default_cargo_slots")]
+    pub cargo_slots: u8,
+
+    /// Locomotive Profile — the user's cognitive processing archetype.
+    /// Determines the narrative style of Pete's scaffolding.
+    #[serde(default)]
+    pub locomotive_profile: LocomotiveProfile,
+
+    // --- PURDUE LDT PORTFOLIO (The Graduation Track) ---
+    /// The LDT Portfolio is the isomorphic layer that maps academic
+    /// requirements (IBSTPI, ATD, AECT, QM) to game progression.
+    /// 12 completed artifacts = graduation. The game IS the portfolio.
+    #[serde(default)]
+    pub ldt_portfolio: LdtPortfolio,
+
     // --- SESSION ZERO (Pete's Character Creation) ---
     // These fields are populated by Pete's 3 Socratic questions at the start.
     // They feed into every system prompt so Pete references them naturally.
@@ -226,6 +261,16 @@ impl CharacterSheet {
             session_intent: None,
             vulnerability: default_vulnerability(),
             grounding_complete: false,
+            shadow_status: ShadowStatus::default(),
+
+            // Cognitive Logistics
+            current_steam: default_steam(),
+            track_friction: 0.0,
+            cargo_slots: default_cargo_slots(),
+            locomotive_profile: LocomotiveProfile::default(),
+
+            // LDT Portfolio — empty until user starts building
+            ldt_portfolio: LdtPortfolio::default(),
 
             // Session Zero — populated by Pete's character creation questions
             experience: None,
@@ -887,5 +932,217 @@ impl Default for AudioSettings {
             loop_playback: true,
             volume: 0.3, // Background music level
         }
+    }
+}
+
+// ============================================================================
+// COGNITIVE LOGISTICS — The Engine Vitals
+// ============================================================================
+
+fn default_steam() -> f32 {
+    0.0 // Start cold — Steam is earned, not given
+}
+
+fn default_cargo_slots() -> u8 {
+    7 // Miller's Law: 7 ± 2
+}
+
+/// Shadow Status — tracks the "Ghost Train" (Imposter Syndrome/Anxiety).
+/// The Shadow isn't the enemy — it's unprocessed telemetry.
+/// Brené Brown: "Owning our story can be hard but not nearly as
+/// difficult as spending our lives running from it."
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub enum ShadowStatus {
+    /// No shadow detected — the user is grounded.
+    #[default]
+    Clear,
+    /// Shadow stirring — user showed signs of avoidance or frustration.
+    /// Pete adjusts scaffolding: more encouragement, fewer challenges.
+    Stirring,
+    /// Shadow active — user explicitly flagged anxiety or imposter syndrome.
+    /// Pete enters maintenance mode: reflection prompts, not task prompts.
+    Active,
+    /// Shadow processed — user completed a reflection journal.
+    /// Heavilon Event survived. "One brick higher, Operator."
+    Processed,
+}
+
+/// Locomotive Profile — the user's cognitive processing archetype.
+/// Determines narrative style and pacing of Pete's scaffolding.
+/// Named after railroad locomotive classes.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub enum LocomotiveProfile {
+    /// Fast processor, impatient with scaffolding. Wants efficiency.
+    /// Pete: shorter prompts, faster pacing, more autonomy.
+    InterceptorExpress,
+    /// Methodical, analytical, wants to understand WHY before acting.
+    /// Pete: deeper explanations, more Socratic questioning.
+    #[default]
+    AnalyzerClass,
+    /// Versatile, adapts to context. Comfortable switching modes.
+    /// Pete: balanced scaffolding, reads the room.
+    AllTerrainSwitcher,
+    /// Cautious, prefers safety. Wants clear guardrails and validation.
+    /// Pete: more encouragement, explicit checkpoints, gentle pacing.
+    ArmoredSupplyTrain,
+}
+
+impl LocomotiveProfile {
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Self::InterceptorExpress => "Interceptor Express",
+            Self::AnalyzerClass => "Analyzer Class",
+            Self::AllTerrainSwitcher => "All-Terrain Switcher",
+            Self::ArmoredSupplyTrain => "Armored Supply Train",
+        }
+    }
+
+    pub fn emoji(&self) -> &'static str {
+        match self {
+            Self::InterceptorExpress => "🚄",
+            Self::AnalyzerClass => "🔬",
+            Self::AllTerrainSwitcher => "🔀",
+            Self::ArmoredSupplyTrain => "🛡️",
+        }
+    }
+}
+
+// ============================================================================
+// PURDUE LDT PORTFOLIO — The Graduation Track
+// ============================================================================
+//
+// Isomorphic mapping: academic rubrics → game physics.
+// 12 artifacts = graduation. The game IS the portfolio.
+//
+// The LDT Portfolio answers the question the original CharacterSheet couldn't:
+//   "WHAT has the user DONE, and WHERE are they on the path to graduation?"
+//
+// Standards mapped:
+//   • IBSTPI — Instructional Design Competencies (foundational domains)
+//   • ATD — Association for Talent Development (capability model)
+//   • AECT — Association for Educational Communications & Technology (ethics)
+//   • QM — Quality Matters (Higher Ed Rubric for course design)
+// ============================================================================
+
+/// The full LDT Portfolio — tracks graduation progress.
+/// Flat scores for practical serialization to React frontend.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LdtPortfolio {
+    /// How many of the 12 required challenges are complete.
+    pub completed_challenges: u8,
+    /// Gate review status string: "Locked", "Active", "InReview", "Graduated".
+    pub gate_review_status: String,
+
+    /// The Ledger of Created Work (subconscious inventory).
+    pub artifact_vault: Vec<PortfolioArtifact>,
+
+    /// Declarative competency scores (0.0–100.0 each).
+    /// IBSTPI — Instructional Design Competencies.
+    pub ibstpi_score: f32,
+    /// ATD — Association for Talent Development capability.
+    pub atd_score: f32,
+    /// AECT — Association for Educational Communications & Technology.
+    pub aect_score: f32,
+
+    /// Rolling average of Quality Matters alignment scores (0.0–100.0).
+    pub qm_alignment_score: f32,
+
+    /// Count of catastrophic failures rebuilt "one brick higher".
+    pub heavilon_events_survived: u32,
+
+    /// Deep reflection journals completed after burnout (Max 17 steps).
+    /// Maps to the Purdue Memorial Union's 17 steps.
+    pub memorial_steps_climbed: u32,
+}
+
+impl Default for LdtPortfolio {
+    fn default() -> Self {
+        Self {
+            completed_challenges: 0,
+            gate_review_status: "Locked".to_string(),
+            artifact_vault: Vec::new(),
+            ibstpi_score: 0.0,
+            atd_score: 0.0,
+            aect_score: 0.0,
+            qm_alignment_score: 0.0,
+            heavilon_events_survived: 0,
+            memorial_steps_climbed: 0,
+        }
+    }
+}
+
+impl LdtPortfolio {
+    /// Check if the user has met all graduation requirements.
+    pub fn is_graduation_ready(&self) -> bool {
+        self.completed_challenges >= 12
+            && self.artifact_vault.len() >= 12
+            && self.qm_alignment_score >= 85.0
+    }
+
+    /// Recalculate portfolio metrics after an artifact is added.
+    pub fn recalculate(&mut self) {
+        self.completed_challenges = self.artifact_vault.len() as u8;
+        if !self.artifact_vault.is_empty() {
+            let total_qm: f32 = self.artifact_vault.iter().map(|a| a.qm_score).sum();
+            self.qm_alignment_score = total_qm / self.artifact_vault.len() as f32;
+        }
+        // Gate review auto-upgrade
+        if self.completed_challenges >= 12 && self.qm_alignment_score >= 85.0 {
+            self.gate_review_status = "Ready For Graduation".to_string();
+        } else if self.completed_challenges > 0 {
+            self.gate_review_status = "Active".to_string();
+        }
+    }
+}
+
+// --- Portfolio Artifacts ---
+
+/// A completed work product in the user's portfolio.
+/// Each artifact maps to standards and includes a reflection journal.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PortfolioArtifact {
+    pub artifact_id: Uuid,
+    /// Human-readable title (e.g., "The Edutainment Gap White Paper")
+    pub title: String,
+    /// Which ADDIECRAPEYE phase generated this artifact.
+    pub addiecrapeye_phase: String,
+    /// What kind of artifact this is (e.g., "Screencast", "XR Module", "Lesson Plan").
+    pub artifact_type: String,
+    /// THE CRUCIAL ACADEMIC REQUIREMENT: The Reflection.
+    /// "How I acquired this technology and applied it to ID practice..."
+    pub reflection_journal: String,
+    /// Which supra-badge domain this artifact demonstrates
+    /// (e.g., "Professional Foundations", "Design & Development").
+    pub aligned_supra_badge: String,
+    /// QM score from the Evaluator Agent (0.0–100.0).
+    pub qm_score: f32,
+    /// Whether the AECT ethics standard was validated.
+    /// (Privacy Moat: was PII protected during creation?)
+    pub aect_ethics_cleared: bool,
+}
+
+impl PortfolioArtifact {
+    pub fn new(
+        title: impl Into<String>,
+        phase: impl Into<String>,
+        artifact_type: impl Into<String>,
+        supra_badge: impl Into<String>,
+    ) -> Self {
+        Self {
+            artifact_id: Uuid::new_v4(),
+            title: title.into(),
+            addiecrapeye_phase: phase.into(),
+            artifact_type: artifact_type.into(),
+            reflection_journal: String::new(),
+            aligned_supra_badge: supra_badge.into(),
+            qm_score: 0.0,
+            aect_ethics_cleared: false,
+        }
+    }
+
+    /// Is this artifact complete enough for the Gate Review?
+    pub fn is_review_ready(&self) -> bool {
+        !self.reflection_journal.is_empty()
+            && self.qm_score >= 70.0
     }
 }

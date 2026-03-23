@@ -6,6 +6,8 @@ Trinity combines instructional design methodology (ADDIE), visual design princip
 
 > Built on a 128 GB AMD Strix Halo (Zen 5 + RDNA 3.5 + XDNA 2 NPU) running a single static 119B MoE language model. No cloud APIs. Everything runs locally.
 
+> 🌐 **Live Demo**: [https://LDTAtkinson.com](https://LDTAtkinson.com) · [Source Archive](https://LDTAtkinson.com/downloads/TRINITY_ID_AI_OS_v1.0_source.tar.gz)
+
 ---
 
 ## What It Does
@@ -18,6 +20,7 @@ Trinity combines instructional design methodology (ADDIE), visual design princip
 | **Quality Scorecard** | Evaluate documents across 5 pedagogical dimensions (Bloom's, ADDIE, Accessibility, Engagement, Assessment) |
 | **Image Generation** | Create visual assets via ComfyUI (SDXL Turbo) directly in conversation |
 | **Document Intelligence** | Analyze documents, charts, and images with Qianfan-OCR Researcher sub-agent |
+| **LDT Portfolio** | Track academic progress through 12 portfolio artifacts mapped to ADDIECRAPEYE phases — QM alignment, IBSTPI/ATD/AECT competency scoring, Gate Review graduation gate |
 | **HTML5 Export** | Export self-contained quiz games and text adventures that run in any browser |
 | **Bevy Game Scaffold** | Generate starter Rust/Bevy game projects pre-loaded with vocabulary and objectives |
 | **Voice Conversation** | Talk to Pete using speech (Whisper STT + Kokoro TTS pipeline) |
@@ -75,7 +78,7 @@ Pete (Mistral Small 4 119B MoE) ─── The AI personality (~68 GB Q4_K_M)
  └── Tempo mode ──────── Code generation, game scaffolding
 
 Rust Axum Server (:3000) ─── ADDIECRAPEYE orchestration, 29 agentic tools
-React Frontend ──────────── Book-view UI, 5 tabs (Iron Road / ART Studio / Yardmaster / Scorecard / Voice)
+React Frontend ──────────── Book-view UI, 6 tabs (Iron Road / ART Studio / Character / Yardmaster / Scorecard / Voice)
 PostgreSQL + pgvector ───── Sessions, RAG knowledge base
 ComfyUI (:8188) ─────────── SDXL Turbo image generation
 Voice (:7777) ───────────── Whisper STT + Kokoro TTS
@@ -98,10 +101,11 @@ Sidecar Monitor ─────────── Checks real sidecar health, re
 
 ### Frontend (Vite + React)
 
-15 components, 7 custom hooks. Key views:
+16 components, 7 custom hooks. Key views:
 
 - **Iron Road** — 3-column book layout: chapter rail / prose + chat / game HUD
 - **ART Studio** — Image, music, video, 3D mesh generation with asset gallery
+- **Character** — LDT Portfolio HUD: cognitive logistics (Coal/Steam/Friction), academic progress (12-artifact graduation track), portfolio artifact vault, intent engineering
 - **Yardmaster** — IDE-grade agentic terminal with reasoning panel and tool forge
 - **Scorecard** — Pedagogical quality evaluation with dimension bars and recommendations
 - **Express** — 3-step wizard for quick game generation
@@ -115,6 +119,7 @@ Sidecar Monitor ─────────── Checks real sidecar health, re
 | POST | `/api/chat/yardmaster` | Agentic chat with tool-calling |
 | POST | `/api/quest/compile` | Compile Game Design Document from quest state |
 | POST | `/api/yard/score` | Quality Scorecard — 5-dimension pedagogical evaluation |
+| POST | `/api/character/portfolio/artifact` | Vault LDT portfolio artifact, recalculate metrics |
 | POST | `/api/pearl` | Create/replace PEARL (subject + medium + vision) |
 | GET | `/api/eye/export` | Export HTML5 quiz/adventure/JSON |
 | GET | `/api/inference/status` | Multi-backend router status |
@@ -142,7 +147,7 @@ Each station maps to a Bloom's Taxonomy level and a Hero's Journey chapter. The 
 
 ## License
 
-Apache 2.0 — Users own all content created with Trinity.
+Apache 2.0 — Users own all content created with Trinity. See [LICENSE](LICENSE).
 
 ## Research Context
 
@@ -150,8 +155,13 @@ This is a graduate research project at Purdue University exploring AI-augmented 
 
 - [CONTEXT.md](CONTEXT.md) — Full research bible and session context
 - [TRINITY_FANCY_BIBLE.md](TRINITY_FANCY_BIBLE.md) — Iron Road design bible (lore + mechanics + pedagogy)
+- [INSTALL.md](INSTALL.md) — Step-by-step build & run guide for evaluators
 
 ## Links
 
+- **Live Demo**: [LDTAtkinson.com](https://LDTAtkinson.com)
+- **Trinity App**: [LDTAtkinson.com/trinity/](https://LDTAtkinson.com/trinity/)
+- **Source Archive**: [Download v1.0](https://LDTAtkinson.com/downloads/TRINITY_ID_AI_OS_v1.0_source.tar.gz)
+- **GitHub**: [github.com/Joshua42atkinson/trinity-genesis](https://github.com/Joshua42atkinson/trinity-genesis)
 - [ConsciousFramework.com](https://consciousframework.com)
 - [GreatRecycler.com](https://greatrecycler.com)

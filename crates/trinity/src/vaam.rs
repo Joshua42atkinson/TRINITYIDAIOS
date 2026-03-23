@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // FILE:        vaam.rs
-// PURPOSE:     VAAM (Vocabulary As A Mechanism) — Coal mining system
+// PURPOSE:     VAAM (Vocabulary Acquisition And Mastery) — Coal mining system
 //
 // ARCHITECTURE:
 //   • Scans all player messages for domain vocabulary

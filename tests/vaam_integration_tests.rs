@@ -2,7 +2,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // VAAM Integration Tests
 // ═══════════════════════════════════════════════════════════════════════════════
-// Tests for the Vocabulary As A Mechanism system integration.
+// Tests for the Vocabulary Acquisition And Mastery system integration.
 
 #[cfg(test)]
 mod vaam_integration_tests {

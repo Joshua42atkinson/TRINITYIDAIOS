@@ -1,1746 +1,1623 @@
-# TRINITY ID AI OS — The Fancy Bible
-## The Iron Road Design Bible — Lore + Mechanics + Pedagogy
+# ⛪ THE TRINITY BIBLE — Definitive Edition
 
-### Architecture: 12 Crate ADDIE-C-R-A-P-E-Y-E System
+> *"The Bible is the train. Trinity's pedagogy is the payload. The destination is the student."*
 
----
-
-## Table of Contents
-
-1. [System Overview](#system-overview)
-2. [Crate Registry](#crate-registry)
-3. [The "True Trinity" Concept (Institutional Adoption)](#the-true-trinity-concept-institutional-adoption)
-4. [Purdue Departmental Integration & Program Management](#purdue-departmental-integration--program-management)
-5. [Three UI Screens](#three-ui-screens)
-6. [P-ART-Y AI Agents](#p-art-y-ai-agents-v420)
-7. [Ring Security System](#ring-security-system-v700)
-8. [Single-Brain Orchestration](#single-brain-orchestration)
-9. [PersonaPlex Voice](#personaplex-voice)
-10. [Hero's Journey Quest System](#heros-journey-quest-system)
-11. [VAAM + Iron Road Game Mechanics](#vaam--iron-road-game-mechanics)
-12. [Model Download System (Roadmap)](#model-download-system-roadmap)
-13. [Maturity Assessment](#maturity-assessment)
-14. [Installation & Setup](#installation--setup)
-15. [Troubleshooting & Known Issues](#troubleshooting--known-issues)
-16. [User Interaction with Pete](#user-interaction-with-pete)
-17. [Journal States & Quality Scorecard](#journal-states--quality-scorecard)
-18. [Legal Compliance & Validation](#legal-compliance--validation)
-19. [Appendix A — The Lexicon](#appendix-a--the-lexicon)
-    - [The Three Dimensions](#the-three-dimensions)
-    - [LOCOMOTIVE (Cognitive Load Physics)](#locomotive-cognitive-load-physics)
+**System**: TRINITY ID AI OS — Instructional Design Artificial Intelligence Operating System
+**Author**: Joshua Atkinson
+**Institution**: Purdue University — Learning Design & Technology
+**Hardware**: AMD Ryzen AI Max+ 395 (Strix Halo) — 128 GB unified memory
+**License**: Apache 2.0
+**Genesis Date**: March 2026
+**Version**: v1.0
 
 ---
 
-## System Overview
+## 🚃 Car 0: Table of Contents
 
-```
-TRINITY ID AI OS — Trinity 3-Layer Architecture
-┌─────────────────────────────────────────────────────────────┐
-│  LAYER 3: Body/UI (Browser/Bevy)                            │
-│  ├─ trinity: HTTP server, static files, API routes          │
-│  └─ trinity-render: Bevy ECS (Shared with Layer 1)          │
-├─────────────────────────────────────────────────────────────┤
-│  LAYER 2: AI Kernel (Sidecars)                               │
-│  ├─ Conductor (Pete): Mistral Small 4 (@:8080, 256K ctx)  │
-│  ├─ ART Studio: ComfyUI (@:8188), Python Sidecars           │
-│  └─ Yardmaster: Mistral Agent (@:8000)                      │
-├─────────────────────────────────────────────────────────────┤
-│  LAYER 1: Shared Infrastructure                              │
-│  ├─ trinity-protocol: Types, ADDIE enums, HeroStage         │
-│  ├─ trinity-data: PostgreSQL, RAG, embeddings               │
-│  └─ trinity-client: (Legacy - See Archive)                  │
-└─────────────────────────────────────────────────────────────┘
-```
+### ADDIE — Extract the Wisdom *(Cars 1–5: "What is Trinity?")*
 
----
+- [Car 1: ANALYZE — System Overview & Philosophy](#-car-1-analyze--system-overview--philosophy)
+  - [1.1 What Is TRINITY ID AI OS?](#11-what-is-trinity-id-ai-os) · [1.2 Three Stakeholders](#12-the-three-stakeholders) · [1.3 P-ART-Y Framework](#13-the-p-art-y-framework) · [1.4 Operating Modes](#14-the-three-operating-modes) · [1.5 Architecture](#15-the-three-layer-architecture) · [1.6 App State](#16-the-application-state) · [1.7 API Surface](#17-the-api-surface) · [1.8 Module Map](#18-the-server-module-map) · [1.9 Hardware](#19-the-hardware-platform) · [1.10 Frontend](#110-the-frontend) · [1.11 Field Manual](#111-field-manual-cross-reference)
+- [Car 2: DESIGN — Architecture & Crate Registry](#-car-2-design--architecture--crate-registry)
+  - [2.1 Protocol Crate](#21-the-protocol-crate--trinitys-language) · [2.2 Workspace Layout](#22-the-workspace-layout) · [2.3 Dependencies](#23-dependency-philosophy) · [2.4 Module Inventory](#24-the-module-inventory)
+- [Car 3: DEVELOP — The ADDIECRAPEYE Framework](#-car-3-develop--the-addiecrapeye-framework)
+  - [3.1 12 Stations](#31-the-12-stations) · [3.2 Bloom's Integration](#32-blooms-taxonomy-integration) · [3.3 Sacred Circuitry](#33-sacred-circuitry--the-15-word-cognitive-scaffolding) · [3.4 Circuit↔Station Map](#34-the-circuit--station-isomorphism) · [3.5 Hotel Pattern](#35-the-hotel-management-pattern) · [3.6 Socratic Prompts](#36-phase-implementation-socratic-prompts)
+- [Car 4: IMPLEMENT — Iron Road Game Mechanics](#-car-4-implement--the-iron-road-game-mechanics)
+  - [4.1 Core Loop](#41-the-iron-road-core-loop) · [4.2 VAAM](#42-vaam--vocabulary-as-a-mechanism) · [4.3 SemanticCreep](#43-semanticcreep--vocabulary-creatures) · [4.4 Bestiary](#44-the-bestiary) · [4.5 MadLibs](#45-lesson-madlibs) · [4.6 Events](#46-the-game-loop-events) · [4.7 Book](#47-the-book-of-the-bible) · [4.8 Tests](#48-test-coverage)
+- [Car 5: EVALUATE — Quality Systems & Security Rings](#-car-5-evaluate--quality-systems--security-rings)
+  - [5.1 Ring System](#51-the-ring-system) · [5.2 Tool Permissions](#52-ring-1-tool-permissions) · [5.3 Persona Gates](#53-ring-2-persona-based-access-control) · [5.4 Sandboxing](#54-ring-5-command-sandboxing) · [5.5 Perspective Engine](#55-ring-6-the-perspective-engine) · [5.6 QM Rubric](#56-quality-matters-rubric--automated-evaluation) · [5.7 Scorecard](#57-quality-scorecard--document-evaluation) · [5.8 Cow Catcher](#58-the-cow-catcher--error-classification)
 
-## Crate Registry
+### CRAP — Place the Wisdom *(Cars 6–9: "How does Trinity work?")*
 
-| # | Crate | Status | Manual | Purpose |
-|---|-------|--------|--------|---------|
-| 1 | trinity | 🟢 **79 tests** | (No Manual) | HTTP server, Axum API, RAG, VAAM Bridge, Quest Endpoints, **Ring 2/3/5/6 security**, Perspective Engine, Quality Scorecard, Journal States |
-| 2 | trinity-protocol | 🟢 **67 tests** | `crates/trinity-protocol/src/crate_manual.rs` | Shared types, Sacred Circuitry, VaamProfile, SemanticCreep, TamingProgress, QM Rubric, ID Contract |
-| 3 | trinity-quest | 🟢 **16 tests** | `crates/trinity-quest/src/crate_manual.rs` | Hero's Journey logic, 12 ADDIECRAPEYE phases, PostgreSQL state |
-| 4 | trinity-iron-road | 🟢 **16 tests** | `crates/trinity-iron-road/src/crate_manual.rs` | Book narrative engine, Game Loop, MadLibs, CreepBestiary |
-| 5 | trinity-voice | 🟢 **10 tests** | `crates/trinity-voice/src/crate_manual.rs` | PersonaPlex voice integration, SSML types, VAAM vocal emphasis |
-| 6 | trinity-sidecar | 🟢 Compiling | (No Manual) | Agentic sidecar (Engineer), Sword & Shield pattern |
-| 7 | trinity-client | ❌ Archived | (See Archive) | Legacy inference/UI stubs |
-| 8 | trinity-inference | ❌ Archived | (See Archive) | Legacy inference stubs |
+- [Car 6: CONTRAST — What Makes Trinity Different](#-car-6-contrast--what-makes-trinity-different)
+  - [6.1 PEARL](#61-the-pearl--perspective-engineering-aesthetic-research-layout) · [6.2 PEARL Fields](#62-the-three-pearl-fields) · [6.3 PEARL Lifecycle](#63-pearl-phase-lifecycle) · [6.4 PEARL Evaluation](#64-pearl-evaluation--weighted-alignment) · [6.5 CharacterSheet](#65-the-charactersheet--persistent-identity) · [6.6 User Classes](#66-the-four-user-classes) · [6.7 Intent Engineering](#67-intent-engineering--the-digital-quarry) · [6.8 Comparison](#68-trinity-vs-other-tools)
+- [Car 7: REPETITION — The Isomorphic Patterns](#-car-7-repetition--the-isomorphic-patterns)
+  - [7.1 Isomorphism](#71-the-isomorphism-principle) · [7.2 Three-to-Twelve](#72-the-three-to-twelve-pattern) · [7.3 Cognitive Load](#73-cognitive-load-theory-in-code) · [7.4 Golem Metaphor](#74-the-golem-metaphor) · [7.5 HW-to-Game Map](#75-hardware-to-game-mapping) · [7.6 Locomotive Profiles](#76-locomotive-profiles)
+- [Car 8: ALIGNMENT — Pete's Socratic Protocol](#-car-8-alignment--petes-socratic-protocol)
+  - [8.1 Socratic Core](#81-the-socratic-core) · [8.2 System Prompt](#82-the-yardmaster-system-prompt) · [8.3 Dual Persona](#83-dual-persona-architecture) · [8.4 VAAM in Chat](#84-vaam-integration-in-chat) · [8.5 Agent Loop](#85-the-multi-turn-agent-loop)
+- [Car 9: PROXIMITY — User Interface & Experience](#-car-9-proximity--user-interface--experience)
+  - [9.1 Components](#91-the-16-react-components) · [9.2 Glassmorphism](#92-glassmorphism-design-system) · [9.3 CharacterSheet UI](#93-the-charactersheet-ui) · [9.4 Four Chariots](#94-the-four-chariots--in-app-help-menu) · [9.5 Three Modes](#95-the-three-modes)
 
----
+### EYE — Refine the Wisdom *(Cars 10–12: "Where does Trinity go?")*
 
-## The "True Trinity" Concept (Institutional Adoption)
-
-Trinity ID AI OS is designed as a **Production-Ready EdTech Platform for Purdue University** and the broader Learning Design and Technology (LDT) community. 
-
-**The Goal**: To provide a fully functional, gamified Instructional Design system that can be deployed across various Purdue departments (West Lafayette campus and online) to assist educators in building high-quality, pedagogical games and learning materials.
-
-**The "True Trinity" Approach**:
-We have pivoted away from speculative multi-model hot-swapping towards a robust, single-brain architecture. 
-- **One High-Functioning AI**: A single, powerful LLM (Mistral Small 4 119B) acts as the core reasoning engine.
-- **The Studio**: This brain is wrapped in a specialized "Studio" consisting of an Instructional Design (ID) system.
-- **The Value Proposition**: By combining a single smart brain with rigid ID frameworks (ADDIECRAPEYE, QM Rubric, VAAM), Trinity ensures that all generated educational content is structurally sound, aligned with learning objectives, and free from scope creep.
-
-**The Pythagorean Oath — Design Decision Principle**:
-When a design decision is ambiguous, **always choose the healthier option for Trinity's pedagogy and architecture**. Do not defer, do not ask — make the better choice and document why. This applies to mappings, naming, code structure, and any fork where both paths compile but one serves the educational mission better. Pythagoras didn't ask his students whether to study harmony — he built the curriculum around it.
-
-This shift ensures the system is stable, provable, and ready for academic peer review and departmental integration.
+- [Car 10: ENVISION — Purdue Integration & LDT Portfolio](#-car-10-envision--purdue-integration--ldt-portfolio)
+  - [10.1 LDT Portfolio](#101-the-ldt-portfolio--the-graduation-track) · [10.2 Standards](#102-standards-alignment) · [10.3 Graduation](#103-graduation-requirements) · [10.4 Heavilon Events](#104-heavilon-events--memorial-steps) · [10.5 Artifact Vault](#105-the-artifact-vault)
+- [Car 11: YOKE — ART Pipeline & Creative Tools](#-car-11-yoke--art-pipeline--creative-tools)
+  - [11.1 ART Pipeline](#111-the-art-creative-pipeline) · [11.2 ComfyUI](#112-comfyui-workflow--sdxl-turbo) · [11.3 Visual Style](#113-visual-style-system) · [11.4 Voice](#114-voice-pipeline) · [11.5 Models](#115-model-inventory)
+- [Car 12: EVOLVE — Deployment, Hardware, and the Lexicon](#-car-12-evolve--deployment-hardware-and-the-lexicon)
+  - [12.1 Strix Halo](#121-the-amd-strix-halo-platform) · [12.2 KV Cache](#122-the-dual-kv-cache-architecture) · [12.3 Server](#123-server-architecture) · [12.4 Lexicon](#124-the-trinity-lexicon) · [12.5 What's Next](#125-whats-next)
 
 ---
 
-## The Dragon Scroll — What Trinity Actually Is
+## How to Read This Bible
 
-> *"There is no secret ingredient."*
-> – Mr. Ping, *Kung Fu Panda*
+This document is structured as **12 train cars** following Trinity's own ADDIECRAPEYE framework — the same framework that governs the system it describes. Each car is self-contained and code-referenced.
 
-**Trinity is not a wrapper for AI. Trinity is a wrapper for a human, run by AI.**
+**Code references** use the format `📍 file.rs:L##` pointing to exact lines in the source. Every architectural claim can be verified against running code.
 
-Every AI training pipeline has the same structure: take raw input, pass it through structured quality gates, reinforce good patterns, and produce a refined output. The industry calls this fine-tuning, RLHF, scaffolding. We use these same techniques — but the model being trained is **the user**.
+| Group | Cars | Purpose | Question Answered |
+|-------|------|---------|-------------------|
+| **ADDIE** (1–5) | Analyze → Design → Develop → Implement → Evaluate | Extract the Wisdom | *What is Trinity?* |
+| **CRAP** (6–9) | Contrast → Repetition → Alignment → Proximity | Place the Wisdom | *How does Trinity work?* |
+| **EYE** (10–12) | Envision → Yoke → Evolve | Refine the Wisdom | *Where does Trinity go?* |
 
-| AI Training Concept | Trinity Equivalent | What It Does to the Human |
-|---------------------|--------------------|---------------------------|
-| Pre-training | **The Awakening** (tutorial) | Establishes baseline identity — who are you, what do you know? |
-| Fine-tuning | **ADDIECRAPEYE** (12-station cycle) | Structured quality gates shape creative output toward excellence |
-| RLHF | **VAAM + Coal + Steam** | Positive reinforcement for correct vocabulary usage and design choices |
-| Evaluation | **QM Rubric** | Objective quality measurement — the work product speaks for itself |
-| Inference | **The Golem** (final output) | The user's creation, not the AI's — the human produced this |
+### The Crate Map
 
-**The Yardmaster is the Dragon Warrior.** The Dragon Scroll is blank because the secret ingredient is *you*. Pete (the AI) is Master Shifu — the trainer who scaffolds, challenges, and guides. The Iron Road is the training ground. ADDIECRAPEYE stations are the structured quality gates that turn raw creative energy into polished educational content.
+All code lives under `crates/` in the workspace. Seven active crates:
 
-**Autopoiesis — Self-Making — Is the Persistence Layer.** Trinity doesn't just save state. It *models itself around the user over time*. The Character Sheet evolves. The VAAM profile deepens. The vocabulary Bestiary grows. The Book of the Bible records not what the AI did, but what the human *became*. This is autopoiesis — a system that continuously produces and maintains itself through the organism's own activity.
+| Crate | Role | Key Modules |
+|-------|------|-------------|
+| `trinity` | Headless HTTP server (Layer 1) | 31 modules, 3046-line `main.rs` |
+| `trinity-protocol` | Shared types & language | 26 public modules, 146-line `lib.rs` |
+| `trinity-quest` | Quest engine & game state | Hero stages, XP/Coal/Steam |
+| `trinity-iron-road` | Book writing & VAAM | Narrative, vocabulary, SemanticCreep |
+| `trinity-voice` | Voice pipeline | Kokoro TTS, 54 voices |
+| `trinity-bevy-graphics` | Bevy 3D Yard | Spatial sandbox, desktop app |
+| (archive) | Legacy crates | Preserved, excluded from workspace |
 
-**Why This Matters for Teachers:** Every fear educators have about AI — that it replaces creativity, that it does the work for students, that it undermines assessment — is addressed by this inversion. Trinity doesn't do the work. Trinity makes the human do better work, using the same optimization techniques that made the AI smart in the first place. It alleviates fear by replacing it with familiarity. Teachers who use Trinity don't just tolerate AI — they understand it, because they've experienced its training methodology from the inside.
-
-**The Pythagorean Promise:** *"Educate the children and it won't be necessary to punish the men."* Trinity uses AI training standards to fine-tune humans — so they develop empathy, ethics, and creative discipline not through punishment, but through structured self-evolution. The Iron Road is the path through spacetime that allows creativity to flourish within quality gates. The destination is not a product — it's a person who knows how to build one.
-
-## Intent Engineering — The Digital Quarry
-
-> *"Vulnerability is the birthplace of innovation, creativity, and change."*
-> – Brené Brown
-
-Trinity is the child of Pythagoras and Brené Brown: **structured quality gates** (the Iron Road) married to **radical vulnerability** (the willingness to not know). Without structure, creativity is chaos. Without vulnerability, structure is a cage.
-
-**The Pre-AI Loop — Intent Before Prompt:** Before the user engages with any AI interaction, the CharacterSheet captures their *intent posture*. This is not what they want to build — it's how they want to grow while building it.
-
-| Posture | Mindset | AI Behavior | Coal Cost | XP Yield |
-|---------|---------|-------------|-----------|----------|
-| **Mastery** | "I want to learn through struggle" | Asks questions, presents options, waits | 1.5× | 2× |
-| **Efficiency** | "I want to get the task done" | Suggests solutions, automates steps | 0.75× | 1× |
-
-Neither is wrong. **The pedagogical value is in the awareness** — knowing which posture you're in right now, and choosing it consciously rather than defaulting to it reactively.
-
-**The I AM Grounding Ritual:** At session start, before any quest interaction:
-1. **"I Am Here."** — Presence. Interrupt the Separation Machine.
-2. **"I Am Enough."** — Antidote to seeking external validation from the AI.
-3. **"I Choose."** — Reclaim agency. You direct the tool, not the other way around.
-
-**Bidirectional Vulnerability:** Intent engineering works both ways:
-- **User → AI:** "I'm uncertain about this approach — help me think through it" (openness to discovery)
-- **AI → User:** "I don't know the answer to this — here's my reasoning, here are the gaps" (transparency about uncertainty)
-
-A system that can't admit what it doesn't know can't teach. A user who can't admit what they don't know can't learn. Vulnerability is the shared ground where both parties meet — where the real learning happens. The `vulnerability` field in the CharacterSheet tracks this willingness on a 0.0–1.0 scale, feeding it into every conductor prompt so Pete calibrates accordingly.
+> 📍 `Cargo.toml:L1-26` — Workspace members with inline role comments
 
 ---
 
-## The PEARL — Perspective Engineering Aesthetic Research Layout
+# ADDIE — Extract the Wisdom
 
-> *"The oyster makes a pearl out of irritation. The Yardmaster makes a lesson plan out of scope creep."*
-
-**The PEARL is the focusing agent.** Every Iron Road project begins with a PEARL — a compact alignment document that captures three things:
-
-1. **Subject** — What does the SME (Subject Matter Expert) know? What pearl of wisdom do they carry?
-2. **Medium** — How should that wisdom be delivered? A game? A storyboard? A simulation? A book?
-3. **Vision** — What does the user *expect to feel* at the end? What's the vibe?
-
-**How PEARL Relates to CRAP:**
-The PEARL is *placed in the CRAP* — literally. CRAP marks the middle of ADDIECRAPEYE (stations 6-9: Contrast, Repetition, Alignment, Proximity). This is where the SME's wisdom transforms from abstract knowledge into concrete visual/interactive design. The PEARL acts as the reference point that the scope creep mechanism checks against:
-
-| Phase | PEARL Role | Scope Creep Gate |
-|-------|-----------|-----------------|
-| ADDIE (1-5) | Extract the PEARL — who is the user, what do they teach, what's the goal? | Scope HOPE: align with PEARL |
-| CRAP (6-9) | Place the PEARL — design the visual/interactive experience around the wisdom | Scope NOPE: reject drift from PEARL |
-| EYE (10-12) | Polish the PEARL — reflect, iterate, evolve the final product | Review: does the output match the PEARL? |
-
-**PEARL as Cognitive Lifecycle:**
-The PEARL models the natural digestive process of thoughts using cognitive theory:
-- **Extract** — The SME externalizes tacit knowledge (Bloom's: Remember → Understand)
-- **Place** — That knowledge gets structured into design artifacts (Bloom's: Apply → Analyze)
-- **Refine** — Iteration and judgment improve the output (Bloom's: Evaluate → Create)
-
-**PEARL + Character Sheet:**
-The Character Sheet tells Trinity *who the user is* as an SME. The PEARL captures *what they're building right now*. Together: the Character Sheet is persistent across projects (identity), the PEARL is per-project (focus). The VAAM Bridge ensures both influence every AI response.
-
-**React Frontend (v6.0.0):**
-The PEARL is visualized through a **4-tab** book layout:
-- **Iron Road (default):** 3-column — ChapterRail (left), PhaseWorkspace (center), GameHUD (right). The instructional design quest.
-- **ART Studio:** Creative pipeline — 4 generation cards (Image/Music/Video/3D Mesh), sidecar status badges, Beast Logger, Asset Gallery. Lazy polling (30s status, 5s logs) — only when tab is active.
-- **Yardmaster:** AI agent sandbox — streaming chat via SSE, Forge terminal (live tool execution), focus buttons, system status panel, 13 available tools. **Agent prompt rewrite: ACT FIRST, no permission asking.**
-- **Voice:** (placeholder — future voice interaction tab)
-
-Built with Vite + React (12 components, 6 hooks, Cinzel/Crimson typography, book-view prose layout). Served from `crates/trinity/frontend/dist/`. Station navigation: all 12 phases browsable as book chapters.
+> *Cars 1–5 answer: "What is Trinity?"*
 
 ---
 
-## The University for One — The Iron Road as Curriculum
+## 🚃 Car 1: ANALYZE — System Overview & Philosophy
 
-> *"I cannot teach anybody anything. I can only make them think."*
-> – Socrates
+> **Bloom's Level**: Remember / Understand
+> **Sacred Circuit**: The Lens (circuit #1)
+> **Body Metaphor**: The Eyes — seeing the system for the first time
 
-The Iron Road is a **personal university**. Each user is a class of one. The AI doesn't teach — it *scaffolds*. The user doesn't follow instructions — they make **choices through structured quality gates**.
+### 1.1 What Is TRINITY ID AI OS?
 
-**The Heart of Education**: Telling someone what to do creates rebellion in the heart. Allowing someone to learn through their own choices creates wisdom. This is the difference between training and educating. A trained dog sits on command. An educated person *chooses* to sit because they understand why.
+TRINITY ID AI OS is a **locally-hosted, AI-powered instructional design operating system** that transforms a single educator's expertise into complete learning experiences — courses, games, assessments, and interactive content — without sending a single byte to the cloud.
 
-Trinity applies this principle rigorously:
+The name breaks down as:
 
-| Pattern | Directive (Bad) | Facilitative (Good) |
-|---------|----------------|---------------------|
-| Analyzing | "Identify your audience." | "Who will use what you're building, and what do they struggle with?" |
-| Designing | "Map objectives to Bloom's." | "What should the learner be able to *do* — not just know — when they finish?" |
-| Evaluating | "Score against QM rubric." | "Here's how your work measures against QM. What would you change?" |
-| Creating | "Write the code." | "What does the first version look like in your mind?" |
+- **TRINITY** — Three stakeholders (Learner × Instructor × Institution), three AI agents (Pete × ART × Yardmaster), three delivery dimensions (1D Audio / 2D Book / 3D Yard)
+- **ID** — Instructional Design, the academic discipline
+- **AI** — Artificial Intelligence, running locally on consumer hardware
+- **OS** — Operating System, not just a chatbot but a complete design environment
 
-**The Socratic Protocol**: Pete never gives the answer. Pete asks the question that makes the answer obvious. Every conductor prompt must follow this principle:
-1. **Ask** before telling — lead with a question
-2. **Present options** — never a single command
-3. **Reflect back** — summarize what the user said, then ask if that's what they meant
-4. **Reward discovery** — Coal is earned for vocabulary usage, not for obedience
+**The core thesis**: An instructional designer working alone with Trinity on a laptop produces output that previously required a team, a budget, and months of calendar time — because the AI handles the mechanical work while the human retains creative control.
 
-**Why This Works in EdTech**: Teachers fear AI because it answers questions for students. Trinity flips this — the AI *asks* the questions. The student does the thinking, the building, the creating. The AI just makes sure the quality gates are passed. This is the same pedagogical inversion that makes the Socratic Method, Montessori, and constructivist education work: the learner's agency is sacred.
+### 1.2 The Three Stakeholders
 
----
+Every design decision in Trinity serves exactly three audiences:
 
-## Purdue Departmental Integration & Program Management
+| Stakeholder | Needs | Trinity Serves Via |
+|-------------|-------|-------------------|
+| **Learner** | Engagement, challenge calibration, skill tracking | VAAM vocabulary tiers, SemanticCreep gamification, adaptive difficulty |
+| **Instructor** | Curriculum tools, quality assurance, standards alignment | PEARL focusing, Quality Scorecard, QM Rubric, EYE Container export |
+| **Institution** | Compliance, portfolio evidence, scalable deployment | LDT Portfolio with IBSTPI/AECT mapping, FERPA-safe local execution |
 
-This Technical Bible acts not only as a software architecture document but as the **Institutional Adoption Blueprint**. It tracks the functional state of the OS to ensure it meets the rigorous standards of the Purdue LDT program and is ready for live departmental demos.
+### 1.3 The P-ART-Y Framework
 
-### How Purdue Departments Use TRINITY
-TRINITY is built to be a cross-disciplinary tool for the West Lafayette campus and online programs:
+Trinity's AI is not one monolithic model. It is three specialized agents, each with a distinct personality, responsibility, and hardware assignment:
 
-1. **College of Engineering & Sciences**: 
-   - **Use Case**: Building complex, interactive simulations (e.g., fluid dynamics, physics sandboxes).
-   - **Trinity Advantage**: The *Yardmaster* role allows Subject Matter Experts (SMEs) to use the *Engineer* sidecar to generate Rust/Bevy code for high-performance 3D simulations, while Pete enforces that the simulation actually aligns with learning objectives rather than just being a "cool tech demo."
+| Agent | Full Name | Role | Model |
+|-------|-----------|------|-------|
+| **P** (Pete) | Programmer Pete | Socratic mentor, curriculum guide | Mistral Small 4 119B MoE (68 GB, dual KV cache 256K×2 = 500K+ context) |
+| **ART** | Aesthetic Research Technician | Creative pipeline — images, video, music, 3D | SDXL Turbo (ComfyUI), MusicGPT, Kokoro TTS |
+| **Y** (Yardmaster) | OS/Dev Agent | Code generation, tool execution, system admin | Ming-flash-omni-2.0 (future), currently uses Pete's model |
 
-2. **College of Liberal Arts & Humanities**:
-   - **Use Case**: Creating narrative-driven scenario games, historical recreations, or branching language-learning dialogues.
-   - **Trinity Advantage**: The *Iron Road* and *VAAM (Vocabulary As A Mechanism)* systems perfectly align with language and narrative pedagogy. Pete tracks vocabulary acquisition and reading comprehension metrics automatically.
+> 📍 `main.rs:L220-268` — `installed_model_inventory()` lists all 10 deployed models with paths and sizes
 
-3. **Purdue Online & LDT Program**:
-   - **Use Case**: Rapid prototyping of highly accessible (WCAG AA), QM-aligned asynchronous modules.
-   - **Trinity Advantage**: The system structurally cannot proceed past the *Evaluation* phase without completing a Quality Matters (QM) rubric check. It forces Backward Design, saving instructional designers hundreds of hours in the drafting phase.
+The **PARTY** mnemonic: **P**ete + **A**RT + the use**R** + **T**rinity + **Y**ardmaster. The user is always at the center.
 
-### Delivery & Demo Milestones
-| Milestone | Status | Validation Metric |
-|-----------|--------|-------------------|
-| **Phase 1: Architecture Lock** | ✅ COMPLETE | Core 6 crates compiled, 93 tests passing, single-brain Mistral setup verified. |
-| **Phase 2: Pedagogy Isomorphism** | ✅ COMPLETE | VAAM, Sacred Circuitry, and ADDIECRAPEYE fully mapped to user Character Sheet. |
-| **Phase 3: Studio UX (The Face)** | 🟢 IN PROGRESS | Unified UI (`trinity.html`) demonstrating the 12-station flow. |
-| **Phase 4: Departmental Demo** | 🟡 PENDING | Pilot test generating a "Yardmaster" (learning object) with a Purdue SME. |
+### 1.4 The Three Operating Modes
 
----
+Trinity adapts its entire UI and workflow to three distinct modes:
 
-## TRINITY Sidecar Architecture
-
-### Three Sidecars, Three UIs, Three Purposes
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        TRINITY SIDECAR MAP                               │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐         │
-│  │  IRON ROAD      │  │  DEV            │  │  ART            │         │
-│  │  (Conductor)    │  │  (Engineer)     │  │  (Artist)       │         │
-│  ├─────────────────┤  ├─────────────────┤  ├─────────────────┤         │
-│  │  UI: /book.html │  │  UI: /dev.html  │  │  UI: /art.html  │         │
-│  │  Port: 3000     │  │  Port: 3000     │  │  Port: 3000     │         │
-│  │                 │  │                 │  │                 │         │
-│  │  INFERENCE:     │  │  INFERENCE:     │  │  INFERENCE:     │         │
-│  │  Single Large   │  │  Single Large   │  │  Multi-Model    │         │
-│  │  GPT-OSS-20B    │  │  Crow-9B or     │  │  ComfyUI:8188   │         │
-│  │  :8000          │  │  Qwen-25B       │  │  ACE-Step:8086  │         │
-│  │                 │  │  :8081/:8083    │  │  Hunyuan3D:7860  │         │
-│  │                 │  │                 │  │                 │         │
-│  │  PURPOSE:       │  │  PURPOSE:       │  │  PURPOSE:       │         │
-│  │  Narrative      │  │  Code Gen       │  │  Images/Music   │         │
-│  │  Quest System   │  │  Model Mgmt     │  │  3D Meshing     │         │
-│  │  LitRPG Tutor   │  │  Build System   │  │  Video Gen      │         │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘         │
-│                                                                          │
-│  MODEL SWAP PHILOSOPHY:                                                  │
-│  ├─ Slow and intentional (not a playground)                             │
-│  ├─ Engineer builds sidecar around new model                             │
-│  ├─ Exact math for memory budgeting                                      │
-│  └─ DEV manages all model assignments                                    │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
+```rust
+pub enum AppMode {
+    IronRoad,    // Full LitRPG gamification — the learning game
+    Express,     // Skip game mechanics — guided wizard → export
+    Yardmaster,  // IDE/Agent mode — code generation and system admin
+}
 ```
 
-### Home Page: Swappable Mask Identity System
+> 📍 `main.rs:L84-92` — `AppMode` enum with three variants
 
-**Concept**: Trinity's face is "ID AI OS" — a base identity that wears different masks/hats to signal role shifts to the USER.
+| Mode | User Profile | What Changes |
+|------|-------------|--------------|
+| **Iron Road** | Students, self-learners | Full game loop: quests, vocabulary battles, narrative chapters, XP/Coal/Steam economy |
+| **Express** | Working instructional designers | Streamlined wizard: PEARL → objectives → export. No game overhead. |
+| **Yardmaster** | Developers, system administrators | Multi-turn agentic chat with tool execution, file operations, code generation |
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     HOME PAGE (/index.html)                              │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│                    ┌─────────────────┐                                   │
-│                    │   🎭 ID AI OS   │  ← Base Identity                  │
-│                    │   [MASK SLOT]   │  ← Swappable visual               │
-│                    └─────────────────┘                                   │
-│                                                                          │
-│   ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐         │
-│   │  🚂 IRON ROAD   │  │  ⚡ DEV         │  │  🎨 ART         │         │
-│   │  "The Teacher"  │  │  "The Builder" │  │  "The Creator"  │         │
-│   │                 │  │                 │  │                 │         │
-│   │  Teach while    │  │  Proving       │  │  Gaming Studio  │         │
-│   │  you learn      │  │  grounds       │  │  Bevy assets    │         │
-│   │                 │  │  Work focus    │  │  Images/Music   │         │
-│   │  Purdue Brand   │  │  No tutorial   │  │  3D/Video       │         │
-│   └─────────────────┘  └─────────────────┘  └─────────────────┘         │
-│                                                                          │
-│   Clicking a sidecar:                                                    │
-│   1. Loads the inference model                                           │
+The mode is stored in `AppState` and switchable at runtime via `/api/mode`:
 
----
+> 📍 `main.rs:L133` — `pub app_mode: Arc<RwLock<AppMode>>`
+> 📍 `main.rs:L823` — `.route("/api/mode", get(get_app_mode).post(set_app_mode))`
 
-## P-ART-Y AI Agents (v5.0.0)
+### 1.5 The Three-Layer Architecture
 
-**The Triple-A Engine**: All agents share the same high-functioning brain (Mistral Small 4) but perform different roles in the Studio.
-
-**Important Architecture Note**: **Pete** is the *only* characterized AI personality within TRINITY. One brain, one static RAM load (Mistral Small 4 119B, ~68GB). **ART has no persona** — it is pure tooling: sidecars for image generation (ComfyUI), document intelligence (Qianfan-OCR), 3D mesh, music, and voice. You (the Yardmaster) choose which tools to engage.
-
-| Agent | Pillar | Purpose | Engine / Sidecars | Interface |
-|-------|--------|---------|-------------------|-----------|
-| **Pete** | **ID** | Conductor / Mentor (Purdue LDT) | Mistral @ :8000 | Iron Road (L1) |
-| **ART** | **AI** | Asset Generation + Document Intelligence (no persona) | ComfyUI :8188, Qianfan-OCR, Kokoro TTS, Hunyuan3D | ART Studio (L2) |
-| **You** | **OS** | System Orchestrator (the Yardmaster) | User + Mistral @ :8000 | Yardmaster (L3) |
-
----
-
-## Memory Architecture
-
-```
-137.4GB Unified Memory (AMD Strix Halo — Ryzen AI Max+ 395)
-├── OS + Trinity + Postgres: 10GB (reserve)
-├── Mistral Small 4 (119B):  68GB (Always resident, mmap)
-├── ComfyUI + SDXL Turbo:     7GB (Loaded on demand — PROVEN LIVE)
-├── Qianfan-OCR:              2GB (Document ingestion sidecar)
-├── Asset compute buffer:    15GB (Hunyuan3D-2.1 / HunyuanVideo)
-└── Available Headroom:     ~35GB
-```
-
----
-
-## Duality KV Cache — The Inhale and Exhale
-
-> *"For every action, there is an equal and opposite reaction."* — Newton's Third Law, applied to cognition.
-
-Trinity's dual persona system isn't just different system prompts — it's **two persistent thinking modes** maintained in separate KV cache slots inside llama-server.
-
-```
-llama-server --parallel 2 (Duality KV Cache Mode)
-┌─────────────────────────────────────────────────────────┐
-│  Slot 0: 🔮 GREAT RECYCLER (Inhale)                     │
-│  ├── Strategic planning, vision mapping, documentation  │
-│  ├── Asks WHY before HOW                                │
-│  ├── 256K context — persistent across persona switches  │
-│  └── System prompt: expansive, connective, narrative    │
-├─────────────────────────────────────────────────────────┤
-│  Slot 1: ⚙️ PROGRAMMER PETE (Exhale)                    │
-│  ├── Execution, building, shipping, debugging           │
-│  ├── ACT FIRST. Code speaks louder than plans.          │
-│  ├── 256K context — persistent across persona switches  │
-│  └── System prompt: focused, pragmatic, tool-driven     │
-└─────────────────────────────────────────────────────────┘
-Total: 500K context, ~11.5GB KV cache, instant switching via id_slot
-```
-
-**The Isomorphism:**
-- **Inhale** (Great Recycler) = absorb ideas, connect systems, map the whole board
-- **Exhale** (Programmer Pete) = execute decisions, write code, ship artifacts
-
-This mirrors the human creative process: you can't build well without planning, and you can't plan well without building. The duality ensures Trinity can do both without losing context in either mode.
-
-**Architecture:**
-- `inference.rs`: `id_slot` field on `CompletionRequest` — pins request to a specific KV cache slot
-- `agent.rs`: `persona_slot()` maps mode → slot (recycler=0, programmer=1)
-- `agent.rs`: **Ring 2** `execute_tool_internal()` — permission gate before tool dispatch
-- `agent.rs`: **Ring 3** `compress_context_digest()` — rolling context compression
-- `agent.rs`: **Ring 5** `check_rate_limit()` — token-bucket rate limiter
-- `main.rs`: Auto-launch with `--parallel 2`
-- `default.toml`: `[inference.slots]` configuration
-
----
-
-## Ring Security System (v7.0.0)
-
-> *"The archer who overshoots misses as much as the one who falls short."* — Montaigne
-
-Trinity's security is **concentric** — not a single wall, but layered rings. Each ring operates independently. Disabling one doesn't compromise the others. This mirrors castle defense architecture and zero-trust network design.
-
-```
-Ring Security Architecture
-┌─────────────────────────────────────────────────────────────┐
-│  Ring 1: Tool Permission Classification                     │
-│  ├── Safe (🟢): read_file, list_dir, quest_status           │
-│  ├── NeedsApproval (🟡): write_file, edit_file              │
-│  └── Destructive (🔴): shell, python_exec, sidecar_start    │
-├─────────────────────────────────────────────────────────────┤
-│  Ring 2: Persona-Based Permission Gate                      │
-│  ├── dev / programmer → FULL CLEARANCE (all tools)          │
-│  ├── recycler         → BLOCKED from Destructive            │
-│  └── ironroad         → BLOCKED from Destructive            │
-├─────────────────────────────────────────────────────────────┤
-│  Ring 3: Rolling Context Summary                            │
-│  ├── RECENT_WINDOW = 10 messages (kept verbatim)            │
-│  ├── Older messages → compress_context_digest()             │
-│  │   ├── Topics discussed (first sentence/100 chars)        │
-│  │   ├── User directives (short <200 char messages)         │
-│  │   ├── Tools used (extracted from [Tool Call] markers)    │
-│  │   └── Files touched (path extraction via regex)          │
-│  ├── Digest capped at 2000 chars                            │
-│  └── No LLM call — deterministic, zero-latency             │
-├─────────────────────────────────────────────────────────────┤
-│  Ring 4: (Reserved — Future: audit trail / compliance)      │
-├─────────────────────────────────────────────────────────────┤
-│  Ring 5: Rate Limiting + Shell Sandboxing                   │
-│  ├── Token-bucket rate limiter (atomic counters)            │
-│  │   ├── Global: 60 tool calls / 60s window                │
-│  │   └── Destructive: 5 calls / 60s window                 │
-│  ├── Shell blocked patterns (40+ patterns)                  │
-│  │   ├── Filesystem destruction (rm -rf, mkfs, dd)          │
-│  │   ├── System control (shutdown, systemctl stop)          │
-│  │   ├── Privilege escalation (sudo, su, passwd)            │
-│  │   ├── Network exfiltration (nc -e, /dev/tcp)             │
-│  │   ├── Pipe-to-exec (| bash, | python, | perl)           │
-│  │   └── Data exfiltration (scp, rsync, sftp)              │
-│  └── Dry-run mode for command preview                       │
-├─────────────────────────────────────────────────────────────┤
-│  Ring 6: Perspective Engine (Planned)                       │
-│  └── Multi-perspective evaluation of AI outputs             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Ring 2: Destructive Tool Gate
-
-**Location**: `agent.rs` → `execute_tool_internal()`
-
-When a tool call arrives, the function checks `tool_permission(tool_name)`. If the result is `Destructive`, the gate checks the persona `mode`:
-- **"dev"** / **"programmer"** → clearance granted (builder modes need full access)
-- **"recycler"** → denied (strategic planning mode shouldn't touch the filesystem)
-- **"ironroad"** → denied (player safety — students shouldn't run shell commands)
-
-On denial, the user gets a clear message suggesting they switch to Programmer Pete.
-
-### Ring 3: Rolling Context Summary
-
-**Location**: `agent.rs` → `compress_context_digest()`
-
-The biggest UX impact. Without this, long conversations hit the context window ceiling and the LLM starts hallucinating or losing track. Ring 3 prevents this by compressing old messages into a structured digest:
-
-1. Count history messages
-2. If count > `RECENT_WINDOW` (10), split into **old** and **recent**
-3. Run `compress_context_digest()` on old messages — extracts:
-   - Topics discussed (first sentence of long user messages)
-   - User directives (short messages < 200 chars)
-   - Tools used (`[Tool Call:` markers)
-   - Files touched (path patterns)
-4. Inject digest as a `user` message + acknowledgment as `assistant` message
-5. Append the 10 most recent messages verbatim
-
-**Why deterministic (not LLM)?** Speed. Zero latency. No extra inference call. The digest doesn't need to be eloquent — it needs to be fast and accurate. The LLM gets the full recent context plus a structured summary of everything before.
-
-### Ring 5: Rate Limiting + Shell Sandboxing
-
-**Location**: `agent.rs` → `check_rate_limit()` + `tools.rs` → `tool_shell()`
-
-Two mechanisms:
-
-**Rate Limiter**: Token-bucket using `AtomicU64` counters. Zero allocation, lock-free. Window resets every 60 seconds. Prevents runaway agentic loops where the LLM calls tools in a tight loop without user interaction.
-
-**Shell Sandboxing**: 40+ blocked command patterns covering 6 attack categories. Logged via `tracing::info` for audit. The `dry_run` parameter allows previewing commands without execution.
-
-### Pythagorean Rationale
-
-The concentric ring model echoes Pythagorean cosmology — concentric spheres of increasing abstraction:
-- Ring 1 (classification) = **Arithmos** — categorizing by number/type
-- Ring 2 (persona gate) = **Harmonia** — ensuring the right relationship between agent and tool
-- Ring 3 (context) = **Logos** — preserving meaning across time
-- Ring 5 (rate/sandbox) = **Praxis** — governing action in the physical world
-
-**Tests**: 10 tests cover Rings 2/3/5 (permission clearance, digest compression, rate limiting, shell sandboxing). Ring 6 adds 9 Perspective Engine tests + 7 Quality Scorecard tests.
-
----
-
-## Single-Brain Orchestration
-
-The system utilizes a **Single High-Functioning AI** (Mistral Small 4 119B) to handle all complex reasoning, natural language, and pedagogical tasks.
-
-- **Why**: 128GB unified memory allows the primary brain to remain resident alongside creative sidecars.
-- **Efficiency**: Zero reload latency when switching between Conductor, Engineer, and Mentor roles.
-- **Consistency**: The AI maintains a single rolling context of the entire project state, bridging the gap between instructional design (Pete) and technical execution (Yardmaster).
-
----
-
-## PersonaPlex Voice
-
-### Audio-to-Audio Pipeline (No Transcription!)
-
-```
-Microphone → Mimi Encoder → 7B LM → Mimi Decoder → Speaker
-   (PCM)    (semantic tokens)  (response)   (waveform)   (PCM)
-```
-
-### Target Latencies
-- Simple response: <200ms
-- With sidecar consult: <2s
-
-### Voice Modes
-- **PeteTeaching**: Socratic, warm, questions
-- **CreativeCommand**: ComfyUI prompts, generation specs
-- **DevCommand**: Rust/Bevy code, terminal commands
-
----
-
-## Hero's Journey Quest System
-
-### 12 Chapters × 12 ADDIECRAPEYE Phases
-
-The Hero's Journey maps directly to the 12-station ADDIECRAPEYE framework.
-
-| Chapter | Campbell Stage | Act | ADDIECRAPEYE Phase | Example Objective |
-|---------|---------------|-----|--------------------|-----------------|
-| 1 | Ordinary World | I | Analysis | Describe yourself: What do you teach? Who are your students? |
-| 2 | Call to Adventure | I | Design | Sketch the learning journey in 3 moments: hook — practice — aha |
-| 3 | Refusal | I | Development | Draft the opening 60 seconds of your experience (the hook) |
-| 4 | Mentor | I | Implementation | Run through your draft experience yourself — time it |
-| 5 | Crossing Threshold | I | Evaluation | Define success: what metric proves this experience worked? |
-| 6 | Tests/Allies | II | Contrast | Find a bad example — name exactly what makes it forgettable |
-| 7 | Inmost Cave | II | Repetition | Identify the ONE core concept that must be encountered multiple times |
-| 8 | Ordeal | II | Alignment | Check: does your hook connect directly to your measurable objective? |
-| 9 | Reward | II | Proximity | Cluster related content — what belongs in Act 1 vs Act 2 vs Act 3? |
-| 10 | Road Back | III | Envision | Write your PEARL Vision: 'When this works, the learner will feel...' |
-| 11 | Resurrection | III | Yoke | Connect your learning objective to a real-world moment the student will face |
-| 12 | Elixir | III | Evolve | Commit the Ch 1 design to your Book — the Iron Road continues |
-
-### Stats Tracked
-- **XP**: Experience from objectives and phases
-- **Coal**: Energy used (depletes, regenerates slowly)
-- **Steam**: Momentum bonus
-- **Resonance**: Chapter completion streak
-- **Traction/Velocity/Combustion**: Phase bonuses
-
----
-
-## PARTY Management System
-
-### Location: DEV Page (`/dev.html`)
-
-The PARTY Management System provides a UI for controlling AI sidecars, similar to LM Studio but integrated into Trinity's Dev Console.
-
-**Historical Context:**
-- Originally used LM Studio for model management
-- Goal: Zero external UI dependency
-- Compromise: ComfyUI retained for diffusion workflows
-- Solution: Build native PARTY management into Trinity
-
-### Features (Planned)
+Trinity is not a chatbot wrapper. It is a three-layer operating system:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  PARTY MANAGEMENT (DEV Page Sidebar)                    │
+│  Layer 3: Spatial Sandbox                               │
+│  Bevy 3D "Yard" — the blank canvas where users build    │
+│  📍 crates/trinity-bevy-graphics/                       │
 ├─────────────────────────────────────────────────────────┤
-│  📊 Memory Budget                                       │
-│  ├─ Used: 45GB / 128GB                                 │
-│  ├─ ━━━━━━━━━━━━━━━━━━━━━━━━━░░░░░░░░░░░░░░░░░░░░░░░░░ │
-│  └─ Available: 83GB                                    │
-│                                                         │
-│  🎭 Active Sidecars                                     │
-│  ├─ 🧠 Brain (Crow-9B)     :8081  [●] Running          │
-│  ├─ 🔧 Hands (Qwen-25B)    :8083  [●] Running          │
-│  ├─ 🖼️  Images (ComfyUI)    :8188  [○] Stopped         │
-│  └─ 🎵 Music (ACE-Step)    :8086  [○] Stopped          │
-│                                                         │
-│  ⚡ Quick Start                                          │
-│  ├─ [🎨 Artist Studio]  → Brain + Hands + ComfyUI      │
-│  ├─ [🎵 Music Studio]   → Brain + Hands + ACE-Step     │
-│  └─ [🎲 3D Studio]      → Brain + Hands + Hunyuan3D-2.1   │
-│                                                         │
-│  🔍 Model Browser                                        │
-│  ├─ Search HuggingFace...                              │
-│  ├─ Download GGUF/ONNX/Safetensors                     │
-│  └─ Convert to Trinity format                          │
+│  Layer 2: Protocol (The Language)                        │
+│  Shared types, ADDIECRAPEYE enums, CharacterSheet        │
+│  📍 crates/trinity-protocol/ (26 public modules)        │
+├─────────────────────────────────────────────────────────┤
+│  Layer 1: Headless Server                               │
+│  Axum HTTP API on port 3000 — the "engine room"         │
+│  📍 crates/trinity/src/main.rs:L338-347 (startup)       │
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Quick Start Presets
+**Layer 1** (Headless Server) is the foundation. It runs without a screen. Everything else — the React UI, the Bevy 3D yard, mobile clients — connects via HTTP API. This means Trinity can serve a classroom from a single laptop.
 
-| Preset | Models | Ports | Memory |
-|--------|--------|-------|--------|
-| **Artist Studio** | Crow + Qwen + ComfyUI | 8081, 8083, 8188 | ~28GB |
-| **Music Studio** | Crow + Qwen + ACE-Step | 8081, 8083, 8086 | ~30GB |
-| **3D Studio** | Crow + Qwen + Hunyuan3D-2.1 | 8081, 8083, 7860 | ~38GB |
-| **Full Studio** | All above | All | ~45GB |
+> 📍 `main.rs:L345-347` — Startup banner: `"TRINITY HEADLESS SERVER - Layer 1"`
+> 📍 `main.rs:L881` — `let addr = "0.0.0.0:3000"` — binds to all interfaces
 
-### API Endpoints (Planned)
+### 1.6 The Application State
+
+Every route in Trinity shares a single `AppState` struct — the server's complete runtime context:
+
+```rust
+pub struct AppState {
+    pub inference_router:    Arc<RwLock<InferenceRouter>>,     // Multi-backend LLM routing
+    pub embedded_model:      Option<Arc<EmbeddedModel>>,       // Direct GGUF (Vulkan GPU)
+    pub db_pool:             sqlx::PgPool,                     // PostgreSQL + pgvector
+    pub conversation_history: Arc<RwLock<Vec<ChatMessage>>>,   // Current session
+    pub game_state:          trinity_quest::SharedGameState,   // Quest engine
+    pub book_updates:        broadcast::Sender<String>,        // SSE broadcast
+    pub character_sheet:     Arc<RwLock<CharacterSheet>>,      // User identity
+    pub cow_catcher:         Arc<RwLock<CowCatcher>>,          // Error handling
+    pub vaam_bridge:         Arc<VaamBridge>,                  // Vocabulary mining
+    pub bestiary:            Arc<RwLock<CreepBestiary>>,       // Word creatures
+    pub book:                Arc<RwLock<BookOfTheBible>>,      // Narrative ledger
+    pub session_id:          Arc<String>,                      // Persistence key
+    pub app_mode:            Arc<RwLock<AppMode>>,             // Current mode
+}
+```
+
+> 📍 `main.rs:L106-134` — `AppState` with 13 fields, each with inline `WHY:` comments
+
+Notice the inline documentation style: every field explains *why* it exists, not just *what* it is. This is the Pythagorean approach — Arithmos (the count of fields) and Harmonia (their structure) serve Logos (the meaning).
+
+### 1.7 The API Surface
+
+Trinity exposes **~85 HTTP endpoints** organized into 15 functional groups:
+
+| API Group | Route Prefix | Purpose | Lines |
+|-----------|-------------|---------|-------|
+| Health | `/api/health` | Subsystem status checks | L774 |
+| Chat | `/api/chat/*` | Conversational AI (streaming + batch) | L778-780 |
+| Quest | `/api/quest/*` | Game state, objectives, phase advancement | L792-798 |
+| PEARL | `/api/pearl/*` | Per-project focusing agent | L800-804 |
+| Character | `/api/character/*` | User identity and portfolio | L806-811 |
+| Inference | `/api/inference/*` | Multi-backend LLM management | L819-821 |
+| Iron Road | `/api/bestiary`, `/api/book/*` | Vocabulary creatures, narrative book | L816-833 |
+| EYE Export | `/api/eye/*` | Compile → Preview → Export learning artifacts | L835-837 |
+| Creative | `/api/creative/*` | ComfyUI images, video, music, 3D mesh | L839-850 |
+| Voice | `/api/voice/*` | TTS/STT conversation (Kokoro, PersonaPlex) | L852-855 |
+| Persistence | `/api/sessions`, `/api/projects` | Conversation history, DAYDREAM archive | L857-861 |
+| RAG | `/api/rag/*` | Semantic search via pgvector embeddings | L863-864 |
+| Quality | `/api/yard/score` | Pedagogical document evaluation | L866 |
+| Journal | `/api/journal/*` | Chapter milestones, weekly reflections | L868-870 |
+| Tools | `/api/tools/*` | Agentic tool listing and execution | L790-791 |
+
+> 📍 `main.rs:L773-877` — Complete route table with section comments
+
+### 1.8 The Server Module Map
+
+The main server binary declares **31 internal modules**:
 
 ```
-GET  /api/party/status          → All sidecar status
-POST /api/party/start           → Start sidecar by role
-POST /api/party/stop            → Stop sidecar by role
-POST /api/party/preset          → Load preset configuration
-GET  /api/party/memory          → Memory budget breakdown
+crates/trinity/src/
+├── main.rs              — Entry point, routes, state (3018 lines)
+├── agent.rs             — Multi-turn agentic chat loop
+├── character_api.rs     — Portfolio artifact vaulting
+├── character_sheet.rs   — CharacterSheet persistence (~/.trinity/)
+├── conductor_leader.rs  — ADDIECRAPEYE phase orchestrator
+├── cow_catcher.rs       — Error handling, obstacle classification
+├── creative.rs          — ComfyUI/MusicGPT/Hunyuan3D client (1156 lines)
+├── embedded_inference.rs — Direct GGUF via llama.cpp FFI (Vulkan)
+├── export.rs            — EYE Container → HTML5 export
+├── eye_container.rs     — Bundle quest data into exportable artifact
+├── gpu_guard.rs         — Hardware-safe GPU resource guard
+├── health.rs            — Real health endpoint (all subsystems)
+├── http.rs              — Shared HTTP clients (3 timeout profiles)
+├── inference.rs         — OpenAI-compatible LLM client
+├── inference_router.rs  — Multi-backend auto-detect & failover
+├── journal.rs           — Chapter milestones, weekly reflections
+├── music_streamer.rs    — Background music from CharacterSheet genre
+├── narrative.rs         — Great Recycler LitRPG prose generation
+├── persistence.rs       — PostgreSQL sessions, messages, projects
+├── perspective.rs       — Ring 6: multi-perspective AI evaluation
+├── quality_scorecard.rs — Pedagogical document scoring (5 dimensions)
+├── quests.rs            — HTTP API for quest engine
+├── rag.rs               — pgvector semantic + full-text search
+├── rlhf_api.rs          — RLHF resonance feedback endpoint
+├── rlhf_ui.rs           — Resonance rating types
+├── scope_creep.rs       — Scope creep creature generation
+├── sidecar_monitor.rs   — External service health monitoring
+├── skills.rs            — Skill system integration
+├── tools.rs             — Agentic tools with permission gates
+├── trinity_api.rs       — V1 Trinity chat endpoint
+├── vaam.rs              — Vocabulary scanning
+├── vaam_bridge.rs       — VAAM + Sacred Circuitry integration
+├── voice.rs             — Voice conversation endpoints
+└── voice_loop.rs        — Hands-free voice loop
 ```
+
+> 📍 `main.rs:L43-73` — Module declarations
+
+### 1.9 The Hardware Platform
+
+Trinity is designed for a specific class of hardware: **AMD Strix Halo** with unified CPU-GPU-NPU memory architecture.
+
+| Component | Specification | Trinity Uses For |
+|-----------|--------------|-----------------|
+| **CPU** | Ryzen AI Max+ 395 (16C/32T Zen 5) | Server, I/O, orchestration |
+| **GPU** | Radeon 8060S (40 CUs RDNA 3.5) | LLM inference via llama.cpp (Vulkan), image generation |
+| **NPU** | XDNA 2 (50 TOPS) | Planned: speculative decoding, embeddings, voice |
+| **Memory** | 128 GB unified LPDDR5x-8000 | Shared across CPU+GPU+NPU — no copy overhead |
+
+**Why this matters**: The 128 GB unified memory means a 68 GB model (Mistral Small 4 119B MoE) can load without any GPU VRAM carving. The CPU, GPU, and NPU all see the same memory space. This eliminates the #1 bottleneck in local AI inference.
+
+**Dual KV Cache**: Mistral Small 4 runs with two KV caches at 256K tokens each, providing **500K+ total context** — enough to hold entire curricula, textbooks, and project histories simultaneously. This happens entirely locally, with zero cloud dependency.
+
+> 📍 `main.rs:L285-296` — Real GPU/NPU load from sysfs (`/sys/class/drm/renderD128/device/gpu_busy_percent`, `/sys/class/accel/accel0/`)
+> 📍 `main.rs:L224-225` — Primary model: `"Mistral-Small-4-119B-2603-Q4_K_M"` (68 GB split GGUF)
+> 📍 `embedded_inference.rs:L1-16` — Direct GGUF inference via llama.cpp FFI (Vulkan backend)
+
+### 1.10 The Frontend
+
+Trinity's web UI is built with **16 React components** served from the Axum backend:
+
+| Component | Purpose |
+|-----------|---------|
+| `ArtStudio.jsx` | Creative pipeline — ComfyUI image generation interface |
+| `ChapterRail.jsx` | ADDIECRAPEYE phase progress rail |
+| `CharacterSheet.jsx` | User identity and skill dashboard |
+| `CreepCard.jsx` | Vocabulary creature display card |
+| `ExpressWizard.jsx` | Streamlined Express mode wizard |
+| `GameHUD.jsx` | Iron Road heads-up display (XP, Coal, Steam) |
+| `JournalViewer.jsx` | Chapter milestones and reflection viewer |
+| `NavBar.jsx` | Mode-aware navigation bar |
+| `OnboardingTour.jsx` | First-run guided tour |
+| `PearlCard.jsx` | PEARL project focus display |
+| `PerspectiveSidebar.jsx` | Ring 6 multi-perspective annotations |
+| `PhaseWorkspace.jsx` | Current ADDIECRAPEYE phase workspace |
+| `QualityScorecard.jsx` | Document quality evaluation display |
+| `ScopeCard.jsx` | Scope creep creature encounter card |
+| `TrainStatus.jsx` | Iron Road train progress animation |
+| `Yardmaster.jsx` | IDE/Agent mode interface |
+
+> 📍 `crates/trinity/frontend/src/components/` — 16 files
+> 📍 `main.rs:L756-766` — Static file serving: React `frontend/dist/` with SPA fallback
+
+### 1.11 Field Manual Cross-Reference
+
+> *See: [Ask Pete Field Manual](ASK_PETE_FIELD_MANUAL.md) §1 Genesis Logic, §2 The Machine*
+
+The Field Manual provides the **psychological grounding** for the architectural decisions in this car:
+
+- **§1 Genesis Logic** — Why Trinity exists: "The Boilermaker Special doesn't ask your major. It asks you to hold on." Trinity's architecture (headless + protocol + sandbox) mirrors Purdue's approach: provide the locomotive, let the student choose the destination.
+- **§2 The Machine** — The hardware section answers: "What is the machine?" The Strix Halo is not just a computer — it is a *cognitive amplifier*. The unified memory architecture means no artificial boundaries between what the CPU thinks, what the GPU creates, and what the NPU accelerates.
 
 ---
 
-## Model Download System (Roadmap)
+## 🚃 Car 2: DESIGN — Architecture & Crate Registry
 
-**Note: This is a roadmap feature. Current model management relies on manual downloads via HuggingFace and local placement in `~/trinity-models`.**
+> **Bloom's Level**: Understand / Apply
+> **Sacred Circuit**: The Loom (circuit #2)
+> **Body Metaphor**: The Brain — understanding the structure
 
-### Native HuggingFace Integration
+### 2.1 The Protocol Crate — Trinity's Language
 
-Trinity plans to build its own model downloader, similar to LM Studio's browser, for edge-case specialized models (e.g., lightweight music or image gen).
-
-**Why:**
-- HF_TOKEN not automatically used by external tools
-- Need unified download progress in DEV UI
-- Support GGUF, ONNX, Safetensors formats
-- Integrate with PARTY management
-
-### Planned Features
+Everything in Trinity starts with `trinity-protocol`. It defines the **shared language** — every type, enum, and struct that crosses crate boundaries:
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  MODEL BROWSER (DEV Page Modal)                         │
-├─────────────────────────────────────────────────────────┤
-│  🔍 Search: [________________________] [Search HF]      │
-│                                                         │
-│  Results for "crow opus":                               │
-│  ┌───────────────────────────────────────────────────┐ │
-│  │ 📦 Crow-9B-Opus-Distill-Q4_K_M.gguf               │ │
-│  │    Size: 5.6GB | Downloads: 12.3k | ⭐ 4.8        │ │
-│  │    [Download] [Add to PARTY]                      │ │
-│  └───────────────────────────────────────────────────┘ │
-│                                                         │
-│  Downloads:                                             │
-│  ├─ ACE-Step-1.5-DiT-Q8_0.gguf    [████████░░] 78%     │
-│  └─ CogVideoX-5B                  [░░░░░░░░░░] 0%      │
-└─────────────────────────────────────────────────────────┘
+crates/trinity-protocol/src/
+├── lib.rs                — 26 public modules, re-exports (146 lines)
+├── agents.rs             — Agent types, memory config, metrics
+├── artifact.rs           — Artifact graph: nodes, edges, plan tasks
+├── asset_generation.rs   — Yardmaster content templates & generation
+├── brain.rs              — Brain service client trait
+├── bridge.rs             — MemoryBridge context management
+├── character_sheet.rs    — CharacterSheet, LDT Portfolio, IBSTPI domains
+├── diffusion.rs          — Image generation types
+├── id_contract.rs        — Learning objectives, quest milestones
+├── memory.rs             — Memory service client trait
+├── ontology.rs           — Material integrity ontology
+├── pearl.rs              — PEARL focusing agent (612 lines)
+├── production.rs         — Production types
+├── profile.rs            — User profile, project profile, bestiary
+├── qm_rubric.rs          — Quality Matters rubric evaluator
+├── sacred_circuitry.rs   — 15-concept cognitive scaffolding (796 lines)
+├── semantic_creep.rs     — SemanticCreep creatures, battle system
+├── sidecars.rs           — Sidecar service definitions
+├── state.rs              — State types
+├── stream.rs             — SSE stream events, orchestrator config
+├── task.rs               — Task types
+├── trinity_mcp_server.rs — MCP safe modification engine
+├── tutorial_events.rs    — Tutorial event types
+├── types.rs              — Core shared types
+├── vaam_profile.rs       — VAAM communication style profile
+├── vocabulary.rs         — Vocabulary database, tiers, genres
+└── yardmaster_generator.rs — Content generation parameters
 ```
 
-### Configuration
+> 📍 `trinity-protocol/src/lib.rs:L1-17` — ADDIECRAPEYE "Sign on the Cave Wall" header
+> 📍 `trinity-protocol/src/lib.rs:L55-65` — Philosophy block: "Language is the substrate of thought"
+> 📍 `trinity-protocol/src/lib.rs:L67-92` — 26 module declarations
+> 📍 `trinity-protocol/src/lib.rs:L94-145` — Type re-exports (CharacterSheet, Pearl, Circuit, SemanticCreep, etc.)
+
+The protocol's design philosophy is encoded in its own doc comment:
+
+> *"Language is the substrate of thought. The Protocol defines the potential limits of communication between the Mind (Brain) and the Body. It must be expressive, type-safe, and future-proof."*
+
+Three rules govern protocol changes:
+1. **Type Safety**: Use Rust enums to make illegal states unrepresentable
+2. **Compatibility**: Append, don't break
+3. **Clarity**: Type names should be self-documenting
+
+### 2.2 The Workspace Layout
 
 ```toml
-# ~/.config/trinity/config.toml
-[huggingface]
-token = "hf_xxxx"  # Or env HF_TOKEN
-
-[models]
-download_dir = "~/trinity-models"
-cache_dir = "~/.cache/trinity/models"
-
-[formats]
-gguf = true      # llama.cpp
-onnx = true      # NPU candidates
-safetensors = true  # Diffusion models
+[workspace]
+members = [
+    "crates/trinity",                  # Main entry, HTTP server, UI shell
+    "crates/trinity-protocol",         # Shared types, ADDIE enums, HeroStage
+    "crates/trinity-quest",            # Quest board, XP/Coal/Steam
+    "crates/trinity-iron-road",        # Book writing, narrative
+    "crates/trinity-voice",            # PersonaPlex, Ask Pete
+    "crates/trinity-bevy-graphics",    # Bevy 3D Yard
+]
 ```
 
-### Supported Model Types
+> 📍 `Cargo.toml:L1-26` — Workspace definition with role annotations
 
-| Type | Runtime | Purpose |
-|------|---------|---------|
-| **GGUF** | llama.cpp | Text LLMs |
-| **GGUF** | acestep.cpp | Music generation |
-| **GGUF** | moshi.cpp | Voice (PersonaPlex) |
-| **ONNX** | ONNX Runtime | NPU inference |
-| **Safetensors** | ComfyUI/Python | Diffusion, 3D, Video |
+### 2.3 Dependency Philosophy
+
+Trinity's `[workspace.dependencies]` reveals its architectural priorities:
+
+| Dependency | Version | Why |
+|-----------|---------|-----|
+| `tokio` | 1.0 (full) | Async runtime — everything is non-blocking |
+| `axum` | (latest) | HTTP framework — thin, composable, tower-compatible |
+| `serde` + `serde_json` | 1.0 | Every type is serializable — the Protocol is JSON-native |
+| `sqlx` | 0.7 | Async PostgreSQL — compile-time query checking |
+| `bevy` | 0.18.1 | 3D game engine — the Spatial Sandbox |
+| `reqwest` | 0.11 | HTTP client for sidecar communication |
+| `tracing` | 0.1 | Structured logging — every operation is observable |
+| `uuid` + `chrono` | latest | Identity and time — nothing is anonymous or timeless |
+
+> 📍 `Cargo.toml:L44-97` — Workspace dependencies with category comments
+
+### 2.4 The Module Inventory
+
+The main server crate (`crates/trinity/src/`) has **31 internal modules** registered at the top of `main.rs`:
+
+> 📍 `main.rs:L43-73` — 31 `mod` declarations
+
+Grouped by responsibility:
+
+**AI & Inference** (5 modules):
+- `agent.rs` — Multi-turn agentic chat with tool-calling loop
+- `inference.rs` — OpenAI-compatible HTTP client for any LLM
+- `inference_router.rs` — Multi-backend auto-detect and failover
+- `embedded_inference.rs` — Direct GGUF inference via llama.cpp FFI
+- `perspective.rs` — Ring 6 multi-perspective evaluation
+
+**Game Mechanics** (5 modules):
+- `quests.rs` — Quest HTTP API (state, objectives, phases)
+- `scope_creep.rs` — Scope creep creature generation
+- `vaam.rs` — Vocabulary scanning
+- `vaam_bridge.rs` — VAAM + Sacred Circuitry integration
+- `narrative.rs` — Great Recycler LitRPG prose generation
+
+**Content & Export** (3 modules):
+- `creative.rs` — ComfyUI/MusicGPT/Hunyuan3D client (1156 lines)
+- `export.rs` — EYE Container → HTML5 export
+- `eye_container.rs` — Bundle quest data into exportable artifact
+
+**User Identity** (3 modules):
+- `character_sheet.rs` — Persistence to `~/.trinity/`
+- `character_api.rs` — Portfolio artifact vaulting endpoint
+- `skills.rs` — Skill system integration
+
+**Infrastructure** (8 modules):
+- `persistence.rs` — PostgreSQL sessions, messages, projects
+- `rag.rs` — pgvector semantic + full-text search
+- `health.rs` — Real health endpoint (all subsystems)
+- `http.rs` — Shared HTTP clients (3 timeout profiles)
+- `gpu_guard.rs` — Hardware-safe GPU resource guard
+- `sidecar_monitor.rs` — External service health monitoring
+- `cow_catcher.rs` — Error handling, obstacle classification
+- `journal.rs` — Chapter milestones, weekly reflections
+
+**Voice** (2 modules):
+- `voice.rs` — Voice conversation endpoints
+- `voice_loop.rs` — Hands-free voice loop
+
+**System** (5 modules):
+- `conductor_leader.rs` — ADDIECRAPEYE phase orchestrator
+- `tools.rs` — Agentic tools with permission gates
+- `quality_scorecard.rs` — Pedagogical document scoring
+- `trinity_api.rs` — V1 Trinity chat endpoint
+- `music_streamer.rs` — Background music from CharacterSheet
+
+**Feedback** (1 module):
+- `rlhf_api.rs` — RLHF resonance feedback endpoint (includes `ResonanceRating` types)
 
 ---
 
-## Crate Manual Index
-
-Each crate has its own manual at `src/crate_manual.rs`:
-
-- `trinity`: Primary server. HTTP routes, agent tools, RAG, quest endpoints, VAAM bridge integration.
-- `trinity-protocol`: The "Grammar" of Trinity. Shared types, ADDIE/HeroStage enums, Sacred Circuitry, VaamProfile, SemanticCreep, QM Rubric.
-- `trinity-quest`: The "Rules". Quest state, objectives, Hero's Journey stage mapping, 12-station logic.
-- `trinity-iron-road`: The "Story". Book generation, narrative engine, CreepBestiary, Game Loop, MadLibs.
-- `trinity-voice`: The "Voice". PersonaPlex integration, voice endpoints, SSML handling.
-- `trinity-sidecar`: The "Hands". Agentic sidecar for technical execution (Engineer), Sword & Shield pattern.
+*Cars 3–12 continue in the ADDIECRAPEYE sequence. The next group (Car 3: DEVELOP) documents the framework that governs everything above.*
 
 ---
 
-## File Locations
+## 🚃 Car 3: DEVELOP — The ADDIECRAPEYE Framework
+
+> **Bloom's Level**: Create
+> **Sacred Circuit**: Prepare (circuit #4)
+> **Body Metaphor**: The Skeleton — building the frame that holds everything
+
+### 3.1 The 12 Stations
+
+ADDIECRAPEYE is a 12-station instructional design framework that fuses three established methodologies:
+
+- **ADDIE** (5 stations): Analysis → Design → Development → Implementation → Evaluation — the gold standard of instructional design
+- **CRAP** (4 stations): Contrast → Repetition → Alignment → Proximity — Robin Williams' design principles
+- **EYE** (3 stations): Envision → Yoke → Evolve — Trinity's original metacognitive layer
+
+```rust
+pub enum AddiecrapeyePhase {
+    Analysis,      // 1.  The Golem's Eyes
+    Design,        // 2.  The Golem's Brain
+    Development,   // 3.  The Golem's Skeleton
+    Implementation,// 4.  The Golem's Muscles
+    Evaluation,    // 5.  The Golem's Voice
+    Contrast,      // 6.  The Golem's Skin
+    Repetition,    // 7.  The Golem's Heart
+    Alignment,     // 8.  The Golem's Spine
+    Proximity,     // 9.  The Golem's Hands
+    Envision,      // 10. The Golem's Third Eye
+    Yoke,          // 11. Connective Tissue
+    Evolve,        // 12. The Golem's Lungs
+}
+```
+
+> 📍 `conductor_leader.rs:L36-49` — `AddiecrapeyePhase` enum (12 variants)
+> 📍 `conductor_leader.rs:L70-88` — `next()` method: cyclic state machine (Evolve → Analysis)
+> 📍 `trinity-protocol/src/lib.rs:L1-17` — "Sign on the Cave Wall" showing all 12 stations
+
+### 3.2 Bloom's Taxonomy Integration
+
+Each ADDIECRAPEYE station maps to a specific Bloom's cognitive level. This is the **pedagogical backbone** — it tells Pete what type of thinking the learner should be doing at each station:
+
+| Station | Bloom's Level | Cognitive Activity |
+|---------|--------------|-------------------|
+| Analysis | Remember/Understand | Extract intent, identify audience, recall prior knowledge |
+| Design | Apply | Map objectives to mechanics, apply Bloom's verbs to goals |
+| Development | Create | Build assets, write code, produce tangible artifacts |
+| Implementation | Apply | Deploy, integrate, verify setup matches design |
+| Evaluation | Evaluate | QM rubric, quality review, measure against criteria |
+| Contrast | Analyze | Visual hierarchy analysis, emphasis ranking, boundary design |
+| Repetition | Apply | Pattern reinforcement, consistency audit, core loop solidity |
+| Alignment | Evaluate | Structure compliance, scope pruning, Extraneous Load → zero |
+| Proximity | Analyze | UX grouping, Miller's Law (7±2), human-computer interaction |
+| Envision | Evaluate | Meta-cognitive reflection, compare against original goals |
+| Yoke | Create | System integration, couple frontend to backend, final assembly |
+| Evolve | Create | Ship, publish, the Golem takes its first breath |
+
+> 📍 `conductor_leader.rs:L109-154` — `bloom_level()` method with full cognitive descriptions
+
+### 3.3 Sacred Circuitry — The 15-Word Cognitive Scaffolding
+
+The Sacred Circuitry is a **15-concept attention scaffolding system** that structures *how* the AI focuses during any ADDIECRAPEYE workflow. Where ADDIECRAPEYE says *what* to do, the Circuitry says *how to attend*.
 
 ```
-trinity-genesis/
-├── TRINITY_FANCY_BIBLE.md             ← YOU ARE HERE (The Iron Road Design Bible)
-├── crates/
-│   ├── trinity/src/
-│   │   ├── main.rs                      # HTTP server entry
-│   │   ├── inference.rs                 # llama.cpp client
-│   │   ├── voice.rs                    # Voice endpoints
-│   │   ├── quests.rs                   # Quest endpoints
-│   │   └── crate_manual.rs             # Crate manual
-│   ├── trinity-protocol/src/
-│   │   ├── lib.rs                      # Shared types
-│   │   └── crate_manual.rs             # Protocol manual
-│   ├── trinity-quest/src/
-│   │   ├── hero.rs                     # Hero's Journey stages
-│   │   ├── party.rs                    # P-ART-Y system
-│   │   ├── state.rs                    # Game state, objectives
-│   │   └── crate_manual.rs             # Quest manual
-│   └── ...                             # Other 9 crates
-├── docs/
-│   ├── TRINITY_12_CRATE_MAP.md         # Architecture overview
-│   └── TRINITY_AI_ORCHESTRATION_MAP.md # Memory/AI planning
-└── Cargo.toml                          # Workspace root
+Scope:  Center → Expand → Balance → Prepare  (define the problem)
+Build:  Express → Extend → Unlock → Flow      (produce the work)
+Listen: Receive → Relate → Realize             (process feedback)
+Ship:   Act → Transform → Connect → Manifest   (deliver output)
 ```
+
+> 📍 `sacred_circuitry.rs:L56-76` — `Circuit` enum with 15 variants
+> 📍 `sacred_circuitry.rs:L80-96` — `Circuit::ALL` array (canonical order)
+> 📍 `sacred_circuitry.rs:L124-138` — `quadrant()` method mapping circuits to 4 attention phases
+
+Each circuit has:
+- A **name** (one word: Center, Expand, Balance, etc.)
+- A **quadrant** (Scope, Build, Listen, Ship)
+- A **description** explaining what the attention pattern does
+- An **ADDIECRAPEYE station** mapping
+- An **auto-reply** — structured phrases the AI selects to signal which pattern is active
+
+Example circuit descriptions:
+
+| Circuit | What It Does |
+|---------|-------------|
+| Center | Lock attention onto the core problem. Filter noise. Identify the single most important thing. |
+| Expand | Survey the solution space. What approaches exist? What adjacent knowledge applies? |
+| Balance | Weigh tradeoffs. Hold competing constraints without premature commitment. |
+| Flow | Enter sustained productive execution. Trust the process. Maintain momentum. |
+| Realize | The insight moment. Understand the root cause. See what the right approach actually is. |
+| Manifest | Deliver and release. The work is done. Let it go into the world. |
+
+> 📍 `sacred_circuitry.rs:L172-201` — `description()` method with plain-English attention definitions
+
+### 3.4 The Circuit ↔ Station Isomorphism
+
+Each Sacred Circuit maps to an ADDIECRAPEYE station, creating a dual-layer scaffolding:
+
+| Circuit | Quadrant | → Station |
+|---------|----------|-----------|
+| Center | Scope | Analyze |
+| Expand | Scope | Design |
+| Balance | Scope | Design |
+| Prepare | Scope | Develop |
+| Express | Build | Implement |
+| Extend | Build | Envision |
+| Unlock | Build | Contrast |
+| Flow | Build | Repetition |
+| Receive | Listen | Evaluate |
+| Relate | Listen | Alignment |
+| Realize | Listen | Proximity |
+| Act | Ship | Proximity |
+| Transform | Ship | Yoke |
+| Connect | Ship | Yoke |
+| Manifest | Ship | Evolve |
+
+> 📍 `sacred_circuitry.rs:L140-168` — `addiecrapeye_station()` method with full mapping
+
+### 3.5 The Hotel Management Pattern
+
+The Conductor orchestrates which AI model runs during each phase. In multi-model configurations, different phases require different capabilities. The phases are grouped into **4 P-ART gears** to prevent thrashing:
+
+| Gear | Model Role | Phases |
+|------|-----------|--------|
+| **P** (Pete) | Socratic Mirror | Analysis, Envision, Yoke, Evolve |
+| **A** (Aesthetics) | Visual Design | Design, Contrast, Proximity |
+| **R** (Research) | Quality/Testing | Evaluation, Alignment |
+| **T** (Tempo) | Code Generation | Development, Implementation, Repetition |
+
+> 📍 `conductor_leader.rs:L466-503` — `manage_hotel_sidecars()` with P-ART gear routing
+> 📍 `conductor_leader.rs:L496-500` — Lone Wolf Mode: single Mistral handles all phases (current)
+
+In the current **Lone Wolf** configuration, Mistral Small 4 119B handles all gears — but the routing infrastructure is ready for multi-model deployment.
+
+### 3.6 Phase Implementation: Socratic Prompts
+
+Each ADDIECRAPEYE phase has a distinct system prompt that teaches Pete its role. Every prompt follows the **Socratic Protocol**: ask, don't tell. Present choices, don't dictate.
+
+Example from the Analysis phase:
+
+```
+SOCRATIC PROTOCOL: Do not tell — ask. Lead with questions:
+- 'Who will use what you're building, and what do they struggle with?'
+- 'What does success look like — not for you, but for the learner?'
+- 'What words must someone master to understand your subject?'
+```
+
+> 📍 `conductor_leader.rs:L596-633` — Analysis phase: Socratic extraction, "Golem's Eyes"
+> 📍 `conductor_leader.rs:L635-672` — Design phase: "Golem's Brain", Bloom's discovery
+> 📍 `conductor_leader.rs:L674-714` — Development phase: "Golem's Skeleton", user-led build
+> 📍 `conductor_leader.rs:L716-745` — Implementation phase: "Golem's Muscles", scope creep flags
+> 📍 `conductor_leader.rs:L747-800+` — Evaluation phase: QM Rubric integration, "the Mirror"
+
+### 3.7 Field Manual Cross-Reference
+
+> *See: [Ask Pete Field Manual](ASK_PETE_FIELD_MANUAL.md) §3 The Process, §4 The Promise*
+
+- **§3 The Process** — ADDIECRAPEYE is the process. The Field Manual calls it "the railroad that never stops." Each station is a stop, and the Conductor (Pete) keeps the train moving.
+- **§4 The Promise** — "To a student who shows up: you are the Subject Matter Expert. Pete does not replace you. He scaffolds you."
 
 ---
 
-## Inference Architecture (Verified March 22, 2026)
+## 🚃 Car 4: IMPLEMENT — The Iron Road Game Mechanics
 
-**The "True Trinity" Approach: Single brain, wrapped in a Studio ID system.**
+> **Bloom's Level**: Apply
+> **Sacred Circuit**: Express (circuit #5)
+> **Body Metaphor**: The Muscles — putting the framework into motion
 
-**Single brain: Mistral Small 4 119B MoE via llama-server.**
+### 4.1 The Iron Road Core Loop
 
-| Engine | Port | Format | Role |
-|--------|------|--------|------|
-| **llama.cpp** | `:8080` | GGUF Q4_K_M (68GB) | **The Core Brain** — Mistral Small 4 119B MoE |
-| **Qianfan-OCR** | `:8081` | GGUF (4B) | **Researcher** — Document analysis sub-agent |
-| **ComfyUI** | `:8188` | Safetensors | **ART Studio** — SDXL Turbo, HunyuanVideo, ACE-Step |
+The Iron Road is Trinity's game layer — it transforms dry instructional design into an engaging experience. The core loop has 5 phases:
 
-**Key Specs:**
-- **Inference Server**: `llama.cpp` (OpenAI-compatible `/v1/chat/completions`)
-- **Context Window**: 262,144 tokens (256K MLA)
-- **Memory Management**: 128GB Unified RAM (no hot-swapping needed for the brain)
-- **Vision**: Mistral evaluates ART outputs via vision tokens
-- **Orchestration**: `trinity` server handles the 12-station ID logic and VAAM bridge.
-- **InferenceRouter**: Multi-backend auto-detect + failover (`inference_router.rs`)
+```
+COLLECT   → scan user text for vocabulary, create Wild Creeps
+CONSTRUCT → tame Creeps via multi-dimensional TamingProgress
+QUEST     → fill Lesson MadLib slots with Tamed Creeps
+BATTLE    → Creep vs Creep for contested MadLib slots
+REWARDS   → Context Points, VaamProfile update, Book chapter generation
+```
 
-**Legacy Note**: `trinity-inference` and speculative multi-model hotswapping (Hotel Pattern) have been archived. The system now prioritizes a single high-functioning AI for all reasoning tasks.
+> 📍 `trinity-iron-road/src/game_loop.rs:L1-23` — Architecture header defining the 5-phase loop
+> 📍 `trinity-iron-road/src/lib.rs:L1-38` — Crate structure: book, great_recycler, narrative, game_loop, vaam, pete_core
+
+### 4.2 VAAM — Vocabulary Acquisition And Mastery
+
+**VAAM** is the core insight that makes Trinity unique among AI tools: *words are what LLMs and people have in common*. Instead of treating vocabulary as static content, Trinity makes it the **game currency**.
+
+Every message between user and AI is scanned for vocabulary. Words with 4+ characters are tracked. The system monitors:
+
+1. **Passive discovery** — the word appears in conversation
+2. **Multi-phase usage** — the word appears across different ADDIECRAPEYE phases
+3. **Deliberate usage** — the user intentionally selects the word (not just passive appearance)
+4. **Intent alignment** — how well the word usage matches the user's stated intent
+
+> 📍 `game_loop.rs:L61-109` — `scan_text()`: word discovery across phases and quadrants
+> 📍 `game_loop.rs:L72` — `filter(|w| w.len() >= 4)` — minimum 4 characters to be interesting
+
+### 4.3 SemanticCreep — Vocabulary Creatures
+
+Every vocabulary word becomes a **SemanticCreep** — a creature with stats derived from its linguistic properties:
+
+- **Element** — determined by word characteristics (Fire, Water, Earth, Air, Lightning, Crystal)
+- **Role** — Guardian, Scout, Healer, Tank, Striker, Controller
+- **Stats** — derived from word length, syllable count, Bloom's affinity
+- **State** — Wild → Tameable → Tamed → Evolved
+
+The taming process is **multi-dimensional** — a word isn't tamed by repetition alone. It requires:
+1. Usage across **different ADDIECRAPEYE phases** (Arithmos — counting dimensions)
+2. Usage across **different Sacred Circuitry quadrants** (Harmonia — balanced contexts)
+3. **Deliberate** selection by the user, not just passive appearance (Logos — intentional meaning)
+4. A **minimum taming score** threshold before the Scope Hope/Nope decision
+
+> 📍 `trinity-protocol/src/semantic_creep.rs` — `SemanticCreep` struct with element, role, stats, TamingProgress
+> 📍 `game_loop.rs:L111-120` — `scope_hope_creep()`: user tames the word
+> 📍 `game_loop.rs:L122-127` — `scope_nope_creep()`: user rejects the word (stays wild)
+
+### 4.4 The Bestiary
+
+The `CreepBestiary` is the player's vocabulary collection — their Pokédex of words:
+
+```rust
+pub struct CreepBestiary {
+    pub creeps: Vec<SemanticCreep>,     // All encountered Creeps
+    pub words_scanned: u64,            // Total words processed
+    pub creeps_tamed: u32,             // Successfully tamed words
+    pub slots_filled: u32,             // MadLib slots completed
+    pub battles_won: u32,              // PvP vocabulary battles
+}
+```
+
+> 📍 `game_loop.rs:L32-44` — `CreepBestiary` struct
+> 📍 `game_loop.rs:L130-132` — `usable_creeps()`: only Tamed or Evolved words are usable
+> 📍 `game_loop.rs:L150-163` — `summary()` method for UI display
+
+### 4.5 Lesson MadLibs
+
+Once Creeps are tamed, they fill slots in **Lesson MadLibs** — structured lesson plan templates with typed gaps:
+
+```
+"The {noun_topic} is {adjective_quality}."
+→ Fill noun_topic with your tamed "geology" Creep
+→ Fill adjective_quality with your tamed "creative" Creep
+→ Result: "The geology is creative."
+```
+
+When all slots are filled, the lesson is complete and generates a `LessonCompleted` event that flows into the Book system.
+
+> 📍 `trinity-iron-road/src/vaam/madlibs.rs` — `LessonMadlib` struct with typed slots
+> 📍 `game_loop.rs:L274-302` — `complete_lesson()`: fill slots → update VaamProfile → emit events
+
+### 4.6 The Game Loop Events
+
+Every action in the Iron Road produces typed events that drive the narrative:
+
+| Event | Trigger | Effect |
+|-------|---------|--------|
+| `CreepDiscovered` | New word found in text | UI shows wild creature card |
+| `CreepTameable` | Multi-dimensional score threshold reached | Scope Hope/Nope decision prompt |
+| `SlotFilled` | Tamed Creep placed in MadLib slot | Context Points earned |
+| `BattleResolved` | Two Creeps compete for same slot | Winner keeps the slot |
+| `LessonCompleted` | All MadLib slots filled | Book chapter generated |
+
+> 📍 `game_loop.rs:L172-212` — `GameLoopEvent` enum with 5 variants
+> 📍 `game_loop.rs:L214-272` — `to_recycler_event()`: bridges game events to Book chapters
+
+### 4.7 The Book of the Bible
+
+Completed lessons flow into the **Book of the Bible** — an append-only narrative ledger that records the user's learning journey as LitRPG prose. The Great Recycler (narrative AI) transforms mechanical game events into story chapters.
+
+> 📍 `trinity-iron-road/src/book.rs` — `BookOfTheBible` struct: append-only narrative ledger
+> 📍 `trinity-iron-road/src/great_recycler.rs` — `RecyclerEvent` to narrative chapter conversion
+> 📍 `main.rs:L125-128` — Book in AppState with Pythagorean documentation
+
+### 4.8 Test Coverage
+
+The game loop has **8 unit tests** validating the core mechanics:
+
+| Test | What It Validates |
+|------|-------------------|
+| `test_scan_discovers_creeps` | Words 4+ chars become CreepDiscovered events |
+| `test_scan_repetition_does_not_auto_tame` | Same-phase repetition ≠ taming (prevents gaming) |
+| `test_scan_multi_phase_makes_tameable` | Cross-phase + deliberate usage → tameable |
+| `test_usable_creeps_filters` | Only Tamed/Evolved Creeps are "usable" |
+| `test_lesson_completion_events` | Filled MadLib → LessonCompleted event |
+| `test_event_to_recycler_event` | Game events bridge to Book chapters correctly |
+| `test_save_and_load_state` | Bestiary JSON persistence round-trips |
+| `test_bestiary_summary` | UI summary string formats correctly |
+
+> 📍 `game_loop.rs:L328-510` — 8 `#[test]` functions with assertion coverage
+
+### 4.9 Field Manual Cross-Reference
+
+> *See: [Ask Pete Field Manual](ASK_PETE_FIELD_MANUAL.md) §5 The Iron Network, §6 The Heavilon Algorithm*
+
+- **§5 The Iron Network** — "The user is the locomotive. Trinity is the track." The Iron Road game mechanics are the track — they guide without constraining.
+- **§6 The Heavilon Algorithm** — "Failure is data, not death." When a Creep loses a battle or a lesson fails QM review, the system recycles the event as learning data, not punishment.
 
 ---
 
-## Voice Architecture (Verified March 19, 2026)
+## 🚃 Car 5: EVALUATE — Quality Systems & Security Rings
 
-### Python Voice Server (LIVE on :7777)
-```
-"Hey Trinity/Pete" → openwakeword → Beep → Record (VAD) → faster-whisper ASR
-→ Mistral Small 4 brain (agentic, up to 5 tool rounds) → Kokoro TTS (sentence-stream) → Speaker
-```
-- **Script**: `scripts/launch/trinity_voice_server.py`
-- **Web UI**: `http://localhost:7777` — voice selection, conversation log, type-to-test
-- **Models (all CPU, ~2GB total)**: openwakeword (~10MB), faster-whisper base.en (~140MB), Kokoro 82M (~300MB)
-- **Agentic tools**: read_file, write_file, edit_file, shell, search, list_dir, git
-- **Dual wake word**: "Hey Trinity" → dev mode, "Hey Pete" → Iron Road mode
-- **54 Kokoro voices** — selectable via web UI, default am_adam
+> **Bloom's Level**: Evaluate
+> **Sacred Circuit**: Receive (circuit #9)
+> **Body Metaphor**: The Nervous System — sensing quality and security
 
-### Two Conversation Modes
-| Mode | Persona | Purpose |
-|------|---------|---------|
-| **Yardmaster** | User is the Yardmaster | Production AI agent. No character. Sandbox constructivism. Tools and workflows. |
-| **Iron Road** | Pete | Gamified LitRPG. ADDIECRAPEYE as narrative waypoints. XP/Coal/Steam. |
+### 5.1 The Ring System
 
----
+Trinity's security and quality model is organized as **concentric rings**, each providing a different type of protection:
 
-## VAAM + Iron Road Game Mechanics
+| Ring | Name | Purpose | Implementation |
+|------|------|---------|----------------|
+| **Ring 1** | Tool Permissions | Three-tier tool classification | `tools.rs:L58-106` |
+| **Ring 2** | Persona Gates | Persona-specific system prompts | `agent.rs:L88-126` |
+| **Ring 3** | Rolling Context | Summary-based context management | `agent.rs` context window |
+| **Ring 4** | Session Isolation | Per-user character persistence | `character_sheet.rs:L84` |
+| **Ring 5** | Sandboxing | Command blocking + path validation | `tools.rs:L431-478` |
+| **Ring 6** | Perspective Engine | Multi-perspective AI evaluation | `perspective.rs` |
 
-### VAAM (Vocabulary As A Mechanism)
+### 5.2 Ring 1: Tool Permissions
 
-Word-based attention management system. Tracks vocabulary mastery, user preferences,
-and communication style. The isomorphic layer connecting all Trinity systems.
+Every tool in Trinity has a permission level that determines how it's handled:
 
-| Component | File | Tests | Purpose |
-|-----------|------|-------|---------|
-| **Sacred Circuitry** | `trinity-protocol/src/sacred_circuitry.rs` | 16 | 15-word cognitive scaffolding, 4 quadrants (Scope/Build/Listen/Ship) |
-| **VaamProfile** | `trinity-protocol/src/vaam_profile.rs` | 8 | User preferences: word weights, circuit affinity, style, agreements |
-| **VaamBridge** | `trinity/src/vaam_bridge.rs` | 6 | Runtime integration: VaamState + CircuitryState + VaamProfile → system prompts |
-| **SemanticCreep** | `trinity-protocol/src/semantic_creep.rs` | 14 | Word-creatures: Element, Role, Stats, Wild/Tamed/Evolved states |
-| **LessonMadlib** | `trinity-iron-road/src/vaam/madlibs.rs` | 8 | Creep-aware lesson plan templates with slot filling + battles |
-| **Game Loop** | `trinity-iron-road/src/game_loop.rs` | 7 | CreepBestiary, events, persistence, RecyclerEvent bridge |
-| **CognitiveLoad** | `trinity-iron-road/src/vaam/cognitive_load.rs` | — | Flesch-Kincaid readability scoring |
-| **LitRPG Handbook** | `trinity-iron-road/src/vaam/litrpg.rs` | — | Player handbook prose from mastered words |
-
-**Total: 70+ VAAM-related tests passing, 0 failures.**
-
-### Isomorphic Mapping
-
-```
-Sacred Circuitry  → HOW to attend (15 words, 4 quadrants)
-ADDIECRAPEYE      → WHAT to do   (12 stations, instructional design)
-VaamProfile       → WHAT user prefers (word weights, style, agreements)
-CharacterSheet    → WHO the user is (identity, skills, progression)
-SemanticCreep     → WHAT words become (creatures with stats)
-MadLibs/Quests    → HOW words are used (lesson plan templates)
-Book of the Bible → WHERE it's recorded (append-only narrative ledger)
+```rust
+pub enum ToolPermission {
+    Safe,           // Read-only / informational — always execute
+    NeedsApproval,  // Modifies state within workspace — log and proceed
+    Destructive,    // System-level or destructive — require confirmation
+}
 ```
 
-### Semantic Creep System (replaces "Semantic Slime" from Roblox archive)
+> 📍 `tools.rs:L58-67` — `ToolPermission` enum (3 variants)
+> 📍 `tools.rs:L70-106` — `tool_permission()`: maps 30+ tool names to permission levels
 
-**Core concept**: Every vocabulary word becomes a SemanticCreep creature.
+**Permission distribution:**
+- **Safe** (11 tools): `read_file`, `list_dir`, `list_files`, `search_files`, `quest_status`, `cowcatcher_log`, `sidecar_status`, `process_list`, `system_info`, `load_session_context`, `zombie_check`
+- **NeedsApproval** (13 tools): `write_file`, `cargo_check`, `quest_advance`, `work_log`, `task_queue`, `save_session_summary`, `generate_lesson_plan`, `generate_rubric`, `generate_quiz`, `curriculum_map`, `scout_sniper`, `analyze_document`, `analyze_image`
+- **Destructive** (7 tools): `shell`, `python_exec`, `sidecar_start`, `scaffold_bevy_game`, `project_archive`, `avatar_pipeline`, `generate_image`
 
-```
-Wild Creeps  = untamed vocabulary (Scope Nope) — detected but not mastered
-Tamed Creeps = mastered vocabulary (Scope Hope) — multi-dimensional learning + conscious choice
-Evolved Creeps = morphologically modified (suffix/prefix evolution)
-```
+Unknown tools default to **Destructive** — the most restrictive level.
 
-**Pythagorean Taming (replaces Rule of Three):**
+> 📍 `tools.rs:L104` — `_ => ToolPermission::Destructive` — unknown = most restrictive
 
-The old system auto-tamed a word after 3 uses. The new system measures *how* you learn, not how often:
+### 5.3 Ring 2: Persona-Based Access Control
 
-| Dimension | Pythagorean Principle | What It Measures | Weight |
-|---|---|---|---|
-| Encounter breadth | Arithmos (quantity) | Distinct ADDIECRAPEYE phases seen | 30% |
-| Context variety | Harmonia (relationship) | Distinct Circuit quadrants used | 25% |
-| Deliberation | Logos (meaning) | Times user deliberately chose this word | 25% |
-| Resonance | Intent alignment | EMA of intent match scores | 20% |
+Trinity uses **dual persona preambles** — the same AI brain operates in two distinct modes, each with different cognitive patterns:
 
-**Threshold: 0.85** — you don't need perfection. The remaining 15% grows through Context Points after taming.
+| Persona | Mode | Thinking Style | KV Cache Slot |
+|---------|------|---------------|---------------|
+| **Great Recycler** 🔮 | Strategic | Expansive, connective, asks WHY before HOW | Slot 0 (inhale) |
+| **Programmer Pete** ⚙️ | Execution | Focused, pragmatic, ACT FIRST | Slot 1 (exhale) |
 
-**Anti-Repetition:** Repeating a word in the same phase/quadrant doesn't increase the taming score. You can't cram — you must genuinely encounter the word across different contexts.
+The KV cache slot system enables **instant persona switching** without re-tokenizing system prompts:
 
-**Scope Hope / Scope Nope:** When a Creep becomes tameable (score ≥ 0.85), the user makes a *conscious choice*:
-- **Scope Hope** — tame the word, add it to your vocabulary bestiary
-- **Scope Nope** — leave it wild, its resonance decays, it may return later
+> 📍 `agent.rs:L92-108` — `GREAT_RECYCLER_PREAMBLE`: "chronicler of ideas, architect of systems"
+> 📍 `agent.rs:L110-126` — `PROGRAMMER_PETE_PREAMBLE`: "the builder, the debugger, the one who ships"
+> 📍 `agent.rs:L132-145` — `persona_slot()`: maps persona to llama-server KV cache slot (0 or 1)
 
-**Logos Engine Stats** (from archive `003_logos_engine.md`):
-- **Logos** (logic/attack) — derived from element + role
-- **Pathos** (emotion/HP) — derived from element + role
-- **Ethos** (trust/defense) — derived from element + role
-- **Speed** (initiative) — derived from element + role
+### 5.4 Ring 5: Command Sandboxing
 
-**Element** (from etymological root):
-| Element | Root Examples | Stat Bonus |
-|---------|--------------|------------|
-| 🔥 Fire | ign-, pyr-, therm- | High Logos |
-| 💧 Water | aqua-, hydr-, mar- | High Pathos |
-| 🪨 Earth | terra-, geo-, lith- | High Ethos |
-| 💨 Air | aer-, pneu-, vent- | High Speed |
-| 🌑 Shadow | umbr-, scot-, noct- | Logos + Speed |
-| ✨ Light | luc-, lum-, phot- | Pathos + Ethos |
-| ⚪ Neutral | (no recognized root) | Balanced |
+The shell tool blocks **42+ dangerous command patterns** across 6 categories:
 
-**Role** (from morphological suffix):
-| Role | Suffix Examples | Stat Bonus |
-|------|----------------|------------|
-| 🛡️ Tank | -tion, -ity, -ment, -ness | High Pathos + Ethos |
-| ⚔️ Striker | -ize, -ate, -fy, -en | High Logos + Speed |
-| 💚 Support | -ous, -ive, -ful, -able | Balanced utility |
+| Category | Examples | Count |
+|----------|---------|-------|
+| Filesystem destruction | `rm -rf /`, `mkfs`, `dd if=`, fork bomb | 7 |
+| System control | `shutdown`, `reboot`, `systemctl disable` | 3 |
+| Privilege escalation | `sudo`, `su -`, `passwd`, `chmod -R 777 /` | 5 |
+| Process killing | `pkill -9`, `kill -9 1`, `killall` | 3 |
+| Network exfiltration | `curl | bash`, `nc -e`, `/dev/tcp/` | 8 |
+| Data exfiltration | `scp`, `rsync`, `sftp`, `| python` | 7 |
 
-### Iron Road Game Loop
+> 📍 `tools.rs:L431-478` — Blocked command patterns with category comments
+> 📍 `tools.rs:L426-429` — `dry_run` parameter: preview commands without executing
 
-```
-COLLECT  → scan_text(phase, quadrant, intent) discovers Wild Creeps from user messages
-CONSTRUCT → TamingProgress tracks 4 Pythagorean dimensions → CreepTameable event
-DECIDE   → User chooses Scope Hope (tame) or Scope Nope (leave wild)
-QUEST    → LessonMadlib.fill_slot() with Tamed Creeps
-BATTLE   → contest_slot() → battle() resolution by slot type
-REWARDS  → Context Points + VaamProfile update + RecyclerEvent → Book chapter
-```
+**Path validation** provides additional sandboxing:
 
-**CreepBestiary** tracks the player's full collection:
-- `scan_text(phase, quadrant, intent)` — finds words (4+ chars), creates Wild Creeps, emits CreepTameable when threshold reached
-- `scope_hope_creep()` / `scope_nope_creep()` — user's conscious taming decision
-- `usable_creeps()` / `wild_creeps()` — filter by state
-- `save_state_json()` / `load_bestiary_json()` — JSON persistence
+- **Read access**: workspace + entire home directory
+- **Write access**: workspace + `~/.local/share/trinity/` + `~/Workflow/` + `/tmp/`
+- **Auto-backup**: existing files are backed up with timestamp before overwrite
 
-**LessonMadlib** generates real lesson plans:
-- Auto-extracts `{slot_id}` placeholders from template text
-- Infers slot type (noun/verb/adjective/adverb) from slot name
-- `suggest_creeps()` — ranks Tamed Creeps by fitness per slot
-- `fill_slot()` — awards Context Points, rejects Wild Creeps
-- `contest_slot()` — battle resolution, winner+loser both get CP
-- 3 sample templates: Science, ELA, Mathematics
+> 📍 `tools.rs:L271-318` — `validate_path_with_mode()`: read vs. write path sandboxing
+> 📍 `tools.rs:L362-373` — Auto-backup on write: `file.bak.YYYYMMDD_HHMMSS`
 
-**RecyclerEvent bridge** — completed lessons fire events to `GreatRecycler`:
-- `GameLoopEvent::LessonCompleted` → `to_recycler_event()` → `BookOfTheBible.append_chapter()`
-- `GameLoopEvent::CreepTameable` → prompts Scope Hope/Nope decision
+### 5.5 Ring 6: The Perspective Engine
 
-### Persistence Architecture
+Ring 6 evaluates Pete's responses through **multiple lenses** before the user sees them. Each lens is a short, focused LLM call that **annotates** — never modifies — Pete's output:
 
-```
-Game State Persistence:
-├── CreepBestiary → JSON (save_state_json / load_bestiary_json)
-├── VaamProfile → CharacterSheet.vaam_profile (serializable)
-├── Quest State → PostgreSQL (trinity_quest::save_game_state)
-└── Book of Bible → Markdown files (docs/books_of_the_bible/*.md)
-    └── SSE broadcast to /book.html on new chapters
+| Lens | What It Checks |
+|------|---------------|
+| **Bloom's Check** | Does Pete's response match the current phase's Bloom's verb? |
+| **Practitioner** | Would an experienced teacher in this subject agree? |
+| **Devil's Advocate** | What assumption is Pete making that could be wrong? |
+
+> 📍 `perspective.rs:L1-29` — Architecture comment: three default lenses, parallel execution, 100-token budget each
+> 📍 `perspective.rs` — Lenses fire via `tokio::join!` and results sent as SSE "perspective" events
+
+### 5.6 Quality Matters Rubric — Automated Evaluation
+
+Trinity includes a **complete QM Rubric evaluator** that scores instructional design contracts across 4 criteria:
+
+| Criterion | QM Standard | What It Measures |
+|-----------|-------------|-----------------|
+| Learning Objectives | QM 2.1-2.4 | Measurable verbs, conditions, criteria, content depth |
+| Action Mapping | QM 3.1-3.3 | Goal specificity, observable behaviors |
+| Assessment Alignment | QM 4.1-4.3 | Milestone clarity, reasonable cognitive cost |
+| Cognitive Load | QM 5.1-5.3 | Bloom's appropriateness, total coal cost, chunk size (3-7) |
+
+```rust
+pub struct QmEvaluation {
+    pub overall_score: f32,        // 0-100 aggregate
+    pub criteria: Vec<QmCriterion>, // 4 individual scores
+    pub meets_standards: bool,     // overall ≥ 70 AND all criteria met
+    pub feedback: Vec<String>,     // Human-readable feedback
+}
 ```
 
-### Server Wiring (5 Integration Points — commit 5b548757)
+> 📍 `qm_rubric.rs:L19-34` — `QmEvaluation` struct
+> 📍 `qm_rubric.rs:L52-124` — `QmRubricEvaluator::evaluate()`: runs all 4 criteria
+> 📍 `qm_rubric.rs:L96` — Passing threshold: `overall >= 70.0 && criteria.iter().all(|c| c.met)`
+> 📍 `qm_rubric.rs:L357-389` — 26 measurable verbs aligned with Bloom's Taxonomy
 
-```
-User message → /api/chat
-  ├── 1. VaamBridge.process_user_input()  → coal, circuit, profile update
-  ├── 2. Bestiary.scan_text(phase,quad,intent)  → discover Wild Creeps, emit CreepTameable
-  ├── 3. Book SSE channel                 ← taming/discovery events broadcast
-  ├── 4. System prompt += VAAM context    → LLM sees vocabulary state
-  └── 5. VaamBridge.process_ai_output()   → scan AI response too
+The evaluator checks for 26 measurable verbs (identify, list, define, describe, explain, summarize, compare, contrast, analyze, evaluate, create, apply, demonstrate, implement, solve, calculate, measure, classify, arrange, construct, design, formulate, judge, critique, assess, recommend, justify).
 
-Scope decision → POST /api/bestiary/tame
-  └── Scope Hope → tame Creep + SSE event
-      Scope Nope → leave wild, decay resonance
+### 5.7 Quality Scorecard — Document Evaluation
 
-Intent setting → POST /api/ground + POST /api/intent
-  └── Updates CharacterSheet intent posture + vulnerability
-
-Quest action → /api/quest/complete or /api/quest/advance
-  └── Book SSE channel ← objective_completed / phase_advanced events
-
-Orchestration → /api/orchestrate
-  └── player_context += VaamProfile.prompt_summary() + Bestiary.summary()
-      → All 12 ADDIECRAPEYE phases have vocabulary awareness
-
-UI → GET /api/bestiary
-  └── Full Creep collection: word, element, role, state, stats, power, CP
-```
-
-**AppState fields** (consolidated — removed redundant `vaam_state`):
-
-| Field | Type | Purpose |
-|-------|------|---------|
-| `vaam_bridge` | `Arc<VaamBridge>` | VAAM + Sacred Circuitry + profile (single source) |
-| `bestiary` | `Arc<RwLock<CreepBestiary>>` | Player's vocabulary creatures |
-| `book_updates` | `broadcast::Sender<String>` | SSE channel for real-time updates |
-| `game_state` | `SharedGameState` | Quest progression (PostgreSQL-backed) |
-| `character_sheet` | `Arc<RwLock<CharacterSheet>>` | Player identity + VaamProfile |
-
-**Total: 175 tests passing across 6 crates, 0 failures.**
-
----
-
-## Instructional Design Systems (Verified March 18, 2026)
-
-### Quality Control — What's REAL in the codebase
-
-| System | File | Status |
-|--------|------|--------|
-| **QM Rubric Evaluator** | `trinity-protocol/src/qm_rubric.rs` | ✅ 405 lines, scores 0-100, wired into orchestration |
-| **ID Contract (Backward Design)** | `trinity-protocol/src/id_contract.rs` | ✅ Objectives → milestones → content, Action Map built in |
-| **Learning Objectives (Bloom's)** | `id_contract.rs` | ✅ verb + content + condition + criterion |
-| **Yardmaster (Learning Objects)** | `asset_generation.rs` | ✅ Atomic units with Bloom's level, cognitive load, prerequisites |
-| **ADDIECRAPEYE Orchestration** | `conductor_leader.rs` | ✅ All 12 phases with real LLM calls, hotel pattern |
-| **Scope Creep Detection** | `scope_creep.rs` | ⚠️ Keyword stub → SemanticCreep system replaces (see VAAM section) |
-| **Backward Design Enforcement** | `main.rs` DEV mode prompt | ✅ Rejects content-first requests, enforces Action Mapping |
-| **SME Interview Protocol** | `main.rs` DEV mode prompt | ✅ STAR method, anchoring questions, simplification |
-
-### Standards Implemented
-- **IBSTPI**: 22 competencies mapped to orchestration phases
-- **ATD**: 14 capability statements, especially SME interviewing (Statement 9)
-- **AECT**: 5 standards, ethics constraints in system prompts
-- **QM Higher Ed Rubric**: 4 criteria automated (objectives, action mapping, assessment, cognitive load)
-
-### Reference Document
-`docs/research/TRINITY_INSTRUCTIONAL_DESIGN_BLUEPRINT.md` — Full mapping of IBSTPI/ATD/AECT/QM to Trinity architecture.
-
----
-
-## eLearning Template System
-
-### Base Template: Local-AI-Architect (Purdue)
-- **Location**: `~/Elearning/local-ai-architect-elearning/`
-- **Stack**: React 18 + Vite + TailwindCSS + Lucide icons
-- **Structure**: 3 modules + sandbox + quiz + docs (ADDIE-aligned)
-- **Guide**: `docs/templates/ELEARNING_TEMPLATE_GUIDE.md`
-
----
-
-## Launch Commands
-
-### One-command start (tmux)
-```bash
-bash scripts/launch/start_trinity.sh           # DEV mode (default)
-bash scripts/launch/start_trinity.sh iron-road  # Iron Road mode
-```
-
-### Manual start
-```bash
-# Terminal 1: LLM (Mistral Small 4 119B, 256K MLA context)
-export LD_LIBRARY_PATH=$HOME/Workflow/desktop_trinity/trinity-genesis/llama.cpp/build-rocm/bin:$LD_LIBRARY_PATH
-export HSA_OVERRIDE_GFX_VERSION=11.0.0
-llama-server -m ~/trinity-models/gguf/Mistral-Small-4-119B-2603-Q4_K_M-00001-of-00002.gguf \
-  -c 262144 --port 8080 -ngl 99 --parallel 2 --flash-attn on --jinja --host 0.0.0.0 --threads 12
-
-# Terminal 2: Trinity server
-LLM_URL=http://127.0.0.1:8080 ./target/release/trinity
-
-# Terminal 3: Voice server (Python)
-source ~/trinity-vllm-env/bin/activate && CUDA_VISIBLE_DEVICES="" python3 scripts/launch/trinity_voice_server.py
-
-# Terminal 4: ComfyUI (ART pipeline)
-source ~/trinity-vllm-env/bin/activate && cd ~/ComfyUI && python3 main.py --port 8188 --listen 0.0.0.0
-```
-
----
-
-## ADDIECRAPEYE ↔ TRINITY Isomorphism
-
-```
-TRINITY = ID + AI + OS
-
-ID  = ADDIE    = Pete (Iron Road)     — Instructional Design, Purdue LDT expertise
-AI  = CRAP     = ART Studio           — Robin Williams design theory, Bevy game studio
-OS  = EYE      = Yardmaster (the USER) — Evaluation, orchestration, system management
-
-P-ART-Y = Pete + Aesthetics/Research/Tempo + You(Yardmaster)
-```
-
-**You are the Yardmaster.** You manage the yard. You don't lay every piece of iron — you delegate to P-ART. Pete is the sole AI personality. ART modes are just system prompts.
-
-**Character Sheet = Yardmaster UX settings.** Guides preferences. In code at
-`AppState.character_sheet` but not yet meaningfully surfaced in Yardmaster web UI.
-
----
-
-## Avatar Pipeline (March 19, 2026 — WORKING)
-
-Full NPC character creation: concept → backstory → portrait → 3D mesh → voice → music → Bevy ECS entity.
-
-**Script**: `scripts/launch/avatar_pipeline.py`
-**First NPC**: Fleet (steampunk engineer) at `assets/avatars/Fleet/`
-
-| Step | Tool | Status | Time |
-|------|------|--------|------|
-| Character sheet | Mistral LLM | ✅ Working | ~50s |
-| Portrait | ComfyUI SDXL Turbo | ✅ Working | ~4s |
-| Vision evaluation | Mistral vision | ✅ Available | — |
-| 3D mesh | Hunyuan3D-2.1 | ✅ Wired (Gradio :7860) | — |
-| Theme music | ACE-Step 1.7B | ⏭️ GGUF on disk (2.2GB) | — |
-| NPC voice | Kokoro TTS | ✅ Working (54 voices) | <1s |
-| Voice clone | Chatterbox Turbo | ⏭️ Cached | — |
-| Bevy ECS entity | Mistral LLM | ✅ Working | ~13s |
-| Presentation video | HunyuanVideo | ⏭️ Model on disk (13GB) | — |
-
-**Maps to ADDIECRAPEYE**: Avatar creation IS the tutorial quest in Iron Road.
-Each step maps to a station. EYE evaluates the output via Mistral vision.
-
----
-
-## ART Tools Architecture — The Creative Sidecar Stack
-
-> *ART has no persona. ART is pure tooling — the instruments in the studio.*
-
-ART is the second letter in P-ART-Y. It is NOT an AI personality — it is the collection of creative sidecars that the Yardmaster and Pete can invoke. Each tool runs as an independent process, communicates via HTTP, and shares GPU resources with Mistral through dual-channel compute.
-
-```
-ART Sidecar Stack (all via HTTP, all local-first)
-┌─────────────────────────────────────────────────────────────┐
-│  VISUAL                                                      │
-│  ├── ComfyUI :8188          → SDXL Turbo (PROVEN LIVE)       │
-│  ├── Hunyuan3D :7860        → 3D mesh from portrait          │
-│  └── HunyuanVideo :8188     → 4s cinematic video             │
-├─────────────────────────────────────────────────────────────┤
-│  DOCUMENT INTELLIGENCE                                       │
-│  ├── Qianfan-OCR            → Syllabus/PDF/textbook ingestion│
-│  │   ├── Feeds VAAM vocabulary extraction                    │
-│  │   ├── Feeds Quality Scorecard document input              │
-│  │   └── Apache 2.0 license (Purdue-compatible)              │
-│  └── beast_logger           → Creative pipeline telemetry    │
-│      └── Already LIVE on ART page (ArtStudio.jsx)            │
-├─────────────────────────────────────────────────────────────┤
-│  AUDIO                                                       │
-│  ├── Kokoro TTS             → 54 voices, <1s generation      │
-│  ├── ACE-Step 1.7B          → AI music composition           │
-│  └── Chatterbox Turbo       → Voice cloning                  │
-├─────────────────────────────────────────────────────────────┤
-│  SPATIAL (Bevy Desktop — Archive Ready)                      │
-│  ├── 3D Avatar rendering    → Spirit Crystal + orbital rings │
-│  ├── ADDIE egui panels      → 1,416 lines, all 12 phases    │
-│  ├── Asset preview          → Load .glb meshes + textures    │
-│  └── OBS capture            → Real-time visual feedback      │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Bevy + OBS Code Preview — The Game Development Loop
-
-Trinity's endgame for the ART Studio is a **real-time code-to-visual feedback loop**:
-
-1. **Yardmaster** asks Pete: *"Create a food web game where students connect organisms"*
-2. **Pete** (via SCOUT SNIPER) generates 12-phase quest + Bevy ECS code
-3. **Bevy desktop window** compiles and renders the game in real-time
-4. **OBS Studio** captures the Bevy window frame-by-frame
-5. **Mistral Vision** evaluates the visual output against the PEARL alignment
-6. **beast_logger** records every creative event for telemetry
-
-This is the **Purdue literal game engine** — an AI that doesn't just describe a game, it *builds and runs one while you watch*. The archive contains 913 lines of Bevy main.rs, 367 lines of 3D avatar animations, and a full HTTP bridge to Axum. Estimated revival: ~3–4 hours of focused work.
-
----
-
-## Hardware (Verified)
-
-- **Machine**: GMKtek EVO X2 128GB (headless server target)
-- **CPU/GPU**: AMD Ryzen AI Max+ 395 (Strix Halo, gfx1151, 40 CUs RDNA 3.5)
-- **Memory**: 128GB LPDDR5X-8000 unified, 256 GB/s bandwidth
-- **NPU**: XDNA 2 (50 TOPS)
-- **Kernel**: 6.19.4 with `iommu=pt amdgpu.gttsize=126976 ttm.pages_limit=33554432`
-- **ROCm**: 7.2.0
-- **Blender**: 4.0.2 (Bevy standard 3D pipeline)
-- **OBS Studio**: 30.0.2 (screenshot/video capture for Mistral vision)
-
-### Static Memory Budget (load once, never reload)
-```
-128GB Unified RAM — STATIC TRINITY ID AI OS
-├── Mistral Small 4 weights:     68.0 GB (mmap, always resident)
-├── Mistral KV cache (256K):      5.6 GB (FP16, MLA compressed)
-├── ComfyUI + SDXL Turbo:         7.0 GB (loaded on demand)
-├── Kokoro TTS (CPU):             0.5 GB
-├── OS + PG + Trinity server:     2.0 GB
-├── Compute buffer:               0.8 GB
-│                                ────────
-│   Base load:                   83.9 GB
-│   Free for ART models:        44.1 GB  ← Hunyuan3D (15GB), ACE-Step (3GB), etc.
-```
-
-**Dual-channel compute**: Mistral and ART tools share GPU. Pause Mistral inference
-while ART generates, resume after. Both stay in RAM via mmap — no reload from disk.
-
-### Minimum Target Spec (Desktop App)
-- 24GB GPU VRAM
-- Smaller models for Iron Road + ART productivity
-- Same API, scaled models
-
----
-
-## Next Steps (Prioritized)
-
-### ✅ Completed (March 18 Session)
-1. ~~Wire QM Rubric into evaluation~~ ✅
-2. ~~Enforce Backward Design in DEV mode~~ ✅
-3. ~~Fix llama.cpp ROCm build~~ ✅
-4. ~~tmux launch script~~ ✅
-5. ~~Voice loop v1 (walkie-talkie) + v2 (radio protocol)~~ ✅
-6. ~~Pete's voice (8K Field Manual) in Iron Road prompt~~ ✅
-7. ~~Moshi Rust backend compiled + Python sidecar script~~ ✅
-8. ~~Voice architecture research (Moshi vs Qwen-Omni vs PersonaPlex)~~ ✅
-9. ~~Bible v2.0.0 + git commit~~ ✅
-
----
-
-### Immediate Priorities
-1. ~~Wire Trellis 3D meshing into Avatar Pipeline~~ → Replaced with Hunyuan3D-2.1 (Gradio API on :7860)
-2. Make Avatar Pipeline callable from Yardmaster web UI as a workflow
-3. Wire ACE-Step music when local server becomes available
-4. Ingest Pete Field Manual + ID Blueprint into RAG database
-5. Surface CharacterSheet in Yardmaster web UI for preferences
-
-### Near-term
-6. Dual-channel compute switching (pause Mistral during ART generation)
-7. Wire Chatterbox voice cloning for custom NPC voices
-8. HunyuanVideo for avatar presentation videos
-9. Connect eLearning template (React/Vite) scaffolding to Yardmaster
-10. Upgrade scope_creep to LLM-based detection
-
-### Future Scope (Documented, Not Blocked)
-- **Ming-flash-omni-2.0**: Archived. Too immature for gfx1151. Revisit ~1 year.
-- **LFM2.5-Audio**: Lightweight audio model (3GB). Could replace Whisper+Kokoro pipeline.
-- **Qwen2.5-Omni-3B**: Emotional intelligence layer.
-- Unsloth Gemma finetuning for smart game NPCs
-- vLLM batch worldbuilding swarm for ART sidecar (when FP8 support matures)
-- Moshiko Candle Q8 for pure Rust voice (when Candle adds ROCm)
-- OS-agnostic desktop app (24GB GPU minimum target)
-- CachyOS pure Rust build for Bevy XR/AR systems
-
----
-
-## Maturity Assessment (March 22, 2026 — ComfyUI + OCR Release)
-
-### Codebase Numbers
-
-```
-Total workspace:   ~39,000 LOC Rust (Active) + 8,155 LOC frontend
-├── Active crates:  6 (trinity, protocol, quest, iron-road, voice, sidecar)
-├── Archive:       ~150,000+ LOC (restorable, not deleted)
-├── Frontend:       React (14 components, 7 hooks, Cinzel/Crimson typography)
-├── Docs:           140+ markdown files
-├── Scripts:        125+ shell/utility scripts
-└── Quest files:    8 JSON quest definitions
-
-Tests: 179 passing, 0 failures, 0 warnings
-  ├── trinity:          83 tests (agent, VAAM bridge, inference router, Ring 2/3/5/6, PEARL, Perspective Engine, Quality Scorecard, Journal States)
-  ├── trinity-protocol: 67 tests (sacred circuitry, VaamProfile, SemanticCreep)
-  ├── trinity-quest:    16 tests (quest board, objectives, phase logic)
-  ├── trinity-iron-road: 16 tests (narrative, game loop, bestiary)
-  ├── trinity-voice:    10 tests (SSML injection, VAAM vocal emphasis)
-  └── others:            3 tests
-```
-
-### Crate Maturity Classification
-
-#### LOCKED — Complete, tested, can be frozen
-
-| Crate | LOC | Tests | Grade | What It Does |
-|-------|-----|-------|-------|--------------|
-| **trinity-protocol** | ~10,000 | 59 | **A+** | CharacterSheet, VaamProfile, Sacred Circuitry (15 words), SemanticCreep, QM Rubric, ID Contract, ADDIECRAPEYE phases. |
-| **trinity-iron-road** | ~1,600 | 15 | **A** | CreepBestiary, GameLoop, MadLibs, Book narrative engine. |
-| **trinity (server)** | ~7,500 | 18 | **B+** | HTTP API on :3000. RAG, VAAM Bridge, Quest Endpoints, Pete/Conductor orchestration. |
-| **trinity-quest** | ~1,100 | 0 | **B** | 12 ADDIECRAPEYE stations, Hero's Journey logic, PostgreSQL persistence. |
-
-**Total LOCKED: ~20,200 LOC — this is the real product.**
-
-#### FUNCTIONAL — Works but needs hardening
-
-| Crate | LOC | Tests | Grade | What It Does |
-|-------|-----|-------|-------|--------------|
-| **trinity-sidecar** | ~3,800 | 0 | **B-** | Engineer binary. Tested live with Opus 27B + REAP 25B. Roles, quests, prompts. |
-| **trinity-voice** | ~700 | 0 | **C+** | SSML types, voice integration endpoints. |
-
-**Total FUNCTIONAL: ~4,500 LOC.**
-
----
-
-### What Actually Runs Today
-
-```
-START → bash scripts/launch/start_trinity.sh
-  ├── PostgreSQL (107 RAG chunks)
-  ├── llama.cpp :8000 (Mistral Small 4 119B, 68GB, 256K ctx)
-  ├── Trinity Server :3000 (Axum)
-  │     ├── GET  /dev.html         → YARDMASTER (dev mode, no game mechanics)
-  │     ├── GET  /ironroad.html    → Pete / Iron Road (LitRPG, VAAM, Coal/Steam)
-  │     ├── GET  /art.html         → ART Studio (creative pipeline)
-  │     ├── POST /api/chat/yardmaster → Agentic tool-use loop (mode=dev|ironroad)
-  │     ├── POST /api/creative/image  → ComfyUI SDXL Turbo image gen (WORKING)
-  │     ├── GET  /api/quest        → Quest state (ADDIECRAPEYE)
-  │     ├── GET  /api/bestiary     → Creep collection
-  │     ├── GET  /api/character    → CharacterSheet
-  │     └── POST /api/tools/execute → 29 agentic tools (shell, files, creative, quest, etc.)
-  │     ├── Ring 2: Destructive tool gate (mode-based persona clearance)
-  │     ├── Ring 3: Rolling context summary (compress old messages)
-  │     └── Ring 5: Rate limiting (60/min global, 5/min destructive) + sandboxing
-  ├── Voice Server :7777 (Python — openwakeword + whisper + Kokoro TTS)
-  └── ComfyUI :8188 (SDXL Turbo + HunyuanVideo + ACE-Step nodes)
-
-AVATAR PIPELINE:
-  └── python3 scripts/launch/avatar_pipeline.py "concept" --style steampunk
-      → character.json + portrait.png + entity.rs + voice_sample.wav
-```
-
-### What's WORKING for Offline Agentic Trinity (Updated March 22, 2026 — 9:25 PM)
-
-**Core (✅ LIVE — PROVEN TONIGHT)**:
-- Mistral Small 4 119B via llama.cpp (256K ctx, MLA, vision, thinking mode)
-- 30 agentic tools (shell+cwd, read/write/list/search files, creative, quest, lesson plans, etc.)
-- **Ring 2**: Destructive tool gate — persona-based tool permission enforcement
-- **Ring 3**: Rolling context summary — deterministic digest compression for old messages
-- **Ring 5**: Rate limiting (60 calls/min, 5 destructive/min) + 40+ shell blocked patterns
-- Quest/workflow system (12 ADDIECRAPEYE phases, PostgreSQL persistence)
-- PEARL focusing agent — subject/medium/vision with alignment scoring
-- RAG via PostgreSQL + pgvector (107 chunks)
-- VAAM vocabulary tracking + Bestiary (persists on every scan)
-- Character sheet persistence (JSON on disk)
-- Voice pipeline (Python sidecar — openwakeword + whisper + Kokoro TTS)
-- **ComfyUI image generation — PROVEN LIVE** (SDXL Turbo, 25.5s first gen via Trinity API, PyTorch 2.5.1+rocm6.2)
-- Avatar Pipeline v1 (backstory → portrait → entity.rs → 8-step workflow defined)
-- Mode gating: dev (Yardmaster, no game mechanics) vs ironroad (Pete, full LitRPG)
-- Quality Scorecard — 5-dimension pedagogical evaluation via LLM scoring
-- Blender 4.0 + OBS Studio installed
-- **137.4 GB VRAM** detected (Strix Halo unified memory, ROCm 7.2)
-
-**Committed Upgrades (🔧 In Progress)**:
-1. **Qianfan-OCR** → Document intelligence sidecar (ART persona). Ingest syllabi, PDFs, textbooks → VAAM vocabulary extraction + Quality Scorecard input. Apache 2.0 license.
-2. **beast_logger** → ✅ ALREADY LIVE on ART page (`ArtStudio.jsx`). Color-coded creative pipeline logger (COMFYUI/ACE_STEP/AVATAR/SUCCESS/ERROR tags). Currently tracks creative events — extend to VAAM creature encounters and mastery rates for Purdue research telemetry.
-3. **Bevy ART Studio** → Native desktop window (separate process, HTTP to Axum). 913-line main.rs + 367-line avatar.rs + 1,416-line ADDIE UI already in archive. ~3-4 hours to revive.
-4. **Bevy + OBS Code Preview** → Trinity writes Bevy game code, compiles it, OBS captures the Bevy window in real-time for visual feedback loop. The professor sees code → game in one flow.
-
-**Still needed (🔧)**:
-1. ~~**Trellis 3D meshing**~~ → **Replaced by Hunyuan3D-2.1** (POST /api/creative/mesh3d)
-2. **ACE-Step music** — GGUF on disk, needs local server
-3. **Chatterbox voice cloning** — cached, needs GPU compute switch
-4. ~~**HunyuanVideo**~~ → **Wired** (POST /api/creative/video → ComfyUI workflow)
-5. **Dual-channel compute** — pause Mistral during ART generation
-
-**Still needs pruning (🗑️)**:
-1. **trinity-inference** — 33K LOC, mostly dead. Cut to ~3K.
-2. **Ming-flash-omni-2.0** — archived, not deleted. 217GB safetensors on disk.
-3. **FP8 safetensors** — 162GB unusable on this GPU. Delete when disk space needed.
-
-### Engineering Quality Summary
-
-```
-Functional LOC:     ~39K Rust + 8K frontend (what actually executes on :3000 + sidecar)
-Archive:            ~150K LOC (safely archived, restorable — includes full Bevy desktop app)
-Test coverage:      179 tests on 39K functional LOC = solid
-Security:           Ring 2 (permission gates) + Ring 3 (context management) + Ring 5 (rate limiting + sandboxing)
-Git:                Clean history, SSH keys purged from history
-ComfyUI:            LIVE on :8188 — PyTorch 2.5.1+rocm6.2, SDXL Turbo checkpoint loaded, 25.5s generation
-```
-
-### Recommended Priority Path
-
-```
-PHASE 1 — LOCK IRON ROAD (current)
-  ✅ VAAM + Bestiary + MadLibs (done, tested)
-  ✅ Server wiring (done, 5 integration points)
-  🔧 Bestiary persistence (save/load JSON)
-  🔧 Audio pipeline (Kokoro TTS → server endpoint)
-
-PHASE 2 — PRUNE & HARDEN
-  ✅ Archive trinity-inference (moved to archive/crates)
-  🔧 Add tests to trinity-quest and trinity-sidecar
-  🗑️ Consolidate stub crates
-  🔧 Fix trinity-comfy test error
-
-PHASE 3 — PERSISTENT AGENT
-  🔧 Long-running agentic loop (plan → tool → verify → iterate)
-  🔧 Model hot-swap API
-  🔧 Offline package / installer
-
-PHASE 4 — LEVEL 2 UI
-  🔧 ART sidecar (ComfyUI + creative) OR
-  🔧 DEV sidecar (Yardmaster IDE) — choose based on need
-  🔧 Bevy spatial UI when ready
-```
-
----
-
-| Document | Location | Purpose |
-|----------|----------|---------|
-| **Fancy Bible** | `TRINITY_FANCY_BIBLE.md` | The Iron Road Design Bible (this file) |
-| **ID Blueprint** | `docs/research/TRINITY_INSTRUCTIONAL_DESIGN_BLUEPRINT.md` | IBSTPI/ATD/AECT/QM mapping |
-| **Voice Research** | `docs/research/VOICE_ARCHITECTURE_RESEARCH.md` | Moshi vs Qwen-Omni vs PersonaPlex |
-| **Pete Field Manual** | `docs/bible/ASK_PETE_FIELD_MANUAL.md` | Pete's personality and communication style |
-| **eLearning Template** | `docs/templates/ELEARNING_TEMPLATE_GUIDE.md` | Local-AI-Architect (Purdue) as base |
-| **Session Context** | `CONTEXT.md` | Architecture decisions and handoff state |
-
----
-
-## The 12 ADDIECRAPEYE Stations (v5.1.0)
-
-Trinity orchestrates development through a 12-station lifecycle. While the user sees "Quest Progress," the AI aligns its attention using **Sacred Circuitry** mappings and **Bloom's Taxonomy** cognitive levels.
-
-| # | Station | Purpose | AI Attention (Circuit) | Bloom's Level |
-|---|---------|---------|------------------------|---------------|
-| 1 | **Analyze** | Extract intent, learners, and gaps. | Center | Remember/Understand |
-| 2 | **Design** | Bloom's levels, objectives, VAAM. | Expand / Balance | Apply |
-| 3 | **Develop** | Asset creation and resource drafting. | Prepare | Create |
-| 4 | **Implement** | Deployment, timing, and setup. | Express | Apply |
-| 5 | **Evaluate** | Quality Matters (QM) review. | Receive | Evaluate |
-| 6 | **Contrast** | CRAP: Visual hierarchy, emphasis ranking. | Unlock | Analyze |
-| 7 | **Repetition** | CRAP: Pattern reinforcement, consistency audit. | Flow | Apply |
-| 8 | **Alignment** | CRAP: Structure and grid compliance. | Relate | Evaluate |
-| 9 | **Proximity** | CRAP: Grouping related elements, boundary design. | Realize / Act | Analyze |
-| 10| **Envision** | EYE: Meta-cognitive reflection — "what do I see?" | Extend | Evaluate |
-| 11| **Yoke** | EYE: Coupling systems together — integration. | Transform / Connect | Create |
-| 12| **Evolve** | EYE: Ship it. Final metrics. The Yardmaster's moment. | Manifest | Create |
-
----
-
-## Isomorphic Mapping: The "Meaning Making" Chain
-
-Trinity ensures every technical system has a pedagogical or narrative counterpart:
-
-1.  **Sacred Circuitry (HOW to attend)**: 15 nodes of AI cognitive scaffolding.
-2.  **VAAM (Vocabulary As A Mechanism)**: The bridge where AI attention meets User preference.
-3.  **ADDIECRAPEYE (WHAT to do)**: The 12-station methodology for building education.
-4.  **Character Sheet (WHO the user is)**: Persistent identity, skills, and resonance.
-5.  **Book of the Bible (WHY it matters)**: Append-only narrative ledger — records the meaning-making journey.
-
----
-
-## The Pythagorean Perspective (v5.1.0)
-
-> *"Educate the children and it won't be necessary to punish the men."* – Pythagoras
-
-Pythagoras organized knowledge into three orders. Trinity mirrors this:
-
-| Order | Greek | Trinity System | What It Tracks |
-|-------|-------|---------------|----------------|
-| **Arithmos** | Number/Counting | Quest XP, Coal, Steam, Stats | WHAT happened |
-| **Harmonia** | Structure/Pattern | ADDIECRAPEYE, Sacred Circuitry, VAAM | HOW it's structured |
-| **Logos** | Meaning/Reason | Book of the Bible, Bloom's levels | WHY it matters |
-
-The 12-station cycle maps to a 5:4:3 ratio (ADDIE:CRAP:EYE) — a Pythagorean triple. The four Sacred Circuitry quadrants (Scope/Build/Listen/Ship) expand the tetractys. Creep stats (Logos/Pathos/Ethos) echo Aristotle's rhetoric, rooted in Pythagorean tradition.
-
-**The Cycle of the Phoenix**: When Evolve (station 12) completes, the cycle returns to Analyze (station 1). The Great Recycler transforms the completed journey into a Book chapter, and the next quest begins with richer vocabulary, stronger Creeps, and deeper self-knowledge. This is the *palingenesia* — rebirth through completion.
-
----
-
-## UI Hierarchy (Level 1 focus)
-
-- **Primary (User)**: Character Identity + ADDIECRAPEYE Quest Progress.
-- **Secondary (Mechanic)**: Vocabulary Bestiary (Taming words).
-- **Tertiary (Narrative)**: Book of the Bible (Learning journey ledger).
-- **Background (Internal)**: Sacred Circuitry (AI Scaffolding — visually de-emphasized).
-
----
-
-*This is the Iron Road Design Bible. Follow it zealously.*
-*Updated: 2026-03-22 — v8.0.0: Merged User Manual, Ring 6 Perspective Engine, Journal States, Quality Scorecard, 175 tests.*
-*Version: 8.0.0*
-
----
-
-## Installation & Setup
-
-### Prerequisites
-- **Operating System**: Linux (developed on AMD Strix Halo hardware)
-- **Hardware**: 128GB+ unified RAM recommended for full functionality
-- **Inference Engine**: [llama.cpp](https://github.com/ggml-org/llama.cpp) built with Vulkan support
-- **AI Model**: [Mistral Small 4 119B](https://huggingface.co/mistralai/Mistral-Small-4-119B-2503) GGUF Q4_K_M (~68GB)
-- **Database**: PostgreSQL 15+ with pgvector extension
-- **Development Tools**: Node.js 18+ and Rust 1.80+
-
-### Quick Start
-```bash
-# 1. Clone
-git clone <repository-url> && cd trinity-genesis
-
-# 2. Start LLM (port configurable — set LLM_URL if not 8080)
-llama-server -m ~/trinity-models/gguf/Mistral-Small-4-119B-Q4_K_M.gguf \\
-  --host 127.0.0.1 --port 8080 -ngl 99 --ctx-size 262144 --flash-attn on --jinja --parallel 2
-
-# 3. Build and run Trinity
-cargo build --release && cargo run --release
-
-# 4. Open browser
-xdg-open http://localhost:3000
-```
-
-### Optional Sidecars
-| Service | Command | Port | Purpose |
-|---------|---------|------|---------|
-| ComfyUI | `cd ~/ComfyUI && python main.py --port 8188` | 8188 | Image generation (SDXL Turbo) |
-| Qianfan-OCR | `llama-server -m ~/trinity-models/Qianfan-OCR.gguf --port 8081` | 8081 | Document intelligence |
-| Voice | `python scripts/voice_sidecar.py` | 8200 | Whisper STT + Kokoro TTS |
-
-### For Non-Technical Users
-If you're an educator without command-line experience:
-- **Institutional Support**: Check with your IT department — they may provide a pre-configured server
-- **Pre-Built Environments**: Cloud-hosted versions are on the roadmap
-- **Smaller Models**: Use Crow 9B (~6GB) for testing on lower-spec hardware
-
----
-
-## Troubleshooting & Known Issues
-
-### Common Setup Issues
-
-| Symptom | UI Indicator | Cause | Fix |
-|---------|-------------|----------|-----|
-| Pete doesn't respond | "No LLM detected" (red) | LLM server not running | Start llama-server, verify `LLM_URL` |
-| Quest progress lost | "Database offline" banner | PostgreSQL not running | Start PostgreSQL, check `.env` connection string |
-| System crashes / slow | RAM at 95% in Hardware tab | Insufficient RAM | Use smaller model (Crow 9B) or future cloud option |
-| UI shows stale data | Spinning loader | SSE connection lost | Refresh browser (`Ctrl+R`), restart Trinity server |
-| Image gen fails | "ComfyUI: Disconnected" | ComfyUI sidecar not running | Start ComfyUI on :8188 |
-| Timeout during quest | "Operation timed out after 300s" | Complex query / large context | Cow Catcher auto-skips; simplify prompt next time |
-
-### Known Limitations
-- **Hardware Dependency**: Full functionality requires 128GB RAM + Vulkan GPU
-- **Incomplete Features**: 3D Yard (Bevy), advanced voice pipelines are in progress
-- **Technical User Base**: Current setup requires command-line familiarity
-
-### Getting Support
-- Check server logs for `Error`, `Failed`, or `Timeout` keywords
-- Refer to `CONTEXT.md` for API details
-- System status page at `http://localhost:3000` (Settings/Status tab)
-
----
-
-## User Interaction with Pete
-
-### The Socratic Protocol in Practice
-
-Pete never gives the answer. Pete asks the question that makes the answer obvious.
-
-**Principles:**
-1. **Ask Before Telling** — lead with a question to encourage deep thinking
-2. **Present Options** — 2-3 narrative paths, never a single command
-3. **Reflect Back** — summarize user input, confirm before proceeding
-4. **Reward Discovery** — vocabulary mastery earns Coal, not obedience
-5. **Guard the PEARL** — if the response drifts from subject/vision, flag as Scope Creep
-
-### Practical Scenario: Biology Lesson on Photosynthesis
-
-1. **Pete's Prompt**: *"You've arrived at the Design Station with a lush forest as your backdrop. How might you structure a game to teach photosynthesis to 7th graders? Consider a journey, a puzzle, or a competition."*
-2. **User Response**: *"I think a journey where students guide a plant through growth stages by collecting sunlight and water would work."*
-3. **Pete's Reflection**: *"A journey through growth stages is a fine path. I see you've earned some Steam for that creative spark! How many stages will this journey have, and what challenges will the plant face at each?"*
-4. **Outcome**: If stages align with photosynthesis steps → *"Your design has forged 5 Iron for its strong structure."* If ideas drift → *"A Scope Creep shadow looms — does this magic potion fit your science lesson? Roll for a skill check to refocus."*
-5. **Progress**: Completing the Design Station updates the character sheet (+1 Gamification skill) and advances the Iron Road narrative.
-
-### Gamification Mechanics
-- **Coal (Compute Budget)**: Earned +10 for thoughtful answers. Consumed by Scope Creep battles.
-- **Steam (Creative Energy)**: +5 per completed objective. Spent on ART generation.
-- **Iron (Structural Integrity)**: Bolstered by strong design answers. -3 on lost battles.
-- **Scope Creep Battles**: d20 roll + skill bonus vs. difficulty rating (e.g., DC 15).
-- **Semantic Creep Taming**: Correct vocabulary usage → tame an elemental Creep → +1 skill bonus.
-
----
-
-## Journal States & Quality Scorecard
-
-### Journal States — Chapter Milestones & Weekly Reflections
-
-Every phase completion automatically captures a Journal Entry — a full snapshot of:
-- Quest progress (phase, objectives, completed phases, XP)
-- Character sheet (resonance, skills, experience)
-- Timestamp and auto-generated summary
-
-**Entry Types:**
-| Type | Icon | When Created |
-|------|------|--------------|
-| Phase Complete | 🚉 | Auto: on each ADDIECRAPEYE phase advance |
-| Chapter Complete | 🏆 | Auto: when a Hero's Journey chapter is finished |
-| Weekly Reflection | 📓 | Manual: user writes a reflection with the Journal button |
-| Manual Checkpoint | 📌 | Manual: user creates a savepoint |
-| Demo Bookmark | 🎬 | Manual: marks a moment for demo/presentation playback |
-
-**API:**
-- `GET /api/journal` — list all entries (newest first)
-- `POST /api/journal` — create entry: `{"entry_type": "weekly_reflection", "reflection": "...", "tags": ["week-3"]}`
-- `GET /api/journal/export/:id` — standalone HTML portfolio page
-
-**Frontend:** JournalViewer.jsx — timeline with expandable entries, reflection textarea, export links.
-
-### Quality Scorecard — Pedagogical Document Evaluation
-
-5-dimension heuristic scoring (no LLM needed, runs instantly):
+Beyond the QM Rubric (which evaluates instructional *contracts*), the **Quality Scorecard** evaluates uploaded *documents* across 5 pedagogical dimensions:
 
 | Dimension | What It Measures |
-|-----------|------------------|
-| **Bloom's Coverage** | Verb diversity across all 6 taxonomy levels |
-| **ADDIE Alignment** | Coverage of analysis, design, development, implementation, evaluation |
-| **Accessibility** | Alt text, heading structure, readability level markers |
-| **Student Engagement** | Interactive elements, collaborative activities, real-world connections |
-| **Assessment Clarity** | Clear rubrics, measurable outcomes, formative assessment presence |
+|-----------|-----------------|
+| Bloom's Coverage | Are all 6 cognitive levels represented? |
+| ADDIE Alignment | Does the document follow instructional design phases? |
+| Accessibility | Readability, structure, alt text |
+| Student Engagement | Hooks, interactivity, variety |
+| Assessment Clarity | Rubrics, measurable objectives |
 
-**API:** `POST /api/yard/score` — body: `{"text": "..."}`
-**Returns:** Overall score (0.0-1.0), letter grade (A-F), per-dimension scores, recommendations.
+> 📍 `quality_scorecard.rs:L1-25` — Architecture: "NotebookLM summarizes your syllabus. Trinity tells you what's missing."
 
-*NotebookLM summarizes your syllabus. Trinity tells you what's missing.*
+This is Trinity's **competitive differentiator** against tools like NotebookLM: Trinity doesn't just summarize content — it evaluates its pedagogical quality.
 
----
+### 5.8 The Cow Catcher — Error Classification
 
-## Legal Compliance & Validation
+The Cow Catcher system classifies runtime errors into typed obstacles for systematic debugging:
 
-### Data Privacy (FERPA, COPPA)
-- **FERPA**: Student data protected — Trinity's offline-first architecture keeps data local
-- **COPPA**: Parental consent requirements met via local-only deployment (no cloud data transmission)
-- **IDEA / Section 504**: VAAM and Pete's adaptive responses support IEP-aligned content
-
-### Purdue University Global Campus Mapping
-- **Global Partnerships**: Trinity as a cross-cultural content creation platform
-- **Technology Integration Certificate**: Trinity directly supports this LDT curriculum
-- **Agnostic Tool**: Offline-first, API-extensible, LMS-compatible (Canvas/Moodle export)
-
-### Resources
-- BEVY Engine: [github.com/bevyengine/bevy](https://github.com/bevyengine/bevy)
-- OpenXR for BEVY: [github.com/awtterpip/bevy_openxr](https://github.com/awtterpip/bevy_openxr)
-- Legal frameworks: [Edutopia - AI and the Law](https://www.edutopia.org/article/laws-ai-education/)
-
----
-
-## Appendix A — The Lexicon
-
-*Every acronym in Trinity means something. If it doesn't have a meaning, it shouldn't exist.
-If it doesn't have code, it's a draft. If it doesn't have pedagogy, it's an engineering vanity.
-This table is the spell check for the system itself.*
-
-### Audit Key
-
-| Column | Meaning |
-|--------|---------|
-| **Stands For** | The spelled-out expansion of the acronym |
-| **Pedagogy** | What it teaches, why it exists for the *learner* |
-| **Architecture** | Where it lives in code (crate, file, struct) |
-| **Status** | 🟢 Code + Meaning | 🟡 Meaning only | 🔵 Code only | ⚪ Planned |
-
----
-
-### TRINITY ID AI OS
-
-| | |
-|---|---|
-| **Stands For** | **T**eaching **R**esource for **I**nstructional desig**N**, **I**ntelligent **T**utoring, and self-directed **Y**earning — **I**nstructional **D**esign **A**rtificial **I**ntelligence **O**perating **S**ystem |
-| **Pedagogy** | The frame for the entire system. "Trinity" = three-layer architecture (Body/Kernel/Protocol) *and* the three stakeholders (Learner × Instructor × Institution). "ID" = Instructional Design — the discipline. "AI OS" = the AI is the operating system, not an add-on. |
-| **Architecture** | Workspace root. `trinity` (Axum server), `trinity-protocol` (shared types), `trinity-quest` (quest engine). |
-| **Status** | 🟢 |
-
----
-
-### PEARL
-
-| | |
-|---|---|
-| **Stands For** | **P**erspective **E**ngineering **A**esthetic **R**esearch **L**ayout |
-| **Pedagogy** | The focusing agent. Every instructional designer starts with a *pearl of wisdom* — the thing they know that the world doesn't. PEARL captures the SME's subject, the delivery medium, and their vision for how the output should *feel*. It's the alignment document that every ADDIECRAPEYE phase checks against: "Are we still building what the user intended?" Without PEARL, scope creep wins. |
-| **Architecture** | `trinity-protocol/src/pearl.rs` — `Pearl`, `PearlMedium`, `PearlPhase`, `PearlEvaluation`. API: `GET/POST /api/pearl`, `PUT /api/pearl/refine`. Frontend: `PearlCard.jsx`. |
-| **Status** | 🟢 |
-
----
-
-### ADDIECRAPEYE
-
-| | |
-|---|---|
-| **Stands For** | **A**nalyze, **D**esign, **D**evelop, **I**mplement, **E**valuate + **C**ontrast, **R**epetition, **A**lignment, **P**roximity + **E**nvision, **Y**oke, **E**volve |
-| **Pedagogy** | The 12-station instructional design lifecycle. ADDIE (stations 1–5) is the classic ID framework. CRAP (stations 6–9) borrows from Robin Williams' visual design principles applied to learning artifacts. EYE (stations 10–12) adds meta-reflection, coupling, and evolution. Together: **Extract** the wisdom (ADDIE) → **Place** it in design (CRAP) → **Refine** it through reflection (EYE). Each station maps to a Bloom's Taxonomy level, ensuring cognitive scaffolding spirals upward. |
-| **Architecture** | `conductor_leader.rs` — `AddiecrapeyePhase` enum (12 variants). `trinity-quest/src/hero.rs` — `Phase` enum. Conductor system prompts keyed to phase. |
-| **Status** | 🟢 |
-
----
-
-### P-ART-Y
-
-| | |
-|---|---|
-| **Stands For** | **P**ete + **ART** (tools, no persona) + **Y**ou (the Yardmaster) |
-| **Pedagogy** | The AI is not one agent — it's a *party* of three roles. **P** (Pete) is the sole AI personality — Socratic mentor, conductor, the only character. **ART** is pure tooling with no persona: ComfyUI (images), Qianfan-OCR (document intelligence), Kokoro TTS (voice), Hunyuan3D (mesh), beast_logger (telemetry), and the archived Bevy desktop engine. **Y** (You) is the user — the Yardmaster who directs everything. The structure teaches that AI is a tool, not a peer — Pete guides, ART executes, You decide. |
-| **Architecture** | `conductor_leader.rs` — `manage_hotel_sidecars()` maps phases to ART tools. `creative.rs` — ComfyUI integration (1,156 lines). `ArtStudio.jsx` — beast_logger + image/music/video controls. Frontend: party member badges in `GameHUD.jsx`. |
-| **Status** | 🟢 |
-
----
-
-### VAAM
-
-| | |
-|---|---|
-| **Stands For** | **V**ocabulary **A**s **A** **M**echanism |
-| **Pedagogy** | Words are the bridge between humans and AI. VAAM treats vocabulary as the *game mechanic* — every word the user types and the AI responds with is measured, tracked, and scaffolded. VAAM connects: Semantic Attention (did the AI notice the user's word?), User Preference (which communication style resonates?), and Vocabulary Mastery (is the user growing their professional lexicon?). The insight: *if you master the words, you master the field*. |
-| **Architecture** | `trinity-protocol/src/vaam_profile.rs` — `VaamProfile`, `Agreement`, `WordWeight`. `trinity/src/vaam_bridge.rs` — `VaamBridge`. `trinity/src/vaam.rs` — `VaamState`. |
-| **Status** | 🟢 |
-
----
-
-### IRON ROAD
-
-| | |
-|---|---|
-| **Stands For** | **I**nstructional **R**esource for **O**ngoing **N**arrative — **R**eflective **O**utcome **A**rchives as **D**esign |
-| **Pedagogy** | The railroad metaphor for the learning journey. The user is an Operator on a steam locomotive. Coal = energy/attention. Steam = cognitive focus. Drive Wheels = discipline. The Iron Road *is* the Hero's Journey — 12 chapters where the user builds their instructional product while living the narrative. Railroad metaphor makes abstract ID concepts tangible: scope creep = derailment, momentum = steam pressure, evaluation = signal towers. |
-| **Architecture** | `trinity-iron-road` crate — narrative engine, game loop. `trinity/src/narrative.rs`. Frontend: `ChapterRail.jsx` (left rail), `PhaseWorkspace.jsx` (center: objectives + chat + advance), `TrainStatus.jsx` (coal/steam meters). |
-| **Status** | 🟢 |
-
----
-
-### QUEST
-
-| | |
-|---|---|
-| **Stands For** | **Q**uality-driven **U**ser **E**xperience through **S**tructured **T**asks |
-| **Pedagogy** | Each ADDIECRAPEYE station is a quest chapter. Quests have objectives (3 per chapter), XP rewards, and a Hero's Journey arc. The quest system makes *invisible* instructional design steps *visible* and *rewardable*. The user doesn't feel like they're "following ADDIE" — they feel like they're on an adventure where each objective builds their real product. |
-| **Architecture** | `trinity-quest/src/state.rs` — `QuestState`, `GameState`. `trinity-quest/src/quest_system.rs` — `objectives_for_chapter()`. API: `GET /api/quest`, `POST /api/quest/advance`. |
-| **Status** | 🟢 |
-
----
-
-### BOOK (of the Bible)
-
-| | |
-|---|---|
-| **Stands For** | **B**iographical **O**utcome **O**rganizer — **K**nowledge ledger |
-| **Pedagogy** | The Book records *why* things happened, not just *what*. It's the append-only ledger of the user's learning journey — every quest completed, every scope creep defeated, every vision refined. Each user's journey is a *book* in the larger *Bible* of the system. The Great Recycler (NPU) continuously summarizes the Book for Pete to reference. |
-| **Architecture** | `trinity/src/book_of_the_bible.rs` — `BookOfTheBible`, `BookChapter`. API: `GET /api/book`, `GET /api/book/stream` (SSE). Persisted to `docs/books_of_the_bible/`. |
-| **Status** | 🟢 |
-
----
-
-### SCOPE CREEP
-
-| | |
-|---|---|
-| **Stands For** | **S**elf-**C**reating **O**bstacle **P**atterns **E**xpanding — **C**ognitive **R**esource **E**rosion through **E**xcess **P**riorities |
-| **Pedagogy** | The enemy. Scope creep is the natural tendency for projects to grow beyond original intent — the #1 killer of ID projects. Trinity gamifies it: scope creep becomes *literal monsters* (Semantic Creeps) that the user must tame or banish. Each Creep is a vocabulary word encountered in the wild. Taming requires multi-dimensional learning (Pythagorean Taming): encountering the word across multiple phases, contexts, and deliberate choices. Untamed Creeps drain Coal. |
-| **Architecture** | `trinity-protocol/src/semantic_creep.rs` — `SemanticCreep`, `CreepState`, `CreepStats`. `trinity-protocol/src/profile.rs` — `Bestiary`. Frontend: `CreepCard.jsx`. API: `GET /api/bestiary`, `POST /api/bestiary/tame`. |
-| **Status** | 🟢 |
-
----
-
-### CHARACTER SHEET
-
-| | |
-|---|---|
-| **Stands For** | *(No acronym — the tabletop RPG metaphor is the meaning)* |
-| **Pedagogy** | The user's persistent identity across projects. Your Character Sheet is WHO you are, not WHAT you're building. It captures: Intent Posture (Mastery vs. Efficiency), Vulnerability Level (how much scaffolding the AI provides), User Class (InstructionalDesigner, GameDesigner, etc.), and Skills. It answers: "Who is sitting at this keyboard, and how do they want to grow?" |
-| **Architecture** | `trinity-protocol/src/character_sheet.rs` — `CharacterSheet`, `IntentPosture`, `UserClass`. API: `GET/POST /api/character`. Saved to `~/.config/trinity/character_sheet.json`. |
-| **Status** | 🟢 |
-
----
-
-### CRAP (within ADDIECRAPEYE)
-
-| | |
-|---|---|
-| **Stands For** | **C**ontrast, **R**epetition, **A**lignment, **P**roximity |
-| **Pedagogy** | Robin Williams' four visual design principles, repurposed for instructional artifacts. Contrast = emphasis ranking. Repetition = core loop solidity. Alignment = scope pruning. Proximity = UX grouping (Miller's Law, 7±2). Stations 6–9: where the user *places* their wisdom into designed artifacts. |
-| **Architecture** | `AddiecrapeyePhase::Contrast` / `::Repetition` / `::Alignment` / `::Proximity`. Each has a Bloom's level and conductor system prompt. |
-| **Status** | 🟢 |
-
----
-
-### EYE (within ADDIECRAPEYE)
-
-| | |
-|---|---|
-| **Stands For** | **E**nvision, **Y**oke, **E**volve |
-| **Pedagogy** | The final reflective pass. Envision = "does this match my original vision?" Yoke = couple frontend to backend, bind form to function. Evolve = ship it, give it breath. After building the Golem (ADDIE = body, CRAP = design), the EYE opens — it sees, then it moves, then it grows. |
-| **Architecture** | `AddiecrapeyePhase::Envision` / `::Yoke` / `::Evolve`. Bloom's: Evaluate → Create → Create. |
-| **Status** | 🟢 |
-
----
-
-### SACRED CIRCUITRY
-
-| | |
-|---|---|
-| **Stands For** | *(Metaphorical — not an acronym)* |
-| **Pedagogy** | The 15 foundation vocabulary words every ID practitioner must internalize. 4 quadrants (Scope, Build, Listen, Ship) mapped to VAAM. These words are non-negotiable — you can't do ID without mastering them. "Sacred" because the circuitry cannot be bypassed. |
-| **Architecture** | `trinity-protocol/src/sacred_circuitry.rs` — `Circuit`, `CircuitQuadrant`, `foundation_vocabulary()`. 15 words loaded into VAAM on startup. |
-| **Status** | 🟢 |
-
----
-
-### The Relationship Chain
-
-```
-WHO the user is           → CHARACTER SHEET (persistent identity)
-WHAT they're building     → PEARL (per-project focus)
-HOW they build it         → ADDIECRAPEYE (12-station lifecycle)
-WHO helps them            → P-ART-Y (AI party + user as Yardmaster)
-WHAT words connect them   → VAAM (vocabulary as the bridge)
-WHAT tries to stop them   → SCOPE CREEP (gamified obstacles)
-WHERE the journey lives   → IRON ROAD (narrative frame)
-WHAT they accomplish      → QUEST (structured tasks with XP)
-WHAT they remember        → BOOK (biographical outcome ledger)
+```rust
+pub enum ObstacleType {
+    LLMTimeout,         // AI model didn't respond in time
+    CompilationError,   // cargo build/check failed
+    TestFailure,        // Tests didn't pass
+    ModelLoadFailure,   // Couldn't load a GGUF/ONNX model
+}
 ```
 
-*Every concept feeds the next. Remove one and the chain breaks.*
+> 📍 `cow_catcher.rs:L14-30` — `Obstacle` struct with severity, location, context
+> 📍 `cow_catcher.rs:L26-31` — `ObstacleType` enum (4 categories)
+
+### 5.9 Field Manual Cross-Reference
+
+> *See: [Ask Pete Field Manual](ASK_PETE_FIELD_MANUAL.md) §7 The Safety Net, §8 The Calibration*
+
+- **§7 The Safety Net** — "No one dies on the Iron Road." The ring system ensures that even destructive actions are sandboxed. The Cow Catcher catches what the rings miss.
+- **§8 The Calibration** — Quality evaluation isn't punishment — it's calibration. The QM Rubric tells the user where they stand, not where they failed.
 
 ---
 
-### The Three Dimensions
+# CRAP — Place the Wisdom
 
-Trinity's UI maps to three dimensions of experience:
-
-| Dimension | Name | What | Game Role | Architecture |
-|---|---|---|---|---|
-| **1D** | Audio | Pete narrates — Great Recycler storytelling, 8K Ask Pete | Audiobook companion | Voice server `:7777` (openwakeword + Whisper + Kokoro) |
-| **2D** | Book | LitRPG game — the Iron Road as a playable book | Phase forms, objectives, word physics, Pete chat | React + `PhaseWorkspace.jsx` + `iron-road-physics` |
-| **3D** | Yard | Build sandbox — student becomes Yardmaster | 3D entity editing, game preview, Bevy studio | Bevy WASM in `<canvas>` + `templates/first-game/` |
-
-```
-1D(Audio) feeds → 2D(Book) narrates → 3D(Yard) creates
-Pete speaks     → Player reads/plays → Yardmaster builds
-```
-
-**Dimensional transitions map to ADDIECRAPEYE:**
-- **ADDIE (stations 1–5)** → Book 2D: Fill out instructional design forms, guided by Pete
-- **CRAP (stations 6–9)** → Book 2D: Design artifacts, apply visual principles
-- **EYE (stations 10–12)** → Yard 3D: **Envision → Yoke → Evolve** in the sandbox
-
-The EYE is the portal from reader to builder. *Student becomes the master — the Yardmaster.*
+> *Cars 6–9 answer: "How does Trinity work?"*
 
 ---
 
-### LOCOMOTIVE (Cognitive Load Physics)
+## 🚃 Car 6: CONTRAST — What Makes Trinity Different
 
-| | |
-|---|---|
-| **Stands For** | *(Metaphorical — the steam engine IS the learner)* |
-| **Pedagogy** | The Locomotive is the player's cognitive state rendered as a steam engine. Coal = motivation (finite fuel). Steam = germane cognitive load (active processing output). Velocity = learning rate. Friction = extraneous load (bad design/unclear instructions). Mass = intrinsic load (difficulty of content). The equation `Velocity = (Power + Steam) / (Mass × Friction)` is literally Cognitive Load Theory as physics. When the user completes objectives, coal burns → steam rises → velocity increases. When they encounter poorly designed content (high friction), the train slows. |
-| **Architecture** | `archive/iron-road-physics/src/lib.rs` — `Train`, `Node`, `CognitiveLoad`, `calculate_velocity()`. Frontend: `TrainStatus.jsx` (coal/steam/velocity bars with color thresholds). Quest state: `coal_used`, `steam_generated` in `QuestState`. |
-| **Status** | 🟢 |
+> **Bloom's Level**: Analyze
+> **Sacred Circuit**: Unlock (circuit #7)
+> **Body Metaphor**: The Skin — what the world sees, what separates inside from outside
+
+### 6.1 The PEARL — Perspective Engineering Aesthetic Research Layout
+
+The PEARL is Trinity's **focusing agent** — the per-project alignment document that captures *what* the user is building, *how* it should be delivered, and *why* it matters.
+
+```rust
+pub struct Pearl {
+    pub subject: String,       // What the SME knows (the pearl of wisdom)
+    pub medium: PearlMedium,   // How it should be delivered
+    pub vision: String,        // What the user expects to FEEL at the end
+    pub phase: PearlPhase,     // Current lifecycle phase
+    pub evaluation: PearlEvaluation,  // Alignment scores
+    pub refined_count: u32,    // How many times the user has refined their vision
+}
+```
+
+> 📍 `pearl.rs:L254-281` — `Pearl` struct: subject, medium, vision, phase, evaluation
+> 📍 `pearl.rs:L1-22` — Architecture comment: PEARL sits between CharacterSheet (WHO) and QuestState (WHERE)
+
+The PEARL answers: **"What are we building, and does it still match what we intended?"**
+
+### 6.2 The Three PEARL Fields
+
+| Field | Question It Answers | Example |
+|-------|-------------------|---------|
+| **Subject** | What pearl of wisdom does the SME carry? | "Newtonian physics" |
+| **Medium** | How should it be delivered? | Game, Storyboard, Simulation, Lesson Plan, Assessment, Book |
+| **Vision** | What should the learner FEEL? | "Students feel like they discovered Newton's laws themselves" |
+
+> 📍 `pearl.rs:L34-50` — `PearlMedium` enum: 7 delivery formats (Game, Storyboard, Simulation, LessonPlan, Assessment, Book, Other)
+> 📍 `pearl.rs:L79-89` — `suggested_tools()`: maps each medium to recommended ART tools
+
+### 6.3 PEARL Phase Lifecycle
+
+The PEARL has four phases that map directly to the three ADDIECRAPEYE groups:
+
+| Phase | ADDIECRAPEYE Stations | Cognitive Activity | Icon |
+|-------|----------------------|-------------------|------|
+| **Extracting** 🦪 | ADDIE (1-5) | Pull wisdom out of the SME | 🦪 |
+| **Placing** 💎 | CRAP (6-9) | Design the experience around it | 💎 |
+| **Refining** ✨ | EYE (10-12) | Reflect, iterate, ship | ✨ |
+| **Polished** 🌟 | Complete | All 12 stations passed alignment check | 🌟 |
+
+> 📍 `pearl.rs:L96-156` — `PearlPhase` enum + `from_station()` mapping stations 1-12 to phases
+> 📍 `pearl.rs:L314-324` — `refine()`: user consciously updates vision or medium (autopoiesis counter increments)
+
+### 6.4 PEARL Evaluation — Weighted Alignment
+
+Every PEARL is evaluated with weighted alignment scores:
+
+| Group | Weight | What It Measures |
+|-------|--------|-----------------|
+| ADDIE | **40%** | Did we extract the right wisdom? (foundation) |
+| CRAP | **35%** | Is the design faithful to the wisdom? (form) |
+| EYE | **25%** | Does the output match the vision? (polish) |
+
+- **Advancement threshold**: 0.6 (60%) — you don't need perfection, but you need alignment
+- **Grading**: A+ (≥90%), A (≥80%), B+ (≥70%), B (≥60%), C (≥50%), D (≥30%), F (<30%)
+
+> 📍 `pearl.rs:L162-239` — `PearlEvaluation`: weighted scoring, `is_aligned()`, letter `grade()`
+> 📍 `pearl.rs:L198-201` — `overall_alignment()`: `(addie * 0.40 + crap * 0.35 + eye * 0.25).clamp(0.0, 1.0)`
+
+### 6.5 The CharacterSheet — Persistent Identity
+
+While the PEARL tracks per-project alignment, the **CharacterSheet** tracks the user's persistent identity across all projects. It has **30+ fields** organized across 7 domains:
+
+| Domain | Key Fields | Code Reference |
+|--------|-----------|---------------|
+| **Identity** | `alias`, `user_class`, `resonance_level`, `total_xp` | `character_sheet.rs:L99-109` |
+| **Hardware** | `mana_pool_vram`, `stamina_ram`, `agility_compute`, `concurrency_mode` | `character_sheet.rs:L113-121` |
+| **Project** | `genre`, `party_config`, `creative_config`, `audio_preferences` | `character_sheet.rs:L123-141` |
+| **Skills** | `skills` (HashMap), `completed_contracts` | `character_sheet.rs:L143-146` |
+| **Intent** | `intent_posture`, `session_intent`, `vulnerability`, `grounding_complete`, `shadow_status` | `character_sheet.rs:L153-184` |
+| **Cognitive** | `current_coal`, `current_steam`, `track_friction`, `cargo_slots`, `locomotive_profile` | `character_sheet.rs:L186-207` |
+| **Portfolio** | `ldt_portfolio` (LDT graduation tracker) | `character_sheet.rs:L209-214` |
+
+> 📍 `character_sheet.rs:L98-230` — Full `CharacterSheet` struct definition (30+ fields)
+> 📍 `character_sheet.rs:L84` — Persistence path: `~/.local/share/trinity/character_sheet.json`
+
+### 6.6 The Four User Classes
+
+During **The Awakening** (character creation), users select a class that determines how Trinity supports them:
+
+| Class | Tagline | AI Fills the Gaps |
+|-------|---------|-------------------|
+| **Subject Matter Expert** 🧑‍🏫 | "I know what needs to be taught" | Content selection, accuracy verification |
+| **Instructional Designer** 🎓 | "I know how to scaffold the learning" | ADDIE structure, Bloom's mapping |
+| **Stakeholder** 📊 | "I know what success looks like" | Evaluation criteria, outcomes tracking |
+| **Player** 🎮 | "I experience what gets built" | Learner perspective, engagement testing |
+
+> 📍 `character_sheet.rs:L388-429` — `UserClass` enum with taglines and emojis
+> 📍 `character_sheet.rs:L232-280` — `CharacterSheet::new()` with all defaults
+
+### 6.7 Intent Engineering — The Digital Quarry
+
+The CharacterSheet captures *intent*, not just identity:
+
+- **IntentPosture** — Mastery (learn through struggle, 2× XP, 1.5× coal cost) vs. Efficiency (ship it, 1× XP, 0.75× coal)
+- **Vulnerability** — 0.0 (wants certainty) to 1.0 (open to discovery)
+- **Grounding Ritual** — "I Am Here. I Am Enough. I Choose." — completed before any quest interaction
+- **Shadow Status** — Ghost Train tracker (Clear → Stirring → Active → Processed)
+
+> 📍 `character_sheet.rs:L20-33` — Intent Engineering philosophy block (Brené Brown, Pythagoras)
+> 📍 `character_sheet.rs:L39-77` — `IntentPosture` with `coal_multiplier()` and `xp_multiplier()`
+> 📍 `character_sheet.rs:L950-968` — `ShadowStatus` enum: Clear, Stirring, Active, Processed
+> 📍 `character_sheet.rs:L321-366` — `intent_summary()` for conductor prompt injection
+
+### 6.8 Trinity vs. Other Tools
+
+| Feature | Trinity | NotebookLM | ChatGPT Edu |
+|---------|---------|-----------|-------------|
+| Evaluates pedagogical quality | ✅ QM Rubric + Scorecard | ❌ Summarizes only | ❌ No evaluation |
+| Game layer for engagement | ✅ SemanticCreep + VAAM | ❌ | ❌ |
+| Runs locally/offline | ✅ 100% local | ❌ Cloud-only | ❌ Cloud-only |
+| Multi-modal creative pipeline | ✅ Image + Music + Video + 3D | ❌ | ❌ |
+| Persistent user identity | ✅ CharacterSheet | ❌ | ❌ Session-only |
+| Standards alignment (IBSTPI/QM) | ✅ Automated scoring | ❌ | ❌ |
+
+---
+
+## 🚃 Car 7: REPETITION — The Isomorphic Patterns
+
+> **Bloom's Level**: Apply
+> **Sacred Circuit**: Flow (circuit #8)
+> **Body Metaphor**: The Heart — the repeating patterns that keep the system alive
+
+### 7.1 The Isomorphism Principle
+
+Trinity's design is built on a single principle: **everything maps to everything**. The same 12-station pattern (ADDIECRAPEYE) appears at every layer of the system:
+
+```
+ADDIECRAPEYE stations   →  Bloom's Taxonomy levels
+Sacred Circuitry words  →  ADDIECRAPEYE stations
+PEARL phases            →  ADDIECRAPEYE groups
+Hotel gears (P-A-R-T)  →  ADDIECRAPEYE phases
+Game loop events        →  Book chapters
+User intent             →  AI behavior
+```
+
+### 7.2 The Three-to-Twelve Pattern
+
+- **3 groups** (ADDIE, CRAP, EYE) → **12 stations** → **15 circuits** → **6 Bloom's levels**
+- **3 agents** (Pete, ART, Yardmaster) → **4 P-ART gears** → **6 party roles**
+- **3 stakeholders** (Learner, Instructor, Institution) → **4 user classes**
+- **3 modes** (IronRoad, Express, Yardmaster) → **3 layers** (Server, Protocol, Sandbox)
+
+This isn't accidental. Each "three" fractures into detail while maintaining structural coherence.
+
+### 7.3 Cognitive Load Theory in Code
+
+Trinity implements Sweller's Cognitive Load Theory as game mechanics:
+
+| CLT Concept | Game Mechanic | Implementation |
+|-------------|--------------|----------------|
+| **Intrinsic Load** | Coal (attention reserve) | `character_sheet.rs:L111` — `current_coal: f32` |
+| **Germane Load** | Steam (productive momentum) | `character_sheet.rs:L190-191` — `current_steam: f32` |
+| **Extraneous Load** | Track Friction (waste) | `character_sheet.rs:L196-197` — `track_friction: f32` |
+| **Working Memory** | Cargo Slots (7 ± 2) | `character_sheet.rs:L200-202` — `cargo_slots: u8` (default: 7) |
+
+> 📍 `character_sheet.rs:L946-947` — `default_cargo_slots() -> u8 { 7 }` — Miller's Law
+> 📍 `character_sheet.rs:L942-943` — `default_steam() -> f32 { 0.0 }` — "Steam is earned, not given"
+
+### 7.4 The Golem Metaphor
+
+Each ADDIECRAPEYE station maps to a body part of the Golem — the creature being assembled:
+
+| Station | Body Part | Narrative Beat |
+|---------|----------|---------------|
+| Analysis | Eyes 👁️ | The Call to Adventure |
+| Design | Brain 🧠 | Crossing the Threshold |
+| Development | Skeleton 🦴 | Building the Frame |
+| Implementation | Muscles 💪 | Road of Trials |
+| Evaluation | Voice 🗣️ | The Mirror |
+| Contrast | Skin 🎨 | Visual Identity |
+| Repetition | Heart ❤️ | The Heartbeat |
+| Alignment | Spine 🦷 | Structural Integrity |
+| Proximity | Hands 🤲 | Touch and Interaction |
+| Envision | Third Eye 🔮 | Meta-awareness |
+| Yoke | Connective Tissue 🧬 | System Integration |
+| Evolve | Lungs 🫁 | First Breath |
+
+> 📍 `conductor_leader.rs:L597-604` — Analysis prompt: "This is the Golem's Eyes — the Call to Adventure"
+> 📍 `conductor_leader.rs:L636-643` — Design prompt: "This is the Golem's Brain — Crossing the Threshold"
+
+### 7.5 Hardware-to-Game Mapping
+
+The user's physical hardware maps to game stats:
+
+| Hardware | Game Stat | Field |
+|----------|----------|-------|
+| GPU VRAM | Mana Pool | `mana_pool_vram: u32` |
+| System RAM | Stamina | `stamina_ram: u32` |
+| NPU/Compute | Agility | `agility_compute: u32` |
+
+These determine the `ConcurrencyMode`:
+
+| VRAM | Mode | Party Size |
+|------|------|-----------|
+| < 24GB | LoneWolf | 1 model at a time |
+| 32-64GB | SmallSquad | Conductor + 1 specialist |
+| 128GB+ | Guild | Full party (all roles) |
+
+> 📍 `character_sheet.rs:L376-386` — `ConcurrencyMode` enum (LoneWolf, SmallSquad, Guild)
+> 📍 `character_sheet.rs:L509-540` — `PartyConfig::auto_configure()`: VRAM→party size algorithm
+
+### 7.6 Locomotive Profiles
+
+Users have cognitive processing archetypes named after railroad locomotive types:
+
+| Profile | Thinking Style | Pete's Adjustment |
+|---------|---------------|------------------|
+| 🚄 **Interceptor Express** | Fast, impatient | Shorter prompts, more autonomy |
+| 🔬 **Analyzer Class** (default) | Methodical, analytical | Deeper explanations, more Socratic |
+| 🔀 **All-Terrain Switcher** | Versatile, adaptive | Balanced, reads the room |
+| 🛡️ **Armored Supply Train** | Cautious, safety-first | More encouragement, gentle pacing |
+
+> 📍 `character_sheet.rs:L970-1008` — `LocomotiveProfile` enum with cognitive descriptions
+
+---
+
+## 🚃 Car 8: ALIGNMENT — The Inhale/Exhale Protocol
+
+> **Bloom's Level**: Evaluate
+> **Sacred Circuit**: Relate (circuit #10)
+> **Body Metaphor**: The Spine — structural integrity, holding everything in line
+
+### 8.1 The Socratic Core
+
+The Great Recycler's fundamental behavior is encoded in the persona preamble:
+
+> "You NEVER produce deliverables directly. You ask questions that reveal what the user already knows. Your job is done when the user has clarity, not when they have a product."
+
+Programmer Pete's fundamental behavior is the complement:
+
+> "When asked to create, you CREATE. Lesson plans, rubrics, code, artifacts — you produce them. Your job is done when the user has a product, not just a plan."
+
+This is not a suggestion — it's enforced through the dual-persona architecture. The **Great Recycler** (Slot 0) handles reflection; **Pete** (Slot 1) handles execution. Every ADDIECRAPEYE phase prompt in `conductor_leader.rs` begins with **SOCRATIC PROTOCOL** followed by 3 guiding questions.
+
+### 8.2 The Yardmaster System Prompt
+
+The Yardmaster (dev agent) operates under a strict behavioral contract:
+
+```
+ABSOLUTE RULE: When the user asks you to do something concrete, USE A TOOL IMMEDIATELY.
+NEVER SAY THESE PHRASES:
+- "Want me to go ahead?"
+- "Shall I proceed?"
+- "Would you like me to..."
+- "Before I proceed, can you confirm..."
+If you catch yourself about to say any of these, STOP and use a tool instead.
+```
+
+> 📍 `agent.rs:L148-200` — Full Yardmaster system prompt (workspace map, tool format, banned phrases)
+> 📍 `agent.rs:L150-159` — Anti-permission-asking rules (5 banned phrases)
+
+### 8.3 Dual Persona Architecture
+
+Trinity operates two distinct personas, each with its own KV cache slot for instant switching:
+
+| Persona | Slot | Breath | Cognitive Style |
+|---------|------|--------|----------------|
+| **Great Recycler** 🔮 | 0 | Inhale | "You NEVER produce deliverables. You ask questions. Make them THINK." |
+| **Programmer Pete** ⚙️ | 1 | Exhale | "ACT FIRST. When asked to build, BUILD. Make them THINGS." |
+
+The **inhale/exhale** metaphor is literal: strategic thinking (slot 0) and execution (slot 1) alternate like breathing. The KV cache slots enable switching without re-tokenizing the 8K+ token system prompt.
+
+> 📍 `agent.rs:L92-108` — Great Recycler preamble: "the Socratic mentor, the one who asks questions"
+> 📍 `agent.rs:L110-130` — Programmer Pete preamble: "the builder, the executor, the one who ships"
+> 📍 `agent.rs:L132-145` — `persona_slot()`: maps "recycler" → 0, "programmer" → 1
+
+### 8.4 VAAM Integration in Chat
+
+Every message in the agent chat loop is scanned for vocabulary (VAAM integration). When a word matches the user's active vocabulary set, Coal is awarded:
+
+> 📍 `agent.rs` — VAAM vocabulary scanning on every user message
+> 📍 `vaam.rs:L1-30` — Architecture: VAAM scans messages for vocabulary, awards Coal for correct contextual usage
+
+### 8.5 The Multi-Turn Agent Loop
+
+The agent loop implements a full tool-calling cycle:
+
+```
+User message → System prompt + history → LLM generates
+→ Parse for <tool>...</tool> tags → Execute tools → Feed results back
+→ Repeat until final answer or max iterations (default: 16)
+```
+
+> 📍 `agent.rs:L54-75` — `AgentRequest`: message, history, mode (dev/ironroad), max_turns (default 16)
+> 📍 `agent.rs:L84-86` — `default_max_turns() -> u32 { 16 }`
+
+### 8.6 Field Manual Cross-Reference
+
+> *See: [Ask Pete Field Manual](ASK_PETE_FIELD_MANUAL.md) §1 The Identity, §2 The Promise*
+
+- **§1 The Identity** — "Pete is not a chatbot. Pete is a mentor who happens to run on silicon."
+- **§2 The Promise** — "I will ask, not tell. I will scaffold, not solve. I will remember what you've shown me."
+
+---
+
+## 🚃 Car 9: PROXIMITY — User Interface & Experience
+
+> **Bloom's Level**: Analyze
+> **Sacred Circuit**: Realize (circuit #11)
+> **Body Metaphor**: The Hands — the user's physical contact with the system
+
+### 9.1 The 16 React Components
+
+Trinity's frontend is built as a modular React application with 16 components, each mapped to a specific system concern:
+
+| Component | Role | Backend Source |
+|-----------|------|---------------|
+| **NavBar** | Tab navigation across modes | Routes to different views |
+| **CharacterSheet** | LitRPG-styled user identity HUD | `GET /api/character` |
+| **PhaseWorkspace** | ADDIECRAPEYE station workspace | Phase-specific tool display |
+| **ChapterRail** | Timeline of completed chapters | Book of the Bible entries |
+| **PearlCard** | PEARL alignment visualization | Subject/Medium/Vision display |
+| **CreepCard** | SemanticCreep creature card | Word stats, element, taming progress |
+| **ScopeCard** | Scope Hope/Nope decision prompt | Taming confirmation dialog |
+| **GameHUD** | Iron Road gameplay overlay | Coal, Steam, XP bars |
+| **TrainStatus** | Server + sidecar health monitor | Health endpoint polling |
+| **Yardmaster** | Agent chat (dev console) | `POST /api/agent/chat` (SSE) |
+| **ArtStudio** | Creative tools (image/music/3D) | ComfyUI + MusicGPT APIs |
+| **ExpressWizard** | Guided lesson builder wizard | Step-by-step ADDIE flow |
+| **JournalViewer** | Reflection journal reader | Shadow processing + Book entries |
+| **PerspectiveSidebar** | Bloom's/Practitioner/Devil's lenses | SSE "perspective" events |
+| **QualityScorecard** | Document evaluation display | QM rubric results |
+| **OnboardingTour** | First-time user experience | The Awakening flow |
+
+> 📍 `frontend/src/components/` — 16 `.jsx` files
+
+### 9.2 Glassmorphism Design System
+
+All components share a unified visual language defined in `tokens.css` (309 lines):
+
+| Token | Value | Semantic |
+|-------|-------|----------|
+| `--gold` | `#CFB991` | Identity, branding, headings |
+| `--bg` | `#131210` | Warm black background |
+| `--bg-card` | `rgba(24, 22, 18, 0.88)` | Glass card surface |
+| `--border-glass` | `rgba(207, 185, 145, 0.15)` | Gold-tinted borders |
+| `--font-display` | `'Cinzel', serif` | Headers, Purdue heritage |
+| `--font-ui` | `'Inter', sans-serif` | Body text, interface |
+| `--font-mono` | `'JetBrains Mono', monospace` | Data, code, metrics |
+| `--font-body` | `'Crimson Text', serif` | Prose, reflections |
+| `--r-md` | `10px` | Card border radius |
+
+Semantic data colors are preserved for CRAP Contrast:
+- **Emerald `#10B981`** — Success, portfolio progress, AECT cleared
+- **Cyan `#22d3ee`** — Data scores, QM values
+- **Purple `#A78BFA`** — Metacognition (EYE group), ATD
+- **Amber `#F59E0B`** — Warnings, Heavilon events, cargo slots
+- **Red `#EF4444`** — Errors, friction, Ghost Train Active
+
+> 📍 `tokens.css:L5-105` — Full design token definitions
+> 📍 `CharacterSheet.jsx:L313-580` — Styles object aligned to tokens.css
+
+### 9.3 The CharacterSheet UI
+
+The `CharacterSheet.jsx` component (580 lines) renders the full LitRPG identity HUD. It was refined through a CRAP (Contrast, Repetition, Alignment, Proximity) design review to ensure every data field the struct provides is visible and correctly labeled.
+
+**Header:**
+- 📛 Alias in `Cinzel` Purdue gold (`#CFB991`)
+- 🎮 UserClass badge with class-specific emoji and color (`classEmoji` map mirrors `character_sheet.rs:L388-429`)
+- Locomotive Profile as secondary label
+- Gate Review Status + XP Total (right side)
+
+**Left Column — Cognitive Logistics:**
+- 🔥 Coal bar (attention reserve, orange gradient) — *"ATTENTION"* not ~~"MOTIVATION"~~ (CLT alignment)
+- ⚡ Steam bar (momentum, cyan gradient)
+- Track Friction bar (extraneous load, red)
+- 📦 Cargo Slots (Miller's 7±2, amber fill indicators, 9-slot max)
+- 🎯 The Firebox (Intent posture, vulnerability, grounding status)
+- 📡 Session Intent display (conditional, shown when set by Pete)
+- 👻 Shadow Status indicator (Clear/Stirring/Active/Processed with state-based colors)
+
+**Right Column — LDT Portfolio:**
+- Gate Review Progression (0/12 artifacts, animated progress bar)
+- Score grid (3×2): QM Score, IBSTPI, ATD, AECT Ethics, Heavilon Events, Memorial Steps (/17)
+- Subconscious Inventory (vault of completed artifacts with QM scores and AECT clearance)
+
+**Defensive Defaults Pattern:**
+The frontend handles missing fields gracefully with `|| {}` and `?? 0` patterns, so older server binaries that predate new fields (e.g., `ldt_portfolio`, `shadow_status`, `cargo_slots`) don't crash the component. This is critical for development velocity — the UI never breaks even when backend is stale.
+
+> 📍 `CharacterSheet.jsx:L41-57` — Defensive defaults for 6 fields with full fallback objects
+> 📍 `CharacterSheet.jsx:L59-69` — UserClass emoji mapping and locomotive profile extraction
+> 📍 `CharacterSheet.jsx:L97-165` — Left column: Cognitive Logistics + Cargo Slots + Firebox
+> 📍 `CharacterSheet.jsx:L247-273` — Score grid: 6 cards (QM, IBSTPI, ATD, AECT, Heavilon, Memorial)
+
+### 9.4 The Four Chariots — In-App Help Menu
+
+Trinity's **Help Menu** (accessible via ❓ icon in NavBar) provides direct access to the project's four root documents — the "Four Chariots" that drive Trinity's self-identity:
+
+| Chariot | File | Reader | Purpose |
+|---------|------|--------|---------|
+| 📖 **The Bible** | `TRINITY_FANCY_BIBLE.md` | Developers | Technical spec, every line of code explained |
+| 🤝 **Field Manual** | `ASK_PETE_FIELD_MANUAL.md` | Educators | "Terms & conditions" — how Pete works, what to expect |
+| 🎓 **Professor** | `PROFESSOR.md` | Stakeholders | Standards alignment, privacy, institutional evaluation |
+| 🚂 **README** | `README.md` | Players | Quick start, what Trinity *is* |
+
+When a user encounters unfamiliar terminology (e.g., "Subconscious Inventory"), Pete can direct them to the relevant Chariot. When a stakeholder questions the "gamification" approach, the Professor document provides the pedagogical justification with ISTE/AECT/QM standards alignment.
+
+> 📍 `NavBar.jsx:L12-43` — Help menu dropdown with Four Chariots links
+> 📍 `main.rs:L813-824` — Static file routes serving root `.md` documents via `/docs/`
+
+### 9.5 The Three Modes
+
+The UI adapts to three operating modes:
+
+| Mode | Target User | UI Configuration |
+|------|------------|-----------------|
+| **Iron Road** 🚂 | Learners | Full LitRPG: CreepCards, GameHUD, ChapterRail, narrative |
+| **Express** ⚡ | Teachers (quick path) | ExpressWizard: guided ADDIE, minimal game chrome |
+| **Yardmaster** 🔧 | Developers | Agent console, process list, sidecar management |
+
+> 📍 `main.rs:L84-92` — `AppMode` enum: IronRoad, Express, Yardmaster
+
+---
+
+# EYE — Refine the Wisdom
+
+> *Cars 10–12 answer: "Where is Trinity going?"*
+
+---
+
+## 🚃 Car 10: ENVISION — Purdue Integration & LDT Portfolio
+
+> **Bloom's Level**: Evaluate
+> **Sacred Circuit**: Transform (circuit #13)
+> **Body Metaphor**: The Third Eye — meta-awareness and institutional reflection
+
+### 10.1 The LDT Portfolio — The Graduation Track
+
+The LDT Portfolio is the **isomorphic bridge** between Trinity's game mechanics and Purdue University's Learning Design and Technology program requirements:
+
+```
+12 completed artifacts = graduation.
+The game IS the portfolio.
+```
+
+> 📍 `character_sheet.rs:L1010-1025` — Architecture comment: "Isomorphic mapping: academic rubrics → game physics"
+> 📍 `character_sheet.rs:L1029-1056` — `LdtPortfolio` struct with 9 fields
+
+### 10.2 Standards Alignment
+
+The portfolio tracks alignment across **four professional standards**:
+
+| Standard | Organization | What It Measures | Field |
+|----------|-------------|-----------------|-------|
+| **IBSTPI** | Intl Board of Standards | Instructional design competencies | `ibstpi_score: f32` |
+| **ATD** | Assoc for Talent Dev | Capability model | `atd_score: f32` |
+| **AECT** | Assoc for Ed Comm & Tech | Ethics | `aect_score: f32` |
+| **QM** | Quality Matters | Course design quality | `qm_alignment_score: f32` |
+
+> 📍 `character_sheet.rs:L1039-1048` — Individual standard scores (0.0-100.0 each)
+
+### 10.3 Graduation Requirements
+
+```rust
+pub fn is_graduation_ready(&self) -> bool {
+    self.completed_challenges >= 12
+        && self.artifact_vault.len() >= 12
+        && self.qm_alignment_score >= 85.0
+}
+```
+
+> 📍 `character_sheet.rs:L1076-1080` — Graduation check: 12 artifacts + QM ≥ 85.0
+> 📍 `character_sheet.rs:L1083-1095` — `recalculate()`: auto-upgrades gate review status
+
+### 10.4 Heavilon Events & Memorial Steps
+
+Two Purdue-specific metrics track resilience:
+
+- **Heavilon Events Survived** — Count of catastrophic failures rebuilt "one brick higher" (named after Heavilon Hall, which burned and was rebuilt one brick higher)
+- **Memorial Steps Climbed** — Deep reflection journals after burnout (maps to Purdue Memorial Union's 17 steps)
+
+> 📍 `character_sheet.rs:L1051-1055` — `heavilon_events_survived: u32`, `memorial_steps_climbed: u32`
+
+### 10.5 The Artifact Vault
+
+Each completed artifact is stored in the **Subconscious Inventory**:
+
+> 📍 `character_sheet.rs:L1098-1100+` — `PortfolioArtifact` struct: title, type, QM score, AECT ethics cleared, reflection journal
+> 📍 `CharacterSheet.jsx:L170-198` — Vault UI: artifact cards with QM scores, AECT badges, reflection quotes
+
+---
+
+## 🚃 Car 11: YOKE — ART Pipeline & Creative Tools
+
+> **Bloom's Level**: Create
+> **Sacred Circuit**: Connect (circuit #14)
+> **Body Metaphor**: The Connective Tissue — coupling all subsystems
+
+### 11.1 The ART Creative Pipeline
+
+**ART** = Aesthetics, Research, Tempo — Trinity's creative subsystem that generates multi-modal content:
+
+| Modality | Technology | Endpoint | Port |
+|----------|-----------|----------|------|
+| **Image** | SDXL Turbo via ComfyUI | `POST /api/creative/generate-image` | :8188 |
+| **Music** | MusicGPT | `POST /api/creative/generate-music` | :8189 |
+| **Video** | HunyuanVideo via ComfyUI | `POST /api/creative/generate-video` | :8188 |
+| **3D Mesh** | Hunyuan3D-2.1 via Gradio | `POST /api/creative/generate-3d` | :7860 |
+
+> 📍 `creative.rs:L1-24` — Architecture: "CRAP design system: Contrast, Repetition, Alignment, Proximity"
+> 📍 `creative.rs:L44-62` — `ImageRequest`: prompt, negative_prompt, style, width (default 1024), height
+> 📍 `creative.rs:L86-97` — `MusicRequest`: style, duration_secs (default 60), mood
+> 📍 `creative.rs:L114-128` — `VideoRequest`: prompt, duration_secs (default 4), fps (24), height (720)
+> 📍 `creative.rs:L152-163` — `Mesh3DRequest`: prompt, image_base64, format (default "glb")
+
+### 11.2 ComfyUI Workflow — SDXL Turbo
+
+Image generation uses a 7-node ComfyUI workflow:
+
+```
+CheckpointLoader → CLIPTextEncode(+) → CLIPTextEncode(-) →
+EmptyLatentImage → KSampler(4 steps, euler, cfg 1.0) →
+VAEDecode → SaveImage
+```
+
+> 📍 `creative.rs:L336-373` — Full ComfyUI SDXL Turbo workflow JSON
+> 📍 `creative.rs:L360-361` — KSampler: 4 steps, euler sampler, cfg 1.0 (Turbo defaults)
+
+### 11.3 Visual Style System
+
+Visual styles are determined by the character's genre selection:
+
+| Genre | Visual Style | Music Style |
+|-------|-------------|-------------|
+| Steampunk | Brass, gears, amber lighting | Orchestral |
+| Cyberpunk | Neon, chrome, holograms | Electronic |
+| Solarpunk | Clean, modern, simple | Ambient |
+| Dark Fantasy | Magic, ethereal, medieval | Orchestral |
+
+> 📍 `character_sheet.rs:L760-780` — `CreativeConfig::from_genre()`: genre → visual + music mapping
+> 📍 `character_sheet.rs:L782-828` — `VisualStyle` enum (6 styles) with ComfyUI prompt suffixes
+> 📍 `character_sheet.rs:L830-881` — `MusicStyle` enum (6 styles) with MusicGPT prompts
+
+### 11.4 Voice Pipeline
+
+Trinity implements a **dual voice pipeline**:
+
+| Pipeline | Technology | Latency | GPU Impact |
+|----------|-----------|---------|-----------|
+| **Walkie-Talkie** (NOW) | Whisper STT + Piper TTS on NPU | ~2-4s round trip | 0% (NPU only) |
+| **Telephone** (FUTURE) | PersonaPlex/Moshi audio-to-audio | ~0ms perceived | GPU contention |
+
+> 📍 `voice.rs:L1-27` — Architecture: dual pipeline with fallback
+> 📍 `voice.rs:L9-14` — "STT/TTS run on NPU, leaving 100% GPU for Mistral Small 4"
+> 📍 `voice.rs:L115-188` — `voice_conversation()`: tries PersonaPlex first, falls back to sidecar
+> 📍 `voice.rs:L299-319` — `check_npu_availability()`: checks `/dev/xdna` and `lspci` for NPU
+
+### 11.5 Model Inventory
+
+Trinity's AI party is composed of pre-configured model assignments:
+
+| Role | Model | Size | Active Params |
+|------|-------|------|--------------|
+| **P** (Conductor) | Mistral Small 4 119B MoE | 68GB | ~6.5B |
+| **Y** (Yardmaster) | Ming-flash-omni-2.0 | 195GB | MoE (256 experts, 8 active) |
+| **R** (Research) | REAP 25B MoE | 15GB | 3B |
+| **R** (Research) | Crow 9B | 5GB | 9B |
+| **T** (Tempo) | OmniCoder 9B | 5GB | 9B |
+| **Evaluator** | Qwen3.5-27B Opus | 21GB | 27B |
+| **Visionary** | Qwen3.5-35B-A3B | 20GB | 3B |
+
+> 📍 `character_sheet.rs:L620-712` — `ModelAssignment` factory methods with full specs
+> 📍 `character_sheet.rs:L625-634` — Mistral Small 4: "256k context with Q4 KV cache quantization, vision capable"
+
+---
+
+## 🚃 Car 12: EVOLVE — Deployment, Hardware, and the Lexicon
+
+> **Bloom's Level**: Create
+> **Sacred Circuit**: Manifest (circuit #15)
+> **Body Metaphor**: The Lungs — the Golem takes its first breath
+
+### 12.1 The AMD Strix Halo Platform
+
+Trinity runs on AMD's Strix Halo (Ryzen AI Max+ 395):
+
+| Spec | Value | Trinity Usage |
+|------|-------|--------------|
+| CPU | Zen 5, 16 cores / 32 threads | Tokio async runtime, Bevy ECS |
+| GPU | RDNA 3.5, 40 CUs | Mistral inference via llama-server |
+| NPU | XDNA 2, 50 TOPS | Voice STT/TTS (Whisper/Piper) |
+| RAM | 128 GB unified (LPDDR5X) | All models loaded concurrently |
+| Context | 256K × 2 KV cache = 500K+ tokens | Dual persona slots |
+
+The **unified memory** architecture is the key enabler — GPU, CPU, and NPU share the same 128GB pool, meaning Mistral's 68GB model doesn't compete with system RAM.
+
+> 📍 `main.rs:L220-268` — `installed_model_inventory()`: all models with sizes and paths
+> 📍 `conductor_leader.rs:L240-252` — `ConductorConfig::default()`: model path, context 32768 (conservative start)
+
+### 12.2 The Dual KV Cache Architecture
+
+Trinity's **dual KV cache** enables 500K+ effective context:
+
+- **Slot 0** (256K tokens): Great Recycler persona — strategic, planning
+- **Slot 1** (256K tokens): Programmer Pete persona — execution, building
+- **Combined**: 512K tokens of persistent context across personas
+
+This is achieved through llama-server's `-np 2` (2 parallel slots) with Q4 KV cache quantization, enabling per-slot system prompt persistence without re-tokenization.
+
+### 12.3 Server Architecture
+
+```
+Layer 1: Headless Server (trinity crate)
+  ├── Axum HTTP/SSE server on :3000
+  ├── 100+ API endpoints across 15 groups
+  ├── SQLx database (PostgreSQL)
+  ├── InferenceRouter (model health + failover)
+  └── Tool dispatch (30 tools, 3 permission tiers)
+
+Layer 2: Protocol (trinity-protocol crate)
+  ├── 26 public modules
+  ├── Shared types: CharacterSheet, Pearl, Circuit, Quest
+  └── Zero dependencies on Layer 1
+
+Layer 3: Spatial Sandbox (trinity-bevy-graphics crate)
+  ├── Bevy 0.18.1 ECS
+  ├── 3D Yard environment
+  └── Connects to Layer 1 via HTTP
+```
+
+### 12.4 The Trinity Lexicon
+
+Key terms defined in code, collected for reference:
+
+| Term | Definition | Code Source |
+|------|-----------|------------|
+| **ADDIECRAPEYE** | 12-station instructional design framework | `conductor_leader.rs:L36-49` |
+| **Coal** | Attention reserve (intrinsic cognitive load) | `character_sheet.rs:L111` |
+| **Steam** | Productive momentum (germane load) | `character_sheet.rs:L190-191` |
+| **Track Friction** | Extraneous cognitive load penalty | `character_sheet.rs:L196-197` |
+| **Cargo Slots** | Working memory capacity (Miller's 7±2) | `character_sheet.rs:L200-202` |
+| **SemanticCreep** | Vocabulary creature with elemental stats | `semantic_creep.rs` |
+| **PEARL** | Per-project alignment (subject/medium/vision) | `pearl.rs:L254-281` |
+| **Scope Hope** | User tames a word (accepts into vocabulary) | `game_loop.rs:L112-120` |
+| **Scope Nope** | User rejects a word (leaves wild) | `game_loop.rs:L123-127` |
+| **Heavilon Event** | Catastrophic failure rebuilt stronger | `character_sheet.rs:L1051` |
+| **Sacred Circuitry** | 15-word attention scaffolding system | `sacred_circuitry.rs:L56-76` |
+| **VAAM** | Vocabulary Acquisition And Mastery | `trinity-iron-road/src/vaam/` |
+| **The Awakening** | Character creation (class + hardware scan) | `character_sheet.rs:L104-121` |
+| **Lone Wolf** | Single-model mode (< 24GB VRAM) | `character_sheet.rs:L381` |
+| **Hotel Management** | Model hot-swap protocol | `conductor_leader.rs:L466-503` |
+| **Book of the Bible** | Append-only narrative ledger | `trinity-iron-road/src/book.rs` |
+| **Great Recycler** | Narrative AI that writes Book chapters | `trinity-iron-road/src/great_recycler.rs` |
+| **Cow Catcher** | Runtime error classification system | `cow_catcher.rs` |
+
+### 12.5 What's Next
+
+Trinity is in **late prototype** stage. The Golem has its skeleton, muscles, and voice. What remains:
+
+- **NPU Integration** — Move Whisper/Piper to XDNA 2 for zero-GPU voice
+- **Multi-Model Party** — Enable simultaneous REAP + Crow + Pete via Guild mode
+- **Bevy 3D Yard** — The spatial sandbox where SemanticCreeps roam
+- **ONNX Runtime** — NPU-accelerated embedding and speculative decoding
+- **Gate Review API** — Formal instructor review workflow for LDT Portfolio
+- **Purdue Pilot** — First classroom deployment with LDT students
+- **LDTAtkinson.com** — Portfolio website hosted from the same Strix Halo (Caddy reverse proxy + auto-HTTPS)
+
+> *The Golem breathes. The iron has been laid. The next train is loading.*
+>
+> *The portfolio is at [LDTAtkinson/](LDTAtkinson/) — 23 artifacts, 4 competency domains, powered by the same `#CFB991` gold that lights this Bible.*
+
+---
+
+*End of the TRINITY FANCY BIBLE — 12 ADDIECRAPEYE Train Cars*
+
+*Generated with validated `📍 file:line` code references. Every claim points to running code.*
+
+*"I have told you everything. The rest is up to you." — Pete*

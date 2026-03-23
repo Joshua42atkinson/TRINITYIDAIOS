@@ -1,0 +1,21 @@
+ldtatkinson.com {
+    # Trinity API + WebSocket — highest priority
+    handle /api/* {
+        reverse_proxy localhost:3000
+    }
+
+    # Trinity WebSocket
+    handle /ws {
+        reverse_proxy localhost:3000
+    }
+
+    # Trinity docs endpoint
+    handle /docs/* {
+        reverse_proxy localhost:3000
+    }
+
+    # Trinity frontend (React SPA)
+    handle {
+        reverse_proxy localhost:3000
+    }
+}

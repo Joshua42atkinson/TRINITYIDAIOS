@@ -4,6 +4,7 @@ import ChapterRail from './components/ChapterRail';
 import PhaseWorkspace from './components/PhaseWorkspace';
 import GameHUD from './components/GameHUD';
 import ArtStudio from './components/ArtStudio';
+import CharacterSheet from './components/CharacterSheet';
 import Yardmaster from './components/Yardmaster';
 import ExpressWizard from './components/ExpressWizard';
 import OnboardingTour from './components/OnboardingTour';
@@ -165,6 +166,10 @@ export default function App() {
       {activeTab === 'art' ? (
         <div style={{ gridColumn: '1 / -1', gridRow: 2, overflow: 'auto' }}>
           <ArtStudio />
+        </div>
+      ) : activeTab === 'character' ? (
+        <div style={{ gridColumn: '1 / -1', gridRow: 2, overflow: 'auto' }}>
+          <CharacterSheet />
         </div>
       ) : activeTab === 'scorecard' ? (
         <div style={{ gridColumn: '1 / -1', gridRow: 2, overflow: 'auto' }}>

@@ -1,12 +1,34 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) {
   const tabs = [
     { id: 'ironroad', label: 'Iron Road' },
     { id: 'art',      label: 'ART Studio' },
+    { id: 'character', label: 'Character' },
     { id: 'yard',     label: 'Yardmaster' },
     { id: 'scorecard', label: 'Scorecard' },
     { id: 'voice',    label: 'Voice' },
+  ];
+
+  // Help Menu — The Four Chariots
+  const [helpOpen, setHelpOpen] = useState(false);
+  const helpRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (helpRef.current && !helpRef.current.contains(e.target)) {
+        setHelpOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const chariots = [
+    { emoji: '📖', label: 'The Bible',     desc: 'Technical spec — every line explained',     file: 'TRINITY_FANCY_BIBLE.md' },
+    { emoji: '🤝', label: 'Field Manual',  desc: 'How Pete works — what to expect',           file: 'ASK_PETE_FIELD_MANUAL.md' },
+    { emoji: '🎓', label: 'Professor',     desc: 'Standards, privacy, institutional eval',     file: 'PROFESSOR.md' },
+    { emoji: '🚂', label: 'README',        desc: 'Quick start — what Trinity is',              file: 'README.md' },
   ];
 
   return (
@@ -25,6 +47,71 @@ export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) 
         ))}
       </div>
       <div className="nav-status">
+        {/* Help Menu */}
+        <div ref={helpRef} style={{ position: 'relative', display: 'inline-block' }}>
+          <button
+            id="nav-help-btn"
+            className="nav-link"
+            onClick={() => setHelpOpen(!helpOpen)}
+            style={{ fontSize: '16px', cursor: 'pointer', padding: '4px 8px' }}
+            title="The Four Chariots — Documentation"
+          >
+            ❓
+          </button>
+          {helpOpen && (
+            <div style={{
+              position: 'absolute', right: 0, top: '100%', marginTop: '8px',
+              width: '320px', background: 'rgba(24, 22, 18, 0.96)',
+              border: '1px solid rgba(207, 185, 145, 0.2)',
+              borderRadius: '10px', padding: '12px', zIndex: 1000,
+              backdropFilter: 'blur(16px)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            }}>
+              <div style={{
+                fontFamily: "'Cinzel', serif", fontSize: '11px',
+                color: '#CFB991', letterSpacing: '2px', textTransform: 'uppercase',
+                marginBottom: '10px', paddingBottom: '8px',
+                borderBottom: '1px solid rgba(207, 185, 145, 0.1)',
+              }}>
+                The Four Chariots
+              </div>
+              {chariots.map((c) => (
+                <a
+                  key={c.file}
+                  href={`/docs/${c.file}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex', gap: '10px', alignItems: 'flex-start',
+                    padding: '8px', borderRadius: '6px', textDecoration: 'none',
+                    color: '#E2E8F0', marginBottom: '4px',
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(207, 185, 145, 0.08)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  <span style={{ fontSize: '18px', lineHeight: 1 }}>{c.emoji}</span>
+                  <div>
+                    <div style={{
+                      fontFamily: "'Inter', sans-serif", fontSize: '13px',
+                      fontWeight: 600, color: '#E2E8F0',
+                    }}>
+                      {c.label}
+                    </div>
+                    <div style={{
+                      fontFamily: "'Inter', sans-serif", fontSize: '11px',
+                      color: '#6B7280', marginTop: '2px',
+                    }}>
+                      {c.desc}
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <span className="sep">|</span>
         <span className={`status-dot ${quest?.phase ? 'connected' : ''}`}></span>
         <span>{quest?.phase || 'awaiting…'}</span>
         <span className="sep">|</span>

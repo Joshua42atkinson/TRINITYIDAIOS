@@ -4,7 +4,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // 📡 ZONE: PROTOCOL | Module: Vocabulary (VAAM)
 // ═══════════════════════════════════════════════════════════════════════════════
-// VAAM = Vocabulary As A Mechanism
+// VAAM = Vocabulary Acquisition And Mastery
 //
 // A game mechanic that rewards players for using domain-specific vocabulary
 // correctly in context. Words detected in player input earn Coal (potential energy)

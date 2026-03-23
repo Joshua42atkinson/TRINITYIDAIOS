@@ -22,7 +22,7 @@ The **Iron Road** is the central nervous system of Trinity. It connects the user
 
 ## 🛤️ 2. API Data Flow by System
 
-### 2.1 The Weigh Station (VaaM - Vocabulary as a Mechanism)
+### 2.1 The Weigh Station (VaaM - Vocabulary Acquisition and Mastery)
 * **Goal**: Determine the *Intrinsic Load* (Mass) of a concept being taught.
 * **Flow**:
   1. User introduces a concept/word.
