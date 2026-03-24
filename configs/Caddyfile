@@ -1,20 +1,172 @@
+# ═══════════════════════════════════════════════════════════
+# TRINITY — Hardened Reverse Proxy (Red Hat Tier 1)
+# ═══════════════════════════════════════════════════════════
+#
+# Red Hat Findings Addressed:
+#   C1: Block /api/tools/* from public access
+#   C2: Block /api/models/switch and /api/inference/* from public
+#   C4: Block session/project/mutation routes
+#   C6: Block shell/python execution paths
+#   H1: Add security headers
+#   H4: Block admin-style mutation routes
+#   H5: Slim down health endpoint exposure
+#
+# Architecture:
+#   Internet → Cloudflare Tunnel → Caddy (this file) → Trinity (127.0.0.1:3000)
+#
+# ═══════════════════════════════════════════════════════════
+
 ldtatkinson.com {
-    # Trinity API + WebSocket — highest priority
-    handle /api/* {
+    # ── Security Headers ──
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        -Server
+    }
+
+    # ── BLOCKED: Dangerous API routes (return 403) ──
+
+    # C1: Tool execution — hard blocker
+    handle /api/tools* {
+        respond "Forbidden" 403
+    }
+
+    # C2: Model/inference switching — hard blocker
+    handle /api/models/switch {
+        respond "Forbidden" 403
+    }
+    handle /api/inference/switch {
+        respond "Forbidden" 403
+    }
+    handle /api/inference/refresh {
+        respond "Forbidden" 403
+    }
+
+    # C4/C5: Session and project data — privacy
+    handle /api/sessions* {
+        respond "Forbidden" 403
+    }
+    handle /api/projects* {
+        respond "Forbidden" 403
+    }
+
+    # C6/H4: Chat and AI interaction — resource protection
+    handle /api/chat* {
+        respond "Forbidden" 403
+    }
+    handle /api/v1/trinity {
+        respond "Forbidden" 403
+    }
+
+    # H4: Admin mutation routes
+    handle /api/mode {
+        respond "Forbidden" 403
+    }
+    handle /api/quest* {
+        respond "Forbidden" 403
+    }
+    handle /api/character* {
+        respond "Forbidden" 403
+    }
+    handle /api/pearl* {
+        respond "Forbidden" 403
+    }
+    handle /api/bestiary* {
+        respond "Forbidden" 403
+    }
+    handle /api/creative* {
+        respond "Forbidden" 403
+    }
+    handle /api/voice* {
+        respond "Forbidden" 403
+    }
+    handle /api/mcp {
+        respond "Forbidden" 403
+    }
+    handle /api/ground {
+        respond "Forbidden" 403
+    }
+    handle /api/intent {
+        respond "Forbidden" 403
+    }
+    handle /api/ingest {
+        respond "Forbidden" 403
+    }
+    handle /api/rag* {
+        respond "Forbidden" 403
+    }
+    handle /api/eye* {
+        respond "Forbidden" 403
+    }
+    handle /api/yard* {
+        respond "Forbidden" 403
+    }
+    handle /api/journal* {
+        respond "Forbidden" 403
+    }
+    handle /api/book* {
+        respond "Forbidden" 403
+    }
+    handle /api/narrative* {
+        respond "Forbidden" 403
+    }
+    handle /api/perspective* {
+        respond "Forbidden" 403
+    }
+    handle /api/rlhf* {
+        respond "Forbidden" 403
+    }
+    handle /api/tts {
+        respond "Forbidden" 403
+    }
+    handle /api/bevy* {
+        respond "Forbidden" 403
+    }
+
+    # H5: Block detailed hardware telemetry
+    handle /api/hardware {
+        respond "Forbidden" 403
+    }
+    handle /api/status {
+        respond "Forbidden" 403
+    }
+    handle /api/models {
+        respond "Forbidden" 403
+    }
+    handle /api/models/active {
+        respond "Forbidden" 403
+    }
+
+    # ── ALLOWED: Safe public routes ──
+
+    # Health check (basic only — Trinity will serve a slim version)
+    handle /api/health {
         reverse_proxy localhost:3000
     }
 
-    # Trinity WebSocket
-    handle /ws {
-        reverse_proxy localhost:3000
-    }
-
-    # Trinity docs endpoint
+    # Documentation — Four Chariots
     handle /docs/* {
         reverse_proxy localhost:3000
     }
 
-    # Trinity frontend (React SPA)
+    # Portfolio — LDTAtkinson static site
+    handle /portfolio/* {
+        reverse_proxy localhost:3000
+    }
+
+    # Assets (images, fonts, etc.)
+    handle /assets/* {
+        reverse_proxy localhost:3000
+    }
+
+    # WebSocket (blocked for now — will be enabled in Tier 3 with auth)
+    handle /ws {
+        respond "Forbidden" 403
+    }
+
+    # Frontend static files (React SPA) — the portfolio/landing page
     handle {
         reverse_proxy localhost:3000
     }

@@ -21,7 +21,24 @@ pub async fn vault_portfolio_artifact(
     State(state): State<AppState>,
     Json(new_artifact): Json<PortfolioArtifact>,
 ) -> Json<serde_json::Value> {
-    let mut sheet = state.character_sheet.write().await;
+    let mut sheet = state.player.character_sheet.write().await;
+
+    // ═══ SOFT SPOT 9: Knowledge Tracing — map supra-badge to skills ═══
+    // When a portfolio artifact is vaulted, the skill that matches its
+    // academic domain increases. This is the isomorphism: academic output
+    // directly maps to game skill progression.
+    {
+        use trinity_protocol::character_sheet::SkillType;
+        let skill_delta = (new_artifact.qm_score / 20.0).clamp(1.0, 5.0); // Higher QM = more skill
+        let skill_type = match new_artifact.aligned_supra_badge.to_lowercase().as_str() {
+            s if s.contains("foundation") => SkillType::CurriculumDesign,
+            s if s.contains("design") || s.contains("develop") => SkillType::GamificationDesign,
+            s if s.contains("assess") || s.contains("evaluat") => SkillType::AssessmentDesign,
+            s if s.contains("narrative") || s.contains("content") => SkillType::NarrativeDesign,
+            _ => SkillType::ContentCuration,
+        };
+        *sheet.skills.entry(skill_type).or_insert(0.0) += skill_delta;
+    }
 
     // 1. Add the artifact to the Subconscious Inventory vault
     sheet.ldt_portfolio.artifact_vault.push(new_artifact);
@@ -34,6 +51,8 @@ pub async fn vault_portfolio_artifact(
     sheet.total_xp += 500;
     sheet.resonance_level = (f32::sqrt(sheet.total_xp as f32 / 100.0)).floor() as u32 + 1;
     sheet.current_steam = (sheet.current_steam + 15.0).min(100.0);
+    sheet.track_friction = (sheet.track_friction - 5.0).max(0.0);
+    sheet.recalculate_vulnerability();
 
     // 4. Persist to disk
     if let Err(e) = crate::character_sheet::save_character_sheet(&sheet) {

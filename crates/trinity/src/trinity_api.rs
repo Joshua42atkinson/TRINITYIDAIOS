@@ -129,7 +129,7 @@ pub async fn trinity_chat(
 
     // Update game state with vocabulary coal
     if !vocabulary_detected.is_empty() {
-        let mut gs = state.game_state.write().await;
+        let mut gs = state.project.game_state.write().await;
         gs.stats.coal_reserves = (gs.stats.coal_reserves + coal_earned as f32).min(100.0);
 
         // Persist VAAM mastery to database (non-blocking)
@@ -201,8 +201,8 @@ pub async fn trinity_chat(
 
     // Build diagnostics if requested
     let diagnostics = if request.include_diagnostics {
-        let gs = state.game_state.read().await;
-        let sheet = state.character_sheet.read().await;
+        let gs = state.project.game_state.read().await;
+        let sheet = state.player.character_sheet.read().await;
         Some(Diagnostics {
             vocabulary_detected,
             coal_earned,
@@ -229,8 +229,8 @@ pub async fn trinity_chat(
 
 /// Build Iron Road system prompt with character context
 async fn build_iron_road_prompt(state: &AppState) -> String {
-    let sheet = state.character_sheet.read().await;
-    let gs = state.game_state.read().await;
+    let sheet = state.player.character_sheet.read().await;
+    let gs = state.project.game_state.read().await;
 
     format!(
         r#"You are Pete, a master Instructional Designer and AI coach inside TRINITY ID AI OS.

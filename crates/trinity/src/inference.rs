@@ -155,6 +155,7 @@ pub async fn chat_completion_stream(
     id_slot: Option<i32>,
 ) -> anyhow::Result<()> {
     let client = &*crate::http::LONG;
+    let no_reasoning = reasoning_effort.as_ref().map(|e| *e == "none").unwrap_or(false);
 
     let api_messages: Vec<ApiMessage> = messages
         .iter()
@@ -215,12 +216,18 @@ pub async fn chat_completion_stream(
                 }
                 if let Ok(parsed) = serde_json::from_str::<StreamChunk>(data) {
                     if let Some(choice) = parsed.choices.first() {
-                        // GPT-OSS-20B uses reasoning_content, standard models use content
-                        let token = choice
-                            .delta
-                            .content
-                            .as_ref()
-                            .or(choice.delta.reasoning_content.as_ref());
+                        // When reasoning is disabled (zen mode), ONLY stream content tokens.
+                        // When reasoning is enabled, fall back to reasoning_content if content is empty
+                        // (GPT-OSS-20B puts actual content in reasoning_content).
+                        let token = if no_reasoning {
+                            choice.delta.content.as_ref()
+                        } else {
+                            choice
+                                .delta
+                                .content
+                                .as_ref()
+                                .or(choice.delta.reasoning_content.as_ref())
+                        };
                         if let Some(content) = token {
                             if tx.send(content.clone()).await.is_err() {
                                 return Ok(());

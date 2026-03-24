@@ -23,7 +23,7 @@ use crate::AppState;
 pub async fn get_game_state(
     State(state): State<AppState>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let game = state.game_state.read().await;
+    let game = state.project.game_state.read().await;
 
     // Build response JSON using trinity-quest types
     let response = serde_json::json!({
@@ -102,7 +102,7 @@ pub async fn get_circuitry_state(
 pub async fn get_bevy_state(
     State(state): State<AppState>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let game = state.game_state.read().await;
+    let game = state.project.game_state.read().await;
 
     // Calculate simulated ZPD (Zone of Proximal Development)
     let zpd_range = format!(
@@ -173,7 +173,7 @@ pub async fn complete_objective(
     State(state): State<AppState>,
     Json(req): Json<CompleteRequest>,
 ) -> Result<Json<CompleteResponse>, StatusCode> {
-    let mut game = state.game_state.write().await;
+    let mut game = state.project.game_state.write().await;
 
     let success = game.quest.complete_objective(&req.objective_id);
 
@@ -200,7 +200,7 @@ pub async fn complete_objective(
             "xp": game.stats.total_xp,
             "phase_advanced": advanced,
         });
-        let _ = state.book_updates.send(event.to_string());
+        let _ = state.project.book_updates.send(event.to_string());
 
         Ok(Json(CompleteResponse {
             success: true,
@@ -231,7 +231,7 @@ pub struct PhaseResponse {
 pub async fn advance_phase(
     State(state): State<AppState>,
 ) -> Result<Json<PhaseResponse>, StatusCode> {
-    let mut game = state.game_state.write().await;
+    let mut game = state.project.game_state.write().await;
 
     let advanced = game.quest.advance_phase();
 
@@ -240,7 +240,7 @@ pub async fn advance_phase(
 
         // Sync Quest progress to Character Sheet skills
         {
-            let mut sheet = state.character_sheet.write().await;
+            let mut sheet = state.player.character_sheet.write().await;
             use trinity_protocol::SkillType;
 
             // Map the completed phase to skill increases
@@ -277,6 +277,12 @@ pub async fn advance_phase(
                 }
             }
             sheet.resonance_level = game.stats.resonance as u32;
+
+            // ═══ SOFT SPOT 6: Friction reduction on phase advance ═══
+            // Completing a phase = progress = reduced cognitive friction
+            sheet.track_friction = (sheet.track_friction - 10.0).max(0.0);
+            sheet.recalculate_vulnerability();
+
             let _ = crate::character_sheet::save_character_sheet(&sheet);
         }
 
@@ -289,7 +295,7 @@ pub async fn advance_phase(
             "chapter": game.quest.hero_stage.chapter(),
             "resonance": game.stats.resonance,
         });
-        let _ = state.book_updates.send(event.to_string());
+        let _ = state.project.book_updates.send(event.to_string());
 
         // ═══════════════════════════════════════════════════════════════
         // AUTO-SNAPSHOT: Git commit + Journal entry on phase advance
@@ -332,7 +338,7 @@ pub async fn advance_phase(
                 coal_remaining: 100.0 - game.quest.coal_used,
                 steam: game.quest.steam_generated,
             };
-            let sheet = state.character_sheet.read().await;
+            let sheet = state.player.character_sheet.read().await;
             let char_snap = crate::journal::CharacterSnapshot {
                 resonance: sheet.resonance_level,
                 skills: sheet
@@ -431,7 +437,7 @@ pub async fn toggle_party_member(
     State(state): State<AppState>,
     Json(req): Json<ToggleRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let mut game = state.game_state.write().await;
+    let mut game = state.project.game_state.write().await;
 
     if let Some(member) = game.party.iter_mut().find(|m| m.id == req.member_id) {
         member.active = req.active;
@@ -458,7 +464,7 @@ pub async fn set_subject(
     State(state): State<AppState>,
     Json(req): Json<SubjectRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let mut game = state.game_state.write().await;
+    let mut game = state.project.game_state.write().await;
     game.quest.subject = req.subject.clone();
     game.quest.game_title = format!("{} Learning Experience", req.subject);
     // Create or update the PEARL from the subject
@@ -481,7 +487,7 @@ pub async fn set_subject(
 pub async fn get_pearl(
     State(state): State<AppState>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let game = state.game_state.read().await;
+    let game = state.project.game_state.read().await;
 
     match &game.quest.pearl {
         Some(pearl) => Ok(Json(serde_json::json!({
@@ -538,7 +544,7 @@ pub async fn create_pearl(
     State(state): State<AppState>,
     Json(req): Json<CreatePearlRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let mut game = state.game_state.write().await;
+    let mut game = state.project.game_state.write().await;
 
     let medium = parse_medium(&req.medium);
     let pearl = if req.vision.is_empty() {
@@ -583,7 +589,7 @@ pub async fn create_pearl(
         "phase": "Analysis",
         "chapter": 1,
     });
-    let _ = state.book_updates.send(event.to_string());
+    let _ = state.project.book_updates.send(event.to_string());
 
     Ok(Json(serde_json::json!({
         "success": true,
@@ -613,7 +619,7 @@ pub async fn refine_pearl(
     State(state): State<AppState>,
     Json(req): Json<RefinePearlRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let mut game = state.game_state.write().await;
+    let mut game = state.project.game_state.write().await;
 
     // Scope the mutable pearl borrow — extract needed data, then release
     let pearl_data = {
@@ -665,7 +671,7 @@ pub async fn refine_pearl(
                 "grade": grade,
                 "refined_count": refined_count,
             });
-            let _ = state.book_updates.send(event.to_string());
+            let _ = state.project.book_updates.send(event.to_string());
 
             Ok(Json(serde_json::json!({
                 "success": true,

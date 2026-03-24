@@ -1,0 +1,297 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Edge Guard Middleware
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:        edge_guard.rs
+// PURPOSE:     Defense-in-depth route protection for public tunnel traffic
+//
+// Red Hat Findings Addressed:
+//   C1: Block tool execution from tunnel
+//   C2: Block model/inference switching from tunnel
+//   C4: Block session/project access from tunnel
+//   C6: Block shell/python paths from tunnel
+//   H3: Rate limiting (basic per-IP)
+//   H4: Block admin mutation from tunnel
+//   H5: Block telemetry leaks from tunnel
+//
+// ARCHITECTURE:
+//   Cloudflare Tunnel adds `Cf-Connecting-Ip` header to all proxied requests.
+//   If that header is present, the request came from the internet (not localhost).
+//   This middleware blocks dangerous routes for tunnel traffic.
+//
+//   This is a SECOND layer of defense. The primary layer is the Caddyfile.
+//   Both must be bypassed for an attack to succeed.
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
+use axum::{
+    body::Body,
+    http::{Request, Response, StatusCode},
+    middleware::Next,
+};
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use std::time::Instant;
+
+/// Blocked path prefixes for tunnel (non-local) traffic.
+/// These routes are only accessible from localhost (direct browser access).
+const BLOCKED_PREFIXES: &[&str] = &[
+    "/api/tools",
+    "/api/models/switch",
+    "/api/inference/switch",
+    "/api/inference/refresh",
+    "/api/sessions",
+    "/api/projects",
+    "/api/chat",
+    "/api/v1/trinity",
+    "/api/mode",
+    "/api/quest",
+    "/api/character",
+    "/api/pearl",
+    "/api/bestiary",
+    "/api/creative",
+    "/api/voice",
+    "/api/mcp",
+    "/api/ground",
+    "/api/intent",
+    "/api/ingest",
+    "/api/rag",
+    "/api/eye",
+    "/api/yard",
+    "/api/journal",
+    "/api/book",
+    "/api/narrative",
+    "/api/perspective",
+    "/api/rlhf",
+    "/api/tts",
+    "/api/bevy",
+    "/api/hardware",
+    "/api/status",
+    "/api/models",
+];
+
+/// Simple per-IP rate limiter state.
+/// Tracks request counts per IP within a rolling window.
+#[derive(Clone)]
+pub struct RateLimiter {
+    requests: Arc<Mutex<HashMap<String, Vec<Instant>>>>,
+}
+
+impl RateLimiter {
+    pub fn new() -> Self {
+        Self {
+            requests: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+
+    /// Check if an IP is within rate limits.
+    /// Returns true if the request should be allowed.
+    fn check(&self, ip: &str, max_requests: usize, window_secs: u64) -> bool {
+        let now = Instant::now();
+        let mut map = self.requests.lock().unwrap();
+        let entries = map.entry(ip.to_string()).or_default();
+
+        // Remove expired entries
+        entries.retain(|t| now.duration_since(*t).as_secs() < window_secs);
+
+        if entries.len() >= max_requests {
+            return false;
+        }
+
+        entries.push(now);
+        true
+    }
+}
+
+/// Returns true if the request appears to come from the Cloudflare tunnel
+/// (i.e., from the internet, not from localhost).
+fn is_tunnel_request(req: &Request<Body>) -> bool {
+    // Cloudflare adds these headers to all proxied requests
+    req.headers().contains_key("cf-connecting-ip")
+        || req.headers().contains_key("cf-ray")
+        || req.headers().contains_key("cf-ipcountry")
+}
+
+/// Edge Guard middleware — blocks dangerous routes for tunnel traffic
+/// and applies rate limiting to all tunnel requests.
+pub async fn edge_guard(
+    req: Request<Body>,
+    next: Next,
+) -> Result<Response<Body>, StatusCode> {
+    // Local requests pass through unrestricted
+    if !is_tunnel_request(&req) {
+        return Ok(next.run(req).await);
+    }
+
+    let path = req.uri().path().to_string();
+
+    // Red Hat Tier 2: The Public Portfolio (LDTAtkinson)
+    // If a request comes from the internet for the root page, redirect it to to 
+    // the user's officially approved Purdue LDT Portfolio instead of the Trinity app UI.
+    if path == "/" || path == "/index.html" {
+        tracing::info!("🛡️ Edge Guard: Redirecting public traffic to LDT Portfolio");
+        let redirect = Response::builder()
+            .status(StatusCode::FOUND)
+            .header("Location", "/portfolio/")
+            .body(Body::empty())
+            .unwrap();
+        return Ok(redirect);
+    }
+
+    // Check blocked prefixes
+    for prefix in BLOCKED_PREFIXES {
+        if path.starts_with(prefix) {
+            tracing::warn!(
+                "🛡️ Edge Guard: Blocked tunnel access to {} from {}",
+                path,
+                req.headers()
+                    .get("cf-connecting-ip")
+                    .and_then(|v| v.to_str().ok())
+                    .unwrap_or("unknown")
+            );
+            return Err(StatusCode::FORBIDDEN);
+        }
+    }
+
+    // Rate limiting for tunnel traffic: 60 requests per minute per IP
+    // (Red Hat H3: Resource abuse controls)
+    if let Some(ip) = req
+        .headers()
+        .get("cf-connecting-ip")
+        .and_then(|v| v.to_str().ok())
+    {
+        // Use a static rate limiter (initialized once)
+        static LIMITER: std::sync::OnceLock<RateLimiter> = std::sync::OnceLock::new();
+        let limiter = LIMITER.get_or_init(RateLimiter::new);
+
+        if !limiter.check(ip, 60, 60) {
+            tracing::warn!("🛡️ Edge Guard: Rate limited tunnel IP {}", ip);
+            return Err(StatusCode::TOO_MANY_REQUESTS);
+        }
+    }
+
+    Ok(next.run(req).await)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_blocked_prefixes_cover_all_critical_findings() {
+        // C1: Tool execution
+        assert!(BLOCKED_PREFIXES.contains(&"/api/tools"));
+        // C2: Model/inference switching
+        assert!(BLOCKED_PREFIXES.contains(&"/api/models/switch"));
+        assert!(BLOCKED_PREFIXES.contains(&"/api/inference/switch"));
+        assert!(BLOCKED_PREFIXES.contains(&"/api/inference/refresh"));
+        // C4: Session/project access
+        assert!(BLOCKED_PREFIXES.contains(&"/api/sessions"));
+        assert!(BLOCKED_PREFIXES.contains(&"/api/projects"));
+        // C5: Chat endpoints (resource + privacy)
+        assert!(BLOCKED_PREFIXES.contains(&"/api/chat"));
+        assert!(BLOCKED_PREFIXES.contains(&"/api/v1/trinity"));
+        // C6: Shell/Python (via tools)
+        assert!(BLOCKED_PREFIXES.contains(&"/api/tools"));
+        // H4: Admin mutation
+        assert!(BLOCKED_PREFIXES.contains(&"/api/mode"));
+        assert!(BLOCKED_PREFIXES.contains(&"/api/quest"));
+        assert!(BLOCKED_PREFIXES.contains(&"/api/character"));
+        // H5: Telemetry leaks
+        assert!(BLOCKED_PREFIXES.contains(&"/api/hardware"));
+        assert!(BLOCKED_PREFIXES.contains(&"/api/status"));
+        assert!(BLOCKED_PREFIXES.contains(&"/api/models"));
+    }
+
+    #[test]
+    fn test_blocked_prefixes_match_subpaths() {
+        let dangerous_paths = [
+            "/api/tools/execute",
+            "/api/tools",
+            "/api/chat/stream",
+            "/api/chat/zen",
+            "/api/chat/yardmaster",
+            "/api/models/switch",
+            "/api/inference/switch",
+            "/api/sessions/history",
+            "/api/projects/archive",
+            "/api/quest/complete",
+            "/api/quest/advance",
+            "/api/character/portfolio/artifact",
+            "/api/creative/image",
+            "/api/voice/conversation",
+        ];
+
+        for path in &dangerous_paths {
+            let blocked = BLOCKED_PREFIXES.iter().any(|prefix| path.starts_with(prefix));
+            assert!(blocked, "Path {} should be blocked but isn't!", path);
+        }
+    }
+
+    #[test]
+    fn test_safe_paths_not_blocked() {
+        let safe_paths = [
+            "/api/health",
+            "/docs/PROFESSOR.md",
+            "/portfolio/index.html",
+            "/assets/logo.png",
+            "/index.html",
+            "/",
+        ];
+
+        for path in &safe_paths {
+            let blocked = BLOCKED_PREFIXES.iter().any(|prefix| path.starts_with(prefix));
+            assert!(!blocked, "Path {} should NOT be blocked but is!", path);
+        }
+    }
+
+    #[test]
+    fn test_rate_limiter_allows_within_limit() {
+        let limiter = RateLimiter::new();
+        for _ in 0..60 {
+            assert!(limiter.check("1.2.3.4", 60, 60));
+        }
+    }
+
+    #[test]
+    fn test_rate_limiter_blocks_over_limit() {
+        let limiter = RateLimiter::new();
+        for _ in 0..60 {
+            limiter.check("1.2.3.4", 60, 60);
+        }
+        // 61st request should be blocked
+        assert!(!limiter.check("1.2.3.4", 60, 60));
+    }
+
+    #[test]
+    fn test_rate_limiter_separate_ips() {
+        let limiter = RateLimiter::new();
+        for _ in 0..60 {
+            limiter.check("1.2.3.4", 60, 60);
+        }
+        // Different IP should still be allowed
+        assert!(limiter.check("5.6.7.8", 60, 60));
+        // Original IP should be blocked
+        assert!(!limiter.check("1.2.3.4", 60, 60));
+    }
+
+    #[test]
+    fn test_tunnel_detection_cf_connecting_ip() {
+        let req = Request::builder()
+            .uri("/api/tools")
+            .header("cf-connecting-ip", "1.2.3.4")
+            .body(Body::empty())
+            .unwrap();
+        assert!(is_tunnel_request(&req));
+    }
+
+    #[test]
+    fn test_tunnel_detection_local_request() {
+        let req = Request::builder()
+            .uri("/api/tools")
+            .body(Body::empty())
+            .unwrap();
+        assert!(!is_tunnel_request(&req));
+    }
+}
+

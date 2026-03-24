@@ -28,105 +28,6 @@ const CHAPTER_TITLES = [
 
 const PHASE_NAMES = Object.keys(PHASE_DATA);
 
-// ─── Station Quest Previews (mirrors quest_system.rs Ch1 ADDIECRAPEYE) ─────────
-const STATION_QUESTS = {
-  Analysis: {
-    blurb: 'You see the problem clearly. Name your students, your struggle, your subject.',
-    objectives: [
-      'Describe yourself: What do you teach? Who are your students?',
-      'Identify a lesson that could be more engaging',
-      'List 3 things your students struggle with',
-    ],
-  },
-  Design: {
-    blurb: 'Sketch the journey. Hook — practice — aha. One measurable objective.',
-    objectives: [
-      'Sketch the learning journey in 3 moments: hook — practice — aha',
-      "Write one measurable objective using a Bloom's verb",
-      'Choose your delivery format: game, storyboard, simulation, or lesson plan',
-    ],
-  },
-  Development: {
-    blurb: 'Draft the opening 60 seconds. Build the practice. Write the feedback loop.',
-    objectives: [
-      'Draft the opening 60 seconds of your experience (the hook)',
-      'Build one practice activity that lets learners attempt the skill',
-      'Write the feedback loop: what does the learner see when they fail? When they succeed?',
-    ],
-  },
-  Implementation: {
-    blurb: 'Run through your draft. Find the friction. Fix it.',
-    objectives: [
-      'Run through your draft experience yourself — time it',
-      'Identify one moment of friction (confusing, slow, unclear)',
-      'Fix the friction and implement the corrected version',
-    ],
-  },
-  Evaluation: {
-    blurb: 'Define success. Compare origin to result. Write the proof.',
-    objectives: [
-      'Define success: what metric proves this experience worked?',
-      "Compare your original 'Ordinary World' description to what you built",
-      "Write one sentence: 'I know this works when I see a learner...'",
-    ],
-  },
-  Contrast: {
-    blurb: 'Find the bad example. Find the great one. Name what makes yours different.',
-    objectives: [
-      'Find a bad example of teaching your subject — name exactly what makes it forgettable',
-      'Find a great example — name the one thing that makes it stick',
-      'List how your design differs from both: what is your Contrast principle?',
-    ],
-  },
-  Repetition: {
-    blurb: 'One core concept. Three different contexts. Three different senses.',
-    objectives: [
-      'Identify the ONE core concept that must be encountered multiple times',
-      'Design 3 different contexts where learners meet that concept (Pythagorean breadth)',
-      'Assign each encounter to a different sense or modality (see / do / explain)',
-    ],
-  },
-  Alignment: {
-    blurb: 'Check every connection. Hook → objective → practice → metric.',
-    objectives: [
-      'Check: does your hook connect directly to your measurable objective?',
-      'Check: does your practice match the verb in your objective (identify, build, compare...)?',
-      'Check: does your success metric match what the activity actually produces?',
-    ],
-  },
-  Proximity: {
-    blurb: 'Cluster related content. Remove what doesn\'t belong. Map the spatial layout.',
-    objectives: [
-      'Cluster related content together — what belongs in Act 1 vs Act 2 vs Act 3?',
-      "Remove one thing that doesn't belong in Ch 1's scope",
-      'Draw (or describe) the spatial layout: where does the learner look first?',
-    ],
-  },
-  Envision: {
-    blurb: 'Write your Vision. Describe the emotional arc. Ask Pete if it holds.',
-    objectives: [
-      "Write your PEARL Vision: 'When this works, the learner will feel...'",
-      'Describe the emotional arc: bored/confused → engaged → capable → proud',
-      "Ask Pete: 'Does my experience create this arc?' — log Pete's Socratic response",
-    ],
-  },
-  Yoke: {
-    blurb: 'Connect abstract to concrete. Name the real-world moment. Write the metaphor.',
-    objectives: [
-      'Connect your learning objective to a real-world moment the student will face',
-      'Name the stakeholder who benefits most when the student masters this',
-      'Yoke the abstract concept to a concrete, memorable metaphor — one sentence',
-    ],
-  },
-  Evolve: {
-    blurb: 'Compare start to finish. Write the opening chapter. Commit to the Book.',
-    objectives: [
-      "Compare Ch 1's PEARL to what you imagined when you started — what changed?",
-      "Write the opening paragraph of your LitRPG chapter: 'In the Ordinary World, the teacher saw...'",
-      'Commit the Ch 1 design to your Book — the Iron Road continues to Ch 2',
-    ],
-  },
-};
 
 // ─── Simple Markdown → HTML ────────────────────────────────────────────────────
 function renderMarkdown(text) {
@@ -274,8 +175,72 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
   const [sessionZero, setSessionZero] = useState({ step: 0, answers: {} });
   const [lowCoalWarned, setLowCoalWarned] = useState(false);
   const [journalOpen, setJournalOpen] = useState(false);
+  const [voiceOn, setVoiceOn] = useState(false);
+  const [voicePreset, setVoicePreset] = useState('M1');
   const scrollRef = useRef(null);
   const prevPhaseRef = useRef(null);
+  const audioQueueRef = useRef([]);
+  const isPlayingRef = useRef(false);
+  const audioRef = useRef(null);
+
+  const processAudioQueue = React.useCallback(async () => {
+    if (isPlayingRef.current || audioQueueRef.current.length === 0) return;
+    isPlayingRef.current = true;
+    const text = audioQueueRef.current.shift();
+
+    if (!voiceOn) {
+        isPlayingRef.current = false;
+        processAudioQueue();
+        return;
+    }
+
+    try {
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voice: voicePreset }),
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        audio.onended = () => { 
+          URL.revokeObjectURL(url); 
+          isPlayingRef.current = false;
+          processAudioQueue();
+        };
+        audio.onerror = () => { 
+          URL.revokeObjectURL(url); 
+          isPlayingRef.current = false;
+          processAudioQueue();
+        };
+        await audio.play();
+        return; // Web Audio API takes care of playback
+      }
+    } catch { /* Fallthrough to browser */ }
+    
+    // Fallback if Supertonic sidecar fails
+    if (window.speechSynthesis) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.onend = () => { isPlayingRef.current = false; processAudioQueue(); };
+        utterance.onerror = () => { isPlayingRef.current = false; processAudioQueue(); };
+        window.speechSynthesis.speak(utterance);
+    } else {
+        isPlayingRef.current = false;
+        processAudioQueue();
+    }
+  }, [voiceOn]);
+
+  const enqueueSentence = React.useCallback((text) => {
+    const clean = text.trim();
+    if (!clean || !voiceOn) return;
+    audioQueueRef.current.push(clean);
+    if (!isPlayingRef.current) {
+        processAudioQueue();
+    }
+  }, [processAudioQueue, voiceOn]);
 
   const activePhase = quest?.phase || 'Analysis';
   const isViewing = viewPhase && viewPhase !== activePhase;
@@ -337,16 +302,19 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
   // Handle SSE events — scope creep, objective completion, phase advance
   useEffect(() => {
     if (!sseEvents?.length) return;
+    let needsRefetch = false;
     sseEvents.forEach(ev => {
       try {
         const data = typeof ev === 'string' ? JSON.parse(ev) : ev;
-        if (data.type === 'objective_completed') {
+        if (data.type === 'objective_completed' || data.type === 'quest_sync') {
+          needsRefetch = true;
           setNarrative(n => [...n, {
             role: 'narrator',
             content: `「 ▸ QUEST ◂ Objective sealed. +${data.xp || 10} XP flows through the rails. The track ahead grows clearer. 」`,
           }]);
         }
         if (data.type === 'phase_advanced') {
+          needsRefetch = true;
           setNarrative(n => [...n, {
             role: 'narrator',
             content: `「 ▸ STATION ◂ The whistle screams. The locomotive lurches forward into ${data.new_phase || 'the next station'} — new tracks, new questions, new light. 」`,
@@ -360,8 +328,9 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
         }
       } catch { /* silent */ }
     });
+    if (needsRefetch && onRefetch) onRefetch();
     if (onDismissEvent) sseEvents.forEach(ev => onDismissEvent(ev));
-  }, [sseEvents]);
+  }, [sseEvents, onRefetch, onDismissEvent]);
 
   // ── Actions ──
 
@@ -508,6 +477,7 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
       const dec = new TextDecoder();
       let buffer = '';
       let fullText = '';
+      let sentenceBuffer = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -538,6 +508,13 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
 
             if (token) {
               fullText += token;
+              sentenceBuffer += token;
+              
+              if (/[.!?]\s?$|\n/.test(sentenceBuffer)) {
+                  if (voiceOn) enqueueSentence(sentenceBuffer);
+                  sentenceBuffer = '';
+              }
+
               const captured = fullText;
               setNarrative(n => {
                 const copy = [...n];
@@ -550,6 +527,9 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
             }
           }
         }
+      }
+      if (sentenceBuffer.trim() && voiceOn) {
+          enqueueSentence(sentenceBuffer);
       }
     } catch (err) {
       setNarrative(n => {
@@ -639,6 +619,37 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
                 {completedCount}/{objectives.length}
               </span>
             </div>
+
+            <button
+              id="audio-toggle-btn"
+              className="gdd-export-btn"
+              style={voiceOn ? { background: 'var(--accent)', color: '#fff', borderColor: 'var(--accent)' } : {}}
+              onClick={() => setVoiceOn(v => !v)}
+              title="Toggle Socratic Voice Narration"
+            >
+              {voiceOn ? '🔊 VOICE ON' : '🔈 VOICE OFF'}
+            </button>
+
+            {voiceOn && (
+              <select
+                value={voicePreset}
+                onChange={(e) => setVoicePreset(e.target.value)}
+                className="gdd-export-btn"
+                style={{ cursor: 'pointer', padding: '4px 8px' }}
+                title="Select narrator voice"
+              >
+                <option value="M1">M1</option>
+                <option value="M2">M2</option>
+                <option value="M3">M3</option>
+                <option value="M4">M4</option>
+                <option value="M5">M5</option>
+                <option value="F1">F1</option>
+                <option value="F2">F2</option>
+                <option value="F3">F3</option>
+                <option value="F4">F4</option>
+                <option value="F5">F5</option>
+              </select>
+            )}
 
             <button
               id="objectives-toggle"
@@ -749,21 +760,18 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
                   )}
                 </div>
 
-                {STATION_QUESTS[phase] && (
+                {objectives.length > 0 && (
                   <>
-                    <div className="station-overview__blurb">
-                      {STATION_QUESTS[phase].blurb}
-                    </div>
                     <div className="station-overview__objectives">
-                      <div className="station-overview__objectives-label">QUEST OBJECTIVES</div>
-                      {STATION_QUESTS[phase].objectives.map((desc, i) => {
-                        const isDone = quest?.completed_phases?.includes(phase);
+                      <div className="station-overview__objectives-label">DYNAMIC QUEST OBJECTIVES</div>
+                      {objectives.map((obj, i) => {
+                        const isDone = obj.completed;
                         return (
                           <div key={i} className={`station-overview__obj ${isDone ? 'station-overview__obj--done' : ''}`}>
                             <span className="station-overview__obj-check">
                               {isDone ? '✓' : '○'}
                             </span>
-                            {desc}
+                            {obj.description}
                           </div>
                         );
                       })}

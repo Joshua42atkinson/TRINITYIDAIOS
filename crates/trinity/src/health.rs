@@ -12,7 +12,7 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 
-use axum::{extract::State, response::Json};
+use axum::{extract::State, response::{Json, IntoResponse}};
 use serde::Serialize;
 
 use crate::AppState;
@@ -71,10 +71,40 @@ pub fn mark_startup() {
 }
 
 /// GET /api/health — honest subsystem health check
-pub async fn health_check(State(state): State<AppState>) -> Json<HealthResponse> {
+pub async fn health_check(
+    State(state): State<AppState>,
+    req: axum::extract::Request,
+) -> axum::response::Response {
+    let is_tunnel = req.headers().contains_key("cf-connecting-ip")
+        || req.headers().contains_key("cf-ray");
+
+    let router = state.inference_router.read().await;
+    let llm_connected = router.is_healthy();
+    drop(router);
+
+    // Read cow_catcher diagnostics
+    let cc = state.cow_catcher.read().await;
+    let critical_count = cc.get_obstacles().iter().filter(|o| o.severity >= 8).count();
+    drop(cc);
+
+    let overall = if !llm_connected {
+        "degraded"
+    } else if critical_count > 0 {
+        "warning"
+    } else {
+        "healthy"
+    };
+
+    // ═══ SECURITY: H5 Telemetry Leak Protection ═══
+    // If request comes from the internet (tunnel), return ONLY the status.
+    // Do not reveal internal API urls, database stats, or model variants.
+    if is_tunnel {
+        return axum::Json(serde_json::json!({ "status": overall })).into_response();
+    }
+
+    // For local IDE/UI usage, gather full diagnostics
     let router = state.inference_router.read().await;
     let llm_url = router.active_url().to_string();
-    let llm_connected = router.is_healthy();
     let backend_name = router.active_name().to_string();
     let model_hint = router
         .active_backend()
@@ -96,27 +126,16 @@ pub async fn health_check(State(state): State<AppState>) -> Json<HealthResponse>
         .unwrap_or(false);
 
     let musicgpt_ok = crate::http::check_health("http://127.0.0.1:8189").await;
-
     let voice_ok = crate::http::check_health("http://127.0.0.1:7777").await;
 
-    // Read cow_catcher diagnostics
     let cc = state.cow_catcher.read().await;
     let obstacle_count = cc.get_obstacles().len();
-    let critical_count = cc.get_obstacles().iter().filter(|o| o.severity >= 8).count();
     let should_restart = cc.should_restart();
     drop(cc);
 
     let uptime = START_TIME.get().map(|t| t.elapsed().as_secs()).unwrap_or(0);
 
-    let overall = if !llm_connected {
-        "degraded"
-    } else if critical_count > 0 {
-        "warning"
-    } else {
-        "healthy"
-    };
-
-    Json(HealthResponse {
+    axum::Json(HealthResponse {
         status: overall.to_string(),
         llm: LlmHealth {
             connected: llm_connected,
@@ -162,4 +181,5 @@ pub async fn health_check(State(state): State<AppState>) -> Json<HealthResponse>
         },
         uptime_secs: uptime,
     })
+    .into_response()
 }

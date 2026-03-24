@@ -14,6 +14,21 @@
 
 ---
 
+## Feature Status Overview
+
+| Feature | Status | Evidence |
+|---------|--------|----------|
+| **Inference Router & Dual KV Cache** | `Verified` | `inference_router.rs`, `agent.rs:L132-145` |
+| **Quality Scorecard** | `Verified` | `quality_scorecard.rs`, unit tests pass |
+| **Socratic Protocol & Agent Tools** | `Verified` | `conductor_leader.rs`, `tools.rs`, 30 available tools |
+| **LDT Portfolio HUD** | `Prototype` | `CharacterSheet.jsx`, `character_api.rs` |
+| **App Modes (Iron Road, Express, Yardmaster)** | `Prototype` | `AppMode` enum in `main.rs`, React UI |
+| **Creative Pipeline (Images, Music)** | `Optional Sidecar` | `creative.rs`, ComfyUI/MusicGPT endpoints |
+| **Voice Pipeline** | `Optional Sidecar` | `voice.rs`, External Python TTS sidecar |
+| **Multi-user Sessions** | `Roadmap` | Planned vLLM PagedAttention deployment |
+
+---
+
 ## 🚃 Car 0: Table of Contents
 
 ### ADDIE — Extract the Wisdom *(Cars 1–5: "What is Trinity?")*
@@ -1054,10 +1069,24 @@ The CharacterSheet captures *intent*, not just identity:
 - **Grounding Ritual** — "I Am Here. I Am Enough. I Choose." — completed before any quest interaction
 - **Shadow Status** — Ghost Train tracker (Clear → Stirring → Active → Processed)
 
+The `ShadowStatus` mechanic is grounded in Phil Stutz's therapeutic framework (*The Tools*, Stutz & Michels, 2012) and Jungian Shadow Integration. The Shadow is not a failure state — it is unprocessed telemetry. The system does not attempt to "defeat" the Shadow; it follows the Jungian model of *Active Imagination* where the user engages in structured dialogue (via Pete's Socratic scaffolding) to *integrate* the Shadow.
+
+**Game Mechanic Mapping (Stutz → Trinity):**
+
+| Stutz Tool | Trinity State | Trigger |
+|------------|--------------|---------|
+| Part X (Inner Critic) | `Stirring` | RLHF negative feedback × 1 → Pete adjusts scaffolding |
+| Reversal of Desire | `Active → Processed` | RLHF negative × 3 → Journal required → Memorial Step |
+| String of Pearls | `PEARL.refined_count` | Each PEARL refinement = a pearl on Stutz's string |
+
+**Wiring Status:** Currently `ShadowStatus` is **display-only** — the field renders on the CharacterSheet HUD but never transitions from `Clear`. See `MATURATION_MAP.md` Soft Spot §5 for the detailed implementation plan that wires RLHF feedback → Shadow → Vulnerability → Pete's prompt adjustment.
+
 > 📍 `character_sheet.rs:L20-33` — Intent Engineering philosophy block (Brené Brown, Pythagoras)
 > 📍 `character_sheet.rs:L39-77` — `IntentPosture` with `coal_multiplier()` and `xp_multiplier()`
 > 📍 `character_sheet.rs:L950-968` — `ShadowStatus` enum: Clear, Stirring, Active, Processed
 > 📍 `character_sheet.rs:L321-366` — `intent_summary()` for conductor prompt injection
+> 📍 `character_api.rs:L58-60` — `vulnerability > 0.7` triggers gentle Socratic mode (Pete reads Shadow through vulnerability)
+> 📍 Field Manual §3.4 — Pete's narrative explanation of the Ghost Train
 
 ### 6.8 Trinity vs. Other Tools
 

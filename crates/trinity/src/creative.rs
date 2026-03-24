@@ -844,7 +844,7 @@ async fn wait_for_video(
 pub async fn get_creative_settings(
     State(state): State<AppState>,
 ) -> Json<CreativeSettingsResponse> {
-    let sheet = state.character_sheet.read().await;
+    let sheet = state.player.character_sheet.read().await;
     Json(CreativeSettingsResponse {
         visual_style: format!("{:?}", sheet.creative_config.visual_style).to_lowercase(),
         music_style: format!("{:?}", sheet.creative_config.music_style).to_lowercase(),
@@ -857,7 +857,7 @@ pub async fn update_creative_settings(
     State(state): State<AppState>,
     Json(request): Json<CreativeSettingsRequest>,
 ) -> Result<Json<CreativeSettingsResponse>, (StatusCode, String)> {
-    let mut sheet = state.character_sheet.write().await;
+    let mut sheet = state.player.character_sheet.write().await;
 
     // Update visual style
     if let Some(visual) = request.visual_style.as_deref() {

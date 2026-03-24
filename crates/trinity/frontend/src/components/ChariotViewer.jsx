@@ -23,7 +23,7 @@ const DOC_META = {
   'PROFESSOR.md': {
     title: 'The Professor',
     emoji: '🎓',
-    subtitle: 'Standards · Privacy · Institutional Evaluation',
+    subtitle: 'Sovereign Cognitive Engine · Institutional Scale & Theory',
     accent: '#CFB991',
   },
 };

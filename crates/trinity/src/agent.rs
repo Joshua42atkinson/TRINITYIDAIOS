@@ -260,12 +260,12 @@ pub async fn agent_chat_stream(
     let db_pool = state.db_pool.clone();
     let max_turns = request.max_turns.min(10);
     let max_tokens = request.max_tokens;
-    let session_id = state.session_id.as_ref().clone();
+    let session_id = state.project.session_id.as_ref().clone();
 
     // Clone state for async task
-    let game_state = state.game_state.clone();
-    let character_sheet = state.character_sheet.clone();
-    let _book_updates = state.book_updates.clone();
+    let game_state = state.project.game_state.clone();
+    let character_sheet = state.player.character_sheet.clone();
+    let _book_updates = state.project.book_updates.clone();
 
     tokio::spawn(async move {
         let is_ironroad = request.mode == "ironroad";

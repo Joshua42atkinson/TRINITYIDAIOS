@@ -1,19 +1,51 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import '../styles/zen.css';
 
 /**
- * ZEN MODE — The Open Book
- * Left page: Great Recycler narration (AI response, voiced via Piper TTS)
- * Right page: User's writing (text input)
- * LitRPG audiobook aesthetic — immersive narration.
+ * ZEN MODE — The Game Engine
+ *
+ * Three-panel layout:
+ *   LEFT:         Great Recycler narration (streamed from Storyteller :8081)
+ *   RIGHT-TOP:    User's story/reflections
+ *   RIGHT-BOTTOM: Design Doc (auto-building from Director :8080 interpretation)
+ *
+ * Uses /api/chat/zen endpoint with typed SSE events:
+ *   - event: interpretation → JSON design elements → updates Design Doc
+ *   - event: narration      → streamed tokens → fills narrator panel
+ *
+ * VAAM vocabulary highlighting: detected words glow gold in the narration.
+ * Pace is intentional — Zen Mode is not a race.
  */
 
+const WELCOME = {
+  role: 'narrator',
+  text: "Welcome to Zen Mode, traveler.\n\nThis is the quiet car. No buttons, no dashboards — just you and the page.\n\nI am the Great Recycler. I'll narrate your journey, and you'll write your story alongside mine. When you're ready, type your thoughts below and press Enter.\n\nWhat would you like to explore today?",
+};
+
+// How many narrator/user messages to show before older ones "fall off" the visible scroll.
+// All messages still persist in localStorage.
+const VISIBLE_NARRATIONS = 5;
+
 export default function ZenMode() {
-  const [messages, setMessages] = useState([
-    {
-      role: 'narrator',
-      text: "Welcome to Zen Mode, traveler.\n\nThis is the quiet car. No buttons, no dashboards — just you and the page.\n\nI am the Great Recycler. I'll narrate your journey, and you'll write your story alongside mine. When you're ready, type your thoughts on the right and press Enter.\n\nWhat would you like to explore today?",
-    },
-  ]);
+  // Load from localStorage on init — full history persists locally
+  const [messages, setMessages] = useState(() => {
+    try {
+      const saved = localStorage.getItem('zen_messages');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) { /* corrupted — start fresh */ }
+    return [WELCOME];
+  });
+
+  // Auto-save messages to localStorage on every update
+  useEffect(() => {
+    try {
+      localStorage.setItem('zen_messages', JSON.stringify(messages));
+    } catch (e) { /* quota exceeded — degrade gracefully */ }
+  }, [messages]);
+
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [voiceOn, setVoiceOn] = useState(true);
@@ -22,7 +54,29 @@ export default function ZenMode() {
   const [showSettings, setShowSettings] = useState(false);
   const [volume, setVolume] = useState(0.7);
   const [speed, setSpeed] = useState(0.95);
-  const [showThinking, setShowThinking] = useState(false); // Hide streaming for immersive feel
+  const [voicePreset, setVoicePreset] = useState('M1');
+
+  // Design Doc state — auto-fills from Director, persists locally
+  const [designDoc, setDesignDoc] = useState(() => {
+    try {
+      const saved = localStorage.getItem('zen_design_doc');
+      if (saved) return JSON.parse(saved);
+    } catch (e) { /* */ }
+    return {
+      subject: null, audience: null, bloom_level: null,
+      learning_objectives: [], vocabulary: [], scope_creeps: [],
+    };
+  });
+
+  // Persist Design Doc
+  useEffect(() => {
+    try {
+      localStorage.setItem('zen_design_doc', JSON.stringify(designDoc));
+    } catch (e) { /* */ }
+  }, [designDoc]);
+
+  // VAAM-detected vocabulary for highlighting
+  const [vaamWords, setVaamWords] = useState(new Set());
 
   const audioRef = useRef(null);
   const leftRef = useRef(null);
@@ -33,26 +87,73 @@ export default function ZenMode() {
   volumeRef.current = volume;
   speedRef.current = speed;
 
-  // Check voice sidecar on mount (health check only, no TTS)
+  // Yak Bak Customizer State
+  const [recordingVoice, setRecordingVoice] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+
+  const handleRecordVoice = async () => {
+    if (recordingVoice) {
+      if (mediaRecorderRef.current) mediaRecorderRef.current.stop();
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = e => audioChunksRef.current.push(e.data);
+      mediaRecorderRef.current.onstop = async () => {
+        setRecordingVoice(false);
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        
+        const formData = new FormData();
+        formData.append("audio_file", blob, "custom_voice.webm");
+        try {
+          await fetch('http://127.0.0.1:8200/clone', { method: 'POST', body: formData });
+          setMessages(prev => [...prev, {role: 'narrator', text: '✦ Voice Matrix Accepted. The Great Recycler has parameterized your frequency. You are now the voice of the LitRPG World AI.'}]);
+          enqueueSentence("Voice Matrix Accepted. The Great Recycler has parameterized your frequency. You are now the voice of the LitRPG World AI.");
+        } catch (e) {
+          console.error("Voice clone failed", e);
+        }
+      };
+      
+      mediaRecorderRef.current.start();
+      setRecordingVoice(true);
+      setTimeout(() => { 
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+          mediaRecorderRef.current.stop(); 
+        }
+      }, 5000);
+    } catch (e) {
+      console.error("Microphone access denied", e);
+    }
+  };
+
+  // Check voice sidecar on mount
   useEffect(() => {
     fetch('http://127.0.0.1:8200/health')
       .then((r) => r.ok ? r.json() : null)
-      .then((d) => setVoiceEngine(d && d.status !== 'error' ? 'piper' : 'browser'))
+      .then((d) => setVoiceEngine(d && d.status !== 'error' ? 'supertonic' : 'browser'))
       .catch(() => {
-        // CORS may block direct check, try through proxy
         fetch('/api/tts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: '.' }),
         })
-          .then((r) => setVoiceEngine(r.ok ? 'piper' : 'browser'))
+          .then((r) => setVoiceEngine(r.ok ? 'supertonic' : 'browser'))
           .catch(() => setVoiceEngine('browser'));
       });
   }, []);
 
-  // Stop all audio
+  const audioQueueRef = useRef([]);
+  const isPlayingRef = useRef(false);
+
   const stopAudio = useCallback(() => {
     window.speechSynthesis?.cancel();
+    audioQueueRef.current = [];
+    isPlayingRef.current = false;
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -61,38 +162,51 @@ export default function ZenMode() {
     setSpeaking(false);
   }, []);
 
-  // Speak text — tries Piper, falls back to browser
-  // Using refs for volume/speed to keep callback stable and prevent re-render loops
-  const speak = useCallback(async (text) => {
-    if (!voiceOn) return;
-    stopAudio();
-    setSpeaking(true);
+  const processAudioQueue = useCallback(async () => {
+    if (isPlayingRef.current || audioQueueRef.current.length === 0) return;
+    isPlayingRef.current = true;
+    const text = audioQueueRef.current.shift();
 
-    // Try Piper TTS
+    if (!voiceOn) {
+      isPlayingRef.current = false;
+      processAudioQueue();
+      return;
+    }
+    setSpeaking(true);
     try {
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, voice: voicePreset }),
       });
       if (res.ok) {
-        setVoiceEngine('piper');
+        setVoiceEngine('supertonic');
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const audio = new Audio(url);
         audio.volume = volumeRef.current;
         audio.playbackRate = speedRef.current;
         audioRef.current = audio;
-        audio.onended = () => { setSpeaking(false); URL.revokeObjectURL(url); };
-        audio.onerror = () => { setSpeaking(false); URL.revokeObjectURL(url); };
+        audio.onended = () => { 
+          URL.revokeObjectURL(url); 
+          isPlayingRef.current = false;
+          processAudioQueue();
+        };
+        audio.onerror = () => { 
+          URL.revokeObjectURL(url); 
+          isPlayingRef.current = false;
+          processAudioQueue();
+        };
         await audio.play();
         return;
       }
     } catch { /* fall through */ }
-
-    // Fallback: browser TTS
     setVoiceEngine('browser');
-    if (!window.speechSynthesis) { setSpeaking(false); return; }
+    if (!window.speechSynthesis) { 
+        isPlayingRef.current = false;
+        processAudioQueue();
+        return; 
+    }
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = speedRef.current;
     utterance.pitch = 0.85;
@@ -102,10 +216,19 @@ export default function ZenMode() {
       v.name.includes('Daniel') || v.name.includes('Google UK English Male') || v.name.includes('Male')
     );
     if (pref) utterance.voice = pref;
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => setSpeaking(false);
+    utterance.onend = () => { isPlayingRef.current = false; processAudioQueue(); };
+    utterance.onerror = () => { isPlayingRef.current = false; processAudioQueue(); };
     window.speechSynthesis.speak(utterance);
-  }, [voiceOn, stopAudio]); // stable deps only — volume/speed via refs
+  }, [voiceOn]);
+
+  const enqueueSentence = useCallback((text) => {
+    const clean = text.trim();
+    if (!clean) return;
+    audioQueueRef.current.push(clean);
+    if (!isPlayingRef.current) {
+        processAudioQueue();
+    }
+  }, [processAudioQueue]);
 
   // Auto-scroll
   useEffect(() => {
@@ -113,82 +236,79 @@ export default function ZenMode() {
     if (rightRef.current) rightRef.current.scrollTop = rightRef.current.scrollHeight;
   }, [messages]);
 
-  // Welcome narration — fires exactly once
+  // Welcome narration
   useEffect(() => {
     if (hasSpokenWelcome.current) return;
     hasSpokenWelcome.current = true;
-    const t = setTimeout(() => speak(messages[0].text), 1200);
+    const t = setTimeout(() => enqueueSentence(messages[0].text), 1200);
     return () => clearTimeout(t);
-  }, [speak]); // safe: speak only changes when voiceOn changes
+  }, [enqueueSentence]);
 
-  // Strip model chain-of-thought / meta-commentary — aggressive version
-  const stripThinking = (text) => {
-    let cleaned = text;
+  // Merge Director interpretation into Design Doc
+  const mergeInterpretation = useCallback((interp) => {
+    setDesignDoc((prev) => {
+      const next = { ...prev };
+      if (interp.subject && interp.subject !== 'null') next.subject = interp.subject;
+      if (interp.audience && interp.audience !== 'null') next.audience = interp.audience;
+      if (interp.bloom_level && interp.bloom_level !== 'null') next.bloom_level = interp.bloom_level;
+      if (interp.learning_objectives?.length) {
+        const existing = new Set(next.learning_objectives);
+        interp.learning_objectives.forEach((o) => { if (o) existing.add(o); });
+        next.learning_objectives = [...existing];
+      }
+      if (interp.vocabulary?.length) {
+        const existing = new Set(next.vocabulary);
+        interp.vocabulary.forEach((w) => { if (w) existing.add(w); });
+        next.vocabulary = [...existing];
+        // Add to VAAM highlighting
+        setVaamWords((prev) => {
+          const next = new Set(prev);
+          interp.vocabulary.forEach((w) => { if (w) next.add(w.toLowerCase()); });
+          return next;
+        });
+      }
+      if (interp.scope_creeps?.length) {
+        const existing = new Set(next.scope_creeps);
+        interp.scope_creeps.forEach((s) => { if (s) existing.add(s); });
+        next.scope_creeps = [...existing];
+      }
+      return next;
+    });
+  }, []);
 
-    // Strategy 1: If the model output contains quoted narration after reasoning,
-    // extract just the narration. Look for the pattern: ...something like:"actual narration"
-    const quotedMatch = cleaned.match(/(?:something like|here'?s?|response|narration)[:\s]*"([^"]{20,})"/is);
-    if (quotedMatch) return quotedMatch[1].trim();
+  // Highlight VAAM vocabulary words in narration text
+  const highlightVaam = useCallback((text) => {
+    if (vaamWords.size === 0) return text;
+    const words = text.split(/(\s+)/);
+    return words.map((word, i) => {
+      const clean = word.toLowerCase().replace(/[^a-z]/g, '');
+      if (clean && vaamWords.has(clean)) {
+        return <span key={i} className="zen-vaam">{word}</span>;
+      }
+      return word;
+    });
+  }, [vaamWords]);
 
-    // Strategy 2: Find where the actual narration begins — model starts speaking
-    // in second person ("You") after its reasoning preamble
-    const youSplit = cleaned.match(/^.*?(?:like:|response:|narration:|GO:|question\.?\s*\n)\s*(You\s)/is);
-    if (youSplit) {
-      const idx = cleaned.indexOf(youSplit[1], youSplit.index);
-      if (idx > 0) cleaned = cleaned.slice(idx);
-    }
-
-    // Strategy 3: Strip known meta-commentary patterns from the start
-    const stripPatterns = [
-      /^.*?(?:let me (?:write|craft|create|respond))[^.]*\.?\s*/is,
-      /^.*?(?:here(?:'s| is) (?:my|the|a) (?:response|narration))[:\s]*/is,
-      /^.*?(?:I'll respond|I should respond|I need to|I want to)[^.]*\.?\s*/is,
-      /^.*?(?:a response that|respond (?:in|as|with))[^.]*\.?\s*/is,
-      /^.*?(?:The traveler (?:writes|says|asks))[:\s]*(?:['"][^'"]*['"])?\s*/is,
-      /^.*?(?:something like)\s*:?\s*/is,
-    ];
-    for (const pat of stripPatterns) {
-      cleaned = cleaned.replace(pat, '');
-    }
-
-    // Strategy 4: Remove lines that are clearly instructions/bullets
-    cleaned = cleaned.split('\n').filter((line) => {
-      const l = line.trim();
-      if (!l) return true;
-      // Skip meta-commentary lines
-      if (/^[•\-\*]\s*(Speak|Is\s|End|Interpret|Be\s|Keep|Maximum|Three|One paragraph)/i.test(l)) return false;
-      if (/^(— ❦ —|---|\*\*\*|~~~)/.test(l)) return false; // decorative dividers from the model
-      if (/^a response that/i.test(l)) return false;
-      return true;
-    }).join('\n').trim();
-
-    // Strategy 5: If there's a "— ❦ —" divider, take everything AFTER it
-    const dividerIdx = cleaned.indexOf('— ❦ —');
-    if (dividerIdx >= 0) {
-      const afterDivider = cleaned.slice(dividerIdx + 5).trim();
-      if (afterDivider.length > 20) cleaned = afterDivider;
-    }
-
-    return cleaned || text;
-  };
-
-  // Send message
+  // Send message — uses /api/chat/zen with typed SSE events
   const sendMessage = async () => {
     if (!input.trim() || streaming) return;
     const userText = input.trim();
     setInput('');
     stopAudio();
 
-    const thinkingMsg = showThinking ? '' : '✦ The Recycler is composing...';
-    setMessages((prev) => [...prev, { role: 'user', text: userText }, { role: 'narrator', text: thinkingMsg }]);
+    setMessages((prev) => [...prev,
+      { role: 'user', text: userText },
+      { role: 'narrator', text: '✦ The Recycler is composing...' },
+    ]);
     setStreaming(true);
 
     try {
-      const res = await fetch('/api/chat/stream', {
+      const res = await fetch('/api/chat/zen', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: `[NARRATOR MODE — respond in-character ONLY]\n\n"${userText}"\n\nYou ARE the Great Recycler. DO NOT plan, DO NOT explain your process, DO NOT use bullet points. Just narrate. Speak directly to "you" (the traveler). Three short paragraphs maximum. LitRPG audiobook style — poetic, warm, contemplative. End with one question. GO:`,
+          message: userText,
+          mode: 'zen',
           max_tokens: 200,
         }),
       });
@@ -196,130 +316,174 @@ export default function ZenMode() {
       if (!res.ok) throw new Error('Stream failed');
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let fullText = '';
+      let fullNarration = '';
+      let buffer = '';
+      let currentEvent = ''; // Persists across chunks — SSE event type
+      let sentenceBuffer = '';
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        for (const line of chunk.split('\n')) {
-          if (!line.startsWith('data: ')) continue;
-          const data = line.slice(6);
-          if (data === '[DONE]') continue;
-          try {
-            const parsed = JSON.parse(data);
-            const token = parsed.choices?.[0]?.delta?.content || parsed.token || parsed.content || '';
-            if (token) {
-              fullText += token;
-              if (showThinking) {
-                setMessages((prev) => {
-                  const u = [...prev];
-                  u[u.length - 1] = { role: 'narrator', text: fullText };
-                  return u;
-                });
+        buffer += decoder.decode(value, { stream: true });
+
+        // Process complete lines
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line
+
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            currentEvent = line.slice(6).trim();
+          } else if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+
+            if (currentEvent === 'interpretation') {
+              // Director's design element extraction
+              try {
+                const interp = JSON.parse(data);
+                mergeInterpretation(interp);
+              } catch { /* ignore parse errors */ }
+            } else if (currentEvent === 'narration') {
+              // Storyteller token
+              fullNarration += data;
+              sentenceBuffer += data;
+              
+              // If token ends a sentence, queue it for speech
+              if (/[.!?]\s?$|\n/.test(sentenceBuffer)) {
+                  enqueueSentence(sentenceBuffer);
+                  sentenceBuffer = '';
+              }
+              
+              setMessages((prev) => {
+                const u = [...prev];
+                u[u.length - 1] = { role: 'narrator', text: fullNarration };
+                return u;
+              });
+            } else {
+              // Default: try to extract token from JSON
+              try {
+                const parsed = JSON.parse(data);
+                const token = parsed.choices?.[0]?.delta?.content || parsed.token || parsed.content || '';
+                if (token) {
+                  fullNarration += token;
+                  sentenceBuffer += token;
+                  
+                  if (/[.!?]\s?$|\n/.test(sentenceBuffer)) {
+                      enqueueSentence(sentenceBuffer);
+                      sentenceBuffer = '';
+                  }
+
+                  setMessages((prev) => {
+                    const u = [...prev];
+                    u[u.length - 1] = { role: 'narrator', text: fullNarration };
+                    return u;
+                  });
+                }
+              } catch {
+                if (data && data !== '[DONE]') {
+                  fullNarration += data;
+                  sentenceBuffer += data;
+                  
+                  if (/[.!?]\s?$|\n/.test(sentenceBuffer)) {
+                      enqueueSentence(sentenceBuffer);
+                      sentenceBuffer = '';
+                  }
+                }
               }
             }
-          } catch {
-            if (data && data !== '[DONE]') {
-              fullText += data;
-              if (showThinking) {
-                setMessages((prev) => {
-                  const u = [...prev];
-                  u[u.length - 1] = { role: 'narrator', text: fullText };
-                  return u;
-                });
-              }
-            }
+            // Don't reset currentEvent here — it persists until blank line (SSE spec)
+          } else if (line.trim() === '') {
+            // SSE event boundary — blank line resets event type
+            currentEvent = '';
           }
         }
       }
-      if (fullText) {
-        const cleaned = stripThinking(fullText);
+
+      // Queue any leftover text that didn't end in punctuation
+      if (sentenceBuffer.trim()) {
+          enqueueSentence(sentenceBuffer);
+      }
+
+      if (fullNarration) {
         setMessages((prev) => {
           const u = [...prev];
-          u[u.length - 1] = { role: 'narrator', text: cleaned };
+          u[u.length - 1] = { role: 'narrator', text: fullNarration.trim() };
           return u;
         });
-        speak(cleaned);
       }
     } catch (err) {
       console.error('ZEN stream error:', err);
       setMessages((prev) => {
         const u = [...prev];
-        u[u.length - 1] = { role: 'narrator', text: 'The Great Recycler is resting. Check that llama-server is running.' };
+        u[u.length - 1] = { role: 'narrator', text: 'The Great Recycler is resting. Check that llama-server is running on :8080 and :8081.' };
         return u;
       });
     }
     setStreaming(false);
   };
 
-  const narratorMessages = messages.filter((m) => m.role === 'narrator');
-  const userMessages = messages.filter((m) => m.role === 'user');
+  // Hand In to Pete — submit design doc for quest completion
+  const handInToPete = async () => {
+    const fields = [designDoc.subject, designDoc.audience, designDoc.bloom_level];
+    const filledFields = fields.filter(Boolean).length;
+    if (filledFields < 2) return; // Need at least subject + audience
 
-  const btnStyle = (active) => ({
-    padding: '4px 12px', borderRadius: '6px',
-    background: active ? 'rgba(207, 185, 145, 0.12)' : 'transparent',
-    border: '1px solid rgba(207, 185, 145, 0.2)',
-    color: active ? '#CFB991' : '#4B5563',
-    cursor: 'pointer', fontSize: '12px',
-    fontFamily: "'Inter', sans-serif",
-    transition: 'all 0.15s',
-  });
+    try {
+      // Get current objectives
+      const res = await fetch('/api/quest/state');
+      if (res.ok) {
+        const state = await res.json();
+        const objectives = state.quest?.phase_objectives || [];
+        const incomplete = objectives.find((o) => !o.completed);
+        if (incomplete) {
+          await fetch('/api/quest/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ objective_id: incomplete.id }),
+          });
+          setMessages((prev) => [...prev, {
+            role: 'narrator',
+            text: `✦ Pete reviews your work and nods approvingly. "${incomplete.description}" — marked complete. You feel the train lurch forward, gaining momentum.`,
+          }]);
+        }
+      }
+    } catch (err) {
+      console.error('Hand-in failed:', err);
+    }
+  };
+
+  const allNarratorMessages = messages.filter((m) => m.role === 'narrator');
+  const allUserMessages = messages.filter((m) => m.role === 'user');
+  // Rolling window — show only recent messages, older ones persist in localStorage
+  const narratorMessages = allNarratorMessages.slice(-VISIBLE_NARRATIONS);
+  const userMessages = allUserMessages.slice(-VISIBLE_NARRATIONS);
+  const docFieldCount = [designDoc.subject, designDoc.audience, designDoc.bloom_level].filter(Boolean).length;
+
+  const isReady = input.trim() && !streaming;
 
   return (
-    <div style={{
-      gridColumn: '1 / -1', gridRow: 2,
-      display: 'flex', flexDirection: 'column',
-      overflow: 'hidden', background: '#0F0D0A',
-    }}>
+    <div className="zen-layout">
       {/* Header */}
-      <header style={{
-        padding: '12px 40px', flexShrink: 0,
-        display: 'flex', alignItems: 'center', gap: '12px',
-        borderBottom: '1px solid rgba(207, 185, 145, 0.1)',
-        background: 'rgba(15, 13, 10, 0.95)',
-      }}>
-        <div style={{
-          fontFamily: "'Cinzel Decorative', 'Cinzel', serif",
-          fontSize: '18px', color: '#CFB991', letterSpacing: '3px',
-        }}>
-          ✦ ZEN MODE
+      <header className="zen-header">
+        <div className="zen-header__title">✦ ZEN MODE</div>
+        <div className="zen-header__subtitle">
+          The Game Engine — narration & design
         </div>
-        <div style={{
-          fontSize: '11px', color: '#6B7280',
-          fontFamily: "'Inter', sans-serif",
-        }}>
-          The Open Book — narration & reflection
-        </div>
-        <div style={{
-          fontSize: '10px', color: '#D97706',
-          fontFamily: "'Inter', sans-serif",
-          padding: '2px 8px',
-          border: '1px solid rgba(217, 119, 6, 0.3)',
-          borderRadius: '4px',
-          background: 'rgba(217, 119, 6, 0.08)',
-        }}>
-          🚧 Under Construction — awaiting narrator fine-tune
-        </div>
-        <div style={{ flex: 1 }} />
+        <div className="zen-header__spacer" />
 
-        {/* Voice toggle */}
         <button
-          onClick={() => {
-            if (voiceOn) stopAudio();
-            setVoiceOn((v) => !v);
-          }}
-          style={btnStyle(voiceOn)}
+          id="zen-voice-toggle"
+          onClick={() => { if (voiceOn) stopAudio(); setVoiceOn((v) => !v); }}
+          className={`zen-btn ${voiceOn ? 'zen-btn--active' : ''}`}
         >
           {voiceOn
-            ? (speaking ? '🔊 ● Narrating...' : `🔊 ${voiceEngine === 'piper' ? 'Piper' : 'Browser'}`)
+            ? (speaking ? '🔊 ● Narrating...' : `🔊 ${voiceEngine === 'supertonic' ? 'Supertonic' : 'Browser'}`)
             : '🔇 Off'}
         </button>
-
-        {/* Settings gear */}
         <button
+          id="zen-settings-toggle"
           onClick={() => setShowSettings((v) => !v)}
-          style={btnStyle(showSettings)}
+          className={`zen-btn ${showSettings ? 'zen-btn--active' : ''}`}
         >
           ⚙
         </button>
@@ -327,195 +491,187 @@ export default function ZenMode() {
 
       {/* Settings panel */}
       {showSettings && (
-        <div style={{
-          padding: '12px 40px', flexShrink: 0,
-          display: 'flex', gap: '32px', alignItems: 'center',
-          borderBottom: '1px solid rgba(207, 185, 145, 0.08)',
-          background: 'rgba(15, 13, 10, 0.9)',
-          fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#9CA3AF',
-        }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            Volume
-            <input
-              type="range" min="0" max="1" step="0.05"
-              value={volume}
-              onChange={(e) => {
-                const v = parseFloat(e.target.value);
-                setVolume(v);
-                if (audioRef.current) audioRef.current.volume = v;
+        <div className="zen-settings">
+          <div className="zen-settings__group">
+            <button
+              id="zen-clear-session"
+              onClick={() => {
+                setMessages([]);
+                setDesignDoc({ subject: '', audience: '', bloom_level: '', learning_objectives: [], vocabulary: [], scope_creeps: [] });
+                localStorage.removeItem('zen_messages');
+                localStorage.removeItem('zen_design_doc');
               }}
-              style={{ accentColor: '#CFB991', width: '100px' }}
-            />
-            <span style={{ color: '#CFB991', width: '30px' }}>{Math.round(volume * 100)}%</span>
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            Speed
-            <input
-              type="range" min="0.5" max="1.5" step="0.05"
-              value={speed}
-              onChange={(e) => {
-                const s = parseFloat(e.target.value);
-                setSpeed(s);
-                if (audioRef.current) audioRef.current.playbackRate = s;
-              }}
-              style={{ accentColor: '#CFB991', width: '100px' }}
-            />
-            <span style={{ color: '#CFB991', width: '35px' }}>{speed.toFixed(2)}×</span>
-          </label>
-          <div style={{ borderLeft: '1px solid rgba(207,185,145,0.15)', height: '20px' }} />
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={showThinking}
-              onChange={(e) => setShowThinking(e.target.checked)}
-              style={{ accentColor: '#CFB991' }}
-            />
-            Show thinking
-          </label>
-          <div style={{ color: '#4B5563' }}>
-            Engine: <span style={{ color: '#CFB991' }}>{voiceEngine}</span>
+              className="zen-settings__clear-btn"
+            >
+              Clear Session
+            </button>
           </div>
-          <div style={{ color: '#4B5563' }}>
-            Burst: <span style={{ color: '#CFB991' }}>~30s / 80 words</span>
+          <div className="zen-settings__spacer" />
+          <button
+            id="zen-yak-bak"
+            onClick={handleRecordVoice}
+            className={`zen-settings__record-btn ${recordingVoice ? 'zen-settings__record-btn--recording' : ''}`}
+          >
+            {recordingVoice ? '🔴 Recording (5s)...' : '🎙️ Yak Bak Customizer'}
+          </button>
+          <div className="zen-settings__group">
+            <span>Voice</span>
+            <select
+              id="zen-voice-select"
+              value={voicePreset}
+              onChange={(e) => setVoicePreset(e.target.value)}
+              className="zen-settings__select"
+            >
+              <optgroup label="Male">
+                <option value="M1">M1 — Deep</option>
+                <option value="M2">M2 — Warm</option>
+                <option value="M3">M3 — Clear</option>
+                <option value="M4">M4 — Bright</option>
+                <option value="M5">M5 — Smooth</option>
+              </optgroup>
+              <optgroup label="Female">
+                <option value="F1">F1 — Rich</option>
+                <option value="F2">F2 — Soft</option>
+                <option value="F3">F3 — Warm</option>
+                <option value="F4">F4 — Bright</option>
+                <option value="F5">F5 — Clear</option>
+              </optgroup>
+            </select>
+          </div>
+          <div className="zen-settings__group">
+            <span>Volume</span>
+            <input type="range" min="0" max="1" step="0.05" value={volume}
+              onChange={(e) => { const v = parseFloat(e.target.value); setVolume(v); if (audioRef.current) audioRef.current.volume = v; }}
+              className="zen-settings__range" />
+            <span className="zen-settings__value">{Math.round(volume * 100)}%</span>
+          </div>
+          <div className="zen-settings__group">
+            <span>Speed</span>
+            <input type="range" min="0.5" max="1.5" step="0.05" value={speed}
+              onChange={(e) => { const s = parseFloat(e.target.value); setSpeed(s); if (audioRef.current) audioRef.current.playbackRate = s; }}
+              className="zen-settings__range" />
+            <span className="zen-settings__value">{speed.toFixed(2)}×</span>
+          </div>
+          <div className="zen-settings__meta">
+            Engine: <span className="zen-settings__meta-value">{voiceEngine}</span>
+          </div>
+          <div className="zen-settings__meta">
+            Pipeline: <span className="zen-settings__meta-value">Director → Storyteller</span>
           </div>
         </div>
       )}
 
-      {/* Open Book layout */}
-      <div style={{
-        flex: 1, display: 'grid',
-        gridTemplateColumns: '1fr 1px 1fr',
-        overflow: 'hidden',
-      }}>
+      {/* Three-Panel Layout */}
+      <div className="zen-panels">
         {/* LEFT — Narrator */}
-        <div ref={leftRef} style={{
-          overflow: 'auto', padding: '40px',
-          background: 'linear-gradient(135deg, rgba(207, 185, 145, 0.03), rgba(15, 13, 10, 1))',
-          boxShadow: 'inset -8px 0 20px -8px rgba(0, 0, 0, 0.4)',
-        }}>
-          <div style={{
-            fontFamily: "'Cinzel', serif", fontSize: '10px',
-            color: '#4B5563', letterSpacing: '3px', textTransform: 'uppercase',
-            marginBottom: '24px',
-          }}>
+        <div ref={leftRef} className="zen-narrator">
+          <div className="zen-narrator__label">
             ♻️ The Great Recycler — Narration
           </div>
 
           {narratorMessages.map((m, i) => (
-            <div key={i} style={{
-              fontFamily: "'Crimson Text', serif",
-              fontSize: '18px', lineHeight: 2,
-              color: '#D4C9B8',
-              marginBottom: '32px',
-              whiteSpace: 'pre-wrap',
-            }}>
-              {m.text}
+            <div key={i} className="zen-narrator__message">
+              {highlightVaam(m.text)}
               {i < narratorMessages.length - 1 && (
-                <div style={{
-                  textAlign: 'center', margin: '24px 0',
-                  color: '#4B5563', letterSpacing: '8px', fontSize: '12px',
-                }}>— ❦ —</div>
+                <div className="zen-narrator__divider">— ❦ —</div>
               )}
             </div>
           ))}
 
-          {streaming && (
-            <span style={{
-              display: 'inline-block', width: '8px', height: '18px',
-              background: '#CFB991', borderRadius: '1px',
-              animation: 'pulse 1s infinite',
-              verticalAlign: 'text-bottom', marginLeft: '2px',
-            }} />
-          )}
+          {streaming && <span className="zen-narrator__cursor" />}
         </div>
 
         {/* SPINE */}
-        <div style={{
-          background: 'linear-gradient(180deg, rgba(207,185,145,0.05), rgba(207,185,145,0.15) 20%, rgba(207,185,145,0.15) 80%, rgba(207,185,145,0.05))',
-          boxShadow: '-2px 0 8px rgba(0,0,0,0.3), 2px 0 8px rgba(0,0,0,0.3)',
-        }} />
+        <div className="zen-spine" />
 
-        {/* RIGHT — User */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', overflow: 'hidden',
-          background: 'linear-gradient(225deg, rgba(207, 185, 145, 0.03), rgba(15, 13, 10, 1))',
-          boxShadow: 'inset 8px 0 20px -8px rgba(0, 0, 0, 0.4)',
-        }}>
-          <div ref={rightRef} style={{ flex: 1, overflow: 'auto', padding: '40px' }}>
-            <div style={{
-              fontFamily: "'Cinzel', serif", fontSize: '10px',
-              color: '#4B5563', letterSpacing: '3px', textTransform: 'uppercase',
-              marginBottom: '24px',
-            }}>
+        {/* RIGHT — User Story + Design Doc */}
+        <div className="zen-right">
+          {/* User's reflections */}
+          <div ref={rightRef} className="zen-reflections">
+            <div className="zen-reflections__label">
               ✍️ Your Story — Reflection
             </div>
 
             {userMessages.length === 0 ? (
-              <div style={{
-                fontFamily: "'Crimson Text', serif",
-                fontSize: '16px', lineHeight: 2,
-                color: '#4B5563', fontStyle: 'italic',
-              }}>
+              <div className="zen-reflections__empty">
                 Your words will appear here as you write them...
               </div>
             ) : (
               userMessages.map((m, i) => (
-                <div key={i} style={{
-                  fontFamily: "'Crimson Text', serif",
-                  fontSize: '18px', lineHeight: 2,
-                  color: '#E2E8F0',
-                  marginBottom: '24px',
-                  paddingLeft: '16px',
-                  borderLeft: '2px solid rgba(207, 185, 145, 0.15)',
-                }}>
+                <div key={i} className="zen-reflections__message">
                   {m.text}
                 </div>
               ))
             )}
           </div>
 
-          {/* Input */}
-          <div style={{
-            padding: '16px 40px 24px',
-            borderTop: '1px solid rgba(207, 185, 145, 0.08)',
-            background: 'rgba(15, 13, 10, 0.8)',
-          }}>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
+          {/* Design Doc Panel */}
+          <div className="zen-design-doc">
+            <div className="zen-design-doc__header">
+              📋 Design Doc
+              {docFieldCount > 0 && (
+                <span className="zen-design-doc__badge">{docFieldCount}/3 fields</span>
+              )}
+            </div>
+
+            <div className="zen-design-doc__grid">
+              <div>Subject: <span className={designDoc.subject ? 'zen-design-doc__value' : 'zen-design-doc__value--empty'}>
+                {designDoc.subject || '—'}
+              </span></div>
+              <div>Audience: <span className={designDoc.audience ? 'zen-design-doc__value' : 'zen-design-doc__value--empty'}>
+                {designDoc.audience || '—'}
+              </span></div>
+              <div>Bloom's: <span className={designDoc.bloom_level ? 'zen-design-doc__value' : 'zen-design-doc__value--empty'}>
+                {designDoc.bloom_level || '—'}
+              </span></div>
+              <div>Vocab: <span className={designDoc.vocabulary.length ? 'zen-design-doc__value' : 'zen-design-doc__value--empty'}>
+                {designDoc.vocabulary.length ? designDoc.vocabulary.slice(0, 5).join(', ') : '—'}
+              </span></div>
+            </div>
+
+            {designDoc.learning_objectives.length > 0 && (
+              <div className="zen-design-doc__objectives">
+                Objectives: {designDoc.learning_objectives.map((o, i) => (
+                  <span key={i} className="zen-design-doc__objective">• {o}</span>
+                ))}
+              </div>
+            )}
+
+            {designDoc.scope_creeps.length > 0 && (
+              <div className="zen-design-doc__scope-creeps">
+                ⚠ Scope Creeps: {designDoc.scope_creeps.join(', ')}
+              </div>
+            )}
+
+            {docFieldCount >= 2 && (
+              <button
+                id="zen-hand-in"
+                onClick={handInToPete}
+                className="zen-handin-btn"
+              >
+                📤 Hand In to Shifu Pete
+              </button>
+            )}
+          </div>
+
+          {/* Input — Full Width */}
+          <div className="zen-input">
+            <div className="zen-input__row">
               <textarea
+                id="zen-textarea"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                placeholder={streaming ? 'The Recycler is narrating...' : 'Write your reflection...'}
+                placeholder={streaming ? 'The Director is analyzing... the Recycler is narrating...' : 'Write your reflection...'}
                 disabled={streaming}
                 rows={2}
-                style={{
-                  flex: 1, resize: 'none',
-                  padding: '12px 16px',
-                  background: 'rgba(207, 185, 145, 0.04)',
-                  border: '1px solid rgba(207, 185, 145, 0.12)',
-                  borderRadius: '8px',
-                  color: '#E2E8F0',
-                  fontFamily: "'Crimson Text', serif",
-                  fontSize: '16px', lineHeight: 1.6,
-                  outline: 'none',
-                  transition: 'border-color 0.15s',
-                }}
-                onFocus={(e) => e.target.style.borderColor = 'rgba(207, 185, 145, 0.3)'}
-                onBlur={(e) => e.target.style.borderColor = 'rgba(207, 185, 145, 0.12)'}
+                className="zen-input__textarea"
               />
               <button
+                id="zen-send"
                 onClick={sendMessage}
-                disabled={!input.trim() || streaming}
-                style={{
-                  padding: '12px 20px', borderRadius: '8px',
-                  background: input.trim() && !streaming ? 'rgba(207, 185, 145, 0.12)' : 'transparent',
-                  border: '1px solid rgba(207, 185, 145, 0.2)',
-                  color: input.trim() && !streaming ? '#CFB991' : '#4B5563',
-                  cursor: input.trim() && !streaming ? 'pointer' : 'not-allowed',
-                  fontFamily: "'Cinzel', serif",
-                  fontSize: '12px', letterSpacing: '1px',
-                  transition: 'all 0.15s',
-                }}
+                disabled={!isReady}
+                className={`zen-input__send ${isReady ? 'zen-input__send--ready' : ''}`}
               >
                 Send ↵
               </button>

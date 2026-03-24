@@ -1,0 +1,29 @@
+[Unit]
+Description=Trinity ID AI OS — Axum Server
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=joshua
+Group=joshua
+WorkingDirectory=/home/joshua/Workflow/desktop_trinity/trinity-genesis
+ExecStart=/home/joshua/Workflow/desktop_trinity/trinity-genesis/target/release/trinity
+Restart=on-failure
+RestartSec=5
+Environment=RUST_LOG=trinity_server=info,tower_http=info
+Environment=DATABASE_URL=postgres://trinity:trinity@127.0.0.1:5432/trinity
+
+# Resource limits — Red Hat H3 mitigation
+LimitNOFILE=65536
+MemoryMax=8G
+CPUQuota=200%
+
+# Security hardening
+ProtectSystem=strict
+ReadWritePaths=/home/joshua
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

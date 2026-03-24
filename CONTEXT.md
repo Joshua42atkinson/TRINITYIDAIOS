@@ -126,7 +126,7 @@ User Message → VAAM Bridge (Style/Vocab detect) → Pete Orchestration (VAAM +
 ### Workspace Crates
 | Crate | LOC | Tests | Description |
 |-------|:---:|:-----:|-------------|
-| trinity | 17,500+ | 53 | Axum server :3000, agent (29 tools, structured function calling, **dual persona**: Great Recycler/Programmer Pete), inference (reasoning_effort + tool_calls), **inference_router** (multi-backend auto-detect + failover), persistence (tool call logging), creative, RAG, auto-launch LLM, **EYE export** (HTML5 quiz/adventure/JSON), **eye_container**, **http** (shared clients + unified health checks), **GPU Guard** (Hotel protocol — prevents double llama-server loads), **Quality Scorecard** (5-dimension pedagogical evaluation), **Ring 2 permission enforcement**, **Ring 3 rolling context summary**, **Ring 5 rate limiting + sandboxing**, **character_api** (LDT Portfolio artifact vaulting + Pete system prompt generation) |
+| trinity | 17,500+ | 61 | Axum server :3000, agent (29 tools, structured function calling, **dual persona**: Great Recycler/Programmer Pete), inference (reasoning_effort + tool_calls), **inference_router** (multi-backend auto-detect + failover), persistence (tool call logging), creative, RAG, auto-launch LLM, **EYE export** (HTML5 quiz/adventure/JSON), **eye_container**, **http** (shared clients + unified health checks), **GPU Guard** (Hotel protocol — prevents double llama-server loads), **Quality Scorecard** (5-dimension pedagogical evaluation), **Ring 2 permission enforcement**, **Ring 3 rolling context summary**, **Ring 5 rate limiting + sandboxing**, **character_api** (LDT Portfolio artifact vaulting + Pete system prompt generation), **edge_guard middleware** (Tier 1 public tunnel protection) |
 | trinity-protocol | 10,600+ | 67 | Shared types, ADDIE+PEARL+VAAM+vocabulary+sacred circuitry+TamingProgress+**LdtPortfolio**+**PortfolioArtifact**+**LocomotiveProfile**+**ShadowStatus** |
 | trinity-iron-road | 1,000+ | 16 | Iron Road narrative, game loop, bestiary, Pete core, MadLibs |
 | trinity-quest | 1,550 | 18 | Quest board, XP/Coal/Steam, objectives, save/load, circuitry state |
@@ -157,6 +157,7 @@ User Message → VAAM Bridge (Style/Vocab detect) → Pete Orchestration (VAAM +
 | Unified API | ✅ WIRED | `POST /api/v1/trinity` — single endpoint, routes by mode |
 | GDD Compilation | ✅ FIXED | Compiles 12-phase chat into structured game design document. Accepts optional JSON body (no more 415). |
 | **Quality Scorecard** | ✅ FULL STACK | `POST /api/yard/score` backend (5 pedagogical dimensions) + `QualityScorecard.jsx` frontend (grade circle, score bars, recommendations). Scorecard tab in nav. |
+| **Edge Guard Security** | ✅ LIVE | Hardened `Caddyfile` + Axum middleware blocking dangerous routes (tools, modes, chat) from public Cloudflare tunnel traffic. Rate mapping: 60/min. Binds only to `127.0.0.1`. |
 | **GPU Guard** | ✅ BUILT | `gpu_guard.rs` Hotel protocol: port check + process check + memory budget. Prevents double llama-server loads that crash the GPU driver. PID file tracking for crash recovery. |
 | **Sidecar Monitor** | ✅ FIXED | Was pinging phantom ports 8090-8092 → now checks real sidecars (ComfyUI :8188, Voice :7777, Researcher :8081). Only reports when a previously-healthy sidecar goes down. |
 | **App Modes** | ✅ PHASE 5A | 3 modes: `IronRoad` (gamified), `Express` (wizard), `Yardmaster` (IDE). Auto-starts sidecars. |
@@ -296,6 +297,18 @@ User Message → VAAM Bridge (Style/Vocab detect) → Pete Orchestration (VAAM +
 > - **Character Sheet HUD** — `CharacterSheet.jsx` glassmorphism LitRPG HUD, new Character tab in NavBar
 > - **ART Canvas** — `art_studio.rs` desktop binary: 80 ambient particles, pulsing glow ring, title text, 90/10 canvas/rail split
 > - **ART Panel** — `art_panels.rs` minimal egui control rail: lane selector, style presets, prompt input, sidecar status
+>
+> **Completed: March 24, 2026 (Red Hat Hardening + Identity Split):**
+> - **Edge Guard Middleware** — `edge_guard.rs`: defense-in-depth Cloudflare tunnel detection, route blocking (33 blocked prefixes), per-IP rate limiting (60/min), 8 unit tests
+> - **Caddyfile Hardening** — Blocks all dangerous API routes (tools, chat, models, sessions, projects, creative, voice, admin), adds security headers (X-Content-Type-Options, X-Frame-Options, Referrer-Policy)
+> - **Localhost Bind** — Server bound to `127.0.0.1:3000` (was `0.0.0.0:3000`), only Cloudflare tunnel can reach it
+> - **CORS Restriction** — `CorsLayer::permissive()` → allowlist (ldtatkinson.com, localhost)
+> - **Health Endpoint H5** — Tunnel traffic gets `{"status":"healthy"}` only, no internal telemetry leaked
+> - **Portfolio Redirect** — Tunnel `/` → `/portfolio/` (Purdue-approved LDT Portfolio, not Trinity UI)
+> - **systemd Services** — `trinity.service`, `cloudflared.service`, `llama-server.service` (auto-start on boot, resource limits, security hardening)
+> - **Identity Split (Tier 3.5)** — `AppState` decomposed into `PlayerContext` (character_sheet, bestiary, app_mode) + `ProjectContext` (game_state, conversation_history, book, book_updates, session_id). 24+ call sites migrated across 7 files. 205 tests passing.
+> - **Maturation Map** — 5-tier roadmap (Tier 0-4) with acceptance criteria, Red Hat finding mapping, and Purdue statement draft
+
 
 ### THE PLAN: 1D-2D-3D Layered UI
 

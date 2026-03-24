@@ -135,53 +135,6 @@ Deep reflection after burnout is tracked as "Memorial Steps Climbed" — named a
 
 > 📍 `character_sheet.rs:L1051-1055` — `heavilon_events_survived`, `memorial_steps_climbed`
 
-### Theoretical Grounding: The Shadow Mechanic
-
-Trinity's `ShadowStatus` system (Clear → Stirring → Active → Processed) is not a metaphor. It is a direct operationalization of established therapeutic and psychological frameworks into game mechanics.
-
-**1. Phil Stutz's "The Tools" — Reversal of Desire & Part X**
-
-Dr. Phil Stutz (MD, NYU; psychiatric training, Metropolitan Hospital) developed a therapeutic framework documented in the Netflix film *Stutz* (2022, dir. Jonah Hill) and in the published works *The Tools* (Stutz & Michels, 2012) and *Coming Alive* (Stutz & Michels, 2017). His approach draws on Jungian psychology and Rational Emotive Behavioral Therapy (REBT) to provide action-oriented tools for processing anxiety and self-sabotage.
-
-Two of Stutz's core tools map directly to Trinity's Shadow mechanic:
-
-| Stutz Tool | Trinity Implementation | Mechanical Effect |
-|------------|----------------------|-------------------|
-| **Part X** (The Inner Critic) | `ShadowStatus::Stirring` | The system detects avoidance or frustration patterns. Pete adjusts scaffolding: more encouragement, fewer challenges. The user's inner critic is acknowledged, not suppressed. |
-| **Reversal of Desire** (Move toward pain, not away) | `ShadowStatus::Active → Processed` | When the user explicitly flags anxiety, Pete enters "Maintenance Mode" — reflection prompts replace task prompts. The user must write a reflection journal (move *toward* the discomfort) to advance. The act of processing converts Shadow into permanent growth data. |
-| **String of Pearls** (Each action is a pearl; keep moving) | `PEARL.refined_count` | Each refinement of the PEARL is a pearl on the string. Forward motion is tracked mechanically. Perfectionism (a Part X trap) is defeated by the act of iteration itself. |
-| **Life Force Pyramid** (Body → Relationships → Self) | `CharacterSheet` tiers: Hardware → P-ART-Y → Intent Posture | The Character Sheet mirrors Stutz's pyramid: the base is the physical machine (hardware scan), the middle is the collaborative party (P-ART-Y relationships), and the apex is the user's own growth posture (Mastery vs. Efficiency). |
-
-**2. Jungian Shadow Integration**
-
-Carl Jung's concept of the Shadow — the unconscious aspect of personality that the conscious ego does not identify with — is the theoretical ancestor of Trinity's mechanic. The system does not attempt to "defeat" the Shadow (which Jung argued is impossible and counterproductive). Instead, it follows the Jungian therapeutic model of *Active Imagination*: the user engages in structured dialogue (via Pete's Socratic scaffolding) to *integrate* the Shadow into their operational paradigm.
-
-> 📍 `character_sheet.rs:L950-968` — `ShadowStatus` enum with Jungian progression: Clear → Stirring → Active → Processed
-
-**3. Brené Brown's Vulnerability Research**
-
-The Shadow mechanic's design ethos is captured in the code's own documentation:
-
-> *"Owning our story can be hard but not nearly as difficult as spending our lives running from it."* — Brené Brown (cited in `character_sheet.rs:L952-953`)
-
-Brown's research (University of Houston, Graduate College of Social Work) on vulnerability and shame resilience directly informs Trinity's approach: the system treats vulnerability not as weakness but as the prerequisite for creative output. The `vulnerability` float (0.0–1.0) on the Character Sheet dynamically adjusts Pete's scaffolding intensity — higher vulnerability produces gentler, more encouraging Socratic prompts. This mirrors Brown's finding that shame resilience requires *connection and empathy*, not avoidance.
-
-**Why This Matters for Institutional Evaluation:**
-
-Most educational AI systems treat learner anxiety as outside their scope. Trinity treats it as *core system telemetry*. The Shadow mechanic ensures that when a learner encounters imposter syndrome — the single most common barrier to graduate-level academic performance — the system has a structured, psychologically-grounded protocol for processing it, rather than ignoring it or defaulting to generic "stay positive" prompts.
-
-> **References:**
-> - Stutz, P. & Michels, B. (2012). *The Tools: 5 Tools to Help You Find Courage, Creativity, and Willpower.* Random House.
-> - Stutz, P. & Michels, B. (2017). *Coming Alive: 4 Tools to Defeat Your Inner Enemy, Ignite Creative Expression & Unleash Your Soul's Potential.* Spiegel & Grau.
-> - Hill, J. (Director). (2022). *Stutz* [Film]. Netflix.
-> - Jung, C. G. (1959). *Aion: Researches into the Phenomenology of the Self.* Princeton University Press.
-> - Brown, B. (2012). *Daring Greatly: How the Courage to Be Vulnerable Transforms the Way We Live, Love, Parent, and Lead.* Gotham Books.
->
-> **Cross-references (Four Chariots coherence):**
-> - Field Manual §3.4 — *The Ghost Train (The Shadow Protocol)* — Pete's narrative explanation using Purdue lore
-> - Player's Handbook Chapter 10 — *The Ghost Train* — First-person narrative of Part X and the Self-Validating Loop
-> - Bible §6.7 — *Intent Engineering* — Technical mapping of Stutz → ShadowStatus → RLHF wiring
-
 ---
 
 ## Hardware Requirements

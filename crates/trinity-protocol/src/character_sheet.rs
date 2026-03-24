@@ -227,6 +227,11 @@ pub struct CharacterSheet {
     /// Success vision — "What does success look like for this lesson?"
     #[serde(default)]
     pub success_vision: Option<String>,
+
+    /// Consecutive negative RLHF feedback count — tracks Shadow escalation.
+    /// 3+ negatives in a row = Shadow becomes Active.
+    #[serde(default)]
+    pub consecutive_negatives: u8,
 }
 
 impl CharacterSheet {
@@ -276,6 +281,9 @@ impl CharacterSheet {
             experience: None,
             audience: None,
             success_vision: None,
+
+            // RLHF tracking
+            consecutive_negatives: 0,
         }
     }
 
@@ -363,6 +371,20 @@ impl CharacterSheet {
         }
 
         parts.join(" | ")
+    }
+
+    /// Recalculate vulnerability from Shadow + Friction compound.
+    /// Called after any shadow_status or track_friction mutation.
+    /// This is the physics engine that makes Pete's tone respond to the user's state.
+    pub fn recalculate_vulnerability(&mut self) {
+        let shadow_weight = match self.shadow_status {
+            ShadowStatus::Clear => 0.0,
+            ShadowStatus::Stirring => 0.15,
+            ShadowStatus::Active => 0.35,
+            ShadowStatus::Processed => -0.1, // processed = more resilient
+        };
+        let friction_weight = (self.track_friction / 100.0) * 0.3;
+        self.vulnerability = (0.5 + shadow_weight + friction_weight).clamp(0.0, 1.0);
     }
 }
 

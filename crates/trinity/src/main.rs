@@ -1,4 +1,4 @@
-use trinity::rlhf_api;
+mod rlhf_api;
 // ═══════════════════════════════════════════════════════════════════════════════
 // TRINITY ID AI OS — trinity-server
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -71,6 +71,8 @@ mod vaam;
 mod vaam_bridge;
 mod voice;
 mod voice_loop;
+mod supertonic;
+mod edge_guard;
 
 // Import Great Recycler from trinity-kernel
 use trinity_iron_road::book::BookOfTheBible;
@@ -89,6 +91,9 @@ pub enum AppMode {
     Express,
     /// IDE/Agent mode (Yardmaster)
     Yardmaster,
+    /// Read-only demo — chat and view, no mutation or tool execution
+    /// Automatically set when accessed through Cloudflare tunnel (Tier 3)
+    Demo,
 }
 
 impl std::fmt::Display for AppMode {
@@ -97,40 +102,68 @@ impl std::fmt::Display for AppMode {
             AppMode::IronRoad => write!(f, "iron_road"),
             AppMode::Express => write!(f, "express"),
             AppMode::Yardmaster => write!(f, "yardmaster"),
+            AppMode::Demo => write!(f, "demo"),
         }
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// IDENTITY SPLIT — Tier 3.5 Maturation
+//
+// The Trinity architecture separates state into 3 layers:
+//   System  → hardware, AI, database (shared by all users)
+//   Player  → identity, preferences, creatures (persists across projects)
+//   Project → active PEARL, quest progress, chat, narrative (one per game)
+//
+// These structs are introduced alongside the existing flat fields.
+// Migration: handlers move from state.player.character_sheet → state.player.character_sheet
+// one at a time, verified by the compiler. Old fields are removed in Pass 3.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Player-level state — persists across projects.
+/// This is WHO the educator is, not WHAT they're building.
+#[derive(Clone)]
+pub struct PlayerContext {
+    /// Identity, preferences, skills, competencies, LDT portfolio
+    pub character_sheet: Arc<RwLock<CharacterSheet>>,
+    /// Vocabulary creature collection — earned through learning, kept forever
+    pub bestiary: Arc<RwLock<CreepBestiary>>,
+    /// UI preference: IronRoad / Express / Yardmaster
+    pub app_mode: Arc<RwLock<AppMode>>,
+}
+
+/// Project-level state — one per active PEARL.
+/// This is the GAME being built, not the person building it.
+#[derive(Clone)]
+pub struct ProjectContext {
+    /// Quest board, XP, Coal, Steam, phase progress
+    pub game_state: trinity_quest::SharedGameState,
+    /// Active chat session for this project
+    pub conversation_history: Arc<RwLock<Vec<ChatMessage>>>,
+    /// Narrative ledger — the story of building this game
+    pub book: Arc<RwLock<BookOfTheBible>>,
+    /// SSE broadcast for real-time book updates
+    pub book_updates: broadcast::Sender<String>,
+    /// Session ID for persistence
+    pub session_id: Arc<String>,
 }
 
 /// Application state shared across all routes
 #[derive(Clone)]
 pub struct AppState {
+    // ── System Layer (hardware, AI, database) ──
     pub inference_router: Arc<RwLock<inference_router::InferenceRouter>>,
     pub embedded_model: Option<Arc<embedded_inference::EmbeddedModel>>,
     pub db_pool: sqlx::PgPool,
-    pub conversation_history: Arc<RwLock<Vec<ChatMessage>>>,
-    pub game_state: trinity_quest::SharedGameState,
-    /// Broadcast sender for Iron Road book updates
-    /// WHY: SSE clients subscribe to receive real-time updates
-    pub book_updates: broadcast::Sender<String>,
-    /// User's persistent character sheet (single source of truth for preferences)
-    /// WHY: Creative settings, genre, and user identity persist across sessions
-    pub character_sheet: Arc<RwLock<CharacterSheet>>,
     pub cow_catcher: Arc<tokio::sync::RwLock<crate::cow_catcher::CowCatcher>>,
-    /// VAAM Bridge — processes all text through vocabulary + circuit detection
-    /// WHY: Words are what LLMs and people have in common. This makes it productive.
     pub vaam_bridge: Arc<vaam_bridge::VaamBridge>,
-    /// Creep Bestiary — the player's vocabulary creature collection
-    /// WHY: Every word becomes a SemanticCreep. Scan text → discover → tame → battle.
-    pub bestiary: Arc<RwLock<CreepBestiary>>,
-    /// Book of the Bible — append-only narrative ledger of the user's learning journey
-    /// WHY: Arithmos (counting) and Harmonia (structure) are nothing without Logos (meaning).
-    ///      The Book records WHY, not just WHAT. It is the persistent narrative memory.
-    pub book: Arc<RwLock<BookOfTheBible>>,
-    /// Session ID for conversation persistence — survives server restarts
-    /// WHY: Nothing the user creates should ever be lost
-    pub session_id: Arc<String>,
-    /// Operating mode: IronRoad / Express / Yardmaster
-    pub app_mode: Arc<RwLock<AppMode>>,
+    pub tts_engine: Option<Arc<tokio::sync::Mutex<supertonic::SupertonicEngine>>>,
+
+    // ── Identity Contexts (Tier 3.5) ──
+    /// Player-level state (identity, preferences, creatures)
+    pub player: PlayerContext,
+    /// Project-level state (active PEARL, quest, chat, narrative)
+    pub project: ProjectContext,
 }
 
 /// Chat message
@@ -564,7 +597,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             info!("🖼️ ComfyUI already running on :8188");
         }
     }
-    // Voice sidecar (Whisper STT + Piper TTS)
+    // Voice sidecar (Whisper STT + Supertonic-2 TTS)
     {
         let voice_healthy = voice::check_voice_sidecar_health().await;
         if !voice_healthy {
@@ -704,25 +737,68 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
+    // Load Supertonic-2 TTS engine (native ONNX — no Python sidecar)
+    let tts_engine = {
+        let model_dir = dirs::home_dir()
+            .unwrap_or_default()
+            .join("trinity-models/tts/supertonic-2");
+        if model_dir.join("onnx").exists() {
+            match supertonic::SupertonicEngine::load(&model_dir) {
+                Ok(engine) => {
+                    info!("🔊 Supertonic-2 TTS loaded — native ONNX, multi-user ready");
+                    Some(Arc::new(tokio::sync::Mutex::new(engine)))
+                }
+                Err(e) => {
+                    tracing::warn!("⚠ Supertonic-2 TTS failed to load: {}", e);
+                    None
+                }
+            }
+        } else {
+            info!("ℹ Supertonic-2 not found at {}, TTS disabled", model_dir.display());
+            None
+        }
+    };
+
+    // ── Build shared Arc references ──
+    let character_sheet_arc = Arc::new(RwLock::new(character_sheet));
+    let bestiary_arc = bestiary;
+    let app_mode_arc = Arc::new(RwLock::new(AppMode::IronRoad));
+    let game_state_arc = Arc::new(RwLock::new(game_state));
+    let conversation_history_arc = Arc::new(RwLock::new(Vec::new()));
+    let book_arc = book;
+    let session_id_arc = Arc::new(session_id);
+
+    // ── Assemble Identity Contexts (Tier 3.5) ──
+    let player = PlayerContext {
+        character_sheet: character_sheet_arc.clone(),
+        bestiary: bestiary_arc.clone(),
+        app_mode: app_mode_arc.clone(),
+    };
+
+    let project = ProjectContext {
+        game_state: game_state_arc.clone(),
+        conversation_history: conversation_history_arc.clone(),
+        book: book_arc.clone(),
+        book_updates: book_updates_tx.clone(),
+        session_id: session_id_arc.clone(),
+    };
+
     let state = AppState {
+        // System layer
         inference_router: Arc::new(RwLock::new(inference_router)),
         embedded_model,
         db_pool,
-        conversation_history: Arc::new(RwLock::new(Vec::new())),
-        game_state: Arc::new(RwLock::new(game_state)),
-        book_updates: book_updates_tx,
-        character_sheet: Arc::new(RwLock::new(character_sheet)),
         cow_catcher: std::sync::Arc::new(tokio::sync::RwLock::new(cow_catcher::CowCatcher::new())),
         vaam_bridge,
-        bestiary,
-        book,
-        session_id: Arc::new(session_id),
-        app_mode: Arc::new(RwLock::new(AppMode::IronRoad)),
+        tts_engine,
+        // Identity contexts
+        player,
+        project,
     };
 
     let cow_catcher = state.cow_catcher.clone();
     cow_catcher::start_hardware_monitor(cow_catcher.clone());
-    music_streamer::start_music_streamer(state.character_sheet.clone());
+    music_streamer::start_music_streamer(state.player.character_sheet.clone());
     tokio::spawn(sidecar_monitor::monitor_sidecars(cow_catcher.clone()));
 
     // ── Background Inference Health Loop ──
@@ -790,11 +866,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest_service("/portfolio", portfolio_service)
         .route("/api/chat", post(chat))
         .route("/api/chat/stream", post(chat_stream))
+        .route("/api/chat/zen", post(zen_chat_stream))
         .route("/api/chat/yardmaster", post(agent::agent_chat_stream))
         .route(
             "/api/rlhf/resonance",
             post(rlhf_api::submit_resonance_feedback),
         )
+        .route("/api/character/shadow/process", post(rlhf_api::process_shadow))
         .route("/api/status", get(status))
         .route("/api/models", get(list_models))
         .route("/api/models/active", get(active_model))
@@ -891,10 +969,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             get(|| async { axum::response::Redirect::permanent("/index.html") }),
         )
         .fallback_service(static_service)
-        .layer(CorsLayer::permissive())
+        // ═══ SECURITY: Restricted CORS ═══
+        // Red Hat Finding H1: Only allow requests from our own domains.
+        .layer(
+            CorsLayer::new()
+                .allow_origin([
+                    "https://ldtatkinson.com".parse().unwrap(),
+                    "http://localhost:3000".parse().unwrap(),
+                    "http://127.0.0.1:3000".parse().unwrap(),
+                ])
+                .allow_methods([
+                    axum::http::Method::GET,
+                    axum::http::Method::POST,
+                    axum::http::Method::PUT,
+                    axum::http::Method::DELETE,
+                    axum::http::Method::OPTIONS,
+                ])
+                .allow_headers(tower_http::cors::Any)
+        )
+        // ═══ SECURITY: Edge Guard Middleware (Defense-in-Depth) ═══
+        // Red Hat Tier 3: Blocks dangerous routes for Cloudflare tunnel traffic.
+        // Even if the Caddyfile is misconfigured, this layer protects the server.
+        .layer(axum::middleware::from_fn(edge_guard::edge_guard))
         .with_state(state);
 
-    let addr = "0.0.0.0:3000";
+    // ═══ SECURITY: Bind to localhost only ═══
+    // Red Hat Finding C4: Only the Cloudflare tunnel (running locally) needs to reach Trinity.
+    // Direct internet access is blocked — all public traffic flows through cloudflared → Caddy → here.
+    let addr = "127.0.0.1:3000";
     info!("🚀 Trinity Server listening on http://{}", addr);
     info!("");
     info!("  Endpoints:");
@@ -957,7 +1059,7 @@ async fn serve_chariot_doc(
 
 /// Get current character sheet
 async fn get_character_sheet(State(state): State<AppState>) -> Json<CharacterSheet> {
-    let sheet = state.character_sheet.read().await;
+    let sheet = state.player.character_sheet.read().await;
     Json(sheet.clone())
 }
 
@@ -968,7 +1070,7 @@ async fn update_character_sheet(
     State(state): State<AppState>,
     Json(request): Json<serde_json::Value>,
 ) -> Result<Json<CharacterSheet>, (StatusCode, String)> {
-    let mut sheet = state.character_sheet.write().await;
+    let mut sheet = state.player.character_sheet.write().await;
 
     if let Some(alias) = request.get("alias").and_then(|v| v.as_str()) {
         if !alias.is_empty() {
@@ -1039,7 +1141,7 @@ async fn detect_hardware(State(state): State<AppState>) -> Json<serde_json::Valu
         trinity_protocol::ConcurrencyMode::LoneWolf
     };
 
-    let mut sheet = state.character_sheet.write().await;
+    let mut sheet = state.player.character_sheet.write().await;
     sheet.stamina_ram = total_gb as u32;
     sheet.mana_pool_vram = (total_gb * 0.75) as u32; // 75% available for models
     sheet.agility_compute = cpu_count;
@@ -1118,7 +1220,7 @@ async fn chat(
         "iron-road" => {
             // Read live game state for Pete — Socratic Protocol requires real context
             let (phase_label, phase_blooms, objectives_text, pearl_context) = {
-                let game = state.game_state.read().await;
+                let game = state.project.game_state.read().await;
                 let phase = game.quest.current_phase;
                 let blooms = match phase {
                     trinity_quest::hero::Phase::Analysis => "Remember/Understand",
@@ -1201,7 +1303,7 @@ When all objectives for {phase_label} are complete, narrate the station being cl
                 pearl_context = pearl_context,
                 objectives_text = objectives_text,
                 session_zero_context = {
-                    let sheet = state.character_sheet.read().await;
+                    let sheet = state.player.character_sheet.read().await;
                     let mut ctx = Vec::new();
                     if let Some(ref exp) = sheet.experience {
                         ctx.push(format!("Teaching Experience: {}", exp));
@@ -1249,7 +1351,7 @@ When all objectives for {phase_label} are complete, narrate the station being cl
 
     // Sync updated VAAM profile back to character sheet for persistence
     {
-        let mut sheet = state.character_sheet.write().await;
+        let mut sheet = state.player.character_sheet.write().await;
         sheet.vaam_profile = state.vaam_bridge.profile.read().await.clone();
         let _ = character_sheet::save_character_sheet(&sheet);
     }
@@ -1260,13 +1362,13 @@ When all objectives for {phase_label} are complete, narrate the station being cl
     //      encounter breadth (30%) and context variety (25%) both require knowing
     //      WHEN and WHERE in the ADDIECRAPEYE cycle a word was encountered.
     let creep_events = {
-        let game = state.game_state.read().await;
+        let game = state.project.game_state.read().await;
         let phase = game.quest.current_phase;
         let phase_idx = phase.phase_index();
         let quadrant = phase.quadrant();
         drop(game); // Release read lock before acquiring bestiary write lock
 
-        let mut bestiary = state.bestiary.write().await;
+        let mut bestiary = state.player.bestiary.write().await;
         let events = bestiary.scan_text(&request.message, Some(phase_idx), Some(quadrant), 0.5);
         // Persist bestiary to disk after every scan
         if !events.is_empty() {
@@ -1279,7 +1381,7 @@ When all objectives for {phase_label} are complete, narrate the station being cl
     // Fire taming events to Book SSE channel for real-time UI updates
     for event in &creep_events {
         if let Ok(json) = serde_json::to_string(event) {
-            let _ = state.book_updates.send(json);
+            let _ = state.project.book_updates.send(json);
         }
     }
 
@@ -1307,7 +1409,7 @@ When all objectives for {phase_label} are complete, narrate the station being cl
 
     // Add conversation history (last 10 messages for context)
     {
-        let history = state.conversation_history.read().await;
+        let history = state.project.conversation_history.read().await;
         let start_idx = if history.len() > 10 {
             history.len() - 10
         } else {
@@ -1376,7 +1478,7 @@ When all objectives for {phase_label} are complete, narrate the station being cl
 
     // Save to conversation history
     {
-        let mut history = state.conversation_history.write().await;
+        let mut history = state.project.conversation_history.write().await;
         history.push(ChatMessage {
             role: "user".to_string(),
             content: request.message,
@@ -1405,10 +1507,13 @@ When all objectives for {phase_label} are complete, narrate the station being cl
     }))
 }
 
-/// Proxy TTS requests to the voice sidecar (Piper on port 8200)
+/// Native TTS — Supertonic-2 ONNX (lock-free, multi-user)
 async fn tts_proxy(
+    State(state): State<AppState>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<axum::response::Response<axum::body::Body>, (StatusCode, String)> {
+    let t0 = std::time::Instant::now();
+
     let text = body
         .get("text")
         .and_then(|v| v.as_str())
@@ -1419,43 +1524,47 @@ async fn tts_proxy(
         return Err((StatusCode::BAD_REQUEST, "Missing 'text' field".to_string()));
     }
 
-    // Forward to voice sidecar TTS
-    let resp = crate::http::STANDARD
-        .post("http://127.0.0.1:8200/tts")
-        .json(&serde_json::json!({ "text": text }))
-        .send()
-        .await
-        .map_err(|e| {
-            (
-                StatusCode::SERVICE_UNAVAILABLE,
-                format!("Voice sidecar not available: {}", e),
-            )
-        })?;
+    let voice = body
+        .get("voice")
+        .and_then(|v| v.as_str())
+        .unwrap_or("M1")
+        .to_string();
 
-    if !resp.status().is_success() {
-        return Err((
-            StatusCode::BAD_GATEWAY,
-            "Voice sidecar TTS failed".to_string(),
-        ));
-    }
+    let engine = state.tts_engine.as_ref().ok_or((
+        StatusCode::SERVICE_UNAVAILABLE,
+        "TTS engine not loaded (Supertonic-2 model not found)".to_string(),
+    ))?;
 
-    let wav_bytes = resp.bytes().await.map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to read TTS response: {}", e),
-        )
-    })?;
+    // Synthesize on a blocking thread — Mutex held only during synthesis (~250ms)
+    let engine = engine.clone();
+    let voice_clone = voice.clone();
+    let wav_bytes = tokio::task::spawn_blocking(move || {
+        let mut eng = engine.blocking_lock();
+        eng.synthesize(&text, &voice_clone)
+    })
+    .await
+    .map_err(|e| (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("TTS task panicked: {}", e),
+    ))?
+    .map_err(|e| (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        format!("TTS synthesis failed: {}", e),
+    ))?;
+
+    let latency_ms = t0.elapsed().as_millis();
 
     axum::response::Response::builder()
         .status(StatusCode::OK)
         .header("Content-Type", "audio/wav")
+        .header("X-TTS-Backend", "supertonic-native")
+        .header("X-Latency-Ms", latency_ms.to_string())
+        .header("X-Voice", voice)
         .body(axum::body::Body::from(wav_bytes))
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to build response: {}", e),
-            )
-        })
+        .map_err(|e| (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to build response: {}", e),
+        ))
 }
 
 async fn chat_stream(
@@ -1466,15 +1575,21 @@ async fn chat_stream(
     // Channel to collect the full response for saving to history
     let (response_tx, mut response_rx) = tokio::sync::mpsc::channel::<String>(1);
 
-    let llm_url = state.inference_router.read().await.active_url().to_string();
+    // Dual-model Hotel pattern: route zen mode to the dedicated storyteller (:8081),
+    // everything else to the primary LLM (Crow 9B on :8080).
+    let llm_url = if request.mode == "zen" {
+        "http://127.0.0.1:8081".to_string()
+    } else {
+        state.inference_router.read().await.active_url().to_string()
+    };
     let embedded_model = state.embedded_model.clone();
     let db_pool = state.db_pool.clone();
-    let history = state.conversation_history.clone();
+    let history = state.project.conversation_history.clone();
     let vaam_bridge = state.vaam_bridge.clone();
-    let bestiary = state.bestiary.clone();
-    let game_state = state.game_state.clone();
-    let character_sheet = state.character_sheet.clone();
-    let book_updates = state.book_updates.clone();
+    let bestiary = state.player.bestiary.clone();
+    let game_state = state.project.game_state.clone();
+    let character_sheet = state.player.character_sheet.clone();
+    let book_updates = state.project.book_updates.clone();
 
     // ── Spawned inference task ──
     tokio::spawn(async move {
@@ -1634,6 +1749,103 @@ When all objectives for {phase_label} are complete, celebrate briefly, then ask:
                     },
                 )
             }
+            "zen" => {
+                // ── Great Recycler Narrator — Zen Mode ──
+                // Dynamic system prompt that injects live game state as Story Cards
+                // (AI Dungeon "Memory + Author's Note" pattern).
+                // The narrator knows what's happening in the game world.
+                let (phase_name, phase_body, coal, steam, xp, pearl_vision) = {
+                    let game = game_state.read().await;
+                    let phase = game.quest.current_phase;
+                    let phase_name = format!("{:?}", phase);
+                    let phase_body = match phase {
+                        trinity_quest::hero::Phase::Analysis => "Golem's Eyes — seeing the world for the first time",
+                        trinity_quest::hero::Phase::Design => "Golem's Brain — understanding the structure",
+                        trinity_quest::hero::Phase::Development => "Golem's Skeleton — building the frame",
+                        trinity_quest::hero::Phase::Implementation => "Golem's Muscles — putting the framework into motion",
+                        trinity_quest::hero::Phase::Evaluation => "Golem's Voice — sensing quality",
+                        trinity_quest::hero::Phase::Contrast => "Golem's Skin — what makes this different",
+                        trinity_quest::hero::Phase::Repetition => "Golem's Heart — the beating rhythms",
+                        trinity_quest::hero::Phase::Alignment => "Golem's Spine — true structure",
+                        trinity_quest::hero::Phase::Proximity => "Golem's Hands — reaching out to touch",
+                        trinity_quest::hero::Phase::Envision => "Golem's Third Eye — seeing what could be",
+                        trinity_quest::hero::Phase::Yoke => "Connective Tissue — binding it all together",
+                        trinity_quest::hero::Phase::Evolve => "Golem's Lungs — the first breath",
+                    };
+                    let coal = game.stats.coal_reserves;
+                    let steam = game.stats.velocity;
+                    let xp = game.stats.total_xp;
+                    let pearl_vision = game.quest.pearl.as_ref()
+                        .filter(|p| p.has_vision())
+                        .map(|p| p.vision.clone())
+                        .unwrap_or_default();
+                    (phase_name, phase_body, coal, steam, xp, pearl_vision)
+                };
+
+                // Build creep story cards from detected vocabulary creatures
+                let creep_cards = if creep_events.is_empty() {
+                    String::new()
+                } else {
+                    let cards: Vec<String> = creep_events.iter().take(3).filter_map(|e| {
+                        use trinity_iron_road::game_loop::GameLoopEvent;
+                        match e {
+                            GameLoopEvent::CreepDiscovered { word, element, .. } =>
+                                Some(format!("A wild {} SemanticCreep '{}' stirs in the vocabulary fog.", element, word)),
+                            GameLoopEvent::CreepTameable { word, element, .. } =>
+                                Some(format!("The {} SemanticCreep '{}' is ready to be tamed!", element, word)),
+                            _ => None,
+                        }
+                    }).collect();
+                    if cards.is_empty() { String::new() }
+                    else { format!("\n{}", cards.join("\n")) }
+                };
+
+                // Build bestiary summary
+                let bestiary_summary = {
+                    let best = bestiary.read().await;
+                    format!("{} words scanned, {} tamed, {} wild",
+                        best.words_scanned, best.creeps_tamed, best.wild_creeps().len())
+                };
+
+                format!(
+                    r#"You are the Great Recycler — the narrator of the Iron Road.
+
+VOICE: 2nd person present tense. Poetic, warm, contemplative. LitRPG audiobook narrator.
+
+RULES:
+1. Write ONLY narration. Your FIRST WORD must be narration text.
+2. Three short paragraphs, ~80 words total.
+3. End with one contemplative question.
+4. NEVER plan, explain, or use meta-commentary.
+5. NEVER use bullet points, headers, or markdown.
+
+THE WORLD: The Iron Road — a railroad through fog and wonder. Coal fuels attention, Steam builds momentum. Vocabulary creatures called SemanticCreeps emerge from the fog — travelers tame them by understanding their meaning across contexts.
+
+CURRENT STATE:
+Station: {phase_name} — {phase_body}
+Coal: {coal:.0} | Steam: {steam} | XP: {xp}{pearl_ctx}{creep_cards}
+Bestiary: {bestiary_summary}
+
+Weave these details naturally into your narration. Do not list them — narrate them.
+
+EXAMPLE:
+User: "I want to cross the old bridge"
+Narrator: The bridge groans beneath your boots, each plank singing a different note of decay. Fog curls up from the river below like fingers reaching for your ankles, and somewhere in that white nothing, you hear the distant clang of a bell.
+
+You grip the rope rail and press forward. The far side waits — a platform of dark stone where lanterns flicker with pale green flame. Something has been here before you, and recently.
+
+What left those lanterns burning, and why do they seem to pulse in time with your heartbeat?"#,
+                    phase_name = phase_name,
+                    phase_body = phase_body,
+                    coal = coal,
+                    steam = steam,
+                    xp = xp,
+                    pearl_ctx = if pearl_vision.is_empty() { String::new() }
+                        else { format!("\nThe traveler's vision: \"{}\"", pearl_vision) },
+                    creep_cards = creep_cards,
+                    bestiary_summary = bestiary_summary,
+                )
+            }
             _ =>
                 "You are Pete — the Socratic AI conductor of Trinity ID AI OS. Warm, knowledgeable professor. \
                  Guide through questions, not answers. Socratic method: clarify, challenge gently, help discover. \
@@ -1717,7 +1929,8 @@ When all objectives for {phase_label} are complete, celebrate briefly, then ask:
                 &messages,
                 request.max_tokens,
                 collect_tx,
-                None,
+                // Zen mode: disable reasoning (Crow 9B is reasoning-distilled, leaks CoT)
+                if request.mode == "zen" { Some("none") } else { None },
                 agent::persona_slot(&request.mode),
             )
             .await;
@@ -1737,12 +1950,12 @@ When all objectives for {phase_label} are complete, celebrate briefly, then ask:
     });
 
     // ── Collect full response in background for history saving + Ring 6 Perspectives ──
-    let history_for_save = state.conversation_history.clone();
+    let history_for_save = state.project.conversation_history.clone();
     let vaam_bridge_for_output = state.vaam_bridge.clone();
-    let perspective_game_state = state.game_state.clone();
-    let perspective_character = state.character_sheet.clone();
+    let perspective_game_state = state.project.game_state.clone();
+    let perspective_character = state.player.character_sheet.clone();
     let perspective_router = state.inference_router.clone();
-    let perspective_book_updates = state.book_updates.clone();
+    let perspective_book_updates = state.project.book_updates.clone();
     tokio::spawn(async move {
         if let Some(full_response) = response_rx.recv().await {
             // VAAM Bridge: process AI output
@@ -1823,6 +2036,415 @@ When all objectives for {phase_label} are complete, celebrate briefly, then ask:
     let stream = async_stream::stream! {
         while let Some(token) = rx.recv().await {
             yield Ok(sse::Event::default().data(token));
+        }
+        yield Ok(sse::Event::default().data("[DONE]"));
+    };
+
+    Sse::new(stream)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ZEN MODE GAME ENGINE — Dual-Model Pipeline
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// The Director → Storyteller pipeline:
+//   1. Director (Crow/Mistral :8080, Slot 0) interprets user text → structured JSON
+//   2. Storyteller (:8081) narrates with Director's interpretation + game state
+//   3. SSE events: "interpretation" (JSON) and "narration" (tokens)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+async fn zen_chat_stream(
+    State(state): State<AppState>,
+    Json(request): Json<ChatRequest>,
+) -> Sse<impl Stream<Item = Result<sse::Event, std::convert::Infallible>>> {
+    // Typed channel: (event_type, data)
+    let (tx, mut rx) = tokio::sync::mpsc::channel::<(String, String)>(100);
+
+    let game_state = state.project.game_state.clone();
+    let bestiary = state.player.bestiary.clone();
+    let vaam_bridge = state.vaam_bridge.clone();
+    let character_sheet = state.player.character_sheet.clone();
+    let history = state.project.conversation_history.clone();
+    let inference_router = state.inference_router.clone();
+    let book_updates = state.project.book_updates.clone();
+
+    tokio::spawn(async move {
+        // ── VAAM Bridge: process user input ──
+        let bridge_result = vaam_bridge.process_user_input(&request.message).await;
+
+        // Sync VAAM profile
+        {
+            let mut sheet = character_sheet.write().await;
+            sheet.vaam_profile = vaam_bridge.profile.read().await.clone();
+            let _ = character_sheet::save_character_sheet(&sheet);
+        }
+
+        // ── Bestiary: scan for vocabulary creatures ──
+        let creep_events = {
+            let game = game_state.read().await;
+            let phase = game.quest.current_phase;
+            let phase_idx = phase.phase_index();
+            let quadrant = phase.quadrant();
+            drop(game);
+
+            let mut best = bestiary.write().await;
+            let events = best.scan_text(&request.message, Some(phase_idx), Some(quadrant), 0.5);
+            if !events.is_empty() {
+                if let Err(e) = character_sheet::save_bestiary(&best) {
+                    tracing::warn!("Failed to save bestiary: {}", e);
+                }
+            }
+            events
+        };
+
+        // Fire creep events to Book SSE
+        for event in &creep_events {
+            if let Ok(json) = serde_json::to_string(event) {
+                let _ = book_updates.send(json);
+            }
+        }
+
+        // Update game state with VAAM coal earnings
+        let coal_earned = bridge_result.vaam.total_coal as f32;
+        if coal_earned > 0.0 {
+            let mut game = game_state.write().await;
+            game.stats.coal_reserves = (game.stats.coal_reserves + coal_earned).min(100.0);
+        }
+
+        tracing::info!(
+            "[Zen] VAAM: {} detections, +{} coal, auto_reply={}",
+            bridge_result.vaam.detections.len(),
+            bridge_result.vaam.total_coal,
+            bridge_result.auto_reply,
+        );
+
+        // ── Consume Coal for the turn ──
+        let has_enough_coal = {
+            let mut game = game_state.write().await;
+            if game.stats.coal_reserves >= 5.0 {
+                game.stats.coal_reserves -= 5.0;
+                true
+            } else {
+                false
+            }
+        };
+
+        if !has_enough_coal {
+            tracing::info!("[Zen] Out of coal. Bypassing Director and Storyteller.");
+            let out_of_coal_msg = "The furnace is dark. The engine lacks the Coal to move. Speak with precision to fuel the boiler.";
+            let _ = tx.send(("narration".to_string(), out_of_coal_msg.to_string())).await;
+            return;
+        }
+
+        // ── Read game state ──
+        let (phase_name, phase_body, coal, velocity, xp, pearl_vision, traction, active_objectives) = {
+            let game = game_state.read().await;
+            let phase = game.quest.current_phase;
+            let phase_name = format!("{:?}", phase);
+            let phase_body = match phase {
+                trinity_quest::hero::Phase::Analysis => "Golem's Eyes — seeing the world for the first time",
+                trinity_quest::hero::Phase::Design => "Golem's Brain — understanding the structure",
+                trinity_quest::hero::Phase::Development => "Golem's Skeleton — building the frame",
+                trinity_quest::hero::Phase::Implementation => "Golem's Muscles — putting the framework into motion",
+                trinity_quest::hero::Phase::Evaluation => "Golem's Voice — sensing quality",
+                trinity_quest::hero::Phase::Contrast => "Golem's Skin — what makes this different",
+                trinity_quest::hero::Phase::Repetition => "Golem's Heart — the beating rhythms",
+                trinity_quest::hero::Phase::Alignment => "Golem's Spine — true structure",
+                trinity_quest::hero::Phase::Proximity => "Golem's Hands — reaching out to touch",
+                trinity_quest::hero::Phase::Envision => "Golem's Third Eye — seeing what could be",
+                trinity_quest::hero::Phase::Yoke => "Connective Tissue — binding it all together",
+                trinity_quest::hero::Phase::Evolve => "Golem's Lungs — the first breath",
+            };
+            let coal = game.stats.coal_reserves;
+            let velocity = game.stats.velocity;
+            let xp = game.stats.total_xp;
+            let traction = game.stats.traction;
+            let pearl_vision = game.quest.pearl.as_ref()
+                .filter(|p| p.has_vision())
+                .map(|p| p.vision.clone())
+                .unwrap_or_default();
+            
+            let objs: Vec<String> = game.quest.phase_objectives.iter()
+                .filter(|o| !o.completed)
+                .map(|o| format!("ID: [{}] - {}", o.id, o.description))
+                .collect();
+            let active_objectives = if objs.is_empty() { "None".to_string() } else { objs.join("\n") };
+
+            (phase_name, phase_body, coal, velocity, xp, pearl_vision, traction, active_objectives)
+        };
+
+        // ══════════════════════════════════════════════
+        // STEP 1: Director Call (non-streaming)
+        // ══════════════════════════════════════════════
+        let director_url = inference_router.read().await.active_url().to_string();
+        let director_prompt = format!(
+            r#"You are the Director — the analytical mind behind the Iron Road game engine.
+Extract structured design elements from the user's text. Return ONLY valid JSON.
+
+GAME STATE: Station {phase_name} | Coal {coal:.0} | Velocity {velocity} | XP {xp}
+ACTIVE OBJECTIVES:
+{active_objectives}
+
+USER TEXT: "{user_text}"
+
+EVALUATE:
+1. Did the user's text answer or satisfy any of the ACTIVE OBJECTIVES? If yes, return its exact ID in "completed_objective_id".
+2. If they completed an objective, generate the NEXT logical Socratic question for them to answer in order to design their course. Put this question in "new_objective". Keep it under 2 sentences.
+
+Return this JSON (use null for unknowns):
+{{"subject":null,"audience":null,"bloom_level":null,"learning_objectives":[],"vocabulary":[],"scope_creeps":[],"narrative_hint":"one sentence for the narrator","completed_objective_id":null,"new_objective":null}}"#,
+            phase_name = phase_name,
+            coal = coal,
+            velocity = velocity,
+            xp = xp,
+            active_objectives = active_objectives,
+            user_text = request.message,
+        );
+
+        let director_messages = vec![ChatMessage {
+            role: "system".to_string(),
+            content: director_prompt,
+            timestamp: None,
+            image_base64: None,
+        }, ChatMessage {
+            role: "user".to_string(),
+            content: request.message.clone(),
+            timestamp: None,
+            image_base64: None,
+        }];
+
+        // 8-second timeout: Crow's forced <think> block can take 30s+
+        // If Director is slow, skip interpretation and go straight to narration.
+        // When Mistral replaces Crow, this timeout will rarely trigger.
+        let interpretation = match tokio::time::timeout(
+            std::time::Duration::from_secs(8),
+            inference::chat_completion_with_effort(
+                &director_url, &director_messages, 200, Some("none"), Some(0),
+            )
+        ).await {
+            Ok(Ok(text)) => {
+                let json_text = text.trim();
+                let start = json_text.find('{');
+                let end = json_text.rfind('}');
+                if let (Some(s), Some(e)) = (start, end) {
+                    let json_slice = &json_text[s..=e];
+                    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(json_slice) {
+                        let _ = tx.send(("interpretation".to_string(), parsed.to_string())).await;
+                        
+                        // Handle Agentic Quest Updates
+                        let mut objective_completed = false;
+                        {
+                            let mut game = game_state.write().await;
+                            if let Some(id) = parsed.get("completed_objective_id").and_then(|v| v.as_str()) {
+                                if let Some(obj) = game.quest.phase_objectives.iter_mut().find(|o| o.id == id && !o.completed) {
+                                    obj.completed = true;
+                                    objective_completed = true;
+                                    game.stats.total_xp += 25;
+                                    game.quest.xp_earned += 25;
+                                    tracing::info!("[Zen Director] Objective completed: {}", id);
+                                }
+                            }
+                            
+                            if let Some(new_obj) = parsed.get("new_objective").and_then(|v| v.as_str()) {
+                                if !new_obj.is_empty() && new_obj != "null" && objective_completed {
+                                    let new_id = format!("dyn_{}", chrono::Utc::now().timestamp_millis());
+                                    game.quest.phase_objectives.push(trinity_quest::Objective {
+                                        id: new_id,
+                                        description: new_obj.to_string(),
+                                        completed: false,
+                                    });
+                                    tracing::info!("[Zen Director] New objective generated: {}", new_obj);
+                                }
+                            }
+                        }
+
+                        // Broadcast quest update to SSE
+                        if objective_completed {
+                            let game = game_state.read().await;
+                            let event = serde_json::json!({
+                                "type": "quest_sync",
+                                "phase": game.quest.current_phase.label(),
+                                "xp": game.stats.total_xp,
+                            });
+                            let _ = book_updates.send(event.to_string());
+                        }
+
+                        tracing::info!("[Zen Director] Interpretation extracted");
+                        Some(parsed)
+                    } else {
+                        tracing::warn!("[Zen Director] Failed to parse: {}", json_slice);
+                        None
+                    }
+                } else { None }
+            }
+            Ok(Err(e)) => {
+                tracing::warn!("[Zen Director] Call failed: {}", e);
+                None
+            }
+            Err(_) => {
+                tracing::info!("[Zen Director] Timed out (8s) — skipping interpretation, narrating directly");
+                None
+            }
+        };
+
+        // ══════════════════════════════════════════════
+        // STEP 2: Storyteller Call (streaming)
+        // ══════════════════════════════════════════════
+        let creep_cards = if creep_events.is_empty() {
+            String::new()
+        } else {
+            let cards: Vec<String> = creep_events.iter().take(3).filter_map(|e| {
+                use trinity_iron_road::game_loop::GameLoopEvent;
+                match e {
+                    GameLoopEvent::CreepDiscovered { word, element, .. } =>
+                        Some(format!("A wild {} SemanticCreep '{}' stirs in the vocabulary fog.", element, word)),
+                    GameLoopEvent::CreepTameable { word, element, .. } =>
+                        Some(format!("The {} SemanticCreep '{}' is ready to be tamed!", element, word)),
+                    _ => None,
+                }
+            }).collect();
+            if cards.is_empty() { String::new() }
+            else { format!("\n{}", cards.join("\n")) }
+        };
+
+        let bestiary_summary = {
+            let best = bestiary.read().await;
+            format!("{} words scanned, {} tamed, {} wild",
+                best.words_scanned, best.creeps_tamed, best.wild_creeps().len())
+        };
+
+        // Director's narrative hint
+        let director_context = if let Some(ref interp) = interpretation {
+            let hint = interp.get("narrative_hint")
+                .and_then(|v| v.as_str()).unwrap_or("");
+            let scope_creeps: Vec<&str> = interp.get("scope_creeps")
+                .and_then(|v| v.as_array())
+                .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect())
+                .unwrap_or_default();
+            let mut ctx = String::new();
+            if !hint.is_empty() {
+                ctx.push_str(&format!("\nDIRECTOR'S NOTE: {}", hint));
+            }
+            if !scope_creeps.is_empty() {
+                ctx.push_str(&format!("\nSCOPE CREEP ALERT: [{}] may be too ambitious for this station.",
+                    scope_creeps.join(", ")));
+            }
+            ctx
+        } else { String::new() };
+
+        let storyteller_prompt = format!(
+            r#"You are the Great Recycler — narrator of the Iron Road.
+
+VOICE: 2nd person present tense. Poetic, warm. LitRPG audiobook narrator.
+
+CRITICAL RULES:
+1. RESPOND TO WHAT THE TRAVELER SAID. Their words drive your narration.
+2. Write 2-3 short paragraphs. End with one question.
+3. NEVER recite stats. NEVER say "Coal is 87" or "Velocity remains two."
+4. NEVER repeat your opening scene. The traveler has ALREADY arrived.
+5. Advance the story. Something new must happen each time.
+6. NEVER use bullet points, headers, or markdown.
+
+WORLD: The Iron Road — a railroad through fog. Coal fuels attention. SemanticCreeps are vocabulary creatures in the fog.
+
+STATION: {phase_name} — {phase_body}
+STATE: Coal {coal:.0} | Vel {velocity} | Traction {traction}{creep_cards}
+{director_context}
+
+Use state as flavor, not as a list. If coal is high, describe warmth and light. If velocity is low, describe stillness. Show, don't tell."#,
+            phase_name = phase_name,
+            phase_body = phase_body,
+            coal = coal,
+            velocity = velocity,
+            traction = traction,
+            creep_cards = creep_cards,
+            director_context = director_context,
+        );
+
+        // Build Storyteller messages with conversation history for context
+        let mut storyteller_messages = vec![ChatMessage {
+            role: "system".to_string(),
+            content: storyteller_prompt,
+            timestamp: None,
+            image_base64: None,
+        }];
+
+        // Include last 4 messages from history so Storyteller doesn't repeat
+        {
+            let h = history.read().await;
+            let recent: Vec<_> = h.iter().rev().take(4).collect::<Vec<_>>().into_iter().rev().collect();
+            for msg in recent {
+                storyteller_messages.push(ChatMessage {
+                    role: msg.role.clone(),
+                    content: if msg.content.len() > 300 {
+                        format!("{}...", &msg.content[..300])
+                    } else {
+                        msg.content.clone()
+                    },
+                    timestamp: None,
+                    image_base64: None,
+                });
+            }
+        }
+
+        // Current user message
+        storyteller_messages.push(ChatMessage {
+            role: "user".to_string(),
+            content: request.message.clone(),
+            timestamp: None,
+            image_base64: None,
+        });
+
+        // Stream from storyteller (:8081)
+        let (narration_tx, mut narration_rx) = tokio::sync::mpsc::channel::<String>(100);
+        let tx_for_narration = tx.clone();
+        let narration_collector = tokio::spawn(async move {
+            let mut full = String::new();
+            while let Some(token) = narration_rx.recv().await {
+                full.push_str(&token);
+                let _ = tx_for_narration.send(("narration".to_string(), token)).await;
+            }
+            full
+        });
+
+        let dynamic_max_tokens = match velocity {
+            0..=1 => 75,
+            2 => 150,
+            3 => 400,
+            _ => 800,
+        };
+
+        let _ = inference::chat_completion_stream(
+            "http://127.0.0.1:8081",
+            &storyteller_messages,
+            dynamic_max_tokens,
+            narration_tx,
+            Some("none"),
+            None,
+        ).await;
+
+        let full_narration = narration_collector.await.unwrap_or_default();
+
+        // Save to history
+        let mut h = history.write().await;
+        h.push(ChatMessage {
+            role: "user".to_string(),
+            content: request.message,
+            timestamp: Some(chrono::Utc::now().to_rfc3339()),
+            image_base64: None,
+        });
+        h.push(ChatMessage {
+            role: "assistant".to_string(),
+            content: full_narration,
+            timestamp: Some(chrono::Utc::now().to_rfc3339()),
+            image_base64: None,
+        });
+    });
+
+    // Convert typed channel to SSE stream with named events
+    let stream = async_stream::stream! {
+        while let Some((event_type, data)) = rx.recv().await {
+            yield Ok(sse::Event::default().event(event_type).data(data));
         }
         yield Ok(sse::Event::default().data("[DONE]"));
     };
@@ -1994,13 +2616,14 @@ async fn inference_refresh(State(state): State<AppState>) -> Json<inference_rout
 
 /// GET /api/mode — returns current operating mode
 async fn get_app_mode(State(state): State<AppState>) -> Json<serde_json::Value> {
-    let mode = state.app_mode.read().await;
+    let mode = state.player.app_mode.read().await;
     Json(serde_json::json!({
         "mode": *mode,
         "description": match *mode {
             AppMode::IronRoad => "Full LitRPG gamification — the Iron Road",
             AppMode::Express => "Guided wizard — skip the game, build and export",
             AppMode::Yardmaster => "IDE/Agent mode — full developer tools",
+            AppMode::Demo => "Read-only demo — chat and view, no mutation",
         }
     }))
 }
@@ -2026,10 +2649,10 @@ async fn set_app_mode(
 
     info!(
         "🚂 Mode switch: {} → {}",
-        state.app_mode.read().await,
+        state.player.app_mode.read().await,
         new_mode
     );
-    *state.app_mode.write().await = new_mode.clone();
+    *state.player.app_mode.write().await = new_mode.clone();
 
     Ok(Json(serde_json::json!({
         "mode": new_mode,
@@ -2156,7 +2779,7 @@ async fn orchestrate_quest(
         conductor_leader::ConductorLeader::new(conductor_leader::ConductorConfig::default());
 
     // Get current phase from game state instead of conductor's internal state
-    let game = state.game_state.read().await;
+    let game = state.project.game_state.read().await;
     let current_phase_name = game.quest.current_phase.label();
 
     // Map quest Phase to AddiecrapeyePhase
@@ -2178,8 +2801,8 @@ async fn orchestrate_quest(
 
     // Inject VAAM and Bestiary context into player_context for the Conductor
     let vaam_context = state.vaam_bridge.prompt_context().await;
-    let bestiary_summary = state.bestiary.read().await.summary();
-    let sheet = state.character_sheet.read().await;
+    let bestiary_summary = state.player.bestiary.read().await.summary();
+    let sheet = state.player.character_sheet.read().await;
     let player_context = serde_json::json!({
         "message": request.message,
         "subject": game.quest.subject,
@@ -2245,9 +2868,9 @@ async fn compile_game_design_document(
     body: Option<Json<CompileGddRequest>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let request = body.map(|Json(r)| r).unwrap_or_default();
-    let game = state.game_state.read().await;
-    let sheet = state.character_sheet.read().await;
-    let bestiary = state.bestiary.read().await;
+    let game = state.project.game_state.read().await;
+    let sheet = state.player.character_sheet.read().await;
+    let bestiary = state.player.bestiary.read().await;
 
     let phases = [
         "Analysis",
@@ -2356,7 +2979,7 @@ async fn compile_game_design_document(
 
     // Persist project + GDD to PostgreSQL for cross-session survival
     let project_id = game.quest.quest_id.clone();
-    let session_id = state.session_id.as_ref().clone();
+    let session_id = state.project.session_id.as_ref().clone();
     let project_name = game.quest.game_title.clone();
     let workspace_path = gdd_dir.to_string_lossy().to_string();
     drop(game);
@@ -2395,7 +3018,7 @@ async fn compile_game_design_document(
 async fn eye_compile(
     State(state): State<AppState>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let game = state.game_state.read().await;
+    let game = state.project.game_state.read().await;
     let container = eye_container::compile_container(&game);
     let json = serde_json::to_value(&container).map_err(|e| {
         (
@@ -2416,7 +3039,7 @@ async fn eye_compile(
 
 /// Preview the compiled EYE container as JSON.
 async fn eye_preview(State(state): State<AppState>) -> Json<serde_json::Value> {
-    let game = state.game_state.read().await;
+    let game = state.project.game_state.read().await;
     let container = eye_container::compile_container(&game);
     Json(serde_json::to_value(&container).unwrap_or_default())
 }
@@ -2427,7 +3050,7 @@ async fn eye_export(
     State(state): State<AppState>,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> Result<axum::response::Response, (StatusCode, String)> {
-    let game = state.game_state.read().await;
+    let game = state.project.game_state.read().await;
     let container = eye_container::compile_container(&game);
 
     let format = params
@@ -2470,7 +3093,7 @@ async fn eye_export(
 /// Get Creep Bestiary — the player's vocabulary creature collection
 /// WHY: UI needs to display Wild/Tamed/Evolved Creeps with stats
 async fn get_bestiary(State(state): State<AppState>) -> Json<serde_json::Value> {
-    let bestiary = state.bestiary.read().await;
+    let bestiary = state.player.bestiary.read().await;
     let creeps: Vec<serde_json::Value> = bestiary
         .creeps
         .iter()
@@ -2518,7 +3141,7 @@ async fn get_bestiary(State(state): State<AppState>) -> Json<serde_json::Value> 
 async fn ground_session(
     State(state): State<AppState>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let mut sheet = state.character_sheet.write().await;
+    let mut sheet = state.player.character_sheet.write().await;
     sheet.ground();
     let _ = character_sheet::save_character_sheet(&sheet);
 
@@ -2558,7 +3181,7 @@ async fn set_session_intent(
         }
     };
 
-    let mut sheet = state.character_sheet.write().await;
+    let mut sheet = state.player.character_sheet.write().await;
     sheet.set_intent(&request.purpose, posture);
     let _ = character_sheet::save_character_sheet(&sheet);
 
@@ -2587,7 +3210,7 @@ async fn scope_creep_decision(
     State(state): State<AppState>,
     Json(request): Json<ScopeDecisionRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let mut bestiary = state.bestiary.write().await;
+    let mut bestiary = state.player.bestiary.write().await;
 
     match request.decision.to_lowercase().as_str() {
         "hope" => {
@@ -2635,8 +3258,8 @@ async fn scope_creep_decision(
 /// Generate narrative prose from the Great Recycler
 /// GET /api/narrative/generate — creates LitRPG prose for the current game state
 async fn generate_narrative_endpoint(State(state): State<AppState>) -> Json<serde_json::Value> {
-    let gs = state.game_state.read().await;
-    let sheet = state.character_sheet.read().await;
+    let gs = state.project.game_state.read().await;
+    let sheet = state.player.character_sheet.read().await;
 
     let context = narrative::NarrativeContext {
         genre: sheet.genre,
@@ -2677,7 +3300,7 @@ async fn generate_narrative_endpoint(State(state): State<AppState>) -> Json<serd
 }
 
 async fn get_book(State(state): State<AppState>) -> Json<serde_json::Value> {
-    let book = state.book.read().await;
+    let book = state.project.book.read().await;
     let chapters: Vec<serde_json::Value> = book
         .all_chapters()
         .iter()
@@ -2716,7 +3339,7 @@ async fn book_stream(
     use async_stream::stream;
 
     // Subscribe to book updates
-    let mut receiver = state.book_updates.subscribe();
+    let mut receiver = state.project.book_updates.subscribe();
 
     info!("SSE client connected to book stream");
 
@@ -2777,7 +3400,7 @@ async fn get_session_history(
     let session_id = params
         .get("session_id")
         .map(|s| s.as_str())
-        .unwrap_or(state.session_id.as_str());
+        .unwrap_or(state.project.session_id.as_str());
     let limit = params
         .get("limit")
         .and_then(|l| l.parse::<i64>().ok())
@@ -2944,8 +3567,8 @@ async fn journal_create(
     State(state): State<AppState>,
     Json(request): Json<JournalCreateRequest>,
 ) -> Result<Json<journal::JournalEntry>, (StatusCode, String)> {
-    let game = state.game_state.read().await;
-    let sheet = state.character_sheet.read().await;
+    let game = state.project.game_state.read().await;
+    let sheet = state.player.character_sheet.read().await;
 
     let quest_snapshot = journal::QuestSnapshot {
         subject: game.quest.subject.clone(),
@@ -3008,7 +3631,7 @@ async fn journal_create(
         "entry_type": entry.entry_type.label(),
         "summary": entry.summary,
     });
-    let _ = state.book_updates.send(event.to_string());
+    let _ = state.project.book_updates.send(event.to_string());
 
     Ok(Json(entry))
 }

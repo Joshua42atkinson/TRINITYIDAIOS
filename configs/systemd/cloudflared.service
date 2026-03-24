@@ -1,0 +1,16 @@
+[Unit]
+Description=Cloudflare Tunnel for ldtatkinson.com
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=joshua
+Group=joshua
+ExecStart=/usr/local/bin/cloudflared tunnel run trinity-tunnel
+Restart=on-failure
+RestartSec=10
+Environment=TUNNEL_CRED_FILE=/home/joshua/.cloudflared/08dca1cb-8f1d-4326-8d40-8a78296cf63d.json
+
+[Install]
+WantedBy=multi-user.target
