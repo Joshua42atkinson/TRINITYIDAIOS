@@ -1,6 +1,6 @@
-# 🎓 PROFESSOR — The Stakeholder's Guide to TRINITY ID AI OS
+# 🎓 PROFESSOR PROGRAMMING — The Stakeholder's Guide to TRINITY ID AI OS
 
-![The Professor's Desk — Standards, Privacy, and Evaluation](/images/professor_evaluation.png)
+![Professor Programming — Standards, Privacy, and Evaluation](/images/professor_evaluation.png)
 
 > *"I know what success looks like."* — The Stakeholder's Tagline
 
@@ -18,7 +18,7 @@ This is one of **four root documents** — the "Four Chariots" of Trinity's iden
 |---------|----------|-----------|-------------|
 | 📖 **The Bible** | [TRINITY_FANCY_BIBLE.md](TRINITY_FANCY_BIBLE.md) | Instructional Designer 🎓 | Full technical reference |
 | 🤝 **The Field Manual** | [ASK_PETE_FIELD_MANUAL.md](ASK_PETE_FIELD_MANUAL.md) | Subject Matter Expert 🧑‍🏫 | Pete's operating philosophy & cognitive logistics |
-| 🎓 **The Professor** | [PROFESSOR.md](PROFESSOR.md) *(this file)* | Stakeholder 📊 | Institutional adoption & evaluation |
+| 🎓 **Professor Programming** | [PROFESSOR.md](PROFESSOR.md) *(this file)* | Stakeholder 📊 | Institutional adoption & evaluation |
 | 🎮 **The Player's Handbook** | [PLAYERS_HANDBOOK.md](PLAYERS_HANDBOOK.md) | Player 🎮 | Philosophy, identity & conscious learning |
 
 Each document serves a different reader. This one is for **administrators, department chairs, and evaluators** who need to understand *what Trinity does, why it works, and how it maps to existing standards*.

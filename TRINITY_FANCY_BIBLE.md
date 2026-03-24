@@ -1431,10 +1431,10 @@ Trinity's **Help Menu** (accessible via ❓ icon in NavBar) provides direct acce
 |---------|------|--------|---------|
 | 📖 **The Bible** | `TRINITY_FANCY_BIBLE.md` | Developers | Technical spec, every line of code explained |
 | 🤝 **Field Manual** | `ASK_PETE_FIELD_MANUAL.md` | Educators | Pete's operating philosophy & cognitive logistics |
-| 🎓 **Professor** | `PROFESSOR.md` | Stakeholders | Standards alignment, privacy, institutional evaluation |
+| 🎓 **Professor Programming** | `PROFESSOR.md` | Stakeholders | Standards alignment, privacy, institutional evaluation |
 | 🎮 **Player's Handbook** | `PLAYERS_HANDBOOK.md` | Players | Philosophy, identity & conscious learning |
 
-When a user encounters unfamiliar terminology (e.g., "Subconscious Inventory"), Pete can direct them to the relevant Chariot. When a stakeholder questions the "gamification" approach, the Professor document provides the pedagogical justification with IBSTPI/AECT/QM standards alignment.
+When a user encounters unfamiliar terminology (e.g., "Subconscious Inventory"), Pete can direct them to the relevant Chariot. When a stakeholder questions the "gamification" approach, the Professor Programming document provides the pedagogical justification with IBSTPI/AECT/QM standards alignment.
 
 > 📍 `NavBar.jsx:L12-43` — Help menu dropdown with Four Chariots links
 > 📍 `main.rs:L813-824` — Static file routes serving root `.md` documents via `/docs/`

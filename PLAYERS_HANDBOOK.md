@@ -120,7 +120,7 @@ For years, the dark horse of fear and the white horse of duty had been running w
 
 To "Know Thyself" is not a passive intellectual exercise. It is the active, gritty, daily work of picking up the reins. It is the decision to stop being a passenger in your own life and to become the **Architect** of your own journey.
 
-> 🎮 **IN TRINITY**: This is why Trinity's documentation system is called the **Four Chariots**. Each document is a rein — the Bible (architecture), the Field Manual (rules), the Professor (standards), and this Handbook (philosophy). The Charioteer (you) uses all four to drive. Trinity doesn't tell you what to think. The **Great Recycler** asks you questions until you pick up the reins yourself.
+> 🎮 **IN TRINITY**: This is why Trinity’s documentation system is called the **Four Chariots**. Each document is a rein — the Bible (architecture), the Field Manual (rules), Professor Programming (standards), and this Handbook (philosophy). The Charioteer (you) uses all four to drive. Trinity doesn’t tell you what to think. The **Great Recycler** asks you questions until you pick up the reins yourself.
 
 ---
 
@@ -516,10 +516,10 @@ The "Armor" (Cynicism, Toughness, Blame) blocks the signal. It prevents you from
 
 The **Self-Validating Loop** works like this:
 
-1. **The Choice**: You decide you are worth the effort (Ownership).
-2. **The Opening**: You drop the armor to receive the necessary data/help (Vulnerability).
-3. **The Investment**: You apply discipline and hard work to process that data (Stewardship).
-4. **The Growth**: You expand, which validates the original choice.
+1.  **The Choice**: You decide you are worth the effort (Ownership).
+2.  **The Opening**: You drop the armor to receive the necessary data/help (Vulnerability).
+3.  **The Investment**: You apply discipline and hard work to process that data (Stewardship).
+4.  **The Growth**: You expand, which validates the original choice.
 
 The Japanese art of **Kintsugi** illustrates this perfectly. When a precious bowl is broken, the masters do not throw it away. They do not try to hide the cracks with invisible glue. Instead, they repair the broken pieces with a lacquer dusted with **powdered gold**.
 
@@ -541,10 +541,10 @@ But Stutz's insight — and this is the insight that changed everything for me �
 
 In Trinity, this is the **Shadow Status** system:
 
-- **Clear**: The Ghost Train is dormant. The armor is off. The Self-Validating Loop is running.
-- **Stirring**: You can hear it approaching. The armor is starting to creep back on. You're avoiding the hard questions.
-- **Active**: It's here. The Imposter Syndrome is screaming. The armor is locked tight. Nothing feels real.
-- **Processed**: You walked through it. You wrote the journal. You sat in the Maintenance Shed and spoke to the Shadow. You are not the same person who entered. You are *one step higher*.
+-   **Clear**: The Ghost Train is dormant. The armor is off. The Self-Validating Loop is running.
+-   **Stirring**: You can hear it approaching. The armor is starting to creep back on. You're avoiding the hard questions.
+-   **Active**: It's here. The Imposter Syndrome is screaming. The armor is locked tight. Nothing feels real.
+-   **Processed**: You walked through it. You wrote the journal. You sat in the Maintenance Shed and spoke to the Shadow. You are not the same person who entered. You are *one step higher*.
 
 Every time you process the Ghost Train, you climb one of the seventeen **Memorial Steps**. One for each life lost. One for each crack filled with gold.
 
@@ -576,10 +576,10 @@ The Architect treats the body as an **Alchemical Forge**.
 
 Most people treat their body like a taxi. They sit in the back seat (the mind) and yell instructions at the driver, getting angry when the car breaks down. They view the body as separate from their "Self."
 
-Your body is a machine that takes dense matter (food) and transmutes it into **energy** (consciousness). The clarity of your thoughts, the stability of your emotions, and the power of your will are all *downstream effects* of how this Forge is running.
+Your body is a machine that takes dense matter (food) and transmutates it into **energy** (consciousness). The clarity of your thoughts, the stability of your emotions, and the power of your will are all *downstream effects* of how this Forge is running.
 
-- **Compulsion** is when the Forge runs you. You eat because the machine is screaming for fuel, and you grab the closest, cheapest source.
-- **Intentionality** is when you run the Forge. You recognize the signal, identify the need, and choose the input based on the current state of the system.
+-   **Compulsion** is when the Forge runs you. You eat because the machine is screaming for fuel, and you grab the closest, cheapest source.
+-   **Intentionality** is when you run the Forge. You recognize the signal, identify the need, and choose the input based on the current state of the system.
 
 Self-regulation research supports this: the ability to delay gratification (psychologist Walter Mischel's famous "marshmallow test") is one of the strongest predictors of long-term success, not because willpower is a virtue, but because it demonstrates **executive function** — the Charioteer holding the reins.
 
@@ -613,8 +613,8 @@ This is the principle of **Stress Inoculation** — a well-studied psychological
 
 When I turn that handle to the cold, I am initiating a **System Override**:
 
-- **The Automatic Response**: The body feels cold. The Sympathetic Nervous System (Fight or Flight) kicks in. Adrenaline floods the blood. The mind screams *"Get out!"*
-- **The Manual Intervention**: The Player observes the panic but does not obey it. I consciously slow my exhale. I force the system to relax into the stress.
+-   **The Automatic Response**: The body feels cold. The Sympathetic Nervous System (Fight or Flight) kicks in. Adrenaline floods the blood. The mind screams *"Get out!"*
+-   **The Manual Intervention**: The Player observes the panic but does not obey it. I consciously slow my exhale. I force the system to relax into the stress.
 
 This is how you forge the Will. Willpower is not an abstract concept; it is a **trainable biological resource**. When you force your body to remain calm in a high-stress environment, you are training your nervous system to handle high-load events in the real world — a crying baby, a financial hit, a student who pushes every button.
 
@@ -644,8 +644,8 @@ But here is the catch: We didn't disappear. We didn't dissolve into a blob of on
 
 I realized then that life is a **"Both/And" equation**.
 
-- **The "Both"**: We share the same fundamental human needs — Autonomy, Relatedness, Competence. We are all Players.
-- **The "And"**: We are distinct Characters. We possess a "Schema" — a constructed personality — so that we can **interact**.
+-   **The "Both"**: We share the same fundamental human needs — Autonomy, Relatedness, Competence. We are all Players.
+-   **The "And"**: We are distinct Characters. We possess a "Schema" — a constructed personality — so that we can **interact**.
 
 If we were only Awareness, we would just observe. We couldn't *do* anything. We couldn't love, fight, build, or raise children. We need the Schema to have the friction of experience. But we need the Awareness to know that the friction isn't the whole truth.
 
@@ -679,8 +679,8 @@ It stings. The ego hates it. But the Player loves it, because the Player knows t
 
 There are two ways to play the Social Game:
 
-- **The Vampire Mechanic** (Zero-Sum): I need energy. I don't know how to generate it. So I will create drama, conflict, or guilt to steal your attention. I win, you lose.
-- **The University Mechanic** (Positive-Sum): I generate my own energy (Stewardship). You generate yours. When we come together as a department, a cohort, a faculty — we don't drain each other; we **amplify** each other. We create a resonance that is stronger than either of us could achieve alone.
+-   **The Vampire Mechanic** (Zero-Sum): I need energy. I don't know how to generate it. So I will create drama, conflict, or guilt to steal your attention. I win, you lose.
+-   **The University Mechanic** (Positive-Sum): I generate my own energy (Stewardship). You generate yours. When we come together as a department, a cohort, a faculty — we don't drain each other; we **amplify** each other. We create a resonance that is stronger than either of us could achieve alone.
 
 > 🎮 **IN TRINITY**: The system is designed for university-scale deployment. Each student runs their own local Trinity instance, building their own Character Sheet. But the ADDIECRAPEYE quest structure is shared — everyone moves through the same 12 stations. Peer review happens naturally because everyone understands the framework. *"What phase are you in? How did you handle the Scope Creep at Station 3?"* A department doesn't need a leaderboard. It needs a shared language. ADDIECRAPEYE provides that language.
 
@@ -768,7 +768,7 @@ If you've read this far, you already know the cheat code: **consciousness is the
 
 ---
 
-*The Player's Handbook is one of Trinity's Four Chariots — the core documents that drive the system. For architecture, see the Bible. For rules, see the Field Manual. For standards, see the Professor. For philosophy, you're already here.*
+*The Player’s Handbook is one of Trinity’s Four Chariots — the core documents that drive the system. For architecture, see the Bible. For rules, see the Field Manual. For standards, see Professor Programming. For philosophy, you’re already here.*
 
 **License**: Apache 2.0
 **© 2026 Joshua Atkinson — Purdue University, Learning Design & Technology**
