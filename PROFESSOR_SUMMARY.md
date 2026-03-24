@@ -14,7 +14,7 @@ Trinity is a **local-first AI-powered instructional design workstation** that tr
 **Current Limitations:** Trinity is an advanced single-user prototype optimized for robust hardware (like AMD Strix Halo, 128GB RAM). Select features (image/voice generation) rely on optional sidecar services, and multi-user concurrency is currently a roadmap item rather than a deployed reality.
 
 ## Verified Features (What IS)
-Trinity is not vaporware; it is a meticulously documented prototype consisting of 190,000+ lines of Rust with rigorous safety gating.
+Trinity is not vaporware; it is a meticulously documented prototype consisting of 36,000+ lines of hand-authored Rust across 6 workspace crates, plus 17,000 lines of React frontend — with rigorous safety gating.
 - **LLM Brain:** Runs off Mistral Small 4 119B GGUF with a 500K+ context window.
 - **Quality Matters (QM) Scoring:** Automatically evaluates artifacts across five pedagogical dimensions.
 - **Socratic Protocol Engaged:** 11 phase-specific instruction sets strictly prohibit the AI from doing the designer's thinking for them.

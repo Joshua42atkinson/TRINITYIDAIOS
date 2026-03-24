@@ -101,7 +101,7 @@ Sidecar Monitor ─────────── Checks real sidecar health, re
 
 ### Frontend (Vite + React)
 
-16 components, 7 custom hooks. Key views:
+40 components across both frontends (Trinity app + LDT Portfolio). Key views:
 
 - **Iron Road** — 3-column book layout: chapter rail / prose + chat / game HUD
 - **ART Studio** — Image, music, video, 3D mesh generation with asset gallery
