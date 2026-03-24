@@ -21,7 +21,7 @@ const DOC_META = {
     accent: '#CFB991',
   },
   'PROFESSOR.md': {
-    title: 'The Professor',
+    title: 'Professor Programming',
     emoji: '🎓',
     subtitle: 'Sovereign Cognitive Engine · Institutional Scale & Theory',
     accent: '#CFB991',

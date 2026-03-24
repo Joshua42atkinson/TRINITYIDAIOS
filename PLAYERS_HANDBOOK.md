@@ -164,7 +164,7 @@ This is not magic. It is biology. If you believe the world is hostile, your RAS 
 
 You are not observing reality; you are **rendering a simulation** based on the parameters you have chosen — or the ones that were chosen for you.
 
-> 🎮 **IN TRINITY**: This is why the first thing you do in Trinity is set your **PEARL** — your Purpose, Experience, Audience, Resources, and Limitations. The PEARL is your RAS filter for the quest ahead. It tells the Great Recycler and Pete: *"This is what matters to me. Filter everything through this lens."* When you change your PEARL, the system literally changes what it shows you. Same engine, different rendering.
+> 🎮 **IN TRINITY**: This is why the first thing you do in Trinity is set your **PEARL** — your **P**erspective **E**ngineering **A**esthetic **R**esearch **L**ayout. The PEARL is your RAS filter for the quest ahead. It captures your subject, your vision, and your delivery medium, then tells the Great Recycler and Pete: *"This is what matters to me. Filter everything through this lens."* When you change your PEARL, the system literally changes what it shows you. Same engine, different rendering.
 
 ---
 
