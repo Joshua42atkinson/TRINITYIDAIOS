@@ -112,6 +112,12 @@ fn is_tunnel_request(req: &Request<Body>) -> bool {
         || req.headers().contains_key("cf-ipcountry")
 }
 
+/// Public-facing portfolio endpoints — exempted from the blocked list.
+/// These are read-only, stateless, and rate-limited more aggressively.
+const PORTFOLIO_ALLOWED: &[&str] = &[
+    "/api/chat/portfolio",
+];
+
 /// Edge Guard middleware — blocks dangerous routes for tunnel traffic
 /// and applies rate limiting to all tunnel requests.
 pub async fn edge_guard(
@@ -136,6 +142,27 @@ pub async fn edge_guard(
             .body(Body::empty())
             .unwrap();
         return Ok(redirect);
+    }
+
+    // Portfolio endpoints: allowed from tunnel but with tighter rate limiting
+    let is_portfolio = PORTFOLIO_ALLOWED.iter().any(|p| path.starts_with(p));
+    if is_portfolio {
+        if let Some(ip) = req
+            .headers()
+            .get("cf-connecting-ip")
+            .and_then(|v| v.to_str().ok())
+        {
+            static PORTFOLIO_LIMITER: std::sync::OnceLock<RateLimiter> = std::sync::OnceLock::new();
+            let limiter = PORTFOLIO_LIMITER.get_or_init(RateLimiter::new);
+
+            // Strict: 10 requests per minute per IP (protects GPU from abuse)
+            if !limiter.check(ip, 10, 60) {
+                tracing::warn!("🛡️ Edge Guard: Portfolio rate limited tunnel IP {}", ip);
+                return Err(StatusCode::TOO_MANY_REQUESTS);
+            }
+        }
+        tracing::info!("🌐 Edge Guard: Allowing portfolio chat from tunnel");
+        return Ok(next.run(req).await);
     }
 
     // Check blocked prefixes
