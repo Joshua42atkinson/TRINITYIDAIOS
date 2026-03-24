@@ -36,7 +36,7 @@ export default function GameHUD({ quest, bestiary, onRefetch }) {
       <div className="hud-section">
         <div className="hud-section__header">JOURNEY</div>
         <PearlCard pearl={quest?.pearl} onRefetch={onRefetch} />
-        <TrainStatus quest={quest} />
+        <TrainStatus quest={quest} character={character} />
       </div>
 
       {/* ── Identity ── */}
