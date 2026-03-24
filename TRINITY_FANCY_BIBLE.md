@@ -520,11 +520,11 @@ Grouped by responsibility:
 
 ### 3.1 The 12 Stations
 
-ADDIECRAPEYE is a 12-station instructional design framework that fuses three established methodologies:
+ADDIECRAPEYE is a 12-station instructional design framework that fuses three methodologies:
 
-- **ADDIE** (5 stations): Analysis → Design → Development → Implementation → Evaluation — the gold standard of instructional design
-- **CRAP** (4 stations): Contrast → Repetition → Alignment → Proximity — Robin Williams' design principles
-- **EYE** (3 stations): Envision → Yoke → Evolve — Trinity's original metacognitive layer
+- **ADDIE** (5 stations): Analyze → Design → Develop → Implement → Evaluate — the gold standard of instructional systems design, originally developed by the Center for Educational Technology at Florida State University (c. 1975) for the U.S. Army (Molenda, 2003).
+- **CRAP** (4 stations): Contrast → Repetition → Alignment → Proximity — foundational visual design principles coined by Robin Williams in *The Non-Designer's Design Book* (Peachpit Press, 1994).
+- **EYE** (3 stations): Envision → Yoke → Evolve — **original contribution by Joshua Atkinson** (2026) as part of the Trinity ID AI OS project. EYE adds a reflective vision-iteration loop that completes the 12-station cycle. It is not derived from any existing instructional design framework.
 
 ```rust
 pub enum AddiecrapeyePhase {

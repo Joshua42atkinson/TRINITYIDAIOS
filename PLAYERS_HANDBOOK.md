@@ -347,7 +347,7 @@ This is the stage of "Constraint Building." You set up rules for your own avatar
 
 You are no longer fighting the world; you are **engineering your interaction with it**.
 
-> 🎮 **IN TRINITY**: This is the **ADDIECRAPEYE** methodology. You don't just build a lesson plan. You *analyze* first (what do I know?), *design* the structure (what are the constraints?), *develop* the content, *implement* it, and *evaluate* the results — then you apply CRAP design principles (Contrast, Repetition, Alignment, Proximity) and the EYE phases (Envision, Yoke, Evolve) to refine it into mastery. Each station is a constraint. The Great Recycler's Socratic Protocol forces the Observer stage: *"Why did you choose that objective? What assumption are you making?"*
+> 🎮 **IN TRINITY**: This is the **ADDIECRAPEYE** methodology. You don't just build a lesson plan. You *analyze* first (what do I know?), *design* the structure (what are the constraints?), *develop* the content, *implement* it, and *evaluate* the results — then you apply the CRAP visual design principles — Contrast, Repetition, Alignment, Proximity (Robin Williams, *The Non-Designer's Design Book*, 1994) — and the EYE phases — Envision, Yoke, Evolve (original contribution by Joshua Atkinson, 2026) — to refine it into mastery. ADDIE itself is the gold-standard ISD model, developed at Florida State University (c. 1975) for the U.S. Army (Molenda, 2003). Each station is a constraint. The Great Recycler's Socratic Protocol forces the Observer stage: *"Why did you choose that objective? What assumption are you making?"*
 
 ---
 

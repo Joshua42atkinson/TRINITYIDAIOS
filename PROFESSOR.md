@@ -468,6 +468,8 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 13. **Gamification in Education**: Deterding, S. et al. (2011). "From game design elements to gamefulness." *MindTrek '11*. ACM.
 14. **Flow Theory**: Csikszentmihalyi, M. (1990). *Flow: The Psychology of Optimal Experience*. Harper & Row.
 15. **Tabletop RPG as Learning**: Bowman, S.L. (2010). *The Functions of Role-Playing Games*. McFarland.
+16. **CRAP Design Principles**: Williams, R. (1994). *The Non-Designer's Design Book*. Peachpit Press. (Contrast, Repetition, Alignment, Proximity — the visual design layer of ADDIECRAPEYE.)
+17. **EYE Framework**: Atkinson, J.D. (2026). *Original contribution*. Envision → Yoke → Evolve — a reflective vision-iteration loop extending ADDIE+CRAP into a complete 12-station cycle. Not derived from any existing instructional design framework.
 
 ---
 
