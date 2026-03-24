@@ -7,6 +7,7 @@ export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) 
     { id: 'character', label: 'Character' },
     { id: 'yard',     label: 'Yardmaster' },
     { id: 'scorecard', label: 'Scorecard' },
+    { id: 'journal',  label: 'Journal' },
     { id: 'voice',    label: 'Zen Mode' },
   ];
 

@@ -3218,12 +3218,39 @@ async fn scope_creep_decision(
                 if let Err(e) = character_sheet::save_bestiary(&bestiary) {
                     tracing::warn!("Failed to save bestiary: {}", e);
                 }
-                let creep = bestiary.get_creep_mut(&request.word);
+                let card = bestiary.get_creep_mut(&request.word).map(|c| c.card());
+                drop(bestiary);
+
+                // ── Scout Sniper RLHF: Scout gets paid ──
+                // Taming = productive scope expansion = high reward
+                // Player creates monsters, Pete processes them: coal → steam → maturity
+                let mut sheet = state.player.character_sheet.write().await;
+                sheet.current_steam = (sheet.current_steam + 5.0).min(100.0);
+                sheet.track_friction = (sheet.track_friction - 3.0).max(0.0);
+                sheet.consecutive_negatives = 0;
+                sheet.recalculate_vulnerability();
+                let steam = sheet.current_steam;
+                let friction = sheet.track_friction;
+                drop(sheet);
+
+                // Award XP, generate steam, spend coal for successful taming
+                let mut game = state.project.game_state.write().await;
+                game.quest.xp_earned += 10;
+                game.quest.steam_generated += 8.0;
+                game.quest.coal_used += 5.0;
+                game.stats.total_xp += 10;
+                game.stats.coal_reserves = (game.stats.coal_reserves - 5.0).max(0.0);
+                let xp = game.stats.total_xp;
+                drop(game);
+
+                info!("🔭 Scout Sniper: HOPE — '{}' tamed (+5 steam, +10 XP, -3 friction)", request.word);
+
                 Ok(Json(serde_json::json!({
                     "status": "tamed",
                     "word": request.word,
-                    "message": format!("🎉 Scope Hope! '{}' has been tamed and joins your vocabulary.", request.word),
-                    "card": creep.map(|c| c.card()),
+                    "message": format!("🔭 Scout says HOPE! '{}' has been tamed and joins your vocabulary.", request.word),
+                    "card": card,
+                    "reward": { "steam": steam, "xp": xp, "friction": friction },
                 })))
             } else {
                 Err((
@@ -3240,10 +3267,36 @@ async fn scope_creep_decision(
             if let Err(e) = character_sheet::save_bestiary(&bestiary) {
                 tracing::warn!("Failed to save bestiary: {}", e);
             }
+            drop(bestiary);
+
+            // ── Scout Sniper RLHF: Sniper gets paid ──
+            // Noping = good scope hygiene = small reward for discipline
+            // Knowing what you are NOT is product maturity
+            let mut sheet = state.player.character_sheet.write().await;
+            sheet.current_steam = (sheet.current_steam + 2.0).min(100.0);
+            sheet.track_friction = (sheet.track_friction - 1.0).max(0.0);
+            sheet.recalculate_vulnerability();
+            let steam = sheet.current_steam;
+            let friction = sheet.track_friction;
+            drop(sheet);
+
+            // Small XP and steam for scope discipline, less coal cost
+            let mut game = state.project.game_state.write().await;
+            game.quest.xp_earned += 3;
+            game.quest.steam_generated += 3.0;
+            game.quest.coal_used += 2.0;
+            game.stats.total_xp += 3;
+            game.stats.coal_reserves = (game.stats.coal_reserves - 2.0).max(0.0);
+            let xp = game.stats.total_xp;
+            drop(game);
+
+            info!("🎯 Scout Sniper: NOPE — '{}' bagged & tagged (+2 steam, +3 XP)", request.word);
+
             Ok(Json(serde_json::json!({
                 "status": "wild",
                 "word": request.word,
-                "message": format!("'{}' stays wild. It may return when the time is right.", request.word),
+                "message": format!("🎯 Sniper says NOPE. '{}' bagged & tagged — not the project. Bestiary updated.", request.word),
+                "reward": { "steam": steam, "xp": xp, "friction": friction },
             })))
         }
         _ => Err((

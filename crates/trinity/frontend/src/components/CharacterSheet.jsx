@@ -219,6 +219,30 @@ export default function CharacterSheet() {
                    shadow_status === 'Active' ? '🚂 Ghost Train Active' : '✨ Processed'}
                 </span>
               </div>
+              {shadow_status === 'Active' && (
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await fetch('/api/character/shadow/process', { method: 'POST' });
+                      if (res.ok) {
+                        const data = await res.json();
+                        setSheet(s => ({ ...s, shadow_status: data.shadow_status, vulnerability: data.vulnerability, track_friction: data.track_friction }));
+                      }
+                    } catch {}
+                  }}
+                  style={{
+                    marginTop: '8px', width: '100%', padding: '10px', cursor: 'pointer',
+                    background: 'rgba(139, 92, 246, 0.15)', border: '1px solid rgba(139, 92, 246, 0.4)',
+                    borderRadius: '6px', color: '#a78bfa', fontFamily: "'Cinzel', serif",
+                    fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(139, 92, 246, 0.25)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(139, 92, 246, 0.15)'}
+                >
+                  🌕 Process Shadow — Stop the Ghost Train
+                </button>
+              )}
             </div>
           </div>
 

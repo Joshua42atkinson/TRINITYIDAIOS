@@ -10,6 +10,7 @@ import ExpressWizard from './components/ExpressWizard';
 import OnboardingTour from './components/OnboardingTour';
 import QualityScorecard from './components/QualityScorecard';
 import ChariotViewer from './components/ChariotViewer';
+import JournalViewer from './components/JournalViewer';
 import ZenMode from './components/ZenMode';
 import { useQuest } from './hooks/useQuest';
 import { useBestiary } from './hooks/useBestiary';
@@ -120,6 +121,12 @@ export default function App() {
   const { quest, phases, currentPhaseIndex, refetch } = useQuest();
   const { bestiary } = useBestiary();
   const { events, dismissEvent } = useSSE();
+  const [inferenceModel, setInferenceModel] = React.useState('...');
+
+  // Fetch active model name on mount
+  React.useEffect(() => {
+    fetch('/api/models/active').then(r => r.json()).then(d => setInferenceModel(d.model_name || d.name || '?')).catch(() => {});
+  }, []);
 
   // Listen for handoff events from PhaseWorkspace (Recycler → Pete workshop)
   React.useEffect(() => {
@@ -229,6 +236,10 @@ export default function App() {
         <div style={{ gridColumn: '1 / -1', gridRow: 2, overflow: 'auto' }}>
           <QualityScorecard />
         </div>
+      ) : activeTab === 'journal' ? (
+        <div style={{ gridColumn: '1 / -1', gridRow: 2, overflow: 'auto' }}>
+          <JournalViewer />
+        </div>
       ) : activeTab === 'yard' || appMode === 'yardmaster' ? (
         <div className="full-span-tab">
           <Yardmaster />
@@ -298,7 +309,9 @@ export default function App() {
         <span className="sep">|</span>
         <span>Phase: {quest?.phase || '—'}</span>
         <span className="sep">|</span>
-        <span>XP: {quest?.xp || 0}</span>
+        <span>XP: {quest?.xp_earned || 0}</span>
+        <span className="sep">|</span>
+        <span>🚂 {inferenceModel}</span>
       </footer>
       <OnboardingTour />
     </div>

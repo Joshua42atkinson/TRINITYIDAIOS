@@ -21,10 +21,25 @@
 | **Inference Router & Dual KV Cache** | `Verified` | `inference_router.rs`, `agent.rs:L132-145` |
 | **Quality Scorecard** | `Verified` | `quality_scorecard.rs`, unit tests pass |
 | **Socratic Protocol & Agent Tools** | `Verified` | `conductor_leader.rs`, `tools.rs`, 30 available tools |
-| **LDT Portfolio HUD** | `Prototype` | `CharacterSheet.jsx`, `character_api.rs` |
-| **App Modes (Iron Road, Express, Yardmaster)** | `Prototype` | `AppMode` enum in `main.rs`, React UI |
-| **Creative Pipeline (Images, Music)** | `Optional Sidecar` | `creative.rs`, ComfyUI/MusicGPT endpoints |
-| **Voice Pipeline** | `Optional Sidecar` | `voice.rs`, External Python TTS sidecar |
+| **LDT Portfolio HUD** | `Verified` | `CharacterSheet.jsx`, `character_api.rs` |
+| **App Modes (Iron Road, Express, Yardmaster)** | `Verified` | `AppMode` enum in `main.rs`, React UI |
+| **Creative Pipeline (Images, Music, Video, 3D)** | `Verified` | `creative.rs`, `useCreative.js` — ComfyUI/MusicGPT/Hunyuan |
+| **Voice Pipeline (Supertonic-2 TTS)** | `Verified` | `supertonic.rs`, native ONNX — browser fallback auto-detect |
+| **Zen Mode Codex** | `Verified` | `ZenMode.jsx` — Fantasy RPG book UI, 32px narrator text |
+| **ADDIECRAPEYE Phase Navigation** | `Verified` | Vertical 12-tab sidebar, phase-aware input & badge |
+| **EYE Export** | `Verified` | `/api/eye/export` → download button in Zen Mode |
+| **Safety Badges (CowCatcher/EdgeGuard)** | `Verified` | `GameHUD.jsx` — visible safety indicators |
+| **Phase-Aware Messaging** | `Verified` | `activePhase` sent with every `/api/chat/zen` call |
+| **RLHF Feedback (Thumbs Up/Down)** | `Verified` | `ZenMode.jsx` — 👍/👎 buttons on narrator messages → `/api/rlhf/resonance` |
+| **Scout Sniper + RLHF Economy** | `Verified` | Hope/Nope → coal/steam/XP payout via `scope_creep_decision` |
+| **Model Switcher** | `Verified` | `Yardmaster.jsx` — lists `/api/models`, switches via `/api/models/switch` |
+| **RAG Knowledge Search** | `Verified` | `Yardmaster.jsx` — search input → `/api/rag/search`, doc count from `/api/rag/stats` |
+| **Journal & Reflections** | `Verified` | `JournalViewer.jsx` — timeline, weekly reflections, bookmarks, export |
+| **Book Narrative** | `Verified` | `GameHUD.jsx` — chapters from `/api/book`, generate via `/api/narrative/generate` |
+| **Portfolio Artifact Upload** | `Verified` | `ZenMode.jsx` settings — file picker → `/api/character/portfolio/artifact` |
+| **Project Save/Preview** | `Verified` | `ExpressWizard.jsx` — save via `/api/projects`, preview via `/api/eye/preview` |
+| **Party Toggle** | `Verified` | `GameHUD.jsx` — click party member → `/api/quest/party` |
+| **Shadow Process** | `Verified` | `CharacterSheet.jsx` — Ghost Train stop button → `/api/character/shadow/process` |
 | **Multi-user Sessions** | `Roadmap` | Planned vLLM PagedAttention deployment |
 
 ---
@@ -314,12 +329,12 @@ Trinity's web UI is built with **16 React components** served from the Axum back
 
 | Component | Purpose |
 |-----------|---------|
-| `ArtStudio.jsx` | Creative pipeline — ComfyUI image generation interface |
+| `ArtStudio.jsx` | Creative pipeline — image/music/video/3D generation via `useCreative` hook |
 | `ChapterRail.jsx` | ADDIECRAPEYE phase progress rail |
 | `CharacterSheet.jsx` | User identity and skill dashboard |
 | `CreepCard.jsx` | Vocabulary creature display card |
 | `ExpressWizard.jsx` | Streamlined Express mode wizard |
-| `GameHUD.jsx` | Iron Road heads-up display (XP, Coal, Steam) |
+| `GameHUD.jsx` | Iron Road HUD (XP, Coal, Steam) + Safety Badges (CowCatcher/EdgeGuard/Demo) |
 | `JournalViewer.jsx` | Chapter milestones and reflection viewer |
 | `NavBar.jsx` | Mode-aware navigation bar |
 | `OnboardingTour.jsx` | First-run guided tour |
@@ -329,9 +344,10 @@ Trinity's web UI is built with **16 React components** served from the Axum back
 | `QualityScorecard.jsx` | Document quality evaluation display |
 | `ScopeCard.jsx` | Scope creep creature encounter card |
 | `TrainStatus.jsx` | Iron Road train progress animation |
-| `Yardmaster.jsx` | IDE/Agent mode interface |
+| `Yardmaster.jsx` | IDE/Agent mode — agentic chat with Forge terminal via `useYardmaster` hook |
+| `ZenMode.jsx` | The Codex — Fantasy RPG book UI with ADDIECRAPEYE phase tabs, 32px narrator, TTS |
 
-> 📍 `crates/trinity/frontend/src/components/` — 16 files
+> 📍 `crates/trinity/frontend/src/components/` — 18 files
 > 📍 `main.rs:L756-766` — Static file serving: React `frontend/dist/` with SPA fallback
 
 ### 1.11 Field Manual Cross-Reference
@@ -726,6 +742,44 @@ pub struct CreepBestiary {
 > 📍 `game_loop.rs:L32-44` — `CreepBestiary` struct
 > 📍 `game_loop.rs:L130-132` — `usable_creeps()`: only Tamed or Evolved words are usable
 > 📍 `game_loop.rs:L150-163` — `summary()` method for UI display
+
+### 4.4.1 Scout Sniper — Dual-Mode Scope Management
+
+> *"The Scout sees hope. The Sniper sees nope. Both serve the Iron Road."*
+
+When a player's ideas generate **SemanticCreeps** (out-of-scope vocabulary or feature requests), Programmer Pete activates the **Scout Sniper** — a dual-mode decision tool:
+
+| Mode | Call | Action | Iron Road Metaphor |
+|------|------|--------|-------------------|
+| 🔭 **Scout** ("Scope Hope") | `POST /api/bestiary/tame {decision: "hope"}` | Tames the creep → create MOC → fill with code → test → deliver | Lay tracks → Load cargo → Ship cargo → Get paid |
+| 🎯 **Sniper** ("Scope Nope") | `POST /api/bestiary/tame {decision: "nope"}` | Bags & Tags → marks as not achievable, redundant, or counter-productive | Bestiary record — product maturity = knowing what you ARE and what you ARE NOT |
+
+**The flow:**
+```
+Player speaks in Zen Mode
+  → Great Recycler judges scope alignment
+    → IN-SCOPE: stays in Design Doc (YOUR PRODUCT panel)
+    → OUT-OF-SCOPE: SemanticCreep spawns in Bestiary
+      → Pete activates Scout Sniper
+        → SCOUT (hope): tame it, build it, ship it
+        → SNIPER (nope): bag it, tag it, record it
+```
+
+> 📍 `scope_creep.rs` — `detect_scope_creep()` trigger detection
+> 📍 `main.rs:scope_creep_decision()` — Hope/Nope handler at `/api/bestiary/tame`
+> 📍 `PhaseWorkspace.jsx` — Frontend tame/nope UI
+> 📍 `CreepCard.jsx` / `ScopeCard.jsx` — Creature display cards
+
+**RLHF Economy — "Pay Pete":**
+
+The Scout Sniper earns rewards through the RLHF system. Every decision costs Coal (compute budget) and generates Steam (momentum) + XP (experience). Trinity grows with the user based on this data:
+
+| Decision | Coal Cost | Steam Reward | XP | Friction | Effect |
+|----------|-----------|-------------|-----|----------|--------|
+| 🔭 Scout (Hope) | -5 | +8 | +10 | -3% | Tame → build → ship → maturity ↑ |
+| 🎯 Sniper (Nope) | -2 | +3 | +3 | -1% | Tag → record → scope clarity ↑ |
+
+> *"The player creates the monsters. Pete processes them. Coal is spent, steam is earned. The maturity map grows."*
 
 ### 4.5 Lesson MadLibs
 

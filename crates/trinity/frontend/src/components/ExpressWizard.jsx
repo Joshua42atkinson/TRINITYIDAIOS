@@ -251,9 +251,23 @@ export default function ExpressWizard({ onComplete }) {
               className="chat-send begin-btn"
               onClick={() => {
                 if (onComplete) onComplete(result);
+                window.open('/api/eye/export?format=json', '_blank');
               }}
             >
               📥 EXPORT
+            </button>
+            <button className="chat-send begin-btn" style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)', color: '#a78bfa' }} onClick={async () => {
+              await fetch('/api/projects', { method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ name: result.title, subject: result.subject, format: result.format })
+              });
+              alert('Project saved!');
+            }}>
+              💾 SAVE PROJECT
+            </button>
+            <button className="chat-send begin-btn" style={{ background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.2)', color: '#22d3ee' }} onClick={() => {
+              window.open('/api/eye/preview', '_blank');
+            }}>
+              👁️ PREVIEW
             </button>
             <button className="nav-link" onClick={() => { setResult(null); setStep(1); }}>
               ↺ START OVER

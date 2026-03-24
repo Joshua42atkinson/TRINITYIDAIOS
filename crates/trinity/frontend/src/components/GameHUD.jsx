@@ -48,8 +48,14 @@ export default function GameHUD({ quest, bestiary, onRefetch }) {
             {quest?.subject ? `SME: ${quest.subject}` : 'No subject'}
           </div>
           <div className="hud-stat-row">
-            <span className="stat-xp">⚡ XP {quest?.xp || 0}</span>
-            <span className="stat-coal">🪨 Coal {quest?.coal || 0}</span>
+            <span className="stat-xp">⚡ XP {quest?.xp_earned || 0}</span>
+            <span className="stat-coal">🪨 Coal {Math.round(quest?.coal_used || 0)}</span>
+            <span className="stat-steam">💨 Steam {Math.round(quest?.steam_generated || 0)}</span>
+          </div>
+          <div className="hud-safety-badges">
+            <span className="safety-badge safety-badge--active" title="CowCatcher AI Content Filter — Active">🛡️ CowCatcher</span>
+            <span className="safety-badge safety-badge--active" title="EdgeGuard Security Middleware — Active">🔒 EdgeGuard</span>
+            <span className="safety-badge safety-badge--active" title="Demo Mode — Visitor restrictions active">🎓 Demo</span>
           </div>
 
           {/* Session Zero — Character Creation Answers */}
@@ -89,6 +95,24 @@ export default function GameHUD({ quest, bestiary, onRefetch }) {
               ))}
             </div>
           )}
+        </div>
+        {/* Party Members */}
+        <div className="hud-party">
+          {(quest?.party || []).map((m) => (
+            <button
+              key={m.id}
+              className={`hud-party__member ${m.active ? 'hud-party__member--active' : ''}`}
+              onClick={() => {
+                fetch('/api/quest/party', {
+                  method: 'POST', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ member_id: m.id }),
+                }).catch(() => {});
+              }}
+              title={m.name || m.id}
+            >
+              {m.id === 'pete' ? '🎓' : m.id === 'art' ? '🎨' : '🔧'} {m.id}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -146,7 +170,64 @@ export default function GameHUD({ quest, bestiary, onRefetch }) {
             ))}
           </div>
         </div>
+        {/* Book of the Bible — Narrative Chapters */}
+        <BookSection />
       </div>
+    </div>
+  );
+}
+
+function BookSection() {
+  const [book, setBook] = React.useState(null);
+  const [generating, setGenerating] = React.useState(false);
+
+  React.useEffect(() => {
+    fetch('/api/book').then(r => r.json()).then(setBook).catch(() => {});
+  }, []);
+
+  const generateNarrative = async () => {
+    setGenerating(true);
+    try {
+      const res = await fetch('/api/narrative/generate');
+      if (res.ok) {
+        const data = await res.json();
+        setBook(prev => prev ? { ...prev, narrative: data.narrative || data.text } : data);
+      }
+    } catch {}
+    setGenerating(false);
+  };
+
+  return (
+    <div className="card">
+      <div className="card-header">📖 THE BOOK</div>
+      <div className="card-subtitle">
+        {book?.chapters?.length || 0} chapters written
+        <button
+          onClick={generateNarrative}
+          disabled={generating}
+          style={{
+            float: 'right', background: 'none', border: '1px solid rgba(207,185,145,0.2)',
+            borderRadius: '4px', color: '#CFB991', cursor: 'pointer', padding: '1px 6px', fontSize: '9px',
+          }}
+        >
+          {generating ? '✍️…' : '✍️ Write'}
+        </button>
+      </div>
+      {book?.narrative && (
+        <div style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic', fontFamily: "'Crimson Text', serif", padding: '6px 0', maxHeight: '120px', overflow: 'auto' }}>
+          {book.narrative}
+        </div>
+      )}
+      {book?.chapters?.slice(-3).map((ch, i) => (
+        <div key={i} style={{ fontSize: '10px', color: '#6B7280', borderTop: '1px solid rgba(207,185,145,0.06)', padding: '4px 0' }}>
+          📜 {ch.title || ch.summary || `Chapter ${i+1}`}
+        </div>
+      ))}
+      {!book?.chapters?.length && !book?.narrative && (
+        <div style={{ fontSize: '10px', color: '#4B5563', fontStyle: 'italic', padding: '8px 0' }}>
+          No story yet. Complete phases to generate narrative chapters.
+        </div>
+      )}
     </div>
   );
 }

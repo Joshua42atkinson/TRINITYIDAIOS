@@ -383,7 +383,115 @@ export default function Yardmaster() {
               ))}
             </div>
           </div>
+
+          {/* Model Switcher */}
+          <ModelSwitcher />
+
+          {/* RAG Search */}
+          <RagSearch />
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Model Switcher sub-component ── */
+function ModelSwitcher() {
+  const [models, setModels] = React.useState([]);
+  const [active, setActive] = React.useState('');
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  React.useEffect(() => {
+    fetch('/api/models').then(r => r.json()).then(d => {
+      setModels(Array.isArray(d) ? d : d.models || []);
+    }).catch(() => {});
+    fetch('/api/models/active').then(r => r.json()).then(d => {
+      setActive(d.model_name || d.name || '');
+    }).catch(() => {});
+  }, []);
+
+  const switchModel = async (name) => {
+    await fetch('/api/models/switch', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model_name: name }),
+    });
+    setActive(name);
+  };
+
+  const refresh = async () => {
+    setRefreshing(true);
+    await fetch('/api/inference/refresh', { method: 'POST' }).catch(() => {});
+    setRefreshing(false);
+  };
+
+  return (
+    <div className="card ym-system-card">
+      <div className="card-header">🧠 MODELS
+        <button className="ym-tool-desc" onClick={refresh} style={{ float: 'right', cursor: 'pointer', background: 'none', border: 'none', color: '#CFB991', fontSize: '10px' }}>
+          {refreshing ? '⟳' : '↻ Refresh'}
+        </button>
+      </div>
+      <div className="ym-hardware">
+        {models.length === 0 && <div className="ym-hw-loading">No models detected</div>}
+        {(Array.isArray(models) ? models : []).map((m, i) => {
+          const name = typeof m === 'string' ? m : m.name || m.model_name || `model-${i}`;
+          const isActive = name === active;
+          return (
+            <div key={i} className="ym-hw-row" style={{ cursor: 'pointer', opacity: isActive ? 1 : 0.5 }} onClick={() => switchModel(name)}>
+              <span>{isActive ? '🟢' : '⚪'} {name}</span>
+              {isActive && <span style={{ color: '#34d399', fontSize: '9px' }}>ACTIVE</span>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ── RAG Search sub-component ── */
+function RagSearch() {
+  const [query, setQuery] = React.useState('');
+  const [results, setResults] = React.useState([]);
+  const [stats, setStats] = React.useState(null);
+
+  React.useEffect(() => {
+    fetch('/api/rag/stats').then(r => r.json()).then(setStats).catch(() => {});
+  }, []);
+
+  const search = async () => {
+    if (!query.trim()) return;
+    try {
+      const res = await fetch('/api/rag/search', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: query.trim(), limit: 5 }),
+      });
+      if (res.ok) setResults(await res.json());
+    } catch {}
+  };
+
+  return (
+    <div className="card ym-system-card">
+      <div className="card-header">🔍 RAG KNOWLEDGE
+        {stats && <span style={{ float: 'right', fontSize: '9px', color: '#6B7280' }}>{stats.total_documents || stats.documents || 0} docs</span>}
+      </div>
+      <div className="ym-hardware">
+        <div style={{ display: 'flex', gap: '4px', marginBottom: '6px' }}>
+          <input
+            className="chat-input"
+            style={{ fontSize: '11px', padding: '4px 8px', flex: 1 }}
+            placeholder="Search knowledge base…"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && search()}
+          />
+          <button onClick={search} style={{ background: 'none', border: '1px solid rgba(207,185,145,0.2)', borderRadius: '4px', color: '#CFB991', cursor: 'pointer', padding: '2px 8px', fontSize: '10px' }}>🔍</button>
+        </div>
+        {results.length > 0 && results.map((r, i) => (
+          <div key={i} className="ym-hw-row" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+            <span style={{ fontSize: '10px', color: '#CFB991' }}>{r.title || r.source || `Result ${i+1}`}</span>
+            <span style={{ fontSize: '9px', color: '#6B7280' }}>{(r.content || r.text || '').slice(0, 120)}…</span>
+          </div>
+        ))}
       </div>
     </div>
   );

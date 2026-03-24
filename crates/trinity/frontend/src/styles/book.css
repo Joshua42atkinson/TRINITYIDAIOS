@@ -1731,6 +1731,17 @@
 /* ── HUD Stat Row ── */
 .hud-stat-row { display: flex; justify-content: space-between; font-size: 11px; }
 
+.hud-safety-badges { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+.safety-badge {
+  font-size: 9px; padding: 2px 6px; border-radius: 8px;
+  background: rgba(147, 51, 234, 0.04); border: 1px solid rgba(147, 51, 234, 0.08);
+  color: var(--text-muted); font-family: var(--font-ui); letter-spacing: 0.5px;
+}
+.safety-badge--active {
+  background: rgba(34, 197, 94, 0.06); border-color: rgba(34, 197, 94, 0.15);
+  color: rgba(34, 197, 94, 0.7);
+}
+
 .hud-party { margin-top: 8px; display: flex; gap: 4px; flex-wrap: wrap; }
 .hud-party__member { font-size: var(--type-xs); padding: 2px 6px; border: 1px solid var(--border-glass); border-radius: 4px; color: var(--text-dim); }
 .hud-party__member--active { border-color: var(--gold-dark); color: var(--gold); }

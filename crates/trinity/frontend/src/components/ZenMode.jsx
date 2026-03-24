@@ -19,7 +19,7 @@ import '../styles/zen.css';
 
 const WELCOME = {
   role: 'narrator',
-  text: "You are a creator who teaches. And this is your forge.\n\nEverything you say here becomes something real — a lesson, a game, a course, an experience. You speak your subject, and the system listens. Not just to respond, but to build.\n\nWatch the right side of this page. As you talk about what you want to teach and who you want to reach, your product takes shape — Subject, Audience, Learning Objectives, Vocabulary — extracted from your own words, not a template.\n\nI am the Great Recycler. I turn your ideas into narrative, your narrative into structure, and your structure into something you can hand to a student.\n\nSo — what do you teach? Who needs to learn it? Tell me like you're explaining it to a friend over coffee. The Codex will do the rest.",
+  text: "You are a creator who teaches. And this is your forge.\n\nThe Iron Road is not about perfection — it is about reliability. There are harder substances, easier materials. But iron just gets done. And so will you.\n\nEverything you say here becomes something real — a lesson, a game, a course, an experience. You speak your subject, and the system listens. Not just to respond, but to build.\n\nWatch the right side of this page. As you talk about what you want to teach and who you want to reach, your product takes shape — Subject, Audience, Learning Objectives, Vocabulary — extracted from your own words, not a template.\n\nI am the Great Recycler. I turn your ideas into narrative, your narrative into structure, and your structure into something you can hand to a student.\n\nLay the tracks. Hammer down. Build one brick higher every time.\n\nSo — what do you teach? Who needs to learn it? Tell me like you're explaining it to a friend over coffee. The Codex will do the rest.",
 };
 
 // How many narrator/user messages to show before older ones "fall off" the visible scroll.
@@ -55,6 +55,25 @@ export default function ZenMode() {
   const [volume, setVolume] = useState(0.7);
   const [speed, setSpeed] = useState(1.15);
   const [voicePreset, setVoicePreset] = useState('M2');
+  const [modelInfo, setModelInfo] = useState({ name: '...', status: 'checking' });
+
+  // Fetch active model info on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const [modelRes, healthRes] = await Promise.all([
+          fetch('/api/models/active'),
+          fetch('/api/health'),
+        ]);
+        const model = modelRes.ok ? await modelRes.json() : {};
+        const health = healthRes.ok ? await healthRes.json() : {};
+        setModelInfo({
+          name: model.model_name || model.name || 'Unknown',
+          status: health.status || 'unknown',
+        });
+      } catch { setModelInfo({ name: 'Offline', status: 'error' }); }
+    })();
+  }, []);
 
   // Design Doc state — auto-fills from Director, persists locally
   const [designDoc, setDesignDoc] = useState(() => {
@@ -309,6 +328,7 @@ export default function ZenMode() {
         body: JSON.stringify({
           message: userText,
           mode: 'zen',
+          phase: activePhase,
           max_tokens: 200,
         }),
       });
@@ -535,6 +555,28 @@ export default function ZenMode() {
               className="zen-settings__range" />
             <span className="zen-settings__value">{speed.toFixed(2)}×</span>
           </div>
+          <div className="zen-settings__group">
+            <span className={`zen-settings__meta-value ${modelInfo.status === 'healthy' ? '' : 'zen-settings__meta-value--warn'}`}>
+              {modelInfo.status === 'healthy' ? '🟢' : '🟡'} {modelInfo.name}
+            </span>
+          </div>
+          <div className="zen-settings__group" style={{ borderTop: '1px solid rgba(207,185,145,0.1)', paddingTop: '8px', marginTop: '4px' }}>
+            <button className="zen-settings__clear-btn" style={{ fontSize: '10px' }} onClick={() => {
+              fetch('/api/voice/text', { method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ text: 'Trinity voice system active', voice: voicePreset })
+              }).catch(() => {});
+            }}>🔊 Test Voice</button>
+            <button className="zen-settings__clear-btn" style={{ fontSize: '10px' }} onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file'; input.accept = '.pdf,.md,.docx,.html';
+              input.onchange = async (e) => {
+                const f = e.target.files[0]; if (!f) return;
+                const fd = new FormData(); fd.append('file', f);
+                await fetch('/api/character/portfolio/artifact', { method: 'POST', body: fd });
+              };
+              input.click();
+            }}>📎 Upload Artifact</button>
+          </div>
         </div>
       )}
 
@@ -583,6 +625,20 @@ export default function ZenMode() {
               {narratorMessages.map((m, i) => (
                 <div key={i} className="zen-narrator__message">
                   {highlightVaam(m.text)}
+                  {i === narratorMessages.length - 1 && !streaming && m.text.length > 20 && (
+                    <div className="zen-rlhf">
+                      <button className="zen-rlhf__btn" title="This helped — steam ↑" onClick={() => {
+                        fetch('/api/rlhf/resonance', { method: 'POST', headers: {'Content-Type':'application/json'},
+                          body: JSON.stringify({ score: 1, phase: activePhase, message_id: `zen-${i}` })
+                        });
+                      }}>👍</button>
+                      <button className="zen-rlhf__btn" title="Not helpful — friction ↑" onClick={() => {
+                        fetch('/api/rlhf/resonance', { method: 'POST', headers: {'Content-Type':'application/json'},
+                          body: JSON.stringify({ score: -1, phase: activePhase, message_id: `zen-${i}` })
+                        });
+                      }}>👎</button>
+                    </div>
+                  )}
                   {i < narratorMessages.length - 1 && <div className="zen-narrator__divider">— ❦ —</div>}
                 </div>
               ))}
@@ -631,7 +687,12 @@ export default function ZenMode() {
               </div>
             )}
             {docFieldCount >= 2 && (
-              <button id="zen-hand-in" onClick={handInToPete} className="zen-handin-btn">📤 HAND IN TO PETE</button>
+              <div className="zen-design-doc__actions">
+                <button id="zen-hand-in" onClick={handInToPete} className="zen-handin-btn">📤 HAND IN TO PETE</button>
+                <button id="zen-export" onClick={() => {
+                  window.open('/api/eye/export?format=json', '_blank');
+                }} className="zen-handin-btn zen-export-btn">📥 EXPORT DESIGN DOC</button>
+              </div>
             )}
           </div>
         </div>
