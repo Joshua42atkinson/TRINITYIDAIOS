@@ -132,9 +132,12 @@ pub async fn edge_guard(
     let path = req.uri().path().to_string();
 
     // Red Hat Tier 2: The Public Portfolio (LDTAtkinson)
-    // If a request comes from the internet for the root page, redirect it to to 
+    // If a request comes from the internet for the root page, redirect it to
     // the user's officially approved Purdue LDT Portfolio instead of the Trinity app UI.
-    if path == "/" || path == "/index.html" {
+    // EXCEPTION: Requests arriving via Caddy's /trinity/ reverse proxy include
+    // X-Forwarded-For headers — these should serve the Trinity app, not redirect.
+    let is_caddy_proxy = req.headers().contains_key("x-forwarded-for");
+    if (path == "/" || path == "/index.html") && !is_caddy_proxy {
         tracing::info!("🛡️ Edge Guard: Redirecting public traffic to LDT Portfolio");
         let redirect = Response::builder()
             .status(StatusCode::FOUND)

@@ -965,10 +965,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/perspective/feedback", post(perspective_feedback))
         // Four Chariots — root documentation served as raw markdown
         .route("/docs/:filename", get(serve_chariot_doc))
-        .route(
-            "/",
-            get(|| async { axum::response::Redirect::permanent("/index.html") }),
-        )
         .fallback_service(static_service)
         // ═══ SECURITY: Restricted CORS ═══
         // Red Hat Finding H1: Only allow requests from our own domains.
