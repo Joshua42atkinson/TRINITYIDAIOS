@@ -61,6 +61,17 @@ export default function GameHUD({ quest, bestiary, onRefetch }) {
           {/* Session Zero — Character Creation Answers */}
           {(character?.experience || character?.audience || character?.success_vision) && (
             <div className="session-zero-info">
+              <button
+                onClick={async () => {
+                  await fetch('/api/character', {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ experience: '', audience: '', success_vision: '' })
+                  });
+                  setCharacter(c => ({ ...c, experience: null, audience: null, success_vision: null }));
+                }}
+                style={{ float: 'right', background: 'none', border: '1px solid rgba(207,185,145,0.15)', borderRadius: '4px', color: '#6B7280', cursor: 'pointer', padding: '1px 6px', fontSize: '8px' }}
+                title="Clear Session Zero data"
+              >✕</button>
               {character.experience && (
                 <div className="session-zero-info__item">
                   <span className="session-zero-info__icon session-zero-info__icon--gold">📋</span>
