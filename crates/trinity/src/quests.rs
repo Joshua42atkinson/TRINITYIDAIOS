@@ -25,6 +25,23 @@ pub async fn get_game_state(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let game = state.project.game_state.read().await;
 
+    // Product Maturity = how done AND how good the product is
+    // Player XP bar = WHO you're becoming
+    // Product Maturity bar = WHAT you're building
+    let station_progress = game.quest.completed_phases.len() as f32 / 12.0;
+    let pearl_alignment = game.quest.pearl.as_ref()
+        .map(|p| p.evaluation.overall_alignment())
+        .unwrap_or(0.0);
+    let maturity_score = (station_progress * 0.5) + (pearl_alignment * 0.5);
+    let maturity_label = match (maturity_score * 100.0) as u32 {
+        0..=19 => "Raw Material",
+        20..=39 => "Rough Cut",
+        40..=59 => "Taking Shape",
+        60..=79 => "Nearly Polished",
+        80..=99 => "Production Ready",
+        _ => "Ship It! 🚀",
+    };
+
     // Build response JSON using trinity-quest types
     let response = serde_json::json!({
         "chapter": game.quest.hero_stage.chapter(),
@@ -76,6 +93,12 @@ pub async fn get_game_state(
             "refined_count": p.refined_count,
             "has_vision": p.has_vision(),
         })),
+        "product_maturity": {
+            "score": (maturity_score * 100.0).round(),
+            "station_progress": (station_progress * 100.0).round(),
+            "alignment": (pearl_alignment * 100.0).round(),
+            "label": maturity_label,
+        },
     });
 
     Ok(Json(response))
