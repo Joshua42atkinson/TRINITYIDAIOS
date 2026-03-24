@@ -19,7 +19,7 @@ import '../styles/zen.css';
 
 const WELCOME = {
   role: 'narrator',
-  text: "Welcome to Zen Mode, traveler.\n\nThis is the quiet car. No buttons, no dashboards — just you and the page.\n\nI am the Great Recycler. I'll narrate your journey, and you'll write your story alongside mine. When you're ready, type your thoughts below and press Enter.\n\nWhat would you like to explore today?",
+  text: "You are a creator who teaches. And this is your forge.\n\nEverything you say here becomes something real — a lesson, a game, a course, an experience. You speak your subject, and the system listens. Not just to respond, but to build.\n\nWatch the right side of this page. As you talk about what you want to teach and who you want to reach, your product takes shape — Subject, Audience, Learning Objectives, Vocabulary — extracted from your own words, not a template.\n\nI am the Great Recycler. I turn your ideas into narrative, your narrative into structure, and your structure into something you can hand to a student.\n\nSo — what do you teach? Who needs to learn it? Tell me like you're explaining it to a friend over coffee. The Codex will do the rest.",
 };
 
 // How many narrator/user messages to show before older ones "fall off" the visible scroll.
@@ -53,8 +53,8 @@ export default function ZenMode() {
   const [speaking, setSpeaking] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [volume, setVolume] = useState(0.7);
-  const [speed, setSpeed] = useState(0.95);
-  const [voicePreset, setVoicePreset] = useState('M1');
+  const [speed, setSpeed] = useState(1.15);
+  const [voicePreset, setVoicePreset] = useState('M2');
 
   // Design Doc state — auto-fills from Director, persists locally
   const [designDoc, setDesignDoc] = useState(() => {
@@ -209,7 +209,7 @@ export default function ZenMode() {
     }
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = speedRef.current;
-    utterance.pitch = 0.85;
+    utterance.pitch = 1.0;
     utterance.volume = volumeRef.current;
     const voices = window.speechSynthesis.getVoices();
     const pref = voices.find((v) =>
@@ -461,89 +461,72 @@ export default function ZenMode() {
 
   const isReady = input.trim() && !streaming;
 
+  // Active ADDIECRAPEYE phase — sent with each message so the Recycler knows context
+  const [activePhase, setActivePhase] = useState(() => {
+    try { return localStorage.getItem('zen_phase') || 'Analysis'; } catch { return 'Analysis'; }
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem('zen_phase', activePhase); } catch {}
+  }, [activePhase]);
+
+  const PHASES = [
+    { key: 'Analysis',       letter: 'A', group: 'addie', tip: 'Analyze' },
+    { key: 'Design',         letter: 'D', group: 'addie', tip: 'Design' },
+    { key: 'Development',    letter: 'D', group: 'addie', tip: 'Develop' },
+    { key: 'Implementation', letter: 'I', group: 'addie', tip: 'Implement' },
+    { key: 'Evaluation',     letter: 'E', group: 'addie', tip: 'Evaluate' },
+    { key: 'Contrast',       letter: 'C', group: 'crap',  tip: 'Contrast' },
+    { key: 'Repetition',     letter: 'R', group: 'crap',  tip: 'Repetition' },
+    { key: 'Alignment',      letter: 'A', group: 'crap',  tip: 'Alignment' },
+    { key: 'Proximity',      letter: 'P', group: 'crap',  tip: 'Proximity' },
+    { key: 'Envision',       letter: 'E', group: 'eye',   tip: 'Envision' },
+    { key: 'Yoke',           letter: 'Y', group: 'eye',   tip: 'Yoke' },
+    { key: 'Evolve',         letter: 'E', group: 'eye',   tip: 'Evolve' },
+  ];
+
+  const startNewChapter = () => {
+    stopAudio();
+    setMessages([WELCOME]);
+    setDesignDoc({ subject: null, audience: null, bloom_level: null, learning_objectives: [], vocabulary: [], scope_creeps: [] });
+    setVaamWords(new Set());
+    setActivePhase('Analysis');
+    localStorage.removeItem('zen_messages');
+    localStorage.removeItem('zen_design_doc');
+    localStorage.setItem('zen_phase', 'Analysis');
+  };
+
   return (
     <div className="zen-layout">
-      {/* Header */}
       <header className="zen-header">
         <div className="zen-header__title">✦ ZEN MODE</div>
-        <div className="zen-header__subtitle">
-          The Game Engine — narration & design
-        </div>
+        <div className="zen-header__subtitle">The Codex — your words become products</div>
         <div className="zen-header__spacer" />
-
-        <button
-          id="zen-voice-toggle"
-          onClick={() => { if (voiceOn) stopAudio(); setVoiceOn((v) => !v); }}
-          className={`zen-btn ${voiceOn ? 'zen-btn--active' : ''}`}
-        >
-          {voiceOn
-            ? (speaking ? '🔊 ● Narrating...' : `🔊 ${voiceEngine === 'supertonic' ? 'Supertonic' : 'Browser'}`)
-            : '🔇 Off'}
+        <button id="zen-new-chapter" onClick={startNewChapter} className="zen-btn">📖 New Chapter</button>
+        <button id="zen-voice-toggle" onClick={() => { if (voiceOn) stopAudio(); setVoiceOn((v) => !v); }}
+          className={`zen-btn ${voiceOn ? 'zen-btn--active' : ''}`}>
+          {voiceOn ? (speaking ? '🔊 ● Narrating...' : `🔊 ${voiceEngine === 'supertonic' ? 'Supertonic' : 'Browser'}`) : '🔇 Off'}
         </button>
-        <button
-          id="zen-settings-toggle"
-          onClick={() => setShowSettings((v) => !v)}
-          className={`zen-btn ${showSettings ? 'zen-btn--active' : ''}`}
-        >
-          ⚙
-        </button>
+        <button id="zen-settings-toggle" onClick={() => setShowSettings((v) => !v)}
+          className={`zen-btn ${showSettings ? 'zen-btn--active' : ''}`}>⚙</button>
       </header>
 
-      {/* Settings panel */}
       {showSettings && (
         <div className="zen-settings">
           <div className="zen-settings__group">
-            <button
-              id="zen-clear-session"
-              onClick={() => {
-                setMessages([]);
-                setDesignDoc({ subject: '', audience: '', bloom_level: '', learning_objectives: [], vocabulary: [], scope_creeps: [] });
-                localStorage.removeItem('zen_messages');
-                localStorage.removeItem('zen_design_doc');
-              }}
-              className="zen-settings__clear-btn"
-            >
-              Clear Session
-            </button>
+            <button id="zen-clear-session" onClick={startNewChapter} className="zen-settings__clear-btn">Clear Session</button>
           </div>
           <div className="zen-settings__spacer" />
-          <button
-            id="zen-yak-bak"
-            onClick={handleRecordVoice}
-            className={`zen-settings__record-btn ${recordingVoice ? 'zen-settings__record-btn--recording' : ''}`}
-          >
-            {recordingVoice ? '🔴 Recording (5s)...' : '🎙️ Yak Bak Customizer'}
+          <button id="zen-yak-bak" onClick={handleRecordVoice}
+            className={`zen-settings__record-btn ${recordingVoice ? 'zen-settings__record-btn--recording' : ''}`}>
+            {recordingVoice ? '🔴 Recording...' : '🎙️ Yak Bak'}
           </button>
           <div className="zen-settings__group">
             <span>Voice</span>
-            <select
-              id="zen-voice-select"
-              value={voicePreset}
-              onChange={(e) => setVoicePreset(e.target.value)}
-              className="zen-settings__select"
-            >
-              <optgroup label="Male">
-                <option value="M1">M1 — Deep</option>
-                <option value="M2">M2 — Warm</option>
-                <option value="M3">M3 — Clear</option>
-                <option value="M4">M4 — Bright</option>
-                <option value="M5">M5 — Smooth</option>
-              </optgroup>
-              <optgroup label="Female">
-                <option value="F1">F1 — Rich</option>
-                <option value="F2">F2 — Soft</option>
-                <option value="F3">F3 — Warm</option>
-                <option value="F4">F4 — Bright</option>
-                <option value="F5">F5 — Clear</option>
-              </optgroup>
+            <select id="zen-voice-select" value={voicePreset} onChange={(e) => setVoicePreset(e.target.value)} className="zen-settings__select">
+              <optgroup label="Male"><option value="M1">M1</option><option value="M2">M2</option><option value="M3">M3</option></optgroup>
+              <optgroup label="Female"><option value="F1">F1</option><option value="F2">F2</option><option value="F3">F3</option></optgroup>
             </select>
-          </div>
-          <div className="zen-settings__group">
-            <span>Volume</span>
-            <input type="range" min="0" max="1" step="0.05" value={volume}
-              onChange={(e) => { const v = parseFloat(e.target.value); setVolume(v); if (audioRef.current) audioRef.current.volume = v; }}
-              className="zen-settings__range" />
-            <span className="zen-settings__value">{Math.round(volume * 100)}%</span>
           </div>
           <div className="zen-settings__group">
             <span>Speed</span>
@@ -552,130 +535,104 @@ export default function ZenMode() {
               className="zen-settings__range" />
             <span className="zen-settings__value">{speed.toFixed(2)}×</span>
           </div>
-          <div className="zen-settings__meta">
-            Engine: <span className="zen-settings__meta-value">{voiceEngine}</span>
-          </div>
-          <div className="zen-settings__meta">
-            Pipeline: <span className="zen-settings__meta-value">Director → Storyteller</span>
-          </div>
         </div>
       )}
 
-      {/* Three-Panel Layout */}
-      <div className="zen-panels">
-        {/* LEFT — Narrator */}
-        <div ref={leftRef} className="zen-narrator">
-          <div className="zen-narrator__label">
-            ♻️ The Great Recycler — Narration
-          </div>
-
-          {narratorMessages.map((m, i) => (
-            <div key={i} className="zen-narrator__message">
-              {highlightVaam(m.text)}
-              {i < narratorMessages.length - 1 && (
-                <div className="zen-narrator__divider">— ❦ —</div>
-              )}
-            </div>
-          ))}
-
-          {streaming && <span className="zen-narrator__cursor" />}
-        </div>
-
-        {/* SPINE */}
-        <div className="zen-spine" />
-
-        {/* RIGHT — User Story + Design Doc */}
-        <div className="zen-right">
-          {/* User's reflections */}
-          <div ref={rightRef} className="zen-reflections">
-            <div className="zen-reflections__label">
-              ✍️ Your Story — Reflection
-            </div>
-
-            {userMessages.length === 0 ? (
-              <div className="zen-reflections__empty">
-                Your words will appear here as you write them...
-              </div>
-            ) : (
-              userMessages.map((m, i) => (
-                <div key={i} className="zen-reflections__message">
-                  {m.text}
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Design Doc Panel */}
-          <div className="zen-design-doc">
-            <div className="zen-design-doc__header">
-              📋 Design Doc
-              {docFieldCount > 0 && (
-                <span className="zen-design-doc__badge">{docFieldCount}/3 fields</span>
-              )}
-            </div>
-
-            <div className="zen-design-doc__grid">
-              <div>Subject: <span className={designDoc.subject ? 'zen-design-doc__value' : 'zen-design-doc__value--empty'}>
-                {designDoc.subject || '—'}
-              </span></div>
-              <div>Audience: <span className={designDoc.audience ? 'zen-design-doc__value' : 'zen-design-doc__value--empty'}>
-                {designDoc.audience || '—'}
-              </span></div>
-              <div>Bloom's: <span className={designDoc.bloom_level ? 'zen-design-doc__value' : 'zen-design-doc__value--empty'}>
-                {designDoc.bloom_level || '—'}
-              </span></div>
-              <div>Vocab: <span className={designDoc.vocabulary.length ? 'zen-design-doc__value' : 'zen-design-doc__value--empty'}>
-                {designDoc.vocabulary.length ? designDoc.vocabulary.slice(0, 5).join(', ') : '—'}
-              </span></div>
-            </div>
-
-            {designDoc.learning_objectives.length > 0 && (
-              <div className="zen-design-doc__objectives">
-                Objectives: {designDoc.learning_objectives.map((o, i) => (
-                  <span key={i} className="zen-design-doc__objective">• {o}</span>
-                ))}
-              </div>
-            )}
-
-            {designDoc.scope_creeps.length > 0 && (
-              <div className="zen-design-doc__scope-creeps">
-                ⚠ Scope Creeps: {designDoc.scope_creeps.join(', ')}
-              </div>
-            )}
-
-            {docFieldCount >= 2 && (
-              <button
-                id="zen-hand-in"
-                onClick={handInToPete}
-                className="zen-handin-btn"
-              >
-                📤 Hand In to Shifu Pete
+      {/* ═══ Main: Tabs + Book + Product ═══ */}
+      <div className="zen-main">
+        {/* Vertical ADDIECRAPEYE Tabs */}
+        <nav className="zen-phases" aria-label="ADDIECRAPEYE phases">
+          <div className="zen-phases__group">
+            <div className="zen-phases__group-label">ADDIE</div>
+            {PHASES.slice(0, 5).map((p) => (
+              <button key={p.key} title={p.tip}
+                className={`zen-phase-tab ${activePhase === p.key ? 'zen-phase-tab--active' : ''} zen-phase-tab--${p.group}`}
+                onClick={() => setActivePhase(p.key)}>
+                <span className="zen-phase-tab__letter">{p.letter}</span>
               </button>
-            )}
+            ))}
+          </div>
+          <div className="zen-phases__group">
+            <div className="zen-phases__group-label">CRAP</div>
+            {PHASES.slice(5, 9).map((p) => (
+              <button key={p.key} title={p.tip}
+                className={`zen-phase-tab ${activePhase === p.key ? 'zen-phase-tab--active' : ''} zen-phase-tab--${p.group}`}
+                onClick={() => setActivePhase(p.key)}>
+                <span className="zen-phase-tab__letter">{p.letter}</span>
+              </button>
+            ))}
+          </div>
+          <div className="zen-phases__group">
+            <div className="zen-phases__group-label">EYE</div>
+            {PHASES.slice(9, 12).map((p) => (
+              <button key={p.key} title={p.tip}
+                className={`zen-phase-tab ${activePhase === p.key ? 'zen-phase-tab--active' : ''} zen-phase-tab--${p.group}`}
+                onClick={() => setActivePhase(p.key)}>
+                <span className="zen-phase-tab__letter">{p.letter}</span>
+              </button>
+            ))}
+          </div>
+          <div className="zen-phases__active-name">{activePhase}</div>
+        </nav>
+
+        {/* The Codex — Book + Input + Product */}
+        <div className="zen-codex">
+          <div className="zen-panels">
+            <div ref={leftRef} className="zen-narrator">
+              <div className="zen-narrator__label">♻️ The Great Recycler</div>
+              {narratorMessages.map((m, i) => (
+                <div key={i} className="zen-narrator__message">
+                  {highlightVaam(m.text)}
+                  {i < narratorMessages.length - 1 && <div className="zen-narrator__divider">— ❦ —</div>}
+                </div>
+              ))}
+              {streaming && <span className="zen-narrator__cursor" />}
+            </div>
+            <div className="zen-spine" />
+            <div ref={rightRef} className="zen-reflections">
+              <div className="zen-reflections__label">✍️ Your Words</div>
+              {userMessages.length === 0 ? (
+                <div className="zen-reflections__empty">Your words appear here as you type below.</div>
+              ) : userMessages.map((m, i) => (
+                <div key={i} className="zen-reflections__message">{m.text}</div>
+              ))}
+            </div>
           </div>
 
-          {/* Input — Full Width */}
           <div className="zen-input">
             <div className="zen-input__row">
-              <textarea
-                id="zen-textarea"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
+              <div className="zen-input__phase-badge">{activePhase}</div>
+              <textarea id="zen-textarea" value={input} onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                placeholder={streaming ? 'The Director is analyzing... the Recycler is narrating...' : 'Write your reflection...'}
-                disabled={streaming}
-                rows={2}
-                className="zen-input__textarea"
-              />
-              <button
-                id="zen-send"
-                onClick={sendMessage}
-                disabled={!isReady}
-                className={`zen-input__send ${isReady ? 'zen-input__send--ready' : ''}`}
-              >
-                Send ↵
-              </button>
+                placeholder={streaming ? 'Composing...' : `Speak about ${activePhase.toLowerCase()}...`}
+                disabled={streaming} rows={2} className="zen-input__textarea" />
+              <button id="zen-send" onClick={sendMessage} disabled={!isReady}
+                className={`zen-input__send ${isReady ? 'zen-input__send--ready' : ''}`}>Send ↵</button>
             </div>
+          </div>
+
+          <div className="zen-design-doc">
+            <div className="zen-design-doc__header">
+              ⚗️ YOUR PRODUCT
+              <span className="zen-design-doc__badge">{docFieldCount === 0 ? 'Awaiting input...' : `${docFieldCount}/3`}</span>
+            </div>
+            <div className="zen-product-progress">
+              <div className="zen-product-progress__fill" style={{ width: `${Math.round(((docFieldCount * 20) + (designDoc.vocabulary.length > 0 ? 20 : 0) + (designDoc.learning_objectives.length > 0 ? 20 : 0)))}%` }} />
+            </div>
+            <div className="zen-design-doc__grid">
+              <div>Subject: <span className={designDoc.subject ? 'zen-design-doc__value' : 'zen-design-doc__value--empty'}>{designDoc.subject || '...'}</span></div>
+              <div>Audience: <span className={designDoc.audience ? 'zen-design-doc__value' : 'zen-design-doc__value--empty'}>{designDoc.audience || '...'}</span></div>
+              <div>Bloom's: <span className={designDoc.bloom_level ? 'zen-design-doc__value' : 'zen-design-doc__value--empty'}>{designDoc.bloom_level || '...'}</span></div>
+              <div>Vocab: <span className={designDoc.vocabulary.length ? 'zen-design-doc__value' : 'zen-design-doc__value--empty'}>{designDoc.vocabulary.length ? designDoc.vocabulary.slice(0,5).join(', ') : '...'}</span></div>
+            </div>
+            {designDoc.learning_objectives.length > 0 && (
+              <div className="zen-design-doc__objectives">
+                🎯 {designDoc.learning_objectives.map((o, i) => <span key={i} className="zen-design-doc__objective">• {o}</span>)}
+              </div>
+            )}
+            {docFieldCount >= 2 && (
+              <button id="zen-hand-in" onClick={handInToPete} className="zen-handin-btn">📤 HAND IN TO PETE</button>
+            )}
           </div>
         </div>
       </div>

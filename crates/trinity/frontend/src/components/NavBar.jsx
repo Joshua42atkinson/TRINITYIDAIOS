@@ -28,7 +28,7 @@ export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) 
     { emoji: '🔮', label: 'The Bible',            desc: 'Technical spec — every line explained',        file: 'TRINITY_FANCY_BIBLE.md' },
     { emoji: '🎮', label: "Player's Handbook",    desc: 'The philosophy behind the game',               file: 'PLAYERS_HANDBOOK.md' },
     { emoji: '🤝', label: 'Field Manual',          desc: 'How Pete works — what to expect',              file: 'ASK_PETE_FIELD_MANUAL.md' },
-    { emoji: '🎓', label: 'Professor',              desc: 'Standards, privacy, institutional eval',        file: 'PROFESSOR.md' },
+    { emoji: '🎓', label: 'Professor Programming', desc: 'Standards, privacy, institutional eval',  file: 'PROFESSOR.md' },
   ];
 
   return (
@@ -63,7 +63,7 @@ export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) 
             className={`nav-link ${activeTab === 'portfolio' ? 'active' : ''}`}
             onClick={() => onTabChange('portfolio')}
             style={{ fontSize: '14px', cursor: 'pointer', padding: '4px 10px', marginLeft: '4px' }}
-            title="Author Portfolio — LDTAtkinson.com"
+            title="Author Portfolio — Joshua Atkinson, LDT @ Purdue"
           >
             👤 Author
           </button>

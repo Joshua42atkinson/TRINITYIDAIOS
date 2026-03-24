@@ -208,7 +208,7 @@ export default function App() {
           </button>
           <iframe
             src="/portfolio/"
-            title="Author Portfolio — LDTAtkinson.com"
+            title="Author Portfolio — Joshua Atkinson, LDT @ Purdue"
             style={{
               width: '100%', height: '100%',
               border: 'none', display: 'block',
