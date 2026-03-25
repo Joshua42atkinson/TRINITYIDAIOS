@@ -1,5 +1,5 @@
 # Trinity ID AI OS — Research Bible & Session Context
-## March 23, 2026 — Production Prototype v14.0.0 (Purdue LDT Portfolio Integration)
+## March 25, 2026 — Production Prototype v15.0.0 (Portfolio Unification + Graduation Template)
 
 ---
 
@@ -121,7 +121,7 @@ User Message → VAAM Bridge (Style/Vocab detect) → Pete Orchestration (VAAM +
 ## 6. CODEBASE STATE (as of March 23, 2026 — LDT Portfolio + ART Canvas)
 
 **7 workspace crates, 0 compile errors, 179+ tests pass.**
-**33,000+ active LOC | 150K+ archive LOC | 638 template LOC | React frontend (16 components, 7 hooks)**
+**33,000+ active LOC | 150K+ archive LOC | 638 template LOC | React frontend (20+ components, 7 hooks)**
 
 ### Workspace Crates
 | Crate | LOC | Tests | Description |
@@ -162,7 +162,8 @@ User Message → VAAM Bridge (Style/Vocab detect) → Pete Orchestration (VAAM +
 | **Sidecar Monitor** | ✅ FIXED | Was pinging phantom ports 8090-8092 → now checks real sidecars (ComfyUI :8188, Voice :7777, Researcher :8081). Only reports when a previously-healthy sidecar goes down. |
 | **App Modes** | ✅ PHASE 5A | 3 modes: `IronRoad` (gamified), `Express` (wizard), `Yardmaster` (IDE). Auto-starts sidecars. |
 | **Express Mode** | ✅ BUILT | 3-step wizard in frontend (`ExpressWizard.jsx`) → Subject, Goal, Format → quick game generation. |
-| **React Frontend** | ✅ BUILT | Vite+React 3-column layout. **PhaseWorkspace**, **TrainStatus**, **ChapterRail**, **ArtStudio**, **CharacterSheet**, **Yardmaster**, **ExpressWizard**, **QualityScorecard**. Mode toggle 🚂⚡🔧. 6 tabs: Iron Road / ART Studio / Character / Yardmaster / Scorecard / Voice. |
+| **React Frontend** | ✅ BUILT | Vite+React 3-column layout. **PhaseWorkspace**, **TrainStatus**, **ChapterRail**, **ArtStudio**, **CharacterSheet**, **Yardmaster**, **ExpressWizard**, **QualityScorecard**, **PortfolioView**, **Home**, **AuthorLanding**. Mode toggle 🚂⚡🔧. 7 tabs: Iron Road / ART Studio / Character / Yardmaster / Scorecard / Voice / Author Portfolio. |
+| **Graduation Portfolio** | ✅ BUILT | `PortfolioView.jsx` — native component (Overview/Evidence/Badges). Premium CSS: shimmer title, glow stats, glass cards, IBSTPI competency pills. Trinity 3 deliverables: ID (Portfolio) · AI (Novel) · OS (Capstone). |
 | **Book-View UI** | ✅ LIVE | Chat bubbles → flowing serif prose. Pete's messages as book text, user words as italic quoted journal entries. Narrator (Great Recycler) golden centered prose. System messages as mono gold-bordered margin notes. |
 | **Station Navigation** | ✅ LIVE | All 12 ADDIECRAPEYE phases clickable as book chapters. Station overview pages show Hero's Journey title, Bloom's level, fill badge (COMPLETE/ACTIVE/LOCKED), blurb, 3 quest objectives. Return button restores narrative. |
 | **Live LLM (256K)** | ✅ VERIFIED | Mistral Small 4 119B running on Vulkan with 256K context. Pete responds with DM-style narrative, references quest objectives, drives Socratic protocol. Tested live with Physics subject. |
@@ -308,6 +309,19 @@ User Message → VAAM Bridge (Style/Vocab detect) → Pete Orchestration (VAAM +
 > - **systemd Services** — `trinity.service`, `cloudflared.service`, `llama-server.service` (auto-start on boot, resource limits, security hardening)
 > - **Identity Split (Tier 3.5)** — `AppState` decomposed into `PlayerContext` (character_sheet, bestiary, app_mode) + `ProjectContext` (game_state, conversation_history, book, book_updates, session_id). 24+ call sites migrated across 7 files. 205 tests passing.
 > - **Maturation Map** — 5-tier roadmap (Tier 0-4) with acceptance criteria, Red Hat finding mapping, and Purdue statement draft
+> **Completed: March 25, 2026 (Portfolio Unification + Graduation Template):**
+> - **Architecture Unification** — Host-Guest model: `ldtatkinson.com` (Vite) hosts Joshua's LDT Portfolio, Trinity AI OS embedded at `/trinity/`
+> - **PortfolioView.jsx** — Native Graduation Portfolio component (Overview/Evidence/Badges sub-tabs). Replaces iframe. Premium visual design: shimmer gold title, 6×2 ADDIECRAPEYE phase grid, glow stat cards, CRAP-styled badge drill-down. IBSTPI competency domains, flagship projects, technology badges.
+> - **Portfolio Data Migration** — `portfolioData.js`, `competencyData.js`, `technologyBadges.js`, badge definitions migrated from `LDTAtkinson/client/` to `crates/trinity/frontend/src/data/`
+> - **Trinity 3 Deliverables Framing** — Portfolio Overview explicitly frames: **ID** (Portfolio), **AI** (LitRPG Novel), **OS** (Capstone Product)
+> - **Hook Book as PEARL** — Moved Hook Book to top of Character Sheet as bold hero banner. CRAP-designed: Contrast (purple glow on dark), Repetition (Trinity tokens), Alignment (centered hierarchy), Proximity (grouped labels). "What can Trinity do?" — 37 Hooks · 4 Schools.
+> - **Nav Restructuring** — `👤 Author` = user's Graduation Portfolio (PortfolioView). `📚` help menu has: Four Chariots, `🌐 Creator's LDT Portfolio` (→ `/portfolio/` standalone, `/` hosted). Hook Book removed from help menu (already in Character Sheet + PROFESSOR.md).
+> - **Hosted Mode Detection** — `IS_HOSTED = window.location.pathname.startsWith('/trinity')`. `← Portfolio` back-link appears only when Trinity is embedded within LDT portfolio.
+> - **Edge Guard Prototype Mode** — `PROTOTYPE_MODE = true` in `edge_guard.rs` bypasses route blocking for Purdue presentation. **ACTION REQUIRED: Set to `false` after presentation.**
+> - **Home.jsx** — Iron Road tutorial landing with subject picker (8 presets + custom), delivery medium selector (Game/Storyboard/Simulation/LessonPlan/Assessment/Book), vision field, "Begin Journey" CTA.
+> - **AuthorLanding.jsx** — Combined hero photo + resume page.
+> - **Navigation.jsx** — Story Mode dropdown with 4 user mode buttons (SME, ID, Stakeholder, Player).
+> - **Hook Book in PROFESSOR.md** — Full 37-hook catalog embedded as Appendix D.
 
 
 ### THE PLAN: 1D-2D-3D Layered UI
@@ -354,6 +368,12 @@ Pete speaks     → Player reads/plays → Yardmaster builds
 - Video Generation (HunyuanVideo), Knowledge Tracing (BKT), RLHF fine-tuning
 - Bevy WASM `<canvas>` in React (blocked by winit 0.30.13 + Rust 1.94)
 
+#### 🔴 URGENT: Carry-Forward from March 25
+- [ ] **Cargo rebuild** — `cargo build --release -p trinity` then restart server. Required for: freshly built LDT portfolio dist to be served at `/portfolio/`, all frontend changes to take effect.
+- [ ] **ComfyUI systemd service** — Add ComfyUI to systemd, loading AFTER Mistral so the model can use it.
+- [ ] **Visual harmony audit** — Verify LDT portfolio and Trinity look seamless when navigating between them.
+- [ ] **Set `PROTOTYPE_MODE = false`** in `crates/trinity/src/edge_guard.rs` after Purdue presentation.
+
 ---
 
 ## 10. FILE MAP
@@ -399,6 +419,13 @@ templates/first-game/                   ← Bevy WASM template (wasm-bindgen + w
 archive/iron-road-physics/              ← Cognitive Load physics engine (Train, Node, coal/steam/velocity)
 crates/archive/trinity-body/            ← 33K lines archived Bevy egui UI (for porting)
 scripts/launch/demo_quick_start.sh      ← Trinity launcher script
+crates/trinity/frontend/src/components/PortfolioView.jsx    ← Graduation Portfolio (Overview/Evidence/Badges)
+crates/trinity/frontend/src/components/Home.jsx              ← Iron Road tutorial landing (subject picker + delivery medium)
+crates/trinity/frontend/src/components/AuthorLanding.jsx     ← Author hero + resume
+crates/trinity/frontend/src/components/Navigation.jsx        ← Story Mode dropdown (4 user roles)
+crates/trinity/frontend/src/data/portfolioData.js            ← Badge + category data (migrated from LDT)
+crates/trinity/frontend/src/data/competencyData.js           ← IBSTPI domains, flagship projects, artifacts
+crates/trinity/frontend/src/data/technologyBadges.js         ← LDT technology badge catalog
 _agent/workflows/                       ← Antigravity IDE workflows (9 workflows)
 ~/trinity-models/gguf/                  ← All GGUF models (Mistral, Qianfan-OCR, etc.)
 llama.cpp/build-vulkan/bin/llama-server ← Vulkan-built inference server (working, has libmtmd.so)
