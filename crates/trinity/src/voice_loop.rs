@@ -1,3 +1,14 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Voice Loop (Legacy Stub)
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:        voice_loop.rs
+// BIBLE CAR:   Car 11 — YOKE (ART Pipeline & Creative Tools)
+// HOOK SCHOOL: 🎨 Creation
+// PURPOSE:     Legacy voice loop endpoint — now delegated to Supertonic-2 TTS
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 use crate::AppState;
 use axum::{extract::State, Json};
 use reqwest::StatusCode;

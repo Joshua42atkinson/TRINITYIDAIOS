@@ -84,9 +84,15 @@ impl QuestState {
         self.phase_objectives.iter().all(|o| o.completed)
     }
 
+    /// Check if the phase has enough steam to advance.
+    /// Steam = productive output counter. You need to DO WORK to advance.
+    pub fn steam_ready(&self) -> bool {
+        self.steam_generated >= self.current_phase.steam_required()
+    }
+
     /// Advance to next phase
     pub fn advance_phase(&mut self) -> bool {
-        if !self.phase_complete() {
+        if !self.phase_complete() || !self.steam_ready() {
             return false;
         }
 

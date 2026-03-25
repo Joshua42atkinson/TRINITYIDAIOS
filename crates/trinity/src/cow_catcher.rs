@@ -1,3 +1,14 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Cow Catcher Error Classification
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:        cow_catcher.rs
+// BIBLE CAR:   Car 5 — EVALUATE (Quality Systems & Security Rings)
+// HOOK SCHOOL: ⚙️ Systems
+// PURPOSE:     Runtime error classification, obstacle reporting, hardware monitoring
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 //! Cow Catcher Integration for Main Trinity Daemon
 //!
 //! Routes timeout errors, compilation failures, sidecar crashes, and hardware

@@ -393,6 +393,28 @@ pub async fn agent_chat_stream(
             ));
         }
 
+        // === IRON ROAD: Inject Coal level + Sacred Circuitry focus ===
+        // The AI needs to know its own attention level to self-regulate.
+        let mut last_focus_directive = String::new();
+        if is_ironroad {
+            let gs = game_state.read().await;
+            let coal = gs.stats.coal_reserves;
+            let phase = gs.quest.current_phase.label();
+            let coal_status = if coal > 75.0 {
+                "HIGH — stay productive"
+            } else if coal > 40.0 {
+                "MODERATE — maintain focus"
+            } else if coal > 15.0 {
+                "LOW — refocus on phase objectives"
+            } else {
+                "CRITICAL — minimal responses, stay on-circuit"
+            };
+            system.push_str(&format!(
+                "\n\nSACRED CIRCUITRY (AI Attention Level):\nCoal: {:.0}/100 ({})\nPhase: {}\nStay on-circuit for this phase. Your responses are scanned for alignment.",
+                coal, coal_status, phase
+            ));
+        }
+
         // Persist user message to DB before inference
         if let Err(e) = crate::persistence::save_message(
             &db_pool,
@@ -688,6 +710,42 @@ pub async fn agent_chat_stream(
                 }
                 let content_json = serde_json::json!({ "content": clean_text }).to_string();
                 let _ = tx.send(content_json).await;
+            }
+
+            // === IRON ROAD: Sacred Circuitry AI Coal Engine ===
+            // Scan AI response for circuit alignment against current phase.
+            // On-circuit = Coal earned (focused). Off-circuit = Coal consumed (drifting).
+            if is_ironroad {
+                let current_phase = { game_state.read().await.quest.current_phase.label().to_string() };
+                let alignment = trinity_protocol::scan_ai_alignment(&response, &current_phase);
+
+                // Apply coal delta to game state
+                {
+                    let mut gs = game_state.write().await;
+                    gs.stats.coal_reserves = (gs.stats.coal_reserves + alignment.coal_delta)
+                        .clamp(0.0, 100.0);
+                }
+
+                // Store focus directive for next turn's system prompt
+                last_focus_directive = alignment.focus_directive.clone();
+
+                // Send circuit alignment event to frontend
+                let circuit_json = serde_json::to_string(&alignment).unwrap_or_default();
+                let _ = tx
+                    .send(format!("event: circuit\ndata: {}\n\n", circuit_json))
+                    .await;
+
+                if alignment.on_circuit {
+                    info!(
+                        "[Circuit] ON-CIRCUIT: {:?} (confidence: {:.2}, coal: +{:.1})",
+                        alignment.detected_circuit, alignment.confidence, alignment.coal_delta
+                    );
+                } else {
+                    info!(
+                        "[Circuit] DRIFT: {:?} (expected: {:?}, coal: {:.1})",
+                        alignment.detected_circuit, alignment.expected_circuits, alignment.coal_delta
+                    );
+                }
             }
 
             // Execute each tool call

@@ -932,7 +932,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/creative/status", get(creative::creative_status))
         .route("/api/creative/image", post(creative::generate_image))
         .route("/api/creative/video", post(creative::generate_video))
-        .route("/api/creative/music", post(creative::generate_music))
+        .route("/api/creative/tempo", post(creative::generate_tempo))
         .route("/api/creative/mesh3d", post(creative::generate_3d_mesh))
         .route("/api/creative/logs", get(creative::get_creative_logs))
         .route("/api/creative/assets", get(creative::list_assets))
@@ -1027,9 +1027,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-/// Serve the Four Chariots — root documentation as raw markdown
+/// Serve the Five Chariots + Hook Book — root documentation as raw markdown
 /// WHY: Teachers encountering unfamiliar terms can be directed here by Pete.
-///      Only the 4 known Chariot files are served (whitelist for security).
+///      Only the known doc files are served (whitelist for security).
 async fn serve_chariot_doc(
     axum::extract::Path(filename): axum::extract::Path<String>,
 ) -> Result<axum::response::Response, (StatusCode, String)> {
@@ -1039,6 +1039,7 @@ async fn serve_chariot_doc(
         "PROFESSOR.md",
         "README.md",
         "PLAYERS_HANDBOOK.md",
+        "HOOK_BOOK.md",
     ];
     if !ALLOWED.contains(&filename.as_str()) {
         return Err((StatusCode::NOT_FOUND, "Document not found".to_string()));
@@ -2553,8 +2554,15 @@ Use state as flavor, not as a list. If coal is high, describe warmth and light. 
             _ => 800,
         };
 
+        let storyteller_url = if crate::inference::check_health("http://127.0.0.1:8081").await {
+            "http://127.0.0.1:8081".to_string()
+        } else {
+            tracing::info!("[Zen] Storyteller model 8081 offline. Falling back to Director at {}", director_url);
+            director_url.clone()
+        };
+
         let _ = inference::chat_completion_stream(
-            "http://127.0.0.1:8081",
+            &storyteller_url,
             &storyteller_messages,
             dynamic_max_tokens,
             narration_tx,
@@ -2563,6 +2571,90 @@ Use state as flavor, not as a list. If coal is high, describe warmth and light. 
         ).await;
 
         let full_narration = narration_collector.await.unwrap_or_default();
+
+        // ══════════════════════════════════════════════
+        // STEP 3: Scene Image + Ambient Audio (non-blocking)
+        // ══════════════════════════════════════════════
+        // Fire both in parallel — they enhance the experience but never block narration.
+
+        let scene_prompt = if let Some(ref interp) = interpretation {
+            interp.get("narrative_hint")
+                .and_then(|v| v.as_str())
+                .unwrap_or("misty iron railroad tracks through fog")
+                .to_string()
+        } else {
+            "misty iron railroad tracks through fog, atmospheric, moody".to_string()
+        };
+
+        // Scene Image via ComfyUI (if available)
+        let tx_img = tx.clone();
+        let img_prompt = format!(
+            "{}, atmospheric digital painting, dark fantasy, misty railroad, soft lighting, no text, no watermark",
+            scene_prompt
+        );
+        tokio::spawn(async move {
+            // Quick health check — skip silently if ComfyUI is offline
+            if !creative::check_comfyui_health_quick().await {
+                tracing::debug!("[Zen Scene] ComfyUI offline — skipping scene image");
+                return;
+            }
+            let request = creative::ImageRequest {
+                prompt: img_prompt,
+                negative_prompt: Some("text, watermark, blurry, low quality, UI, interface".to_string()),
+                width: 768,
+                height: 432,
+                style: Some("cinematic".to_string()),
+            };
+            match creative::generate_image(axum::Json(request)).await {
+                Ok(axum::Json(resp)) => {
+                    if let Some(url) = resp.image_url {
+                        let _ = tx_img.send(("scene_image".to_string(), url)).await;
+                        tracing::info!("[Zen Scene] Image delivered in {}ms", resp.generation_time_ms);
+                    }
+                }
+                Err((_, msg)) => tracing::debug!("[Zen Scene] Skipped: {}", msg),
+            }
+        });
+
+        // Ambient Audio via Tempo engine
+        let tx_audio = tx.clone();
+        let tempo_mood = match phase_name.as_str() {
+            "Analysis" => "reflective",
+            "Design" => "creative",
+            "Development" => "energetic",
+            "Implementation" => "focused",
+            "Evaluation" => "contemplative",
+            "Contrast" => "mysterious",
+            "Repetition" => "rhythmic",
+            "Alignment" => "harmonic",
+            "Proximity" => "warm",
+            "Envision" => "ethereal",
+            "Yoke" => "triumphant",
+            "Evolve" => "ascending",
+            _ => "ambient",
+        }.to_string();
+        tokio::spawn(async move {
+            let request = creative::TempoRequest {
+                prompt: tempo_mood.clone(),
+                duration_secs: 15,
+                style: Some("ambient".to_string()),
+            };
+            match creative::generate_tempo(axum::Json(request)).await {
+                Ok(axum::Json(resp)) => {
+                    if let Some(path) = resp.audio_path {
+                        // Convert file path to a serveable URL
+                        let filename = std::path::Path::new(&path)
+                            .file_name()
+                            .and_then(|f| f.to_str())
+                            .unwrap_or("tempo.wav");
+                        let url = format!("/api/creative/assets/{}", filename);
+                        let _ = tx_audio.send(("ambient_audio".to_string(), url)).await;
+                        tracing::info!("[Zen Tempo] Audio delivered: {}", tempo_mood);
+                    }
+                }
+                Err((_, msg)) => tracing::debug!("[Zen Tempo] Skipped: {}", msg),
+            }
+        });
 
         // Save to history
         let mut h = history.write().await;

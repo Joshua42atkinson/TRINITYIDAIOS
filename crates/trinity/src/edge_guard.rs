@@ -33,6 +33,13 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
+/// ═══════════════════════════════════════════════════════════════════════════
+/// PROTOTYPE MODE — Set to `true` for Purdue demo presentations.
+/// When active, ALL routes are accessible from the tunnel (with rate limiting).
+/// Set back to `false` for production hosting.
+/// ═══════════════════════════════════════════════════════════════════════════
+const PROTOTYPE_MODE: bool = true;
+
 /// Blocked path prefixes for tunnel (non-local) traffic.
 /// These routes are only accessible from localhost (direct browser access).
 const BLOCKED_PREFIXES: &[&str] = &[
@@ -118,6 +125,22 @@ const PORTFOLIO_ALLOWED: &[&str] = &[
     "/api/chat/portfolio",
 ];
 
+/// Tier 2: Zen Mode demo — curated routes safe for external access.
+/// These power the Zen Mode experience for remote demonstrations.
+/// No tools, no shell, no model switching, no session/project access.
+/// Rate limited at 30 req/min per IP.
+const ZEN_DEMO_ALLOWED: &[&str] = &[
+    "/api/chat/zen",        // Socratic conversation (SSE stream)
+    "/api/quest/state",     // Read current quest phase
+    "/api/quest/complete",  // Mark objective done (state mutation, rate-limited)
+    "/api/character",       // Character Sheet read + update
+    "/api/models/active",   // Which model is loaded (read-only)
+    "/api/health",          // Health check
+    "/api/tts",             // Voice narration
+    "/api/pearl",           // PEARL state (read/refine)
+    "/docs/",               // Documentation (Four Chariots + Hook Book)
+];
+
 /// Edge Guard middleware — blocks dangerous routes for tunnel traffic
 /// and applies rate limiting to all tunnel requests.
 pub async fn edge_guard(
@@ -126,6 +149,24 @@ pub async fn edge_guard(
 ) -> Result<Response<Body>, StatusCode> {
     // Local requests pass through unrestricted
     if !is_tunnel_request(&req) {
+        return Ok(next.run(req).await);
+    }
+
+    // ═══ PROTOTYPE MODE: All routes open, rate limiting only ═══
+    if PROTOTYPE_MODE {
+        if let Some(ip) = req
+            .headers()
+            .get("cf-connecting-ip")
+            .and_then(|v| v.to_str().ok())
+        {
+            static PROTO_LIMITER: std::sync::OnceLock<RateLimiter> = std::sync::OnceLock::new();
+            let limiter = PROTO_LIMITER.get_or_init(RateLimiter::new);
+            if !limiter.check(ip, 60, 60) {
+                tracing::warn!("🛡️ Edge Guard [PROTOTYPE]: Rate limited {}", ip);
+                return Err(StatusCode::TOO_MANY_REQUESTS);
+            }
+        }
+        tracing::debug!("🔓 Edge Guard [PROTOTYPE]: Allowing {}", req.uri().path());
         return Ok(next.run(req).await);
     }
 
@@ -165,6 +206,27 @@ pub async fn edge_guard(
             }
         }
         tracing::info!("🌐 Edge Guard: Allowing portfolio chat from tunnel");
+        return Ok(next.run(req).await);
+    }
+
+    // Zen Demo endpoints: allowed from tunnel with moderate rate limiting
+    let is_zen_demo = ZEN_DEMO_ALLOWED.iter().any(|p| path.starts_with(p));
+    if is_zen_demo {
+        if let Some(ip) = req
+            .headers()
+            .get("cf-connecting-ip")
+            .and_then(|v| v.to_str().ok())
+        {
+            static ZEN_LIMITER: std::sync::OnceLock<RateLimiter> = std::sync::OnceLock::new();
+            let limiter = ZEN_LIMITER.get_or_init(RateLimiter::new);
+
+            // Moderate: 30 requests per minute per IP
+            if !limiter.check(ip, 30, 60) {
+                tracing::warn!("🛡️ Edge Guard: Zen demo rate limited tunnel IP {}", ip);
+                return Err(StatusCode::TOO_MANY_REQUESTS);
+            }
+        }
+        tracing::info!("🎮 Edge Guard: Allowing Zen Mode demo from tunnel: {}", path);
         return Ok(next.run(req).await);
     }
 
@@ -322,6 +384,46 @@ mod tests {
             .body(Body::empty())
             .unwrap();
         assert!(!is_tunnel_request(&req));
+    }
+
+    #[test]
+    fn test_zen_demo_allowed_routes() {
+        // These routes must be in ZEN_DEMO_ALLOWED for remote Zen Mode
+        let zen_routes = [
+            "/api/chat/zen",
+            "/api/quest/state",
+            "/api/quest/complete",
+            "/api/character",
+            "/api/models/active",
+            "/api/health",
+            "/api/tts",
+            "/api/pearl",
+        ];
+        for route in &zen_routes {
+            let allowed = ZEN_DEMO_ALLOWED.iter().any(|p| route.starts_with(p));
+            assert!(allowed, "Zen route {} should be in ZEN_DEMO_ALLOWED", route);
+        }
+    }
+
+    #[test]
+    fn test_dangerous_routes_not_in_zen_demo() {
+        // These must NEVER appear in ZEN_DEMO_ALLOWED
+        let dangerous = [
+            "/api/tools",
+            "/api/tools/execute",
+            "/api/models/switch",
+            "/api/inference/switch",
+            "/api/sessions",
+            "/api/projects",
+            "/api/chat/stream",
+            "/api/chat/yardmaster",
+            "/api/creative",
+            "/api/mcp",
+        ];
+        for route in &dangerous {
+            let allowed = ZEN_DEMO_ALLOWED.iter().any(|p| route.starts_with(p));
+            assert!(!allowed, "Dangerous route {} must NOT be in ZEN_DEMO_ALLOWED!", route);
+        }
     }
 }
 

@@ -1,0 +1,30 @@
+[Unit]
+Description=Trinity AI OS (Axum Backend)
+# STRICT ordering: llama MUST be fully started first
+After=trinity-llama.service network.target
+Requires=trinity-llama.service
+Wants=caddy.service
+
+[Service]
+Type=simple
+User=joshua
+WorkingDirectory=/home/joshua/Workflow/desktop_trinity/trinity-genesis
+
+# Health-check script: polls llama /health every 1s for up to 120s
+# Trinity only launches AFTER llama confirms it's ready
+ExecStart=/home/joshua/Workflow/desktop_trinity/trinity-genesis/scripts/trinity-start.sh
+
+# Trinity is lightweight — normal priority is fine
+Nice=0
+# But still protect it from OOM (not as critical as llama though)
+OOMScoreAdjust=-500
+
+Restart=on-failure
+RestartSec=10
+# llama needs ~90s to load + 120s health poll max + 10s trinity boot
+TimeoutStartSec=300
+Environment=HOME=/home/joshua
+Environment=RUST_LOG=info
+
+[Install]
+WantedBy=multi-user.target

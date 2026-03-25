@@ -435,7 +435,7 @@ export default function ZenMode() {
       console.error('ZEN stream error:', err);
       setMessages((prev) => {
         const u = [...prev];
-        u[u.length - 1] = { role: 'narrator', text: 'The Great Recycler is resting. Check that llama-server is running on :8080 and :8081.' };
+        u[u.length - 1] = { role: 'narrator', text: 'The Great Recycler is gathering coal for the engine. Please wait a moment and try again.' };
         return u;
       });
     }
@@ -519,7 +519,7 @@ export default function ZenMode() {
   return (
     <div className="zen-layout">
       <header className="zen-header">
-        <div className="zen-header__title">✦ ZEN MODE</div>
+        <div className="zen-header__title">✦ STORY MODE</div>
         <div className="zen-header__subtitle">The Codex — your words become products</div>
         <div className="zen-header__spacer" />
         <button id="zen-new-chapter" onClick={startNewChapter} className="zen-btn">📖 New Chapter</button>

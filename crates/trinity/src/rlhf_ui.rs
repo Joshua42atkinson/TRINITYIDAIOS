@@ -1,3 +1,14 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — RLHF UI Types
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:        rlhf_ui.rs
+// BIBLE CAR:   Car 4 — IMPLEMENT (Iron Road Game Mechanics)
+// HOOK SCHOOL: 🎭 Identity
+// PURPOSE:     ResonanceRating + ResonanceFeedbackEvent types for RLHF pipeline
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -2,13 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 
 export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) {
   const tabs = [
-    { id: 'ironroad', label: 'Iron Road' },
-    { id: 'art',      label: 'ART Studio' },
-    { id: 'character', label: 'Character' },
-    { id: 'yard',     label: 'Yardmaster' },
-    { id: 'scorecard', label: 'Scorecard' },
-    { id: 'journal',  label: 'Journal' },
-    { id: 'voice',    label: 'Zen Mode' },
+    { id: 'voice',     label: '📖 Story Mode' },
+    { id: 'ironroad',  label: '🚂 Iron Road' },
+    { id: 'art',       label: '🎨 ART Studio' },
+    { id: 'character', label: '🎭 Character' },
+    { id: 'yard',      label: '⚙️ Yardmaster' },
   ];
 
   // Help Menu — The Four Chariots
@@ -57,7 +55,7 @@ export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) 
             style={{ fontSize: '16px', cursor: 'pointer', padding: '4px 8px' }}
             title="The Four Chariots — Documentation"
           >
-            ❓
+            📚
           </button>
           <button
             id="nav-author-btn"
@@ -66,7 +64,7 @@ export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) 
             style={{ fontSize: '14px', cursor: 'pointer', padding: '4px 10px', marginLeft: '4px' }}
             title="Author Portfolio — Joshua Atkinson, LDT @ Purdue"
           >
-            👤 Author
+            👤
           </button>
           {helpOpen && (
             <div style={{
@@ -120,6 +118,50 @@ export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) 
                   </div>
                 </button>
               ))}
+              {/* Divider + Hook Book — separate from the metaphysical Four Chariots */}
+              <div style={{
+                marginTop: '8px', paddingTop: '8px',
+                borderTop: '1px solid rgba(207, 185, 145, 0.1)',
+              }}>
+                <div style={{
+                  fontFamily: "'Cinzel', serif", fontSize: '10px',
+                  color: '#CFB991', letterSpacing: '2px', textTransform: 'uppercase',
+                  marginBottom: '6px', opacity: 0.7,
+                }}>
+                  Spell Book
+                </div>
+                <button
+                  onClick={() => {
+                    onTabChange('chariot:HOOK_BOOK.md');
+                    setHelpOpen(false);
+                  }}
+                  style={{
+                    display: 'flex', gap: '10px', alignItems: 'flex-start',
+                    padding: '8px', borderRadius: '6px',
+                    color: '#E2E8F0', background: 'transparent', border: 'none',
+                    cursor: 'pointer', width: '100%', textAlign: 'left',
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(207, 185, 145, 0.08)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  <span style={{ fontSize: '18px', lineHeight: 1 }}>📖</span>
+                  <div>
+                    <div style={{
+                      fontFamily: "'Inter', sans-serif", fontSize: '13px',
+                      fontWeight: 600, color: '#E2E8F0',
+                    }}>
+                      The Hook Book
+                    </div>
+                    <div style={{
+                      fontFamily: "'Inter', sans-serif", fontSize: '11px',
+                      color: '#6B7280', marginTop: '2px',
+                    }}>
+                      Every capability — the spell book
+                    </div>
+                  </div>
+                </button>
+              </div>
             </div>
           )}
         </div>

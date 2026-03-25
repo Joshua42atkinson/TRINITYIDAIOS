@@ -70,10 +70,27 @@ pub struct ImageGenResponse {
     pub url: Option<String>,
 }
 
+/// Request to generate tempo/procedural audio via creative pipeline.
+#[derive(Debug, Clone, Serialize)]
+pub struct TempoGenRequest {
+    pub prompt: String,
+    pub style: Option<String>,
+    pub duration_secs: u32,
+}
+
+/// Response from tempo generation.
+#[derive(Debug, Clone, Deserialize)]
+pub struct TempoGenResponse {
+    pub success: bool,
+    pub audio_path: Option<String>,
+    pub message: String,
+}
+
 /// Shared mailbox for async results coming back from HTTP calls.
 #[derive(Resource, Clone)]
 pub struct CreativeMailbox {
     pub image_results: Arc<Mutex<Vec<ImageGenResponse>>>,
+    pub tempo_results: Arc<Mutex<Vec<TempoGenResponse>>>,
     pub pending_count: Arc<Mutex<u32>>,
 }
 
@@ -81,6 +98,7 @@ impl Default for CreativeMailbox {
     fn default() -> Self {
         Self {
             image_results: Arc::new(Mutex::new(Vec::new())),
+            tempo_results: Arc::new(Mutex::new(Vec::new())),
             pending_count: Arc::new(Mutex::new(0)),
         }
     }
@@ -242,6 +260,55 @@ pub fn request_image_generation(mailbox: &CreativeMailbox, request: ImageGenRequ
             }
             Err(e) => {
                 tracing::error!("Image generation request failed: {}", e);
+            }
+        }
+
+        if let Ok(mut count) = pending.lock() {
+            *count = count.saturating_sub(1);
+        }
+    });
+}
+
+/// Fire a tempo generation request to the Trinity creative endpoint.
+pub fn request_tempo_generation(mailbox: &CreativeMailbox, request: TempoGenRequest) {
+    let results = mailbox.tempo_results.clone();
+    let pending = mailbox.pending_count.clone();
+
+    if let Ok(mut count) = pending.lock() {
+        *count += 1;
+    }
+
+    std::thread::spawn(move || {
+        let client = reqwest::blocking::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build();
+
+        let client = match client {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::error!("Failed to create HTTP client: {}", e);
+                if let Ok(mut count) = pending.lock() {
+                    *count = count.saturating_sub(1);
+                }
+                return;
+            }
+        };
+
+        let resp = client
+            .post("http://localhost:3000/api/creative/tempo")
+            .json(&request)
+            .send();
+
+        match resp {
+            Ok(r) => {
+                if let Ok(gen_resp) = r.json::<TempoGenResponse>() {
+                    if let Ok(mut lock) = results.lock() {
+                        lock.push(gen_resp);
+                    }
+                }
+            }
+            Err(e) => {
+                tracing::error!("Tempo generation request failed: {}", e);
             }
         }
 

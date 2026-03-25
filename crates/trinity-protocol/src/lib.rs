@@ -121,7 +121,8 @@ pub use profile::{
 };
 pub use qm_rubric::{QmCriterion, QmEvaluation, QmRubricEvaluator};
 pub use sacred_circuitry::{
-    format_circuit_event, foundation_vocabulary, Circuit, CircuitQuadrant, CircuitryState,
+    format_circuit_event, foundation_vocabulary, scan_ai_alignment, Circuit,
+    CircuitAlignmentResult, CircuitQuadrant, CircuitryState,
 };
 pub use semantic_creep::{
     battle as creep_battle, CreepElement, CreepRole, CreepState, CreepStats, SemanticCreep,

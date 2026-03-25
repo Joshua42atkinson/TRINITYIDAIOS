@@ -7,7 +7,7 @@
 //
 // Layout:
 //   ┌──────────────────────────────────────────────────────────────┐
-//   │  [🖼️ Image] [🎵 Music] [🎲 3D] [🎬 Video] [🗣️ Voice]       │
+//   │  [🖼️ Image] [🎵 Tempo] [🎲 3D] [🎬 Video] [🗣️ Voice]       │
 //   │  Prompt: [________________________________] [✨ Generate]    │
 //   │  Style: [Steampunk ▼]    Status: 🟢 LLM  ⚪ ComfyUI        │
 //   └──────────────────────────────────────────────────────────────┘
@@ -17,7 +17,7 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPlugin, EguiPrimaryContextPass};
 
-use crate::creative_bridge::{request_image_generation, ArtSidecarState, CreativeMailbox, ImageGenRequest, SidecarStatus};
+use crate::creative_bridge::{request_image_generation, request_tempo_generation, ArtSidecarState, CreativeMailbox, ImageGenRequest, TempoGenRequest, SidecarStatus};
 
 // ─── Plugin ──────────────────────────────────────────────────────────────────
 
@@ -39,7 +39,7 @@ impl Plugin for ArtPanelsPlugin {
 pub enum CreativeLane {
     #[default]
     Image,
-    Music,
+    Tempo,
     Mesh3D,
     Video,
     Voice,
@@ -49,7 +49,7 @@ impl CreativeLane {
     fn label(&self) -> &'static str {
         match self {
             CreativeLane::Image => "🖼️ Image",
-            CreativeLane::Music => "🎵 Music",
+            CreativeLane::Tempo => "🎵 Tempo",
             CreativeLane::Mesh3D => "🎲 3D",
             CreativeLane::Video => "🎬 Video",
             CreativeLane::Voice => "🗣️ Voice",
@@ -59,7 +59,7 @@ impl CreativeLane {
     fn all() -> &'static [CreativeLane] {
         &[
             CreativeLane::Image,
-            CreativeLane::Music,
+            CreativeLane::Tempo,
             CreativeLane::Mesh3D,
             CreativeLane::Video,
             CreativeLane::Voice,
@@ -276,6 +276,20 @@ fn render_control_rail(
                                 state.last_status = format!("Generating: {}", state.prompt);
                             } else {
                                 state.last_status = "⚠ ComfyUI not connected".to_string();
+                            }
+                        }
+                        CreativeLane::Tempo => {
+                            if let Some(ref mb) = mailbox {
+                                let request = TempoGenRequest {
+                                    prompt: state.prompt.clone(),
+                                    style: Some(state.style.prompt_suffix().to_string()),
+                                    duration_secs: 15, // Output 15 second tracks
+                                };
+                                request_tempo_generation(mb, request);
+                                state.generating = true;
+                                state.last_status = format!("Procedural Tempo: {}", state.prompt);
+                            } else {
+                                state.last_status = "⚠ Tempo Engine unavailable".to_string();
                             }
                         }
                         _ => {

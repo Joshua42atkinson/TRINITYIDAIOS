@@ -1,3 +1,14 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — RLHF Feedback API
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:        rlhf_api.rs
+// BIBLE CAR:   Car 4 — IMPLEMENT (Iron Road Game Mechanics)
+// HOOK SCHOOL: 🎭 Identity
+// PURPOSE:     Resonance feedback (👍/👎), Shadow escalation, PEARL alignment scoring
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 use axum::{extract::State, response::Json};
 use trinity_protocol::character_sheet::ShadowStatus;
 

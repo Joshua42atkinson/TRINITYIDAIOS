@@ -1,3 +1,14 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Music Streamer
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:        music_streamer.rs
+// BIBLE CAR:   Car 11 — YOKE (ART Pipeline & Creative Tools)
+// HOOK SCHOOL: 🎨 Creation
+// PURPOSE:     Background music playback via rodio, genre-aware from CharacterSheet
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{debug, info, warn};

@@ -25,9 +25,9 @@
 | **App Modes (Iron Road, Express, Yardmaster)** | `Verified` | `AppMode` enum in `main.rs`, React UI |
 | **Creative Pipeline (Images, Music, Video, 3D)** | `Verified` | `creative.rs`, `useCreative.js` — ComfyUI/MusicGPT/Hunyuan |
 | **Voice Pipeline (Supertonic-2 TTS)** | `Verified` | `supertonic.rs`, native ONNX — browser fallback auto-detect |
-| **Zen Mode Codex** | `Verified` | `ZenMode.jsx` — Fantasy RPG book UI, 32px narrator text |
+| **Story Mode Codex** | `Verified` | `ZenMode.jsx` — Fantasy RPG book UI, 32px narrator text |
 | **ADDIECRAPEYE Phase Navigation** | `Verified` | Vertical 12-tab sidebar, phase-aware input & badge |
-| **EYE Export** | `Verified` | `/api/eye/export` → download button in Zen Mode |
+| **EYE Export** | `Verified` | `/api/eye/export` → download button in Story Mode |
 | **Safety Badges (CowCatcher/EdgeGuard)** | `Verified` | `GameHUD.jsx` — visible safety indicators |
 | **Phase-Aware Messaging** | `Verified` | `activePhase` sent with every `/api/chat/zen` call |
 | **RLHF Feedback (Thumbs Up/Down)** | `Verified` | `ZenMode.jsx` — 👍/👎 buttons on narrator messages → `/api/rlhf/resonance` |
@@ -706,6 +706,47 @@ Every message between user and AI is scanned for vocabulary. Words with 4+ chara
 > 📍 `game_loop.rs:L61-109` — `scan_text()`: word discovery across phases and quadrants
 > 📍 `game_loop.rs:L72` — `filter(|w| w.len() >= 4)` — minimum 4 characters to be interesting
 
+### 4.2.1 VAAM as Intentional Intelligence — Value to AI Systems
+
+> *"The AI industry measures intelligence in tokens. Trinity measures it in words understood."*
+
+What makes VAAM structurally unique in the AI landscape is not **what** it tracks, but **how** it transforms tracking into control:
+
+**1. Bidirectional Vocabulary Alignment**
+
+VAAM scans **both** user input and AI output through the same circuit detection system. The VaamBridge (`vaam_bridge.rs`) processes user messages for vocabulary mastery AND processes AI responses for Sacred Circuitry alignment. No other system treats the AI's own vocabulary usage as a measurable, adjustable signal.
+
+> 📍 `vaam_bridge.rs:L90-165` — `process_user_input()`: full pipeline (vocabulary + circuit + profile)
+> 📍 `vaam_bridge.rs:L167-185` — `process_ai_output()`: circuit detection on AI responses
+> 📍 `sacred_circuitry.rs:scan_ai_alignment()` — AI Coal engine: on-circuit = focused, off-circuit = drifting
+
+**2. Deliberateness Scoring**
+
+`WordWeight.affinity = frequency × deliberateness`. VAAM doesn't just count how often a word appears — it tracks whether the user **chose** it when alternatives existed. A word used 10 times passively scores lower than a word used 3 times deliberately. This distinguishes understanding from parroting.
+
+> 📍 `vaam_profile.rs:L298-308` — `WordWeight.recalculate()`: affinity = frequency × deliberate ratio
+
+**3. Negotiated Attention Contracts**
+
+`VaamProfile.agreements` are explicit contracts between user and AI about what matters. Built through conversation, referenced in every system prompt. This is not RLHF (thumbs up/down on outputs) — it is **co-created structural preference** that persists across sessions and shapes AI behavior by contract, not by statistical averaging.
+
+> 📍 `vaam_profile.rs:L354-369` — `Agreement`: topic, circuit, weight, timestamps
+> 📍 `vaam_bridge.rs:L204-270` — `prompt_context()`: agreements injected into system prompt
+
+**4. Cognitive Load Theory as Runtime Telemetry**
+
+The Coal/Steam/Friction economy is CLT (Sweller, 1988) implemented as game mechanics:
+
+| CLT Concept | Trinity Mechanic | Measurement | Effect |
+|-------------|-----------------|-------------|--------|
+| **Intrinsic Load** | Coal | Words on-circuit vs. off-circuit | AI self-regulation via system prompt |
+| **Germane Load** | Steam | Productive tool calls | Quest advancement gates |
+| **Extraneous Load** | Friction | RLHF negative signals | Pete's tone adjustment |
+
+No other AI framework applies cognitive load theory to the AI's own attention management. Agent frameworks (LangChain, CrewAI, AutoGen) provide memory and tools but no cognitive scaffolding. LMS systems (Canvas, Moodle) manage courses but not cognitive load. Intelligent Tutoring Systems (ANDES, Carnegie Mellon Cognitive Tutors) tracked student knowledge states but used pre-authored rule systems, not live LLMs.
+
+**The structural claim:** Trinity is the first system that applies Cognitive Load Theory to both the human AND the AI simultaneously, using vocabulary as the shared measurement unit, structured by a game engine that makes pedagogical rigor feel like play.
+
 ### 4.3 SemanticCreep — Vocabulary Creatures
 
 Every vocabulary word becomes a **SemanticCreep** — a creature with stats derived from its linguistic properties:
@@ -756,7 +797,7 @@ When a player's ideas generate **SemanticCreeps** (out-of-scope vocabulary or fe
 
 **The flow:**
 ```
-Player speaks in Zen Mode
+Player speaks in Story Mode
   → Great Recycler judges scope alignment
     → IN-SCOPE: stays in Design Doc (YOUR PRODUCT panel)
     → OUT-OF-SCOPE: SemanticCreep spawns in Bestiary
@@ -1393,35 +1434,36 @@ Semantic data colors are preserved for CRAP Contrast:
 
 ### 9.3 The CharacterSheet UI
 
-The `CharacterSheet.jsx` component (580 lines) renders the full LitRPG identity HUD. It was refined through a CRAP (Contrast, Repetition, Alignment, Proximity) design review to ensure every data field the struct provides is visible and correctly labeled.
+The `CharacterSheet.jsx` component renders the **ADDIECRAPEYE Agreement** — the contract between the user and the Iron Road. Structured **finish-line-first**, it answers the user's core question: *"What am I building, and how mature is it?"*
 
-**Header:**
-- 📛 Alias in `Cinzel` Purdue gold (`#CFB991`)
-- 🎮 UserClass badge with class-specific emoji and color (`classEmoji` map mirrors `character_sheet.rs:L388-429`)
-- Locomotive Profile as secondary label
-- Gate Review Status + XP Total (right side)
+**Section 1 — YOUR PEARL (The Contract You Wrote):**
+- 🔮 The user's own subject, medium, and vision statement
+- ADDIE / CRAP / EYE alignment bars + overall alignment %
+- *"This is YOUR definition of success. Pete's Socratic interview shaped it."*
 
-**Left Column — Cognitive Logistics:**
-- 🔥 Coal bar (attention reserve, orange gradient) — *"ATTENTION"* not ~~"MOTIVATION"~~ (CLT alignment)
-- ⚡ Steam bar (momentum, cyan gradient)
-- Track Friction bar (extraneous load, red)
-- 📦 Cargo Slots (Miller's 7±2, amber fill indicators, 9-slot max)
-- 🎯 The Firebox (Intent posture, vulnerability, grounding status)
-- 📡 Session Intent display (conditional, shown when set by Pete)
-- 👻 Shadow Status indicator (Clear/Stirring/Active/Processed with state-based colors)
+**Section 2 — 🏁 WHAT YOU'RE BUILDING (The Finish Line):**
+- 5 deliverables: Game Design Document, HTML5 Interactive Game, Lesson Plans & Rubrics, Visual Design System, LDT Portfolio Artifact
+- Each lights up when its ADDIECRAPEYE group is complete
 
-**Right Column — LDT Portfolio:**
-- Gate Review Progression (0/12 artifacts, animated progress bar)
-- Score grid (3×2): QM Score, IBSTPI, ATD, AECT Ethics, Heavilon Events, Memorial Steps (/17)
-- Subconscious Inventory (vault of completed artifacts with QM scores and AECT clearance)
+**Section 3 — 📈 MATURATION MAP:**
+- 6 auto-scored dimensions: Content Readiness, Production Quality, Pedagogical Rigor, Visual Design, Metacognitive Depth, Portfolio Completion
+- Overall maturation % — computed from completed phases
 
-**Defensive Defaults Pattern:**
-The frontend handles missing fields gracefully with `|| {}` and `?? 0` patterns, so older server binaries that predate new fields (e.g., `ldt_portfolio`, `shadow_status`, `cargo_slots`) don't crash the component. This is critical for development velocity — the UI never breaks even when backend is stale.
+**Section 4 — 📜 THE ADDIECRAPEYE AGREEMENT (12-Station Grid):**
+- 12 station cards grouped by ADDIE / CRAP / EYE
+- Each shows: icon, name, Bloom's level, deliverable produced, Hero's Journey chapter
+- 🔮 PEARL lens badge (e.g., `A·P` = Aesthetic + Perspective) — *"everything that is CRAP needs a PEARL"*
+- Status: ✅ COMPLETE / 🔶 ACTIVE / 🔒 LOCKED
+- Active phase shows real quest objectives from `/api/quest`
 
-> 📍 `CharacterSheet.jsx:L41-57` — Defensive defaults for 6 fields with full fallback objects
-> 📍 `CharacterSheet.jsx:L59-69` — UserClass emoji mapping and locomotive profile extraction
-> 📍 `CharacterSheet.jsx:L97-165` — Left column: Cognitive Logistics + Cargo Slots + Firebox
-> 📍 `CharacterSheet.jsx:L247-273` — Score grid: 6 cards (QM, IBSTPI, ATD, AECT, Heavilon, Memorial)
+**Section 5 — Bottom Panels:**
+- ⚙️ Cognitive Logistics: Coal, Steam, Friction bars + Cargo Slots
+- 🏆 Competency Scores: QM, IBSTPI, ATD, AECT, Heavilon, Memorial
+- 📖 Artifact Vault: collapsible, shows vaulted artifacts with QM scores
+
+**Design principle:** Maturation, not complication. Every element has direction and use.
+
+> 📍 `CharacterSheet.jsx` — Full component with PEARL fetch, maturation scoring, and ADDIECRAPEYE agreement grid
 
 ### 9.4 The Four Chariots — In-App Help Menu
 
@@ -1671,7 +1713,12 @@ Key terms defined in code, collected for reference:
 | **Track Friction** | Extraneous cognitive load penalty | `character_sheet.rs:L196-197` |
 | **Cargo Slots** | Working memory capacity (Miller's 7±2) | `character_sheet.rs:L200-202` |
 | **SemanticCreep** | Vocabulary creature with elemental stats | `semantic_creep.rs` |
-| **PEARL** | Per-project alignment (subject/medium/vision) | `pearl.rs:L254-281` |
+| **PEARL** | Per-project alignment (subject/medium/vision) — the user's contract | `pearl.rs:L254-281` |
+| **PEARL Contract** | The PEARL as the quest board contract — user-defined success criteria shaped by Pete's Socratic interview | `CharacterSheet.jsx` |
+| **Maturation Map** | 6-dimension auto-scored progress visualization (Content, Production, Pedagogy, Design, Reflection, Portfolio) | `CharacterSheet.jsx` |
+| **Finish Line** | The 5 deliverables the user walks away with (GDD, HTML5, Lesson Plans, Design System, Portfolio Artifact) | `CharacterSheet.jsx` |
+| **Story Mode** | The user-facing brand name for the 12-station ADDIECRAPEYE Iron Road journey | Navigation dropdown |
+| **Hook Book** | Catalog of 30 system capabilities organized by framework layer (7 Foundations, 13 Experience, 10 Infrastructure) | `HOOK_BOOK.md` |
 | **Scope Hope** | User tames a word (accepts into vocabulary) | `game_loop.rs:L112-120` |
 | **Scope Nope** | User rejects a word (leaves wild) | `game_loop.rs:L123-127` |
 | **Heavilon Event** | Catastrophic failure rebuilt stronger | `character_sheet.rs:L1051` |
@@ -1695,6 +1742,9 @@ Trinity is in **late prototype** stage. The Golem has its skeleton, muscles, and
 - **Gate Review API** — Formal instructor review workflow for LDT Portfolio
 - **Purdue Pilot** — First classroom deployment with LDT students
 - **LDTAtkinson.com** — Portfolio website live at [LDTAtkinson.com](https://LDTAtkinson.com), hosted from the same Strix Halo (Caddy reverse proxy + auto-HTTPS)
+- **VAAM as Edge Intelligence** — Vocabulary-based attention management is MORE valuable on constrained devices (7B-32B models, 4-8K context). VAAM's 500-char prompt budget and Sacred Circuitry's Coal scanner reduce prompt engineering burden and manage drift where brute-force context is unavailable. No other system provides cognitive load management for edge AI.
+- **Mobile Trinity** — The VAAM profile (< 2KB JSON) + Sacred Circuitry (15 words) + Coal economy can run as a PWA or React Native shell on a phone, pointing to any local model or remote vLLM server. The cognitive scaffolding layer is device-independent.
+- **Car-Based Crate Chunking** — Organize the Cargo workspace into deployment-target "train cars": Phone Car (VAAM profile + circuitry scanner), Edge Car (+ quest engine), Desktop Car (+ creative pipeline + voice), Server Car (+ multi-user vLLM). A Yardmaster couples the cars for each deployment target.
 
 > *The Golem breathes. The iron has been laid. The next train is loading.*
 >

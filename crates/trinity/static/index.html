@@ -960,7 +960,7 @@
                 </div>
                 <div class="focus-btns">
                     <button class="focus-btn" onclick="triggerArt('generate_image')">🖼️ Research Aesthetic</button>
-                    <button class="focus-btn" onclick="triggerArt('generate_music')">🎵 Compose Tempo</button>
+                    <button class="focus-btn" onclick="triggerArt('generate_tempo')">🎵 Compose Tempo</button>
                     <button class="focus-btn" onclick="triggerArt('generate_video')">🎬 Manifest Vision</button>
                     <button class="focus-btn" onclick="triggerArt('avatar_sync')">🎭 Sync Persona</button>
                 </div>
@@ -1620,7 +1620,7 @@ async function pollCreativeStatus() {
         const badge = document.getElementById('art-badge');
         const parts = [];
         if (d.comfyui && d.comfyui.running) parts.push('🖼️ ComfyUI');
-        if (d.musicgpt && d.musicgpt.running) parts.push('🎵 MusicGPT');
+        if (d.musicgpt && d.musicgpt.running) parts.push('🎵 Tempo');
         if (d.hunyuan3d && d.hunyuan3d.running) parts.push('🎲 Hunyuan3D');
         if (parts.length > 0) {
             badge.textContent = parts.join(' + ') + ' READY';
@@ -1662,19 +1662,19 @@ async function triggerArt(action) {
             } else {
                 addBeastLog('ERROR', d.message || 'Image generation failed');
             }
-        } else if (action === 'generate_music') {
+        } else if (action === 'generate_tempo') {
             const m = prompt("What's the tempo/mood for this scene?");
             if (!m) { resetArtBadge(oldText); return; }
-            const res = await fetch('/api/creative/music', {
+            const res = await fetch('/api/creative/tempo', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mood: m, style: 'orchestral', duration_secs: 60 })
+                body: JSON.stringify({ prompt: m, style: 'orchestral', duration_secs: 15 })
             });
             const d = await res.json();
             if (d.success && d.audio_path) {
-                addBeastLog('SUCCESS', `Music generated: ${d.audio_path}`);
+                addBeastLog('SUCCESS', `Tempo generated: ${d.audio_path}`);
             } else {
-                addBeastLog('ERROR', d.message || 'Music generation failed');
+                addBeastLog('ERROR', d.message || 'Tempo generation failed');
             }
         } else if (action === 'generate_video') {
             addBeastLog('SYSTEM', 'Video generation (HunyuanVideo) — coming in a future update');

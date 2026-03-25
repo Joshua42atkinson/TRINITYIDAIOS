@@ -630,6 +630,115 @@ pub fn format_circuit_event(circuit: Circuit, auto_reply: &str) -> String {
     .to_string()
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// AI COAL ENGINE — Sacred Circuitry self-regulation for AI attention
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// The AI Coal Engine scans AI responses for Sacred Circuitry alignment.
+// When the AI's output matches the expected circuits for the current
+// ADDIECRAPEYE phase, Coal is earned (focused). When it drifts off-circuit,
+// Coal is consumed (drifting).
+//
+// This is autopoiesis: the system uses its own vocabulary framework to
+// self-regulate its AI's attention, the same way VAAM tracks user vocabulary.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Result of scanning an AI response for circuit alignment.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CircuitAlignmentResult {
+    /// Which circuit the AI response most closely matches.
+    pub detected_circuit: Option<String>,
+    /// Confidence of the detection (0.0–1.0).
+    pub confidence: f32,
+    /// Whether the detected circuit is on-circuit for the current phase.
+    pub on_circuit: bool,
+    /// Coal delta: positive = focused, negative = drifting.
+    pub coal_delta: f32,
+    /// The expected circuits for the current phase.
+    pub expected_circuits: Vec<String>,
+    /// Human-readable focus directive for system prompt injection.
+    pub focus_directive: String,
+}
+
+/// Scan an AI response for Sacred Circuitry alignment against the current phase.
+///
+/// Returns a `CircuitAlignmentResult` with coal delta and focus directive.
+/// The result should be:
+///   1. Applied to game_state.stats.coal_reserves
+///   2. Injected into the next system prompt via `focus_directive`
+pub fn scan_ai_alignment(ai_response: &str, current_phase: &str) -> CircuitAlignmentResult {
+    // Find which circuits map to the current ADDIECRAPEYE phase
+    let expected: Vec<Circuit> = Circuit::ALL
+        .iter()
+        .filter(|c| c.addiecrapeye_station() == current_phase)
+        .copied()
+        .collect();
+
+    let expected_names: Vec<String> = expected.iter().map(|c| c.name().to_string()).collect();
+
+    // Detect which circuit the AI response best matches
+    let detection = CircuitryState::detect_circuit(ai_response);
+
+    match detection {
+        Some((detected, confidence)) => {
+            let is_on_circuit = expected.contains(&detected);
+
+            // Coal delta: on-circuit earns based on quadrant value,
+            // off-circuit costs a flat penalty scaled by confidence
+            let coal_delta = if is_on_circuit {
+                // Reward: circuit coal_value scaled by confidence
+                (detected.coal_value() as f32 * confidence * 0.5).min(10.0)
+            } else {
+                // Penalty: flat drift cost scaled by confidence
+                -(5.0 * confidence).min(5.0)
+            };
+
+            let focus_directive = if is_on_circuit {
+                format!(
+                    "COAL +{:.1} — On-circuit: {} ({}) for phase {}. Maintain focus.",
+                    coal_delta,
+                    detected.name(),
+                    detected.quadrant().name(),
+                    current_phase
+                )
+            } else {
+                format!(
+                    "COAL {:.1} — DRIFT DETECTED: {} ({}) but phase {} expects [{}]. Refocus.",
+                    coal_delta,
+                    detected.name(),
+                    detected.quadrant().name(),
+                    current_phase,
+                    expected_names.join(", ")
+                )
+            };
+
+            CircuitAlignmentResult {
+                detected_circuit: Some(detected.name().to_string()),
+                confidence,
+                on_circuit: is_on_circuit,
+                coal_delta,
+                expected_circuits: expected_names,
+                focus_directive,
+            }
+        }
+        None => {
+            // No circuit detected — neutral, slight drift penalty
+            CircuitAlignmentResult {
+                detected_circuit: None,
+                confidence: 0.0,
+                on_circuit: false,
+                coal_delta: -1.0,
+                expected_circuits: expected_names,
+                focus_directive: format!(
+                    "COAL -1.0 — No circuit alignment detected. Phase {} expects [{}].",
+                    current_phase,
+                    expected.iter().map(|c| c.name()).collect::<Vec<_>>().join(", ")
+                ),
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

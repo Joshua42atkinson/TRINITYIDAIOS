@@ -1,3 +1,14 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Scope Creep Detection
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:        scope_creep.rs
+// BIBLE CAR:   Car 4 — IMPLEMENT (Iron Road Game Mechanics)
+// HOOK SCHOOL: 🏫 Pedagogy
+// PURPOSE:     Detect out-of-scope feature requests, spawn ScopeCreep creatures
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 use trinity_quest::hero::Phase;
 
 /// A wild Scope Creep that threatens to derail the project

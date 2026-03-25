@@ -56,6 +56,8 @@ pub async fn get_game_state(
         "completed_phases": game.quest.completed_phases.iter().map(|p| p.label()).collect::<Vec<_>>(),
         "xp": game.quest.xp_earned,
         "steam": game.quest.steam_generated,
+        "steam_required": game.quest.current_phase.steam_required(),
+        "steam_ready": game.quest.steam_ready(),
         "coal": 100.0 - game.quest.coal_used,
         "resonance": game.stats.resonance,
         "inventory": game.inventory,

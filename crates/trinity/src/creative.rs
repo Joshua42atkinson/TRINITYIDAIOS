@@ -82,27 +82,27 @@ pub struct ImageResponse {
     pub generation_time_ms: u64,
 }
 
-/// Music generation request
+/// Tempo generation request
 #[derive(Debug, Deserialize)]
-pub struct MusicRequest {
-    /// Music style (orchestral, lofi, etc.)
+pub struct TempoRequest {
+    /// Visual/Mood style
     #[serde(default)]
     pub style: Option<String>,
     /// Duration in seconds
     #[serde(default = "default_duration")]
     pub duration_secs: u32,
-    /// Optional mood description
+    /// Prompt
     #[serde(default)]
-    pub mood: Option<String>,
+    pub prompt: String,
 }
 
 fn default_duration() -> u32 {
-    60
+    15
 }
 
-/// Music generation response
+/// Tempo generation response
 #[derive(Debug, Serialize)]
-pub struct MusicResponse {
+pub struct TempoResponse {
     pub success: bool,
     /// Path to generated audio file
     pub audio_path: Option<String>,
@@ -262,17 +262,10 @@ async fn check_comfyui() -> SidecarStatus {
 }
 
 async fn check_musicgpt() -> SidecarStatus {
-    let running = crate::http::check_health("http://127.0.0.1:8189").await;
-
     SidecarStatus {
-        running,
-        endpoint: "http://127.0.0.1:8189".to_string(),
-        message: if running {
-            "MusicGPT running".to_string()
-        } else {
-            "MusicGPT not running. Install: pip install musicgpt && musicgpt serve --port 8189"
-                .to_string()
-        },
+        running: true,
+        endpoint: "local".to_string(),
+        message: "Tempo procedural engine ready".to_string(),
     }
 }
 
@@ -468,74 +461,79 @@ pub async fn generate_image(
     ))
 }
 
-/// Generate music via MusicGPT
-pub async fn generate_music(
-    Json(request): Json<MusicRequest>,
-) -> Result<Json<MusicResponse>, (StatusCode, String)> {
+/// Generate tempo via local procedural engine
+pub async fn generate_tempo(
+    Json(request): Json<TempoRequest>,
+) -> Result<Json<TempoResponse>, (StatusCode, String)> {
     let start = std::time::Instant::now();
 
-    // Check MusicGPT health
-    let client = &*crate::http::LONG;
+    info!("Generating procedural tempo: {}", request.prompt);
 
-    // Check if running
-    let healthy = client
-        .get("http://127.0.0.1:8189/health")
-        .timeout(std::time::Duration::from_secs(3))
-        .send()
-        .await
-        .map(|r| r.status().is_success())
-        .unwrap_or(false);
-
-    if !healthy {
-        return Err((
-            StatusCode::SERVICE_UNAVAILABLE,
-            "MusicGPT not running. Start with: musicgpt serve --port 8189".to_string(),
-        ));
-    }
-
-    // Build prompt from style and mood
-    let style_prompt = get_music_style_prompt(&request.style);
-    let mood_suffix = request.mood.as_deref().unwrap_or("");
-    let full_prompt = if mood_suffix.is_empty() {
-        style_prompt.to_string()
+    // Map the requested style/prompt to a learning context loosely
+    let context_arg = if request.prompt.to_lowercase().contains("problem") || request.prompt.to_lowercase().contains("fight") {
+        "problem_solving"
+    } else if request.prompt.to_lowercase().contains("creative") || request.prompt.to_lowercase().contains("art") {
+        "creative_exploration"
+    } else if request.prompt.to_lowercase().contains("review") {
+        "review_practice"
+    } else if request.prompt.to_lowercase().contains("assess") || request.prompt.to_lowercase().contains("test") {
+        "assessment"
+    } else if request.prompt.to_lowercase().contains("break") || request.prompt.to_lowercase().contains("relax") {
+        "break"
     } else {
-        format!("{}, {}", style_prompt, mood_suffix)
+        "concept_introduction" // default
     };
 
-    info!("Generating music: {}", full_prompt);
+    let duration_str = request.duration_secs.to_string();
+    
+    // Output path to workspace
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/home/joshua".to_string());
+    let workspace_dir = std::path::PathBuf::from(&home).join(".local/share/trinity/workspace/assets/audio");
+    let _ = std::fs::create_dir_all(&workspace_dir);
+    let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
+    let filename = format!("trinity_tempo_{}.wav", timestamp);
+    let final_path = workspace_dir.join(&filename);
+    
+    // Shell out to our newly merged cargo crate in archive/trinity-tempo-ai
+    // For production this would be invoked directly via library, but CLI invocation is perfect for the sidecar architecture.
+    let crate_path = format!("{}/Workflow/desktop_trinity/trinity-genesis/archive/trinity-tempo-ai", home);
+    
+    let result = std::process::Command::new("cargo")
+        .current_dir(crate_path)
+        .arg("run")
+        .arg("--release")
+        .arg("--")
+        .arg("generate")
+        .arg("--context")
+        .arg(context_arg)
+        .arg("--output")
+        .arg(final_path.to_string_lossy().to_string())
+        .output();
 
-    // Call MusicGPT API
-    let response = client
-        .post("http://127.0.0.1:8189/generate")
-        .json(&serde_json::json!({
-            "prompt": full_prompt,
-            "duration_secs": request.duration_secs,
-        }))
-        .send()
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    if !response.status().is_success() {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("MusicGPT error: {}", response.status()),
-        ));
+    match result {
+        Ok(output) if output.status.success() => {
+            info!("Tempo procedural audio generated successfully in {}ms", start.elapsed().as_millis());
+            Ok(Json(TempoResponse {
+                success: true,
+                audio_path: Some(final_path.to_string_lossy().to_string()),
+                message: "Tempo generated successfully".to_string(),
+                generation_time_ms: start.elapsed().as_millis() as u64,
+            }))
+        }
+        Ok(output) => {
+            let err = String::from_utf8_lossy(&output.stderr);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Tempo engine failed: {}", err),
+            ))
+        }
+        Err(e) => {
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to execute tempo engine: {}", e),
+            ))
+        }
     }
-
-    // Parse response
-    let result: serde_json::Value = response
-        .json()
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    let audio_path = result["audio_path"].as_str().map(|s| s.to_string());
-
-    Ok(Json(MusicResponse {
-        success: true,
-        audio_path,
-        message: "Music generated successfully".to_string(),
-        generation_time_ms: start.elapsed().as_millis() as u64,
-    }))
 }
 
 /// Generate a video via ComfyUI with HunyuanVideo

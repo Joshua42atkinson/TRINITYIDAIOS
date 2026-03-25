@@ -26,6 +26,12 @@ const DOC_META = {
     subtitle: 'Sovereign Cognitive Engine · Institutional Scale & Theory',
     accent: '#CFB991',
   },
+  'HOOK_BOOK.md': {
+    title: 'The Hook Book',
+    emoji: '📖',
+    subtitle: 'A Spell Book for the Instructional Designer — Every Capability, Every Horizon',
+    accent: '#CFB991',
+  },
 };
 
 // Configure marked for GitHub-flavored markdown

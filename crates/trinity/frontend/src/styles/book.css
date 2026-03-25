@@ -629,6 +629,42 @@
 
 .status-dot.connected { background: var(--green); }
 
+/* ── Navbar Mobile Responsive ── */
+@media (max-width: 768px) {
+  .nav {
+    flex-wrap: wrap;
+    padding: 6px var(--sp-sm);
+    gap: var(--sp-sm);
+  }
+  .nav-brand {
+    font-size: var(--type-sm);
+    letter-spacing: 2px;
+  }
+  .nav-links {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 2px;
+    padding-bottom: 4px;
+  }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-link {
+    font-size: 12px;
+    padding: 6px 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .nav-status {
+    font-size: 10px;
+  }
+  .nav-status .sep,
+  .nav-status .nav-new-journey {
+    display: none;
+  }
+}
+
 /* ═══════════════════════════════════════════════
    FOOTER
    ═══════════════════════════════════════════════ */
