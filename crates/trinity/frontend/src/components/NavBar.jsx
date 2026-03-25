@@ -89,7 +89,7 @@ export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) 
             className={`nav-link ${activeTab === 'portfolio' ? 'active' : ''}`}
             onClick={() => onTabChange('portfolio')}
             style={{ fontSize: '14px', cursor: 'pointer', padding: '4px 10px', marginLeft: '4px' }}
-            title="Author Portfolio — Joshua Atkinson, LDT @ Purdue"
+            title="Your Graduation Portfolio"
           >
             👤
           </button>
@@ -188,6 +188,47 @@ export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) 
                     </div>
                   </div>
                 </button>
+              </div>
+              {/* Creator's LDT Portfolio — link to Joshua's real portfolio */}
+              <div style={{
+                marginTop: '8px', paddingTop: '8px',
+                borderTop: '1px solid rgba(207, 185, 145, 0.1)',
+              }}>
+                <div style={{
+                  fontFamily: "'Cinzel', serif", fontSize: '10px',
+                  color: '#CFB991', letterSpacing: '2px', textTransform: 'uppercase',
+                  marginBottom: '6px', opacity: 0.7,
+                }}>
+                  Creator
+                </div>
+                <a
+                  href={IS_HOSTED ? '/' : '/portfolio/'}
+                  style={{
+                    display: 'flex', gap: '10px', alignItems: 'flex-start',
+                    padding: '8px', borderRadius: '6px',
+                    color: '#E2E8F0', background: 'transparent',
+                    textDecoration: 'none', width: '100%',
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(207, 185, 145, 0.08)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  <span style={{ fontSize: '18px', lineHeight: 1 }}>🌐</span>
+                  <div>
+                    <div style={{
+                      fontFamily: "'Inter', sans-serif", fontSize: '13px',
+                      fontWeight: 600, color: '#E2E8F0',
+                    }}>
+                      Creator's LDT Portfolio
+                    </div>
+                    <div style={{
+                      fontFamily: "'Inter', sans-serif", fontSize: '11px',
+                      color: '#6B7280', marginTop: '2px',
+                    }}>
+                      Joshua Atkinson — LDT @ Purdue
+                    </div>
+                  </div>
+                </a>
               </div>
             </div>
           )}
