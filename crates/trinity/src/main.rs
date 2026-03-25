@@ -829,8 +829,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap()
         .join("assets");
 
-    // Serve React frontend from frontend/dist/ — falls back to index.html for SPA routing
-    let static_service = if frontend_dir.exists() {
+    // Serve Trinity React frontend from frontend/dist/ — nested under /trinity/
+    let trinity_service = if frontend_dir.exists() {
         tower_http::services::ServeDir::new(&frontend_dir).fallback(
             tower_http::services::ServeFile::new(frontend_dir.join("index.html")),
         )
@@ -843,7 +843,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let assets_service = tower_http::services::ServeDir::new(&assets_dir);
 
-    // Portfolio static files (LDTAtkinson website — embedded in Trinity UI)
+    // Portfolio static files (LDTAtkinson website — PRIMARY landing page at root /)
     let portfolio_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .unwrap()
@@ -858,12 +858,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Clone db_pool before state is consumed by the router
     let ingest_pool = state.db_pool.clone();
 
-    let app = Router::new()
+    // ═══ API ROUTES (mounted at both /api/* and /trinity/api/*) ═══
+    let api_routes = Router::new()
         .route("/api/health", get(health::health_check))
         .route("/api/hardware", get(get_hardware_status))
         .route("/api/v1/trinity", post(trinity_api::trinity_chat))
-        .nest_service("/assets", assets_service)
-        .nest_service("/portfolio", portfolio_service)
         .route("/api/chat", post(chat))
         .route("/api/chat/stream", post(chat_stream))
         .route("/api/chat/zen", post(zen_chat_stream))
@@ -964,8 +963,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Perspective Feedback API — Ring 6 training data
         .route("/api/perspective/feedback", post(perspective_feedback))
         // Four Chariots — root documentation served as raw markdown
-        .route("/docs/:filename", get(serve_chariot_doc))
-        .fallback_service(static_service)
+        .route("/docs/:filename", get(serve_chariot_doc));
+
+    // ═══ MAIN APP: API routes + static file services ═══
+    // API routes are mounted FIRST so they take priority over nest_service.
+    // Then /trinity/api/* requests are forwarded via explicit routes.
+    let app = api_routes
+        .nest_service("/trinity-assets", assets_service)
+        .nest_service("/trinity", trinity_service)
+        .fallback_service(portfolio_service)
         // ═══ SECURITY: Restricted CORS ═══
         // Red Hat Finding H1: Only allow requests from our own domains.
         .layer(

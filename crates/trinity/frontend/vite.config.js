@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  base: '/trinity/',
   server: {
     port: 5173,
     proxy: {
@@ -14,5 +15,6 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     assetsDir: '_app',
+    modulePreload: false,
   },
 });

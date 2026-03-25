@@ -172,21 +172,8 @@ pub async fn edge_guard(
 
     let path = req.uri().path().to_string();
 
-    // Red Hat Tier 2: The Public Portfolio (LDTAtkinson)
-    // If a request comes from the internet for the root page, redirect it to
-    // the user's officially approved Purdue LDT Portfolio instead of the Trinity app UI.
-    // EXCEPTION: Requests arriving via Caddy's /trinity/ reverse proxy include
-    // X-Forwarded-For headers — these should serve the Trinity app, not redirect.
-    let is_caddy_proxy = req.headers().contains_key("x-forwarded-for");
-    if (path == "/" || path == "/index.html") && !is_caddy_proxy {
-        tracing::info!("🛡️ Edge Guard: Redirecting public traffic to LDT Portfolio");
-        let redirect = Response::builder()
-            .status(StatusCode::FOUND)
-            .header("Location", "/portfolio/")
-            .body(Body::empty())
-            .unwrap();
-        return Ok(redirect);
-    }
+    // NOTE: Portfolio is now served at root `/` via fallback_service in main.rs.
+    // The old redirect from `/` → `/portfolio/` has been removed.
 
     // Portfolio endpoints: allowed from tunnel but with tighter rate limiting
     let is_portfolio = PORTFOLIO_ALLOWED.iter().any(|p| path.starts_with(p));
@@ -325,7 +312,7 @@ mod tests {
         let safe_paths = [
             "/api/health",
             "/docs/PROFESSOR.md",
-            "/portfolio/index.html",
+            "/trinity/index.html",
             "/assets/logo.png",
             "/index.html",
             "/",

@@ -52,6 +52,11 @@ ldtatkinson.com {
         respond "Forbidden" 403
     }
 
+    # Portfolio chat widget — public-facing, rate-limited by edge_guard
+    handle /api/chat/portfolio {
+        reverse_proxy localhost:3000
+    }
+
     # C6/H4: Chat and AI interaction — resource protection
     handle /api/chat* {
         respond "Forbidden" 403
@@ -151,8 +156,8 @@ ldtatkinson.com {
         reverse_proxy localhost:3000
     }
 
-    # Portfolio — LDTAtkinson static site
-    handle /portfolio/* {
+    # Trinity — embedded engine UI
+    handle /trinity/* {
         reverse_proxy localhost:3000
     }
 
