@@ -148,6 +148,63 @@ export default function CharacterSheet() {
     <div style={s.container}>
       <div style={s.glassCard}>
 
+        {/* ═══ HOOK BOOK — THE PEARL OF THE CHARACTER SHEET ═══ */}
+        <a
+          href="#chariot:PROFESSOR.md"
+          style={{
+            display: 'block', textDecoration: 'none', marginBottom: '28px',
+            padding: '24px 28px', borderRadius: '16px',
+            background: 'linear-gradient(135deg, rgba(167,139,250,0.14) 0%, rgba(34,211,238,0.06) 50%, rgba(167,139,250,0.08) 100%)',
+            border: '2px solid rgba(167,139,250,0.3)',
+            position: 'relative', overflow: 'hidden',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 4px 24px rgba(167,139,250,0.08)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = 'rgba(167,139,250,0.6)';
+            e.currentTarget.style.boxShadow = '0 0 32px rgba(167,139,250,0.2), 0 8px 32px rgba(0,0,0,0.3)';
+            e.currentTarget.style.transform = 'translateY(-3px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'rgba(167,139,250,0.3)';
+            e.currentTarget.style.boxShadow = '0 4px 24px rgba(167,139,250,0.08)';
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}
+        >
+          {/* Top accent line */}
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: '3px',
+            background: 'linear-gradient(90deg, transparent, rgba(167,139,250,0.5), rgba(34,211,238,0.3), transparent)',
+          }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{
+                fontSize: '9px', fontFamily: "'JetBrains Mono', monospace",
+                color: '#a78bfa', letterSpacing: '3px', textTransform: 'uppercase',
+                marginBottom: '6px', opacity: 0.8,
+              }}>
+                YOUR SPELL BOOK
+              </div>
+              <div style={{
+                fontSize: '20px', fontWeight: 800, color: '#E2E8F0',
+                fontFamily: "'Cinzel', serif", letterSpacing: '2px',
+                marginBottom: '6px',
+              }}>
+                📖 The Hook Book
+              </div>
+              <div style={{
+                fontSize: '13px', color: '#9CA3AF', lineHeight: 1.5,
+              }}>
+                "What can Trinity do?" — <span style={{ color: '#a78bfa', fontWeight: 600 }}>37 Hooks</span> · <span style={{ color: '#22d3ee', fontWeight: 600 }}>4 Schools</span> · Instant access to every workflow
+              </div>
+            </div>
+            <div style={{
+              fontSize: '28px', color: '#a78bfa', opacity: 0.4,
+              transition: 'opacity 0.2s',
+            }}>→</div>
+          </div>
+        </a>
+
         {/* ═══ HEADER ═══ */}
         <header style={s.header}>
           <div>
@@ -527,33 +584,6 @@ export default function CharacterSheet() {
           )}
         </div>
 
-        {/* ═══ HOOK BOOK LINK ═══ */}
-        <div style={{ marginTop: '16px' }}>
-          <a
-            href="#chariot:PROFESSOR.md"
-            style={{
-              ...s.vaultToggle,
-              textDecoration: 'none',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              background: 'linear-gradient(135deg, rgba(167,139,250,0.08), rgba(207,185,145,0.06))',
-              border: '1px solid rgba(167,139,250,0.2)',
-              color: '#a78bfa',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'linear-gradient(135deg, rgba(167,139,250,0.15), rgba(207,185,145,0.10))';
-              e.currentTarget.style.borderColor = 'rgba(167,139,250,0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'linear-gradient(135deg, rgba(167,139,250,0.08), rgba(207,185,145,0.06))';
-              e.currentTarget.style.borderColor = 'rgba(167,139,250,0.2)';
-            }}
-          >
-            <span>📖 The Hook Book — 37 Hooks · 4 Schools · Your Spell Book</span>
-            <span style={{ fontSize: '12px', opacity: 0.6 }}>→</span>
-          </a>
-        </div>
 
       </div>
     </div>
