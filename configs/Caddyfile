@@ -26,7 +26,7 @@ ldtatkinson.com {
         -Server
     }
 
-    # ── BLOCKED: Dangerous API routes (return 403) ──
+    # ── BLOCKED: Truly dangerous routes (always blocked, even in prototype) ──
 
     # C1: Tool execution — hard blocker
     handle /api/tools* {
@@ -52,102 +52,25 @@ ldtatkinson.com {
         respond "Forbidden" 403
     }
 
-    # Portfolio chat widget — public-facing, rate-limited by edge_guard
-    handle /api/chat/portfolio {
-        reverse_proxy localhost:3000
-    }
-
-    # C6/H4: Chat and AI interaction — resource protection
-    handle /api/chat* {
-        respond "Forbidden" 403
-    }
-    handle /api/v1/trinity {
-        respond "Forbidden" 403
-    }
-
-    # H4: Admin mutation routes
-    handle /api/mode {
-        respond "Forbidden" 403
-    }
-    handle /api/quest* {
-        respond "Forbidden" 403
-    }
-    handle /api/character* {
-        respond "Forbidden" 403
-    }
-    handle /api/pearl* {
-        respond "Forbidden" 403
-    }
-    handle /api/bestiary* {
-        respond "Forbidden" 403
-    }
-    handle /api/creative* {
-        respond "Forbidden" 403
-    }
-    handle /api/voice* {
-        respond "Forbidden" 403
-    }
+    # C6: Shell/MCP execution
     handle /api/mcp {
         respond "Forbidden" 403
     }
-    handle /api/ground {
-        respond "Forbidden" 403
-    }
-    handle /api/intent {
-        respond "Forbidden" 403
-    }
+
+    # Block ingest (document upload)
     handle /api/ingest {
         respond "Forbidden" 403
     }
-    handle /api/rag* {
-        respond "Forbidden" 403
-    }
-    handle /api/eye* {
-        respond "Forbidden" 403
-    }
-    handle /api/yard* {
-        respond "Forbidden" 403
-    }
-    handle /api/journal* {
-        respond "Forbidden" 403
-    }
-    handle /api/book* {
-        respond "Forbidden" 403
-    }
-    handle /api/narrative* {
-        respond "Forbidden" 403
-    }
-    handle /api/perspective* {
-        respond "Forbidden" 403
-    }
-    handle /api/rlhf* {
-        respond "Forbidden" 403
-    }
-    handle /api/tts {
-        respond "Forbidden" 403
-    }
-    handle /api/bevy* {
+
+    # Block WebSocket
+    handle /ws {
         respond "Forbidden" 403
     }
 
-    # H5: Block detailed hardware telemetry
-    handle /api/hardware {
-        respond "Forbidden" 403
-    }
-    handle /api/status {
-        respond "Forbidden" 403
-    }
-    handle /api/models {
-        respond "Forbidden" 403
-    }
-    handle /api/models/active {
-        respond "Forbidden" 403
-    }
+    # ── ALLOWED: Prototype demo routes (edge_guard provides second defense layer) ──
 
-    # ── ALLOWED: Safe public routes ──
-
-    # Health check (basic only — Trinity will serve a slim version)
-    handle /api/health {
+    # All remaining API routes — forwarded to Trinity backend
+    handle /api/* {
         reverse_proxy localhost:3000
     }
 
@@ -166,13 +89,9 @@ ldtatkinson.com {
         reverse_proxy localhost:3000
     }
 
-    # WebSocket (blocked for now — will be enabled in Tier 3 with auth)
-    handle /ws {
-        respond "Forbidden" 403
-    }
-
     # Frontend static files (React SPA) — the portfolio/landing page
     handle {
         reverse_proxy localhost:3000
     }
 }
+

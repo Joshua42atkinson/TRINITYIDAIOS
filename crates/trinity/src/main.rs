@@ -951,6 +951,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/projects", get(list_projects))
         .route("/api/projects/archive", post(archive_project))
         .route("/api/projects/restore", post(restore_project_endpoint))
+        // Demo Reset API — clears chat history for prototype demos
+        .route("/api/reset/demo", post(reset_demo_data))
         // RAG API — stats and search
         .route("/api/rag/stats", get(rag_stats))
         .route("/api/rag/search", post(rag_search))
@@ -3712,6 +3714,30 @@ async fn list_projects(
         .await
         .map(Json)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
+}
+
+/// ═══════════════════════════════════════════════════════════════════════
+/// DEMO RESET — Clear chat history for prototype demonstrations
+/// ═══════════════════════════════════════════════════════════════════════
+async fn reset_demo_data(
+    State(state): State<AppState>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let msgs = sqlx::query("DELETE FROM messages")
+        .execute(&state.db_pool)
+        .await
+        .map(|r| r.rows_affected())
+        .unwrap_or(0);
+    let tools = sqlx::query("DELETE FROM tool_calls")
+        .execute(&state.db_pool)
+        .await
+        .map(|r| r.rows_affected())
+        .unwrap_or(0);
+    tracing::info!("🔄 Demo reset: cleared {} messages, {} tool calls", msgs, tools);
+    Ok(Json(serde_json::json!({
+        "status": "reset_complete",
+        "messages_cleared": msgs,
+        "tool_calls_cleared": tools,
+    })))
 }
 
 /// Archive a project to DAYDREAM
