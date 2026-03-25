@@ -23,8 +23,8 @@ const ADDIECRAPEYE_PHASES = [
   { id: 'R',  name: 'Repetition', icon: '🔁', color: '#22d3ee', group: 'CRAP' },
   { id: 'A2', name: 'Alignment',  icon: '📏', color: '#a78bfa', group: 'CRAP' },
   { id: 'P',  name: 'Proximity',  icon: '🧲', color: '#f59e0b', group: 'CRAP' },
-  { id: 'E2', name: 'Empathize',  icon: '💚', color: '#34d399', group: 'EYE' },
-  { id: 'Y',  name: 'Yield',      icon: '🌾', color: '#fb923c', group: 'EYE' },
+  { id: 'E2', name: 'Envision',   icon: '🔮', color: '#34d399', group: 'EYE' },
+  { id: 'Y',  name: 'Yoke',       icon: '🤝', color: '#fb923c', group: 'EYE' },
   { id: 'E3', name: 'Evolve',     icon: '🧬', color: '#818cf8', group: 'EYE' },
 ];
 
@@ -184,7 +184,7 @@ function OverviewTab() {
         {[
           { tag: 'ADDIE', desc: 'Instructional Systems Design', cite: 'FSU, 1975', color: '#22c55e', phases: 'A · D · D · I · E' },
           { tag: 'CRAP', desc: 'Visual Design Principles', cite: 'Williams, 1994', color: '#3b82f6', phases: 'C · R · A · P' },
-          { tag: 'EYE', desc: 'Empathize · Yield · Evolve', cite: 'Atkinson, 2026', color: '#a855f7', phases: 'E · Y · E' },
+          { tag: 'EYE', desc: 'Envision · Yoke · Evolve', cite: 'Atkinson, 2026', color: '#a855f7', phases: 'E · Y · E' },
         ].map((fw) => (
           <div key={fw.tag} style={{
             padding: '20px', borderRadius: '14px',

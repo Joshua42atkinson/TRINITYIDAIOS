@@ -16,7 +16,7 @@
 #
 # ═══════════════════════════════════════════════════════════
 
-ldtatkinson.com {
+http://ldtatkinson.com, http://www.ldtatkinson.com {
     # ── Security Headers ──
     header {
         X-Content-Type-Options "nosniff"
