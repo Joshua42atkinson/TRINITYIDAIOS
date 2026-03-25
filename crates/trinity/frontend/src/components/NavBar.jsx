@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 
+const IS_HOSTED = window.location.pathname.startsWith('/trinity');
+
 export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) {
   const tabs = [
     { id: 'voice',     label: '📖 Story Mode' },
@@ -32,6 +34,31 @@ export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) 
 
   return (
     <nav className="nav">
+      {IS_HOSTED && (
+        <a
+          href="/"
+          style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '4px 12px', borderRadius: '6px', marginRight: '8px',
+            fontSize: '11px', fontFamily: "'Cinzel', serif",
+            letterSpacing: '1px', textTransform: 'uppercase',
+            color: '#CFB991', textDecoration: 'none',
+            background: 'rgba(207,185,145,0.06)',
+            border: '1px solid rgba(207,185,145,0.12)',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(207,185,145,0.12)';
+            e.currentTarget.style.borderColor = 'rgba(207,185,145,0.3)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(207,185,145,0.06)';
+            e.currentTarget.style.borderColor = 'rgba(207,185,145,0.12)';
+          }}
+        >
+          ← Portfolio
+        </a>
+      )}
       <div className="nav-brand">TRINITY</div>
       <div className="nav-links">
         {tabs.map((t) => (
