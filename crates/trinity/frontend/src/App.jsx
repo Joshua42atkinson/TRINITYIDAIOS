@@ -12,6 +12,7 @@ import QualityScorecard from './components/QualityScorecard';
 import ChariotViewer from './components/ChariotViewer';
 import JournalViewer from './components/JournalViewer';
 import ZenMode from './components/ZenMode';
+import PortfolioView from './components/PortfolioView';
 import { useQuest } from './hooks/useQuest';
 import { useBestiary } from './hooks/useBestiary';
 import { useSSE } from './hooks/useSSE';
@@ -187,40 +188,8 @@ export default function App() {
           onBack={() => setActiveTab('ironroad')}
         />
       ) : activeTab === 'portfolio' ? (
-        <div style={{ gridColumn: '1 / -1', gridRow: 2, position: 'relative', overflow: 'hidden' }}>
-          <button
-            onClick={() => setActiveTab('ironroad')}
-            style={{
-              position: 'absolute', top: '12px', left: '12px', zIndex: 10,
-              padding: '8px 16px', borderRadius: '8px',
-              background: 'rgba(24, 22, 18, 0.9)',
-              border: '1px solid rgba(207, 185, 145, 0.3)',
-              color: '#CFB991', cursor: 'pointer',
-              fontFamily: "'Cinzel', serif", fontSize: '12px',
-              letterSpacing: '1px', textTransform: 'uppercase',
-              backdropFilter: 'blur(8px)',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(207, 185, 145, 0.6)';
-              e.currentTarget.style.background = 'rgba(207, 185, 145, 0.15)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(207, 185, 145, 0.3)';
-              e.currentTarget.style.background = 'rgba(24, 22, 18, 0.9)';
-            }}
-          >
-            ← Back to Trinity
-          </button>
-          <iframe
-            src="/portfolio/"
-            title="Author Portfolio — Joshua Atkinson, LDT @ Purdue"
-            style={{
-              width: '100%', height: '100%',
-              border: 'none', display: 'block',
-            }}
-          />
+        <div style={{ gridColumn: '1 / -1', gridRow: 2, overflow: 'auto' }}>
+          <PortfolioView />
         </div>
       ) : activeTab === 'voice' ? (
         <ZenMode />
