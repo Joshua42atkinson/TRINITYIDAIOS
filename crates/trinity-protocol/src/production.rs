@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Protocol Layer
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     production.rs
+// PURPOSE:  Production pipeline types for NPC generation, Roblox export, and asset creation
+// BIBLE:    Car 11 — YOKE (ART Creative Pipeline, §11.1)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 // Trinity Production Pipeline Types
 // Shared types for NPC generation, Roblox export, and asset production.
 

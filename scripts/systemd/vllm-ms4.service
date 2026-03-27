@@ -1,0 +1,22 @@
+[Unit]
+Description=Trinity vLLM — Mistral Small 4 with P-EAGLE
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=joshua
+Environment=HSA_OVERRIDE_GFX_VERSION=11.0.0
+Environment=ROCBLAS_USE_HIPBLASLT=1
+Environment=HIP_VISIBLE_DEVICES=0
+Environment=AMD_LOG_LEVEL=0
+ExecStart=/home/joshua/Workflow/desktop_trinity/trinity-genesis/scripts/launch/start_vllm_ms4.sh
+Restart=on-failure
+RestartSec=10
+# vLLM model loading can take several minutes
+TimeoutStartSec=600
+# Memory limit — MS4 INT4 needs ~60GB, leave headroom
+MemoryMax=100G
+
+[Install]
+WantedBy=multi-user.target

@@ -6,7 +6,7 @@
 // PURPOSE:     VAAM Profile — the bridge between user preference and AI attention
 //
 // WHAT THIS IS:
-//   VAAM (Vocabulary Acquisition And Mastery) is the meaning-making machine. It maps
+//   VAAM (Vocabulary Acquisition Autonomy Mastery) is the meaning-making machine. It maps
 //   through every level of the system isomorphically: Sacred Circuitry →
 //   VAAM → ADDIECRAPEYE → CharacterSheet.
 //

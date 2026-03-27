@@ -1,10 +1,31 @@
-mod rlhf_api;
 // ═══════════════════════════════════════════════════════════════════════════════
 // TRINITY ID AI OS — trinity-server
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // FILE:        main.rs
-// PURPOSE:     HTTP API server entry point — Axum setup, route registration, SSE
+// BIBLE CAR:   Car 1 — ANALYSIS (System Overview, §1.3 Server Modules)
+// HOOK SCHOOL: ⚙️ Systems — Core Server
+//
+// 🪟 THE LIVING CODE TEXTBOOK:
+// This file is the primary engine of the Trinity ID AI OS architecture. It is 
+// designed to be read, modified, and authored by YOU. As you transition from the 
+// LEARNING phase of the Iron Road into the WORK phase of the Yardmaster, this 
+// codebase is your primary tool. Trinity adapts to your preferences over time.
+//
+// 📖 THE HOOK BOOK CONNECTION:
+// Trinity's capabilities are organized into "Hooks". You can freely use this 
+// entire codebase for your own projects! Think of this file as the master spell 
+// book. It orchestrates the 12-Station Quest, the Context Window, and the Great 
+// Recycler. For a full catalogue of system capabilities, see: docs/HOOK_BOOK.md
+//
+// 🛡️ THE COW CATCHER & AUTOPOIESIS:
+// All files operate under the autonomous Cow Catcher telemetry system. Runtime
+// errors and scope creep are intercepted to prevent catastrophic derailment,
+// maintaining the Socratic learning loop and keeping drift at bay.
+// PURPOSE:     HTTP API server entry point — Axum setup, route registration, SSE.
+//              Layer 1 of the Trinity 3-Layer Architecture (Headless Server).
+//              Hosts 85+ API endpoints across 15 route groups, broadcasts SSE
+//              events, manages AppState with PlayerContext/ProjectContext split.
 //
 // ARCHITECTURE:
 //   • Layer 1 of Trinity 3-Layer Architecture (Headless Server)
@@ -22,9 +43,11 @@ mod rlhf_api;
 //   - futures — Stream handling for SSE
 //
 // CHANGES:
-//   2026-03-16  Cascade  Migrated to §17 comment standard
+//   2026-03-16  Cascade          Migrated to §17 comment standard
+//   2026-03-26  Cascade          Fixed shifted header, added BIBLE CAR/HOOK SCHOOL
 //
 // ═══════════════════════════════════════════════════════════════════════════════
+mod rlhf_api;
 
 use axum::{
     extract::State,
@@ -71,7 +94,9 @@ mod vaam;
 mod vaam_bridge;
 mod voice;
 mod voice_loop;
+mod telephone;
 mod supertonic;
+mod stt;
 mod edge_guard;
 
 // Import Great Recycler from trinity-kernel
@@ -158,6 +183,7 @@ pub struct AppState {
     pub cow_catcher: Arc<tokio::sync::RwLock<crate::cow_catcher::CowCatcher>>,
     pub vaam_bridge: Arc<vaam_bridge::VaamBridge>,
     pub tts_engine: Option<Arc<tokio::sync::Mutex<supertonic::SupertonicEngine>>>,
+    pub stt_engine: Option<Arc<tokio::sync::Mutex<stt::WhisperEngine>>>,
 
     // ── Identity Contexts (Tier 3.5) ──
     /// Player-level state (identity, preferences, creatures)
@@ -759,6 +785,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
+    // Load Whisper STT engine (native ONNX — no Python sidecar)
+    let stt_engine = {
+        let model_dir = dirs::home_dir()
+            .unwrap_or_default()
+            .join("trinity-models/stt/whisper-base");
+        if model_dir.join("onnx").exists() {
+            match stt::WhisperEngine::load(&model_dir) {
+                Ok(engine) => {
+                    info!("🎤 Whisper STT loaded — native ONNX, hands-free ready");
+                    Some(Arc::new(tokio::sync::Mutex::new(engine)))
+                }
+                Err(e) => {
+                    tracing::warn!("⚠ Whisper STT failed to load: {}", e);
+                    None
+                }
+            }
+        } else {
+            info!("ℹ Whisper STT not found at {}, STT disabled", model_dir.display());
+            None
+        }
+    };
+
     // ── Build shared Arc references ──
     let character_sheet_arc = Arc::new(RwLock::new(character_sheet));
     let bestiary_arc = bestiary;
@@ -791,6 +839,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         cow_catcher: std::sync::Arc::new(tokio::sync::RwLock::new(cow_catcher::CowCatcher::new())),
         vaam_bridge,
         tts_engine,
+        stt_engine,
         // Identity contexts
         player,
         project,
@@ -945,6 +994,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/voice", post(voice::voice_conversation))
         .route("/api/voice/conversation", post(voice::voice_conversation))
         .route("/api/voice/text", post(voice::pete_text))
+        // Telephone Line — headless audio-only WebSocket (hands-free education)
+        .route("/api/telephone", get(telephone::telephone_upgrade))
+        // Speech-to-Text API — native Whisper ONNX
+        .route("/api/stt/transcribe", post(stt_transcribe))
+        .route("/api/stt/status", get(stt_status))
         // Persistence API — sessions, projects, DAYDREAM
         .route("/api/sessions", get(list_sessions))
         .route("/api/sessions/history", get(get_session_history))
@@ -1655,7 +1709,7 @@ When all objectives for {phase_label} are complete, narrate the station being cl
     }))
 }
 
-/// Native TTS — Supertonic-2 ONNX (lock-free, multi-user)
+/// Native TTS — Voxtral-4B (primary) → Supertonic-2 ONNX (fallback)
 async fn tts_proxy(
     State(state): State<AppState>,
     Json(body): Json<serde_json::Value>,
@@ -1678,6 +1732,42 @@ async fn tts_proxy(
         .unwrap_or("M1")
         .to_string();
 
+    let format = body
+        .get("format")
+        .and_then(|v| v.as_str())
+        .unwrap_or("wav")
+        .to_string();
+
+    // Try Voxtral-4B via vLLM-Omni first
+    if voice::check_voxtral_health().await {
+        match voice::voxtral_synthesize(&text, &voice, &format).await {
+            Ok(audio_bytes) => {
+                let latency_ms = t0.elapsed().as_millis();
+                let content_type = match format.as_str() {
+                    "mp3" => "audio/mpeg",
+                    "flac" => "audio/flac",
+                    "opus" => "audio/opus",
+                    _ => "audio/wav",
+                };
+                return axum::response::Response::builder()
+                    .status(StatusCode::OK)
+                    .header("Content-Type", content_type)
+                    .header("X-TTS-Backend", "voxtral-4b")
+                    .header("X-Latency-Ms", latency_ms.to_string())
+                    .header("X-Voice", voice::persona_to_voxtral_voice(&voice))
+                    .body(axum::body::Body::from(audio_bytes))
+                    .map_err(|e| (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Failed to build response: {}", e),
+                    ));
+            }
+            Err(e) => {
+                tracing::warn!("Voxtral TTS failed, falling back to Supertonic-2: {}", e);
+            }
+        }
+    }
+
+    // Fallback to Supertonic-2 ONNX (always-on, CPU-capable)
     let engine = state.tts_engine.as_ref().ok_or((
         StatusCode::SERVICE_UNAVAILABLE,
         "TTS engine not loaded (Supertonic-2 model not found)".to_string(),
@@ -2215,6 +2305,7 @@ async fn zen_chat_stream(
     let history = state.project.conversation_history.clone();
     let inference_router = state.inference_router.clone();
     let book_updates = state.project.book_updates.clone();
+    let app_state_for_zen = state.clone();
 
     tokio::spawn(async move {
         // ── VAAM Bridge: process user input ──
@@ -2320,6 +2411,8 @@ async fn zen_chat_stream(
 
             (phase_name, phase_body, coal, velocity, xp, pearl_vision, traction, active_objectives)
         };
+        // Suppress unused-variable warnings — pearl_vision wired when Zen gains PEARL context
+        let _ = &pearl_vision;
 
         // ══════════════════════════════════════════════
         // STEP 1: Director Call (non-streaming)
@@ -2460,6 +2553,8 @@ Return this JSON (use null for unknowns):
             format!("{} words scanned, {} tamed, {} wild",
                 best.words_scanned, best.creeps_tamed, best.wild_creeps().len())
         };
+        // Suppress unused-variable warning — bestiary_summary wired when Storyteller gains bestiary context
+        let _ = &bestiary_summary;
 
         // Director's narrative hint
         let director_context = if let Some(ref interp) = interpretation {
@@ -2480,6 +2575,25 @@ Return this JSON (use null for unknowns):
             ctx
         } else { String::new() };
 
+        // RAG context for the Recycler
+        let rag_chunks = if request.use_rag {
+            crate::rag::search_documents(&app_state_for_zen.db_pool, &request.message)
+                .await
+                .unwrap_or_default()
+        } else {
+            vec![]
+        };
+        let mut rag_context = String::new();
+        if !rag_chunks.is_empty() {
+            let mut ctx = String::new();
+            for chunk in &rag_chunks {
+                if ctx.len() + chunk.len() > 8000 { break; }
+                if !ctx.is_empty() { ctx.push_str("\n---\n"); }
+                ctx.push_str(chunk);
+            }
+            rag_context = format!("\n\nRELEVANT KNOWLEDGE BASE CONTEXT:\n{}", ctx);
+        }
+
         let storyteller_prompt = format!(
             r#"You are the Great Recycler — narrator of the Iron Road.
 
@@ -2497,7 +2611,7 @@ WORLD: The Iron Road — a railroad through fog. Coal fuels attention. SemanticC
 
 STATION: {phase_name} — {phase_body}
 STATE: Coal {coal:.0} | Vel {velocity} | Traction {traction}{creep_cards}
-{director_context}
+{director_context}{rag_context}
 
 Use state as flavor, not as a list. If coal is high, describe warmth and light. If velocity is low, describe stillness. Show, don't tell."#,
             phase_name = phase_name,
@@ -2507,6 +2621,7 @@ Use state as flavor, not as a list. If coal is high, describe warmth and light. 
             traction = traction,
             creep_cards = creep_cards,
             director_context = director_context,
+            rag_context = rag_context,
         );
 
         // Build Storyteller messages with conversation history for context
@@ -2600,6 +2715,7 @@ Use state as flavor, not as a list. If coal is high, describe warmth and light. 
             "{}, atmospheric digital painting, dark fantasy, misty railroad, soft lighting, no text, no watermark",
             scene_prompt
         );
+        let app_state_img = app_state_for_zen.clone();
         tokio::spawn(async move {
             // Quick health check — skip silently if ComfyUI is offline
             if !creative::check_comfyui_health_quick().await {
@@ -2613,7 +2729,7 @@ Use state as flavor, not as a list. If coal is high, describe warmth and light. 
                 height: 432,
                 style: Some("cinematic".to_string()),
             };
-            match creative::generate_image(axum::Json(request)).await {
+            match creative::generate_image(axum::extract::State(app_state_img), axum::Json(request)).await {
                 Ok(axum::Json(resp)) => {
                     if let Some(url) = resp.image_url {
                         let _ = tx_img.send(("scene_image".to_string(), url)).await;
@@ -2641,13 +2757,14 @@ Use state as flavor, not as a list. If coal is high, describe warmth and light. 
             "Evolve" => "ascending",
             _ => "ambient",
         }.to_string();
+        let app_state_tempo = app_state_for_zen.clone();
         tokio::spawn(async move {
             let request = creative::TempoRequest {
                 prompt: tempo_mood.clone(),
                 duration_secs: 15,
                 style: Some("ambient".to_string()),
             };
-            match creative::generate_tempo(axum::Json(request)).await {
+            match creative::generate_tempo(axum::extract::State(app_state_tempo), axum::Json(request)).await {
                 Ok(axum::Json(resp)) => {
                     if let Some(path) = resp.audio_path {
                         // Convert file path to a serveable URL
@@ -4044,9 +4161,93 @@ async fn auto_ingest_docs(pool: &sqlx::PgPool) {
         }
     }
 
+    // Phase 8: Autopoiesis Code Textbook Ingestion
+    if let Err(e) = rag::auto_index_workspace(pool).await {
+        warn!("⚠️ Failed to ingest Code Textbook into Vector DB: {}", e);
+    }
+
     info!(
         "📚 Auto-ingest complete: {}/{} documents loaded into RAG",
         ingested,
         docs_to_ingest.len()
     );
 }
+
+// ============================================================================
+// Speech-to-Text API — Native Whisper ONNX
+// ============================================================================
+
+/// POST /api/stt/transcribe — Accept audio, return transcribed text
+async fn stt_transcribe(
+    State(state): State<AppState>,
+    headers: axum::http::HeaderMap,
+    body: axum::body::Bytes,
+) -> axum::response::Response {
+    use axum::http::StatusCode;
+    use axum::response::IntoResponse;
+
+    let engine = match &state.stt_engine {
+        Some(e) => e.clone(),
+        None => {
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(serde_json::json!({
+                    "error": "STT engine not loaded. Place Whisper ONNX model at ~/trinity-models/stt/whisper-base/"
+                })),
+            ).into_response();
+        }
+    };
+
+    let content_type = headers
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("audio/wav");
+
+    let t0 = std::time::Instant::now();
+
+    // Parse audio input
+    let audio = match stt::parse_audio_input(&body, content_type) {
+        Ok(a) => a,
+        Err(e) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": format!("Audio parse error: {}", e) })),
+            ).into_response();
+        }
+    };
+
+    // Transcribe (lock the engine for mutable access)
+    let mut engine_guard = engine.lock().await;
+    match engine_guard.transcribe(&audio) {
+        Ok(text) => {
+            let duration_ms = t0.elapsed().as_millis() as u64;
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({
+                    "text": text,
+                    "duration_ms": duration_ms,
+                    "audio_samples": audio.len(),
+                    "audio_seconds": audio.len() as f32 / 16000.0,
+                })),
+            ).into_response()
+        }
+        Err(e) => {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": format!("Transcription failed: {}", e) })),
+            ).into_response()
+        }
+    }
+}
+
+/// GET /api/stt/status — Check if STT engine is loaded
+async fn stt_status(
+    State(state): State<AppState>,
+) -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "loaded": state.stt_engine.is_some(),
+        "model": if state.stt_engine.is_some() { "whisper-base" } else { "none" },
+        "backend": "ort (ONNX Runtime, native Rust)",
+    }))
+}
+

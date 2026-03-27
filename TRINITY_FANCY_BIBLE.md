@@ -11,6 +11,7 @@
 **License**: Apache 2.0
 **Genesis Date**: March 2026
 **Version**: v1.0
+**Scale**: 40,000+ Lines of Code (Rust/React)
 
 ---
 
@@ -25,18 +26,18 @@
 | **App Modes (Iron Road, Express, Yardmaster)** | `Verified` | `AppMode` enum in `main.rs`, React UI |
 | **Creative Pipeline (Images, Music, Video, 3D)** | `Verified` | `creative.rs`, `useCreative.js` — ComfyUI/MusicGPT/Hunyuan |
 | **Voice Pipeline (Supertonic-2 TTS)** | `Verified` | `supertonic.rs`, native ONNX — browser fallback auto-detect |
-| **Story Mode Codex** | `Verified` | `ZenMode.jsx` — Fantasy RPG book UI, 32px narrator text |
+| **DAYDREAM Codex** | `Verified` | `DAYDREAM Bevy Window` — Full immersive lit-novel RPG, 32px narrator text |
 | **ADDIECRAPEYE Phase Navigation** | `Verified` | Vertical 12-tab sidebar, phase-aware input & badge |
-| **EYE Export** | `Verified` | `/api/eye/export` → download button in Story Mode |
+| **EYE Export** | `Verified` | `/api/eye/export` → download button in DAYDREAM |
 | **Safety Badges (CowCatcher/EdgeGuard)** | `Verified` | `GameHUD.jsx` — visible safety indicators |
 | **Phase-Aware Messaging** | `Verified` | `activePhase` sent with every `/api/chat/zen` call |
-| **RLHF Feedback (Thumbs Up/Down)** | `Verified` | `ZenMode.jsx` — 👍/👎 buttons on narrator messages → `/api/rlhf/resonance` |
+| **RLHF Feedback (Thumbs Up/Down)** | `Verified` | `DAYDREAM` — 👍/👎 buttons on narrator messages → `/api/rlhf/resonance` |
 | **Scout Sniper + RLHF Economy** | `Verified` | Hope/Nope → coal/steam/XP payout via `scope_creep_decision` |
 | **Model Switcher** | `Verified` | `Yardmaster.jsx` — lists `/api/models`, switches via `/api/models/switch` |
 | **RAG Knowledge Search** | `Verified` | `Yardmaster.jsx` — search input → `/api/rag/search`, doc count from `/api/rag/stats` |
 | **Journal & Reflections** | `Verified` | `JournalViewer.jsx` — timeline, weekly reflections, bookmarks, export |
 | **Book Narrative** | `Verified` | `GameHUD.jsx` — chapters from `/api/book`, generate via `/api/narrative/generate` |
-| **Portfolio Artifact Upload** | `Verified` | `ZenMode.jsx` settings — file picker → `/api/character/portfolio/artifact` |
+| **Portfolio Artifact Upload** | `Verified` | `DAYDREAM` settings — file picker → `/api/character/portfolio/artifact` |
 | **Project Save/Preview** | `Verified` | `ExpressWizard.jsx` — save via `/api/projects`, preview via `/api/eye/preview` |
 | **Party Toggle** | `Verified` | `GameHUD.jsx` — click party member → `/api/quest/party` |
 | **Shadow Process** | `Verified` | `CharacterSheet.jsx` — Ghost Train stop button → `/api/character/shadow/process` |
@@ -95,16 +96,17 @@ This document is structured as **12 train cars** following Trinity's own ADDIECR
 
 ### The Crate Map
 
-All code lives under `crates/` in the workspace. Seven active crates:
+All code lives under `crates/` in the workspace. Eight active crates:
 
 | Crate | Role | Key Modules |
 |-------|------|-------------|
-| `trinity` | Headless HTTP server (Layer 1) | 31 modules, 3046-line `main.rs` |
+| `trinity` | Headless HTTP server (Layer 1) | 33 modules, 4000+ line `main.rs` |
 | `trinity-protocol` | Shared types & language | 26 public modules, 146-line `lib.rs` |
 | `trinity-quest` | Quest engine & game state | Hero stages, XP/Coal/Steam |
 | `trinity-iron-road` | Book writing & VAAM | Narrative, vocabulary, SemanticCreep |
-| `trinity-voice` | Voice pipeline | Kokoro TTS, 54 voices |
-| `trinity-bevy-graphics` | Bevy 3D Yard | Spatial sandbox, desktop app |
+| `trinity-voice` | Voice pipeline | Supertonic-2 TTS (ONNX native), 10 voices |
+| `trinity-sidecar` | Creative sidecar manager | ComfyUI, Hunyuan, process lifecycle |
+| `trinity-bevy-graphics` | Bevy 3D Yard + DAYDREAM | PEARL-driven 3D LitRPG world, command protocol, Rapier physics |
 | (archive) | Legacy crates | Preserved, excluded from workspace |
 
 > 📍 `Cargo.toml:L1-26` — Workspace members with inline role comments
@@ -129,7 +131,7 @@ TRINITY ID AI OS is a **locally-hosted, AI-powered instructional design operatin
 
 The name breaks down as:
 
-- **TRINITY** — Three stakeholders (Learner × Instructor × Institution), three AI agents (Pete × ART × Yardmaster), three delivery dimensions (1D Audio / 2D Book / 3D Yard)
+- **TRINITY** — Three stakeholders (Learner × Instructor × Institution), three AI agents (Pete × ART × Yardmaster), three UX systems (AUDIO / WEB / BEVY), three deliverables (FUN / WORK / LEARNING)
 - **ID** — Instructional Design, the academic discipline
 - **AI** — Artificial Intelligence, running locally on consumer hardware
 - **OS** — Operating System, not just a chatbot but a complete design environment
@@ -153,7 +155,7 @@ Trinity's AI is not one monolithic model. It is three specialized agents, each w
 | Agent | Full Name | Role | Model |
 |-------|-----------|------|-------|
 | **P** (Pete) | Programmer Pete | Socratic mentor, curriculum guide | Mistral Small 4 119B MoE (68 GB, dual KV cache 256K×2 = 500K+ context) |
-| **ART** | Aesthetic Research Technician | Creative pipeline — images, video, music, 3D | SDXL Turbo (ComfyUI), MusicGPT, Kokoro TTS |
+| **ART** | Aesthetic Research Technician | Creative pipeline — images, video, music, 3D | SDXL Turbo (ComfyUI), HunyuanVideo, Hunyuan3D-2.1, trinity-tempo-ai |
 | **Y** (Yardmaster) | OS/Dev Agent | Code generation, tool execution, system admin | Ming-flash-omni-2.0 (future), currently uses Pete's model |
 
 > 📍 `main.rs:L220-268` — `installed_model_inventory()` lists all 10 deployed models with paths and sizes
@@ -251,7 +253,7 @@ Trinity exposes **~85 HTTP endpoints** organized into 15 functional groups:
 | Iron Road | `/api/bestiary`, `/api/book/*` | Vocabulary creatures, narrative book | L816-833 |
 | EYE Export | `/api/eye/*` | Compile → Preview → Export learning artifacts | L835-837 |
 | Creative | `/api/creative/*` | ComfyUI images, video, music, 3D mesh | L839-850 |
-| Voice | `/api/voice/*` | TTS/STT conversation (Kokoro, PersonaPlex) | L852-855 |
+| Voice | `/api/voice/*` | TTS/STT conversation (Supertonic-2, PersonaPlex) | L852-855 |
 | Persistence | `/api/sessions`, `/api/projects` | Conversation history, DAYDREAM archive | L857-861 |
 | RAG | `/api/rag/*` | Semantic search via pgvector embeddings | L863-864 |
 | Quality | `/api/yard/score` | Pedagogical document evaluation | L866 |
@@ -345,7 +347,8 @@ Trinity's web UI is built with **16 React components** served from the Axum back
 | `ScopeCard.jsx` | Scope creep creature encounter card |
 | `TrainStatus.jsx` | Iron Road train progress animation |
 | `Yardmaster.jsx` | IDE/Agent mode — agentic chat with Forge terminal via `useYardmaster` hook |
-| `ZenMode.jsx` | The Codex — Fantasy RPG book UI with ADDIECRAPEYE phase tabs, 32px narrator, TTS |
+| `DAYDREAM` | The Bevy Window — Full lit-novel edutainment RPG ecosystem. Replaces legacy ZenMode/StoryMode. |
+
 
 > 📍 `crates/trinity/frontend/src/components/` — 18 files
 > 📍 `main.rs:L756-766` — Static file serving: React `frontend/dist/` with SPA fallback
@@ -692,7 +695,7 @@ REWARDS   → Context Points, VaamProfile update, Book chapter generation
 > 📍 `trinity-iron-road/src/game_loop.rs:L1-23` — Architecture header defining the 5-phase loop
 > 📍 `trinity-iron-road/src/lib.rs:L1-38` — Crate structure: book, great_recycler, narrative, game_loop, vaam, pete_core
 
-### 4.2 VAAM — Vocabulary Acquisition And Mastery
+### 4.2 VAAM — Vocabulary Acquisition Autonomy Mastery
 
 **VAAM** is the core insight that makes Trinity unique among AI tools: *words are what LLMs and people have in common*. Instead of treating vocabulary as static content, Trinity makes it the **game currency**.
 
@@ -1174,7 +1177,7 @@ The `ShadowStatus` mechanic is grounded in Phil Stutz's therapeutic framework (*
 | Reversal of Desire | `Active → Processed` | RLHF negative × 3 → Journal required → Memorial Step |
 | String of Pearls | `PEARL.refined_count` | Each PEARL refinement = a pearl on Stutz's string |
 
-**Wiring Status:** Currently `ShadowStatus` is **display-only** — the field renders on the CharacterSheet HUD but never transitions from `Clear`. See `MATURATION_MAP.md` Soft Spot §5 for the detailed implementation plan that wires RLHF feedback → Shadow → Vulnerability → Pete's prompt adjustment.
+**Wiring Status:** ✅ **WIRED** — `ShadowStatus` transitions are fully implemented in `rlhf_api.rs`. Negative RLHF feedback (👎) escalates Shadow (Clear → Stirring → Active), raises track friction, and recalculates vulnerability. Shadow processing via journal reflection (`POST /api/character/shadow/process`) transitions Active → Processed, reducing vulnerability and friction. Pete's system prompt reads vulnerability at `character_api.rs:L58`: `vulnerability > 0.7` triggers gentle Socratic mode. See `MATURATION_MAP.md` Soft Spot §5.
 
 > 📍 `character_sheet.rs:L20-33` — Intent Engineering philosophy block (Brené Brown, Pythagoras)
 > 📍 `character_sheet.rs:L39-77` — `IntentPosture` with `coal_multiplier()` and `xp_multiplier()`
@@ -1575,10 +1578,10 @@ Each completed artifact is stored in the **Subconscious Inventory**:
 
 | Modality | Technology | Endpoint | Port |
 |----------|-----------|----------|------|
-| **Image** | SDXL Turbo via ComfyUI | `POST /api/creative/generate-image` | :8188 |
-| **Music** | MusicGPT | `POST /api/creative/generate-music` | :8189 |
-| **Video** | HunyuanVideo via ComfyUI | `POST /api/creative/generate-video` | :8188 |
-| **3D Mesh** | Hunyuan3D-2.1 via Gradio | `POST /api/creative/generate-3d` | :7860 |
+| **Image** | SDXL Turbo via ComfyUI | `POST /api/creative/image` | :8188 |
+| **Music** | trinity-tempo-ai (procedural) | `POST /api/creative/tempo` | CLI sidecar |
+| **Video** | HunyuanVideo via CLI | `POST /api/creative/video` | CLI sidecar |
+| **3D Mesh** | Hunyuan3D-2.1 via Gradio | `POST /api/creative/mesh3d` | :7860 |
 
 > 📍 `creative.rs:L1-24` — Architecture: "CRAP design system: Contrast, Repetition, Alignment, Proximity"
 > 📍 `creative.rs:L44-62` — `ImageRequest`: prompt, negative_prompt, style, width (default 1024), height
@@ -1620,7 +1623,7 @@ Trinity implements a **dual voice pipeline**:
 
 | Pipeline | Technology | Latency | GPU Impact |
 |----------|-----------|---------|-----------|
-| **Walkie-Talkie** (NOW) | Whisper STT + Piper TTS on NPU | ~2-4s round trip | 0% (NPU only) |
+| **Walkie-Talkie** (NOW) | Whisper STT + Supertonic-2 TTS (ONNX, CPU/GPU) | ~2-4s round trip | Low (ONNX inference) |
 | **Telephone** (FUTURE) | PersonaPlex/Moshi audio-to-audio | ~0ms perceived | GPU contention |
 
 > 📍 `voice.rs:L1-27` — Architecture: dual pipeline with fallback
@@ -1717,13 +1720,13 @@ Key terms defined in code, collected for reference:
 | **PEARL Contract** | The PEARL as the quest board contract — user-defined success criteria shaped by Pete's Socratic interview | `CharacterSheet.jsx` |
 | **Maturation Map** | 6-dimension auto-scored progress visualization (Content, Production, Pedagogy, Design, Reflection, Portfolio) | `CharacterSheet.jsx` |
 | **Finish Line** | The 5 deliverables the user walks away with (GDD, HTML5, Lesson Plans, Design System, Portfolio Artifact) | `CharacterSheet.jsx` |
-| **Story Mode** | The user-facing brand name for the 12-station ADDIECRAPEYE Iron Road journey | Navigation dropdown |
+| **DAYDREAM** | The Bevy game system inside the ART page — full lit-novel edutainment experience with music, pictures, and emotionally specific voice. A future economy for playing others' projects. | Bevy Render Window |
 | **Hook Book** | Catalog of 30 system capabilities organized by framework layer (7 Foundations, 13 Experience, 10 Infrastructure) | `HOOK_BOOK.md` |
 | **Scope Hope** | User tames a word (accepts into vocabulary) | `game_loop.rs:L112-120` |
 | **Scope Nope** | User rejects a word (leaves wild) | `game_loop.rs:L123-127` |
 | **Heavilon Event** | Catastrophic failure rebuilt stronger | `character_sheet.rs:L1051` |
 | **Sacred Circuitry** | 15-word attention scaffolding system | `sacred_circuitry.rs:L56-76` |
-| **VAAM** | Vocabulary Acquisition And Mastery | `trinity-iron-road/src/vaam/` |
+| **VAAM** | Vocabulary Acquisition Autonomy Mastery | `trinity-iron-road/src/vaam/` |
 | **The Awakening** | Character creation (class + hardware scan) | `character_sheet.rs:L104-121` |
 | **Lone Wolf** | Single-model mode (< 24GB VRAM) | `character_sheet.rs:L381` |
 | **Hotel Management** | Model hot-swap protocol | `conductor_leader.rs:L466-503` |

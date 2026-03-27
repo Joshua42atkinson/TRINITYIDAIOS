@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Protocol Layer
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     bridge.rs
+// PURPOSE:  Protocol bridge types for cross-crate communication between layers 1-3
+// BIBLE:    Car 12 — EVOLVE (Server Architecture, §12.3)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 // Trinity Protocol - Brain/Body Bridge
 // Unified request/response types for all Bevy nodes
 

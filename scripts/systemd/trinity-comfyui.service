@@ -1,0 +1,32 @@
+[Unit]
+Description=Trinity ComfyUI — SDXL Turbo Image Generation
+Documentation=https://github.com/comfyanonymous/ComfyUI
+After=trinity-vllm.service
+Wants=trinity-vllm.service
+
+[Service]
+Type=exec
+User=joshua
+Group=joshua
+WorkingDirectory=/home/joshua/ComfyUI
+
+# AMD Strix Halo ROCm
+Environment=HSA_OVERRIDE_GFX_VERSION=11.0.0
+Environment=HIP_VISIBLE_DEVICES=0
+
+ExecStart=/home/joshua/ComfyUI/venv/bin/python main.py --listen 127.0.0.1 --port 8188
+
+# Graceful shutdown
+KillSignal=SIGINT
+TimeoutStopSec=15
+
+# Auto-restart — image gen is non-critical
+Restart=on-failure
+RestartSec=30
+
+# Low memory — SDXL Turbo ~2GB
+MemoryMax=8G
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

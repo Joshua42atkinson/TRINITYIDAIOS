@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Protocol Layer
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     tutorial_events.rs
+// PURPOSE:  Tutorial event types connecting the onboarding system to ADDIE workflow pipeline
+// BIBLE:    Car 9 — PROXIMITY (OnboardingTour, §9.1)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 //! Tutorial Events - Shared events for tutorial workflow
 //!
 //! These events connect the tutorial system to the ADDIE workflow pipeline.

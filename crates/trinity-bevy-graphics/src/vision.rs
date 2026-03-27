@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Bevy 3D Yard
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     vision.rs
+// PURPOSE:  Camera and viewport management for the 3D spatial canvas
+// BIBLE:    Car 9 — PROXIMITY (UI Experience)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 //! Vision integration for graphics generation
 //!
 //! Uses Qwen3.5-35B-A3B + mmproj via llama-server for vision understanding.

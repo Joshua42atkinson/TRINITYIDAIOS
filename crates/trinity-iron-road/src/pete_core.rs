@@ -1,3 +1,34 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Iron Road Game Engine
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:         pete_core.rs
+// BIBLE CAR:    Car 8 — ALIGNMENT (Pete's Socratic Protocol)
+// HOOK SCHOOL:  🏫 Pedagogy — Socratic Interview
+// PURPOSE:      Programmer Pete's evaluation and response core. Evaluates user
+//               input against their VAAM tier and generates pedagogically
+//               calibrated responses via the Conductor model (Mistral Small 4
+//               119B MoE). This is the lowest-level Socratic engine — it
+//               translates VAAM vocabulary complexity into system prompt
+//               constraints that shape Pete's language and scaffolding depth.
+//
+// ARCHITECTURE:
+//   • PeteCore wraps a single HTTP client pointed at vLLM/llama-server
+//   • evaluate_and_respond() builds a tier-aware system prompt and calls
+//     the OpenAI-compatible /v1/chat/completions endpoint
+//   • VAAM tier determines vocabulary complexity in Pete's responses
+//   • Called from the agent loop when Iron Road mode needs direct Pete output
+//
+// DEPENDENCIES:
+//   - reqwest   — HTTP client for LLM inference endpoint
+//   - serde_json — JSON payload construction
+//
+// CHANGES:
+//   2026-03-16  Joshua Atkinson  Created for Pete evaluation pipeline
+//   2026-03-26  Cascade          Added §17 header
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 use reqwest::Client;
 use serde_json::json;
 

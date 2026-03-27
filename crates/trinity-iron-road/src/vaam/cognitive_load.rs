@@ -1,3 +1,32 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Iron Road / VAAM Subsystem
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:         vaam/cognitive_load.rs
+// BIBLE CAR:    Car 7 — REPETITION (Cognitive Load Theory in Code)
+// HOOK SCHOOL:  🏫 Pedagogy — CLT Engine
+// PURPOSE:      Readability scoring via Flesch-Kincaid Grade Level formula.
+//               Measures intrinsic cognitive load of generated text against the
+//               user's known VAAM vocabulary. Outputs a CognitiveLoadScore with
+//               word complexity, grade level, and tier-match percentage — used
+//               by Pete to calibrate response complexity to the learner's level.
+//
+// ARCHITECTURE:
+//   • calculate_cognitive_load() takes text + user VAAM tier + known words
+//   • Flesch-Kincaid: 0.39*(words/sentences) + 11.8*(syllables/words) - 15.59
+//   • count_syllables() uses vowel-cluster heuristic with silent-e correction
+//   • tier_match_percentage = (known complex words / total complex words) × 100
+//   • Bible Car 7.3: Coal = intrinsic load, Steam = germane, Friction = extraneous
+//
+// DEPENDENCIES:
+//   - trinity_protocol — VocabularyTier, VocabularyWord types
+//
+// CHANGES:
+//   2026-03-16  Joshua Atkinson  Created for VAAM readability scoring
+//   2026-03-26  Cascade          Added §17 header
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 use trinity_protocol::{VocabularyTier, VocabularyWord};
 
 /// Represents the cognitive weight/load of a piece of generated text

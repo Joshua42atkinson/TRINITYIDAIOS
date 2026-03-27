@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Sidecar Manager
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     quest.rs
+// PURPOSE:  Quest-aware sidecar coordination for phase-specific model loading
+// BIBLE:    Car 4 — IMPLEMENT (ADDIECRAPEYE Orchestrator)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 //! Quest Board System
 //!
 //! Quests are JSON files on disk — like contracts on an adventurer's guild wall.

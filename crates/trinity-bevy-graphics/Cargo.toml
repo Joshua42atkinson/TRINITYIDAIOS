@@ -41,6 +41,11 @@ dirs = { workspace = true }
 # egui integration (optional — desktop only)
 bevy_egui = { version = "0.39", optional = true }
 
+# DAYDREAM 3D dependencies (optional — desktop only)
+bevy_rapier3d = { workspace = true, optional = true }
+bevy_panorbit_camera = { workspace = true, optional = true }
+noise = { workspace = true, optional = true }
+
 # Utilities
 uuid = { workspace = true }
 chrono = { workspace = true }
@@ -59,11 +64,15 @@ desktop = [
     "bevy/bevy_log",
     "bevy/bevy_state",
     "bevy/bevy_sprite",
+    "bevy/bevy_gltf",
     "bevy/multi_threaded",
     "bevy/default_font",
     "bevy/x11",
     "bevy/wayland",
     "bevy_egui",
+    "bevy_rapier3d",
+    "bevy_panorbit_camera",
+    "noise",
 ]
 inference = []
 vision = []

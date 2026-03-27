@@ -1,7 +1,31 @@
-//! Code Editor WASM Plugin
-//!
-//! A tool for reading and writing files within the sandbox.
-//! Uses capability-gated host functions.
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — WASM Plugin: Code Editor
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:         plugins/code_editor/src/lib.rs
+// BIBLE CAR:    Car 12 — EVOLVE (Deployment & Extension)
+// HOOK SCHOOL:  ⚙️ Systems — WASM Sandbox
+// PURPOSE:      Code editor WASM plugin for the Trinity sandbox. Reads and
+//               writes files within the sandboxed workspace using capability-
+//               gated host functions (host_read_file, host_write_file). The
+//               host enforces path validation (Ring 5) before granting access.
+//               Demonstrates the capability-based security model for plugins.
+//
+// ARCHITECTURE:
+//   • WASM ABI: alloc/dealloc + edit(ptr, len) → i64 packed result
+//   • Host imports: host_read_file, host_write_file, host_log
+//   • EditorAction enum: Read { path } | Write { path, content }
+//   • Error codes: -2 (permission denied), -3 (not found), -4 (too large)
+//   • Bible Car 5.4: Ring 5 sandboxing — host validates paths before granting
+//
+// DEPENDENCIES:
+//   - serde — JSON serialization for action dispatch
+//
+// CHANGES:
+//   2026-03-16  Joshua Atkinson  Created as WASM plugin prototype
+//   2026-03-26  Cascade          Added §17 header
+//
+// ═══════════════════════════════════════════════════════════════════════════════
 
 use serde::{Deserialize, Serialize};
 

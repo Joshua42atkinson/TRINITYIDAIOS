@@ -3,17 +3,36 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // FILE:        voice.rs
-// PURPOSE:     Voice conversation API — Walkie-Talkie + Telephone pipelines
+// PURPOSE:     Voice conversation API — Voxtral + Walkie-Talkie + Telephone
+//
+// 🪟 THE LIVING CODE TEXTBOOK (P-ART-Y Gear T: Tempo):
+// This file is the vocal cords of the OS. It is designed to be read, modified, 
+// and authored by YOU. If you want to change Pete's voice or integrate a new TTS 
+// engine, this is the file to edit.
+// ACTION: Edit `persona_to_voxtral_voice()` to build custom emotional voices.
+//
+// 📖 THE HOOK BOOK CONNECTION:
+// This file powers the 'Voice Narration' Hook. By mastering this file, you can 
+// build your own local-first, low-latency Audio and Telephone interfaces. 
+// For a full catalogue of system capabilities, see: docs/HOOK_BOOK.md
+//
+// 🛡️ THE COW CATCHER & AUTOPOIESIS:
+// All files operate under the autonomous Cow Catcher telemetry system. Runtime
+// errors and scope creep are intercepted to prevent catastrophic derailment,
+// maintaining the Socratic learning loop and keeping drift at bay.
+//
+// MATURITY:     L2 → L3 (Voxtral wired, needs model download)
+// QUEST_PHASE:  supports all ADDIECRAPEYE phases (narration)
 //
 // ARCHITECTURE:
-//   • "Walkie-Talkie" (NOW): Whisper STT + Piper TTS via voice sidecar (:8200)
+//   • "Voxtral" (PRIMARY): Mistral Voxtral-4B TTS via vLLM-Omni
+//     - 20 preset voices, 9 languages, 90ms latency, emotionality
+//     - OpenAI-compatible /v1/audio/speech endpoint
+//   • "Walkie-Talkie" (FALLBACK): Whisper STT + Piper TTS via voice sidecar (:8200)
 //     - STT/TTS run on NPU, leaving 100% GPU for Mistral Small 4
-//     - Latency: ~2-4s round trip (speak → pause → think → respond)
+//   • "Supertonic-2" (ALWAYS-ON): Native ONNX TTS (66M params, CPU-capable)
 //   • "Telephone" (FUTURE): PersonaPlex/Moshi audio-to-audio on GPU
-//     - Zero perceived latency, natural interruption
-//     - GPU contention with main brain model
 //   • Two modes: DEV (production agent) and IRON ROAD (gamified roleplay)
-//   • Voice sidecar handles full loop: audio→STT→Trinity chat→TTS→audio
 //
 // DEPENDENCIES:
 //   - axum — HTTP handlers for voice endpoints
@@ -21,6 +40,7 @@
 //   - tracing — Voice operation logging
 //
 // CHANGES:
+//   2026-03-26  Cascade  Voxtral-4B TTS integration (vLLM-Omni primary)
 //   2026-03-18  Cascade  Dual-mode voice (DEV + Iron Road), voice sidecar
 //   2026-03-16  Cascade  Migrated to §17 comment standard
 //
@@ -46,6 +66,7 @@ use crate::AppState;
 pub struct VoiceStatus {
     pub sidecar_running: bool,
     pub personaplex_available: bool,
+    pub voxtral_available: bool,
     pub npu_available: bool,
     pub active_pipeline: String,
     pub mode: String,
@@ -81,11 +102,17 @@ pub struct VoiceResponse {
 pub async fn voice_status() -> Json<VoiceStatus> {
     let sidecar_running = check_voice_sidecar_health().await;
     let personaplex_available = check_personaplex_health().await;
+    let voxtral_available = check_voxtral_health().await;
 
     let (pipeline, message) = if personaplex_available {
         (
             "telephone",
             "PersonaPlex audio-to-audio ready (zero latency)".to_string(),
+        )
+    } else if voxtral_available {
+        (
+            "voxtral",
+            "Voxtral-4B TTS ready via vLLM-Omni (20 voices, 9 languages, 90ms latency)".to_string(),
         )
     } else if sidecar_running {
         (
@@ -94,15 +121,15 @@ pub async fn voice_status() -> Json<VoiceStatus> {
         )
     } else {
         (
-            "offline",
-            "No voice backend running. Start voice sidecar: python scripts/voice_sidecar.py"
-                .to_string(),
+            "supertonic",
+            "Supertonic-2 native TTS (always-on fallback)".to_string(),
         )
     };
 
     Json(VoiceStatus {
         sidecar_running,
         personaplex_available,
+        voxtral_available,
         npu_available: check_npu_availability(),
         active_pipeline: pipeline.to_string(),
         mode: "dev".to_string(),
@@ -295,6 +322,309 @@ async fn check_personaplex_health() -> bool {
     crate::http::check_health("http://127.0.0.1:8190").await
 }
 
+// ============================================================================
+// VOXTRAL-4B TTS (via vLLM-Omni) — Narrator Voice Acting Engine
+// ============================================================================
+//
+// The voice acting system supports:
+//   1. Persona voices     — Pete (causal_male), Recycler (alloy), NPC (echo)
+//   2. Emotion detection  — infer happy/sarcastic/contemplative from text
+//   3. Narrator mode      — Great Recycler can break character (DM mode)
+//   4. Voice toggle       — Recycler narration can be on/off per user pref
+//
+// Voxtral supports emotional tonality: neutral, happy, sarcastic
+// We map Trinity's richer emotion set onto Voxtral's capabilities.
+
+// ─── Voxtral-4B Voice Acting Subsystem ───────────────────────────────────────
+// Built and ready — activates when Voxtral-4B vLLM-Omni server goes live on :8100.
+// Suppress dead_code warnings for the entire subsystem until then.
+
+/// Voxtral-4B voice port — vLLM-Omni with --omni flag
+#[allow(dead_code)]
+const VOXTRAL_PORT: u16 = 8100;
+
+/// Voice acting emotion — detected from text content
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[allow(dead_code)] // Activates with Voxtral-4B
+pub enum VoiceEmotion {
+    /// Standard delivery
+    Neutral,
+    /// Encouraging feedback, celebration, quest completion
+    Warm,
+    /// Warnings, deadlines, critical design issues
+    Urgent,
+    /// Playful teasing, Great Recycler wit
+    Sarcastic,
+    /// Quest completion, milestone reached, XP awarded
+    Celebratory,
+    /// Reflection, philosophical, Socratic questioning
+    Contemplative,
+}
+
+impl VoiceEmotion {
+    /// Convert to Voxtral-compatible emotion tag
+    #[allow(dead_code)] // Activates with Voxtral-4B
+    pub fn to_voxtral_tag(&self) -> &'static str {
+        match self {
+            VoiceEmotion::Neutral => "neutral",
+            VoiceEmotion::Warm => "happy",
+            VoiceEmotion::Urgent => "neutral",       // Voxtral neutral + fast pacing
+            VoiceEmotion::Sarcastic => "sarcastic",
+            VoiceEmotion::Celebratory => "happy",
+            VoiceEmotion::Contemplative => "neutral", // Voxtral neutral + slow pacing
+        }
+    }
+}
+
+/// Narrator mode — the Great Recycler can DM
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[allow(dead_code)] // Activates with Voxtral-4B
+pub enum NarratorMode {
+    /// Story Mode — in-character narration (LitRPG audiobook voice)
+    InCharacter,
+    /// DM Mode — out-of-character design recommendations
+    /// "Pausing story mode: Here's a direct design recommendation..."
+    OutOfCharacter,
+    /// Silent — narrator text appears but no voice (reading mode)
+    Silent,
+}
+
+/// Detect emotion from text content using keyword/pattern heuristics.
+/// This runs on every TTS call — fast, no ML needed.
+#[allow(dead_code)] // Activates with Voxtral-4B
+pub fn detect_emotion(text: &str) -> VoiceEmotion {
+    let lower = text.to_lowercase();
+
+    // Celebratory — quest complete, XP, level up
+    if lower.contains("congratulations")
+        || lower.contains("quest complete")
+        || lower.contains("level up")
+        || lower.contains("xp awarded")
+        || lower.contains("milestone")
+        || lower.contains("achievement")
+        || lower.contains("well done")
+        || lower.contains("excellent work")
+    {
+        return VoiceEmotion::Celebratory;
+    }
+
+    // Urgent — warnings, deadlines, critical
+    if lower.contains("warning")
+        || lower.contains("critical")
+        || lower.contains("deadline")
+        || lower.contains("urgent")
+        || lower.contains("caution")
+        || lower.contains("danger")
+        || lower.contains("immediately")
+    {
+        return VoiceEmotion::Urgent;
+    }
+
+    // Sarcastic — Great Recycler wit, playful edge
+    if lower.contains("oh really")
+        || lower.contains("interesting choice")
+        || lower.contains("bold move")
+        || lower.contains("surely you")
+        || lower.contains("how... creative")
+        || lower.contains("as expected")
+    {
+        return VoiceEmotion::Sarcastic;
+    }
+
+    // Contemplative — questions, reflection, Socratic
+    if lower.contains("consider")
+        || lower.contains("what if")
+        || lower.contains("reflect on")
+        || lower.contains("think about")
+        || lower.contains("have you considered")
+        || lower.contains("ponder")
+        || lower.contains("perhaps")
+    {
+        return VoiceEmotion::Contemplative;
+    }
+
+    // Warm — encouragement, support, progress
+    if lower.contains("great job")
+        || lower.contains("nice work")
+        || lower.contains("you're making progress")
+        || lower.contains("keep going")
+        || lower.contains("proud")
+        || lower.contains("welcome")
+    {
+        return VoiceEmotion::Warm;
+    }
+
+    VoiceEmotion::Neutral
+}
+
+/// Detect narrator mode from text markers.
+/// The Great Recycler can embed `[DM]` or `[OOC]` tags to break character.
+#[allow(dead_code)] // Activates with Voxtral-4B
+pub fn detect_narrator_mode(text: &str) -> (NarratorMode, String) {
+    // Check for DM/OOC tags
+    if text.starts_with("[DM]") || text.starts_with("[OOC]") {
+        let clean = text
+            .trim_start_matches("[DM]")
+            .trim_start_matches("[OOC]")
+            .trim()
+            .to_string();
+        return (NarratorMode::OutOfCharacter, clean);
+    }
+
+    // Check for silent tag
+    if text.starts_with("[SILENT]") || text.starts_with("[MUTE]") {
+        let clean = text
+            .trim_start_matches("[SILENT]")
+            .trim_start_matches("[MUTE]")
+            .trim()
+            .to_string();
+        return (NarratorMode::Silent, clean);
+    }
+
+    (NarratorMode::InCharacter, text.to_string())
+}
+
+/// Generate a DM voice cue prefix for out-of-character narration
+#[allow(dead_code)] // Activates with Voxtral-4B
+fn dm_voice_cue() -> &'static str {
+    "Pausing story mode. "
+}
+
+/// Check if Voxtral-4B is available via vLLM-Omni
+#[allow(dead_code)] // Activates with Voxtral-4B
+pub async fn check_voxtral_health() -> bool {
+    crate::http::QUICK
+        .get(format!("http://127.0.0.1:{}/v1/models", VOXTRAL_PORT))
+        .timeout(std::time::Duration::from_secs(2))
+        .send()
+        .await
+        .map(|r| r.status().is_success())
+        .unwrap_or(false)
+}
+
+/// Map Trinity persona names to Voxtral preset voices
+#[allow(dead_code)] // Activates with Voxtral-4B
+pub fn persona_to_voxtral_voice(persona: &str) -> &'static str {
+    match persona.to_lowercase().as_str() {
+        // Pete — warm, confident, mentor
+        "pete" | "conductor" | "m1" | "causal_male" => "causal_male",
+        // Great Recycler — authoritative narrator (DM voice)
+        "recycler" | "narrator" | "alloy" | "dm" => "alloy",
+        // NPCs — varied voices
+        "npc" | "default" | "echo" => "echo",
+        // Youser feedback — encouraging, warm
+        "youser" | "student" | "nova" => "nova",
+        // Female voices
+        "f1" | "f2" | "f3" | "shimmer" => "shimmer",
+        "fable" => "fable",
+        "onyx" => "onyx",
+        // Fallback
+        _ => "causal_male",
+    }
+}
+
+/// Full narrated synthesis — persona + emotion + narrator mode
+/// This is the main entry point for voice-acted TTS.
+#[allow(dead_code)] // Activates with Voxtral-4B
+pub async fn voxtral_synthesize_narrated(
+    text: &str,
+    persona: &str,
+    format: &str,
+) -> anyhow::Result<VoiceActResult> {
+    let (narrator_mode, clean_text) = detect_narrator_mode(text);
+
+    // Silent mode — return text only, no audio
+    if narrator_mode == NarratorMode::Silent {
+        return Ok(VoiceActResult {
+            audio: None,
+            emotion: VoiceEmotion::Neutral,
+            narrator_mode,
+            voice_used: "silent".to_string(),
+            text: clean_text,
+        });
+    }
+
+    let emotion = detect_emotion(&clean_text);
+    let voxtral_voice = persona_to_voxtral_voice(persona);
+
+    // Prepend DM cue for out-of-character narration
+    let speak_text = if narrator_mode == NarratorMode::OutOfCharacter {
+        format!("{}{}", dm_voice_cue(), clean_text)
+    } else {
+        clean_text.clone()
+    };
+
+    info!(
+        "🎭 Voice Act: persona={} voice={} emotion={:?} mode={:?} len={}",
+        persona, voxtral_voice, emotion, narrator_mode, speak_text.len()
+    );
+
+    let audio = voxtral_synthesize(&speak_text, persona, format).await?;
+
+    Ok(VoiceActResult {
+        audio: Some(audio),
+        emotion,
+        narrator_mode,
+        voice_used: voxtral_voice.to_string(),
+        text: clean_text,
+    })
+}
+
+/// Result of a voice-acted synthesis
+#[derive(Debug, Serialize)]
+#[allow(dead_code)] // Activates with Voxtral-4B
+pub struct VoiceActResult {
+    /// Audio bytes (None if Silent mode)
+    #[serde(skip)]
+    pub audio: Option<Vec<u8>>,
+    /// Detected emotion
+    pub emotion: VoiceEmotion,
+    /// Narrator mode used
+    pub narrator_mode: NarratorMode,
+    /// Voxtral voice name used
+    pub voice_used: String,
+    /// Clean text (tags stripped)
+    pub text: String,
+}
+
+/// Synthesize text via Voxtral-4B on vLLM-Omni
+/// Returns raw audio bytes
+#[allow(dead_code)] // Activates with Voxtral-4B
+pub async fn voxtral_synthesize(
+    text: &str,
+    voice: &str,
+    format: &str,
+) -> anyhow::Result<Vec<u8>> {
+    let voxtral_voice = persona_to_voxtral_voice(voice);
+
+    info!("🎙️ Voxtral TTS: voice={} format={} len={}", voxtral_voice, format, text.len());
+
+    let payload = serde_json::json!({
+        "input": text,
+        "model": "mistralai/Voxtral-4B-TTS-2603",
+        "response_format": format,
+        "voice": voxtral_voice,
+    });
+
+    let response = crate::http::LONG
+        .post(format!("http://127.0.0.1:{}/v1/audio/speech", VOXTRAL_PORT))
+        .json(&payload)
+        .timeout(std::time::Duration::from_secs(30))
+        .send()
+        .await?;
+
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        anyhow::bail!("Voxtral returned {}: {}", status, body);
+    }
+
+    let audio_bytes = response.bytes().await?;
+    info!("🎙️ Voxtral returned {} bytes", audio_bytes.len());
+    Ok(audio_bytes.to_vec())
+}
+
 /// Check if NPU is available for PersonaPlex
 pub fn check_npu_availability() -> bool {
     // Check for XDNA device
@@ -414,3 +744,173 @@ pub struct TextResponse {
     pub response: String,
     pub latency_ms: u64,
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TESTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── Voxtral Persona Mapping ─────────────────────────────────────────
+
+    #[test]
+    fn test_persona_pete_maps_to_causal_male() {
+        assert_eq!(persona_to_voxtral_voice("pete"), "causal_male");
+        assert_eq!(persona_to_voxtral_voice("conductor"), "causal_male");
+        assert_eq!(persona_to_voxtral_voice("M1"), "causal_male");
+    }
+
+    #[test]
+    fn test_persona_recycler_maps_to_alloy() {
+        assert_eq!(persona_to_voxtral_voice("recycler"), "alloy");
+        assert_eq!(persona_to_voxtral_voice("narrator"), "alloy");
+        assert_eq!(persona_to_voxtral_voice("dm"), "alloy");
+    }
+
+    #[test]
+    fn test_persona_npc_maps_to_echo() {
+        assert_eq!(persona_to_voxtral_voice("npc"), "echo");
+        assert_eq!(persona_to_voxtral_voice("default"), "echo");
+    }
+
+    #[test]
+    fn test_persona_youser_maps_to_nova() {
+        assert_eq!(persona_to_voxtral_voice("youser"), "nova");
+        assert_eq!(persona_to_voxtral_voice("student"), "nova");
+    }
+
+    #[test]
+    fn test_persona_unknown_falls_back_to_causal_male() {
+        assert_eq!(persona_to_voxtral_voice("unknown_voice"), "causal_male");
+        assert_eq!(persona_to_voxtral_voice(""), "causal_male");
+    }
+
+    #[test]
+    fn test_persona_case_insensitive() {
+        assert_eq!(persona_to_voxtral_voice("PETE"), "causal_male");
+        assert_eq!(persona_to_voxtral_voice("Recycler"), "alloy");
+        assert_eq!(persona_to_voxtral_voice("NPC"), "echo");
+    }
+
+    // ── Emotion Detection ───────────────────────────────────────────────
+
+    #[test]
+    fn test_emotion_celebratory() {
+        assert_eq!(detect_emotion("Congratulations! Quest complete!"), VoiceEmotion::Celebratory);
+        assert_eq!(detect_emotion("You leveled up! XP awarded."), VoiceEmotion::Celebratory);
+        assert_eq!(detect_emotion("Excellent work on the milestone."), VoiceEmotion::Celebratory);
+    }
+
+    #[test]
+    fn test_emotion_urgent() {
+        assert_eq!(detect_emotion("Warning: deadline approaching!"), VoiceEmotion::Urgent);
+        assert_eq!(detect_emotion("CRITICAL: system error detected"), VoiceEmotion::Urgent);
+        assert_eq!(detect_emotion("Caution: this cannot be undone"), VoiceEmotion::Urgent);
+    }
+
+    #[test]
+    fn test_emotion_sarcastic() {
+        assert_eq!(detect_emotion("Oh really? Interesting choice."), VoiceEmotion::Sarcastic);
+        assert_eq!(detect_emotion("Bold move, let's see how that works."), VoiceEmotion::Sarcastic);
+    }
+
+    #[test]
+    fn test_emotion_contemplative() {
+        assert_eq!(detect_emotion("Have you considered another approach?"), VoiceEmotion::Contemplative);
+        assert_eq!(detect_emotion("What if we thought about this differently?"), VoiceEmotion::Contemplative);
+        assert_eq!(detect_emotion("Perhaps there's a better path."), VoiceEmotion::Contemplative);
+    }
+
+    #[test]
+    fn test_emotion_warm() {
+        assert_eq!(detect_emotion("Great job on this section!"), VoiceEmotion::Warm);
+        assert_eq!(detect_emotion("You're making progress, keep going!"), VoiceEmotion::Warm);
+    }
+
+    #[test]
+    fn test_emotion_neutral_default() {
+        assert_eq!(detect_emotion("The lesson plan has three sections."), VoiceEmotion::Neutral);
+        assert_eq!(detect_emotion("Click the button to proceed."), VoiceEmotion::Neutral);
+    }
+
+    #[test]
+    fn test_emotion_to_voxtral_tag() {
+        assert_eq!(VoiceEmotion::Celebratory.to_voxtral_tag(), "happy");
+        assert_eq!(VoiceEmotion::Sarcastic.to_voxtral_tag(), "sarcastic");
+        assert_eq!(VoiceEmotion::Neutral.to_voxtral_tag(), "neutral");
+        assert_eq!(VoiceEmotion::Warm.to_voxtral_tag(), "happy");
+    }
+
+    // ── Narrator Mode Detection ─────────────────────────────────────────
+
+    #[test]
+    fn test_narrator_dm_mode() {
+        let (mode, text) = detect_narrator_mode("[DM] Your rubric needs a column for criteria.");
+        assert_eq!(mode, NarratorMode::OutOfCharacter);
+        assert_eq!(text, "Your rubric needs a column for criteria.");
+    }
+
+    #[test]
+    fn test_narrator_ooc_mode() {
+        let (mode, text) = detect_narrator_mode("[OOC] Consider using Bloom's taxonomy here.");
+        assert_eq!(mode, NarratorMode::OutOfCharacter);
+        assert_eq!(text, "Consider using Bloom's taxonomy here.");
+    }
+
+    #[test]
+    fn test_narrator_silent_mode() {
+        let (mode, text) = detect_narrator_mode("[SILENT] System checkpoint saved.");
+        assert_eq!(mode, NarratorMode::Silent);
+        assert_eq!(text, "System checkpoint saved.");
+    }
+
+    #[test]
+    fn test_narrator_mute_mode() {
+        let (mode, text) = detect_narrator_mode("[MUTE] Internal process complete.");
+        assert_eq!(mode, NarratorMode::Silent);
+        assert_eq!(text, "Internal process complete.");
+    }
+
+    #[test]
+    fn test_narrator_in_character_default() {
+        let (mode, text) = detect_narrator_mode("The Iron Road stretches before you.");
+        assert_eq!(mode, NarratorMode::InCharacter);
+        assert_eq!(text, "The Iron Road stretches before you.");
+    }
+
+    // ── Voice Status Struct ─────────────────────────────────────────────
+
+    #[test]
+    fn test_voice_status_serializes() {
+        let status = VoiceStatus {
+            sidecar_running: false,
+            personaplex_available: false,
+            voxtral_available: true,
+            npu_available: false,
+            active_pipeline: "voxtral".to_string(),
+            mode: "dev".to_string(),
+            message: "Voxtral ready".to_string(),
+        };
+        let json = serde_json::to_string(&status).unwrap();
+        assert!(json.contains("\"voxtral_available\":true"));
+        assert!(json.contains("\"active_pipeline\":\"voxtral\""));
+    }
+
+    // ── Voxtral Port ────────────────────────────────────────────────────
+
+    #[test]
+    fn test_voxtral_port_constant() {
+        assert_eq!(VOXTRAL_PORT, 8100);
+    }
+
+    // ── NPU Check (doesn't panic) ──────────────────────────────────────
+
+    #[test]
+    fn test_npu_check_no_panic() {
+        let _ = check_npu_availability();
+    }
+}
+
+

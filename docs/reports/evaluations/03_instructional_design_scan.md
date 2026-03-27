@@ -15,5 +15,5 @@
    - The `trinity-blueprint-reviewer` crate serves as the automated QM rubric enforcer. By running in the background (as the Evaluator agent with 56GB memory), it ensures that the generated instructional design adheres to higher education standards (e.g., aligning assessments with learning objectives).
    - *Critique*: Ensure that when an "Alignment Fault" occurs, the system doesn't just log it to the Dev Console. It must be presented in the Iron Road UI as an actionable pedagogical pivot, guided by Ask Pete, rather than a system error.
 
-4. **VAAM (Vocabulary Acquisition and Mastery)**:
+4. **VAAM (Vocabulary Acquisition Autonomy Mastery)**:
    - Co-creating vocabulary packs based on Bloom's Taxonomy tiers (Basic = Remember/Understand, Expert = Create) correctly structures the learning journey. Rewarding "Coal" for contextually accurate usage guarantees active participation rather than passive reading.

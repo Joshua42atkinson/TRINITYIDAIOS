@@ -40,7 +40,7 @@ TRINITY is designed for high autonomy, reducing user intervention through advanc
 - **Pete**: Socratic AI mentor guiding users through questions rather than direct answers, with personas like Great Recycler (visionary) and Programmer Pete (executor).
 - **ART**: Handles creative tasks like image generation and visual design, with modes for aesthetics, research, and tempo (code generation).
 - **Yardmaster**: Manages system operations and autonomous tasks, providing an agentic dev console for multi-turn tool-calling and file operations.
-- **VAAM (Vocabulary Acquisition And Mastery)**: Tracks vocabulary complexity and adapts responses to user language levels, enhancing accessibility.
+- **VAAM (Vocabulary Acquisition Autonomy Mastery)**: Tracks vocabulary complexity and adapts responses to user language levels, enhancing accessibility.
 - **Cow Catcher**: Autonomous error detection and recovery system, critical for maintaining workflow continuity.
 - **PEARL (Perspective Engineering Aesthetic Research Layout)**: A focusing agent ensuring alignment of subject, medium, and vision across design phases.
 - **Perspective Engine (Ring 6)**: Multi-perspective AI evaluation that annotates Pete's responses with 3 lenses — Bloom's Check (cognitive level verification), Practitioner (real-world applicability), and Devil's Advocate (constructive challenge). Perspectives appear as collapsible marginalia alongside the conversation.

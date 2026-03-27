@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import '../styles/zen.css';
+import MicButton from './MicButton';
 
 /**
  * ZEN MODE — The Game Engine
@@ -519,7 +520,7 @@ export default function ZenMode() {
   return (
     <div className="zen-layout">
       <header className="zen-header">
-        <div className="zen-header__title">✦ STORY MODE</div>
+        <div className="zen-header__title">✦ FUN · DAYDREAM</div>
         <div className="zen-header__subtitle">The Codex — your words become products</div>
         <div className="zen-header__spacer" />
         <button id="zen-new-chapter" onClick={startNewChapter} className="zen-btn">📖 New Chapter</button>
@@ -662,6 +663,10 @@ export default function ZenMode() {
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                 placeholder={streaming ? 'Composing...' : `Speak about ${activePhase.toLowerCase()}...`}
                 disabled={streaming} rows={2} className="zen-input__textarea" />
+              <MicButton
+                onTranscript={(text) => setInput(prev => prev ? prev + ' ' + text : text)}
+                disabled={streaming}
+              />
               <button id="zen-send" onClick={sendMessage} disabled={!isReady}
                 className={`zen-input__send ${isReady ? 'zen-input__send--ready' : ''}`}>Send ↵</button>
             </div>

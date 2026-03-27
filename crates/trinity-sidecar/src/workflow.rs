@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Sidecar Manager
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     workflow.rs
+// PURPOSE:  Workflow engine for multi-step sidecar orchestration pipelines
+// BIBLE:    Car 3 — DEVELOPMENT (P-ART-Y Framework, §3.2)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 //! Sword & Shield Workflow Orchestrator
 //!
 //! The autonomous work loop that coordinates Opus (Shield/Thinker) and REAP (Sword/Coder).

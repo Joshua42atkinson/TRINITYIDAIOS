@@ -730,7 +730,6 @@ export default function PortfolioView() {
 
   return (
     <div style={{
-      height: '100%', overflow: 'auto',
       background: 'linear-gradient(180deg, #0f0d0a 0%, #181612 40%, #0f0d0a 100%)',
       fontFamily: "'Crimson Text', serif",
       color: '#E2E8F0',

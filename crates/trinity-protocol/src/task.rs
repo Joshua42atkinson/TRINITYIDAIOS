@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Protocol Layer
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     task.rs
+// PURPOSE:  Autonomous task queue types for background job scheduling and execution
+// BIBLE:    Car 3 — DEVELOPMENT (Agentic Framework, §3.1)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 // Trinity AI Agent System
 // Copyright (c) Joshua
 // Shared under license for Ask_Pete (Purdue University)

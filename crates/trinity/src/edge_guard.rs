@@ -34,11 +34,29 @@ use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 /// ═══════════════════════════════════════════════════════════════════════════
-/// PROTOTYPE MODE — Set to `true` for Purdue demo presentations.
+/// PROTOTYPE MODE — Runtime toggle for Purdue demo presentations.
 /// When active, ALL routes are accessible from the tunnel (with rate limiting).
-/// Set back to `false` for production hosting.
+///
+/// Control via environment variable: TRINITY_PROTOTYPE_MODE
+///   - "true" (default) → all routes open from tunnel (demo mode)
+///   - "false"          → only ZEN_DEMO_ALLOWED paths from tunnel (production)
+///
+/// Evaluated once at first request (cached in OnceLock).
 /// ═══════════════════════════════════════════════════════════════════════════
-const PROTOTYPE_MODE: bool = true;
+fn prototype_mode() -> bool {
+    static MODE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *MODE.get_or_init(|| {
+        let val = std::env::var("TRINITY_PROTOTYPE_MODE")
+            .unwrap_or_else(|_| "true".to_string());
+        let enabled = val != "false" && val != "0";
+        if enabled {
+            tracing::info!("🔓 Edge Guard: PROTOTYPE_MODE=true — all tunnel routes open");
+        } else {
+            tracing::info!("🛡️ Edge Guard: PROTOTYPE_MODE=false — Zen Demo allow-list active");
+        }
+        enabled
+    })
+}
 
 /// Blocked path prefixes for tunnel (non-local) traffic.
 /// These routes are only accessible from localhost (direct browser access).
@@ -153,7 +171,7 @@ pub async fn edge_guard(
     }
 
     // ═══ PROTOTYPE MODE: All routes open, rate limiting only ═══
-    if PROTOTYPE_MODE {
+    if prototype_mode() {
         if let Some(ip) = req
             .headers()
             .get("cf-connecting-ip")
@@ -215,6 +233,27 @@ pub async fn edge_guard(
         }
         tracing::info!("🎮 Edge Guard: Allowing Zen Mode demo from tunnel: {}", path);
         return Ok(next.run(req).await);
+    }
+
+    // ═══ DEMO MODE ENFORCEMENT ═══
+    // The frontend needs to know it is in Demo Mode to render read-only UI.
+    // Since /api/mode is in BLOCKED_PREFIXES, we intercept the GET request here
+    // and return the AppMode::Demo JSON directly, safely blinding the frontend
+    // without permitting POST mutations to reach the backend.
+    if path == "/api/mode" && req.method() == axum::http::Method::GET {
+        let body = serde_json::json!({
+            "mode": "demo",
+            "description": "Read-only demo — chat and view, no mutation"
+        }).to_string();
+
+        let response = Response::builder()
+            .status(StatusCode::OK)
+            .header("content-type", "application/json")
+            .body(Body::from(body))
+            .unwrap();
+        
+        tracing::info!("🎮 Edge Guard: Intercepted GET /api/mode, returning Demo Mode configuration");
+        return Ok(response);
     }
 
     // Check blocked prefixes

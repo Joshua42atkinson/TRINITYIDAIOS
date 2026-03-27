@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { activityBus } from './activityBus';
 
 /**
  * useYardmaster — hook for Yardmaster IDE tab state.
@@ -79,6 +80,8 @@ export function useYardmaster() {
 
   const addForge = useCallback((text, type = '') => {
     setForgeLines((prev) => [...prev, { text, type, ts: Date.now() }].slice(-200));
+    // Mirror to global activity bus for the persistent Yard bar
+    activityBus.emit(text, type);
   }, []);
 
   const toggleFocus = useCallback((tag) => {
@@ -90,19 +93,23 @@ export function useYardmaster() {
     });
   }, []);
 
-  const sendMessage = useCallback(async (text, persona) => {
+  const sendMessage = useCallback(async (text, persona, scopePath) => {
     if (!text.trim() || sending) return;
     setSending(true);
     setThinking(''); // clear previous thinking
     setTurnInfo({ turn: 0, maxTurns: 8, continuations: 0 });
+    activityBus.setActive(true);
 
     // Add user message
     setMessages((prev) => [...prev, { role: 'user', content: text }]);
 
-    // Append focus context
+    // Append focus and scope context
     let fullMsg = text;
     if (focus.size > 0) {
       fullMsg += '\n\nSession focus: ' + Array.from(focus).join(', ');
+    }
+    if (scopePath) {
+      fullMsg += `\n\nProject scope: ${scopePath} — focus tools and file operations within this directory.`;
     }
 
     addForge(`Executing: ${text.substring(0, 40)}${text.length > 40 ? '…' : ''}`, 'command');
@@ -123,6 +130,7 @@ export function useYardmaster() {
           max_tokens: 16384,
           max_turns: 8,
           mode: persona || 'dev',
+          scope: scopePath || null,
           // Send conversation history for rolling context
           history: messages
             .filter(m => m.content) // skip empty placeholders
@@ -215,6 +223,54 @@ export function useYardmaster() {
             continue;
           }
 
+          // ── VAAM vocabulary detection events ──
+          if (currentEvent === 'vaam' && payload.startsWith('{')) {
+            try {
+              const j = JSON.parse(payload);
+              const wordCount = j.words_detected || j.total_words || 0;
+              const coal = j.coal_earned || j.total_coal || 0;
+              addForge(
+                `📚 VAAM: ${wordCount} vocabulary words detected (+${coal} coal)`,
+                'vaam'
+              );
+            } catch {}
+            currentEvent = '';
+            continue;
+          }
+
+           // ── Status events (thinking, tool execution — keeps Cloudflare alive) ──
+           if (currentEvent === 'status' && payload.startsWith('{')) {
+             try {
+               const j = JSON.parse(payload);
+               if (j.status === 'thinking' && j.turn) {
+                 setTurnInfo(prev => ({ ...prev, turn: j.turn }));
+                 addForge(`⏳ ${j.message || 'Thinking...'}`, 'system');
+               } else if (j.status === 'tool') {
+                 addForge(`🔧 ${j.message || `Running ${j.tool}...`}`, 'command');
+               } else if (j.status === 'connected') {
+                 addForge(`✅ ${j.message || 'Connected'}`, 'success');
+               }
+             } catch {}
+             currentEvent = '';
+             continue;
+           }
+
+           // ── Cognitive Load events ──
+          if (currentEvent === 'cognitive_load' && payload.startsWith('{')) {
+            try {
+              const j = JSON.parse(payload);
+              const grade = j.flesch_grade?.toFixed(1) || '?';
+              const complex = j.complex_words || 0;
+              const level = parseFloat(grade) > 12 ? '🔴' : parseFloat(grade) > 8 ? '🟡' : '🟢';
+              addForge(
+                `${level} Cognitive Load: Grade ${grade} | ${complex} complex words`,
+                'system'
+              );
+            } catch {}
+            currentEvent = '';
+            continue;
+          }
+
           // Image generation events — inline image in chat
           if (currentEvent === 'image' && payload.startsWith('{')) {
             try {
@@ -288,6 +344,7 @@ export function useYardmaster() {
 
     abortRef.current = null;
     setSending(false);
+    activityBus.setActive(false);
   }, [sending, focus, addForge, messages]);
 
   return {

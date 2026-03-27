@@ -91,7 +91,7 @@ Hooks are organized by **School** (domain of application) and **Tier** (current 
 ```
 TODAY (v1.0 — Single User, Local)
 ├── One student, one machine, one AI mentor
-├── 194K LOC Rust, 179+ tests, 73 API endpoints
+├── 194K LOC Rust, 264 tests, 73 API endpoints
 └── Fully functional prototype, zero cloud dependencies
 
 THIS YEAR (v2.0 — Multi-User, Institutional)

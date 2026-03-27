@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Sidecar Manager
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     comfyui.rs
+// PURPOSE:  ComfyUI workflow orchestration for image/video generation sidecar
+// BIBLE:    Car 11 — YOKE (ART Creative Pipeline, §11.2)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 //! ComfyUI HTTP Bridge
 //!
 //! Connects Artist and Visionary sidecars to ComfyUI for real image generation.

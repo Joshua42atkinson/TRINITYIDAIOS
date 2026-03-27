@@ -5,6 +5,23 @@
 // FILE:        creative.rs
 // PURPOSE:     Creative Sidecar API — ComfyUI image + MusicGPT audio generation
 //
+// 🪟 THE LIVING CODE TEXTBOOK (P-ART-Y Gear A: Aesthetics):
+// This file is the paintbrush of the ART agent. It is designed to be read, 
+// modified, and authored by YOU. If you want to change how Trinity generates
+// images or music, this is where you customize the creative pipeline.
+// ACTION: Edit `generate_image()` to add your own ComfyUI workflow prompts.
+//
+// 📖 THE HOOK BOOK CONNECTION:
+// This file powers the 'Image Generation' and 'Music Composition' Hooks inside
+// the School of Creation. You can freely use this API in your own projects to 
+// bridge Rust with local AI art generators! 
+// For full capabilities, see: docs/HOOK_BOOK.md
+//
+// 🛡️ THE COW CATCHER & AUTOPOIESIS:
+// All files operate under the autonomous Cow Catcher telemetry system. Runtime
+// errors and scope creep are intercepted to prevent catastrophic derailment,
+// maintaining the Socratic learning loop and keeping drift at bay.
+//
 // ARCHITECTURE:
 //   • ComfyUI client for SDXL-Turbo image generation (NPU optimized)
 //   • MusicGPT client for procedural audio/music generation
@@ -84,6 +101,7 @@ pub struct ImageResponse {
 
 /// Tempo generation request
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)] // Fields populated via serde deserialization
 pub struct TempoRequest {
     /// Visual/Mood style
     #[serde(default)]
@@ -224,6 +242,66 @@ pub async fn check_comfyui_health_quick() -> bool {
         .unwrap_or(false)
 }
 
+/// Ensure ComfyUI NPU sidecar is running, auto-launching via systemd if needed
+pub async fn ensure_comfyui_running() -> Result<(), (StatusCode, String)> {
+    let client = &*crate::http::LONG;
+    let healthy = client
+        .get("http://127.0.0.1:8188/system_stats")
+        .timeout(std::time::Duration::from_secs(3))
+        .send()
+        .await
+        .map(|r| r.status().is_success())
+        .unwrap_or(false);
+
+    if healthy {
+        return Ok(());
+    }
+
+    info!("ComfyUI not running — attempting systemd auto-launch...");
+    match std::process::Command::new("systemctl")
+        .args(["--user", "start", "trinity-comfyui.service"])
+        .output()
+    {
+        Ok(output) => {
+            if !output.status.success() {
+                let err = String::from_utf8_lossy(&output.stderr);
+                return Err((
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    format!("Failed to start trinity-comfyui.service: {}", err),
+                ));
+            }
+            info!("trinity-comfyui.service start signal sent, waiting for socket...");
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::SERVICE_UNAVAILABLE,
+                format!("Failed to execute systemctl: {}", e),
+            ));
+        }
+    }
+
+    // Wait up to 30 seconds for ComfyUI to become healthy
+    for attempt in 1..=15 {
+        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+        let check = client
+            .get("http://127.0.0.1:8188/system_stats")
+            .timeout(std::time::Duration::from_secs(2))
+            .send()
+            .await
+            .map(|r| r.status().is_success())
+            .unwrap_or(false);
+        if check {
+            info!("ComfyUI ready after {}s", attempt * 2);
+            return Ok(());
+        }
+    }
+
+    Err((
+        StatusCode::SERVICE_UNAVAILABLE,
+        "ComfyUI failed to start within 30 seconds. Check systemctl --user status trinity-comfyui.service".to_string(),
+    ))
+}
+
 // ============================================================================
 // API HANDLERS
 // ============================================================================
@@ -255,7 +333,7 @@ async fn check_comfyui() -> SidecarStatus {
         message: if running {
             "ComfyUI running".to_string()
         } else {
-            "ComfyUI not running. Start with: cd ~/ComfyUI && python main.py --port 8188"
+            "ComfyUI not running. Check: systemctl --user status trinity-comfyui.service"
                 .to_string()
         },
     }
@@ -290,6 +368,7 @@ async fn check_hunyuan3d() -> SidecarStatus {
 
 /// Generate an image via ComfyUI
 pub async fn generate_image(
+    State(state): State<AppState>,
     Json(request): Json<ImageRequest>,
 ) -> Result<Json<ImageResponse>, (StatusCode, String)> {
     let start = std::time::Instant::now();
@@ -306,11 +385,7 @@ pub async fn generate_image(
         .unwrap_or(false);
 
     if !healthy {
-        return Err((
-            StatusCode::SERVICE_UNAVAILABLE,
-            "ComfyUI not running. Start with: cd ~/ComfyUI && python main.py --port 8188"
-                .to_string(),
-        ));
+        ensure_comfyui_running().await?;
     }
 
     // Build style suffix
@@ -439,6 +514,27 @@ pub async fn generate_image(
                                     final_path.display(),
                                     start.elapsed().as_millis()
                                 );
+
+                                // Auto-vault to portfolio
+                                {
+                                    let mut sheet = state.player.character_sheet.write().await;
+                                    let artifact = trinity_protocol::character_sheet::PortfolioArtifact {
+                                        artifact_id: uuid::Uuid::new_v4(),
+                                        title: request.prompt.clone(),
+                                        addiecrapeye_phase: "Develop".to_string(),
+                                        artifact_type: "Generated Image".to_string(),
+                                        reflection_journal: format!("ArtStudio generation: {}", request.prompt),
+                                        aligned_supra_badge: "Design & Development".to_string(),
+                                        qm_score: 100.0,
+                                        aect_ethics_cleared: true,
+                                    };
+                                    sheet.ldt_portfolio.artifact_vault.push(artifact);
+                                    sheet.ldt_portfolio.recalculate();
+                                    if let Err(e) = crate::character_sheet::save_character_sheet(&sheet) {
+                                        tracing::error!("Failed to persist character sheet after auto-vault: {}", e);
+                                    }
+                                }
+
                                 return Ok(Json(ImageResponse {
                                     success: true,
                                     image_data: None,
@@ -463,6 +559,7 @@ pub async fn generate_image(
 
 /// Generate tempo via local procedural engine
 pub async fn generate_tempo(
+    State(state): State<AppState>,
     Json(request): Json<TempoRequest>,
 ) -> Result<Json<TempoResponse>, (StatusCode, String)> {
     let start = std::time::Instant::now();
@@ -484,7 +581,7 @@ pub async fn generate_tempo(
         "concept_introduction" // default
     };
 
-    let duration_str = request.duration_secs.to_string();
+    let _duration_str = request.duration_secs.to_string();
     
     // Output path to workspace
     let home = std::env::var("HOME").unwrap_or_else(|_| "/home/joshua".to_string());
@@ -513,6 +610,27 @@ pub async fn generate_tempo(
     match result {
         Ok(output) if output.status.success() => {
             info!("Tempo procedural audio generated successfully in {}ms", start.elapsed().as_millis());
+
+            // Auto-vault to portfolio
+            {
+                let mut sheet = state.player.character_sheet.write().await;
+                let artifact = trinity_protocol::character_sheet::PortfolioArtifact {
+                    artifact_id: uuid::Uuid::new_v4(),
+                    title: request.prompt.clone(),
+                    addiecrapeye_phase: "Develop".to_string(),
+                    artifact_type: "Procedural Audio".to_string(),
+                    reflection_journal: format!("ArtStudio tempo: {}", request.prompt),
+                    aligned_supra_badge: "Design & Development".to_string(),
+                    qm_score: 100.0,
+                    aect_ethics_cleared: true,
+                };
+                sheet.ldt_portfolio.artifact_vault.push(artifact);
+                sheet.ldt_portfolio.recalculate();
+                if let Err(e) = crate::character_sheet::save_character_sheet(&sheet) {
+                    tracing::error!("Failed to persist character sheet after auto-vault: {}", e);
+                }
+            }
+
             Ok(Json(TempoResponse {
                 success: true,
                 audio_path: Some(final_path.to_string_lossy().to_string()),
@@ -538,6 +656,7 @@ pub async fn generate_tempo(
 
 /// Generate a video via ComfyUI with HunyuanVideo
 pub async fn generate_video(
+    State(state): State<AppState>,
     Json(request): Json<VideoRequest>,
 ) -> Result<Json<VideoResponse>, (StatusCode, String)> {
     let start = std::time::Instant::now();
@@ -554,10 +673,7 @@ pub async fn generate_video(
         .unwrap_or(false);
 
     if !healthy {
-        return Err((
-            StatusCode::SERVICE_UNAVAILABLE,
-            "ComfyUI not running on :8188. Start ComfyUI with HunyuanVideo nodes.".to_string(),
-        ));
+        ensure_comfyui_running().await?;
     }
 
     info!(
@@ -605,6 +721,26 @@ pub async fn generate_video(
     // Wait for completion (up to 10 minutes)
     let video_path = wait_for_video(client, &prompt_id).await?;
 
+    // Auto-vault to portfolio
+    {
+        let mut sheet = state.player.character_sheet.write().await;
+        let artifact = trinity_protocol::character_sheet::PortfolioArtifact {
+            artifact_id: uuid::Uuid::new_v4(),
+            title: request.prompt.clone(),
+            addiecrapeye_phase: "Develop".to_string(),
+            artifact_type: "Generated Video".to_string(),
+            reflection_journal: format!("ArtStudio video: {}", request.prompt),
+            aligned_supra_badge: "Design & Development".to_string(),
+            qm_score: 100.0,
+            aect_ethics_cleared: true,
+        };
+        sheet.ldt_portfolio.artifact_vault.push(artifact);
+        sheet.ldt_portfolio.recalculate();
+        if let Err(e) = crate::character_sheet::save_character_sheet(&sheet) {
+            tracing::error!("Failed to persist character sheet after auto-vault: {}", e);
+        }
+    }
+
     Ok(Json(VideoResponse {
         success: true,
         video_path: Some(video_path),
@@ -618,6 +754,7 @@ pub async fn generate_video(
 /// WHY: Replaces broken Trellis pipeline. Hunyuan3D-2.1 produces high-fidelity
 ///      3D meshes with PBR materials from text or image input.
 pub async fn generate_3d_mesh(
+    State(state): State<AppState>,
     Json(request): Json<Mesh3DRequest>,
 ) -> Result<Json<Mesh3DResponse>, (StatusCode, String)> {
     let start = std::time::Instant::now();
@@ -700,6 +837,26 @@ pub async fn generate_3d_mesh(
             let _ = std::fs::copy(s, &final_path);
             final_path.to_string_lossy().to_string()
         });
+
+    if mesh_path.is_some() {
+        // Auto-vault to portfolio
+        let mut sheet = state.player.character_sheet.write().await;
+        let artifact = trinity_protocol::character_sheet::PortfolioArtifact {
+            artifact_id: uuid::Uuid::new_v4(),
+            title: request.prompt.clone(),
+            addiecrapeye_phase: "Develop".to_string(),
+            artifact_type: "Generated 3D Mesh".to_string(),
+            reflection_journal: format!("ArtStudio 3D Mesh: {}", request.prompt),
+            aligned_supra_badge: "Design & Development".to_string(),
+            qm_score: 100.0,
+            aect_ethics_cleared: true,
+        };
+        sheet.ldt_portfolio.artifact_vault.push(artifact);
+        sheet.ldt_portfolio.recalculate();
+        if let Err(e) = crate::character_sheet::save_character_sheet(&sheet) {
+            tracing::error!("Failed to persist character sheet after auto-vault: {}", e);
+        }
+    }
 
     Ok(Json(Mesh3DResponse {
         success: mesh_path.is_some(),
@@ -1115,6 +1272,7 @@ fn get_style_prompt_suffix(style: &Option<String>) -> &'static str {
     }
 }
 
+#[allow(dead_code)] // Activates with MusicGPT sidecar integration
 fn get_music_style_prompt(style: &Option<String>) -> &'static str {
     match style.as_deref() {
         Some("orchestral") => "epic orchestral background music, cinematic, adventure theme",
@@ -1151,3 +1309,136 @@ async fn save_image(image_bytes: Vec<u8>) -> Result<String, std::io::Error> {
 
     Ok(path.to_string_lossy().to_string())
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TESTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── Request/Response Structs ─────────────────────────────────────────
+
+    #[test]
+    fn test_image_request_deserialize() {
+        let json = r#"{"prompt": "a dragon", "width": 512, "height": 512}"#;
+        let req: ImageRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.prompt, "a dragon");
+        assert_eq!(req.width, 512);
+        assert_eq!(req.height, 512);
+    }
+
+    #[test]
+    fn test_image_request_defaults() {
+        let json = r#"{"prompt": "test"}"#;
+        let req: ImageRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.width, 1024);  // default
+        assert_eq!(req.height, 1024); // default
+        assert!(req.negative_prompt.is_none());
+        assert!(req.style.is_none());
+    }
+
+    #[test]
+    fn test_tempo_request_defaults() {
+        let json = r#"{"prompt": "ambient forest"}"#;
+        let req: TempoRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.duration_secs, 15); // default
+        assert!(req.style.is_none());
+    }
+
+    #[test]
+    fn test_video_request_defaults() {
+        let json = r#"{"prompt": "waves crashing"}"#;
+        let req: VideoRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.duration_secs, 4);  // default
+        assert_eq!(req.fps, 24);            // default
+        assert_eq!(req.height, 720);        // default
+    }
+
+    #[test]
+    fn test_mesh3d_request_defaults() {
+        let json = r#"{"prompt": "a castle"}"#;
+        let req: Mesh3DRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.format, "glb"); // default
+        assert!(req.image_base64.is_none());
+    }
+
+    // ── Sidecar Status ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_sidecar_status_serializes() {
+        let status = SidecarStatus {
+            running: true,
+            endpoint: "http://127.0.0.1:8188".to_string(),
+            message: "ComfyUI running".to_string(),
+        };
+        let json = serde_json::to_string(&status).unwrap();
+        assert!(json.contains("\"running\":true"));
+        assert!(json.contains("8188"));
+    }
+
+    #[test]
+    fn test_creative_status_serializes() {
+        let status = CreativeStatus {
+            comfyui: SidecarStatus {
+                running: false,
+                endpoint: "http://127.0.0.1:8188".to_string(),
+                message: "Not running".to_string(),
+            },
+            musicgpt: SidecarStatus {
+                running: true,
+                endpoint: "local".to_string(),
+                message: "Ready".to_string(),
+            },
+            hunyuan3d: SidecarStatus {
+                running: false,
+                endpoint: "http://127.0.0.1:7860".to_string(),
+                message: "Not running".to_string(),
+            },
+        };
+        let json = serde_json::to_string(&status).unwrap();
+        assert!(json.contains("comfyui"));
+        assert!(json.contains("musicgpt"));
+        assert!(json.contains("hunyuan3d"));
+    }
+
+    // ── Image Response ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_image_response_serializes() {
+        let resp = ImageResponse {
+            success: true,
+            image_data: None,
+            image_path: Some("/path/to/image.png".to_string()),
+            image_url: Some("/api/creative/assets/image.png".to_string()),
+            message: "Image generated".to_string(),
+            generation_time_ms: 2000,
+        };
+        let json = serde_json::to_string(&resp).unwrap();
+        assert!(json.contains("\"success\":true"));
+        assert!(json.contains("image.png"));
+    }
+
+    // ── Visual Style ────────────────────────────────────────────────────
+
+    #[test]
+    fn test_style_prompt_suffix() {
+        let steampunk = get_style_prompt_suffix(&Some("steampunk".to_string()));
+        assert!(!steampunk.is_empty());
+
+        let default = get_style_prompt_suffix(&None);
+        assert!(!default.is_empty()); // should return some default style
+    }
+
+    // ── Settings Request ────────────────────────────────────────────────
+
+    #[test]
+    fn test_creative_settings_deserialize() {
+        let json = r#"{"visual_style": "steampunk", "creative_enabled": true}"#;
+        let req: CreativeSettingsRequest = serde_json::from_str(json).unwrap();
+        assert_eq!(req.visual_style, Some("steampunk".to_string()));
+        assert_eq!(req.creative_enabled, Some(true));
+    }
+}
+

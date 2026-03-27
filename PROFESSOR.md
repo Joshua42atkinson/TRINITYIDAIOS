@@ -277,7 +277,7 @@ Zero data leaves campus. No API keys. Reduces reliance on third-party cloud proc
 | **Voice** | Kokoro TTS synthesis | ✅ Running |
 | **Socratic Protocol** | 11 phase-specific instruction sets in conductor | ✅ 12/12 claims verified |
 | **QM Scoring** | Automated Bloom's + ADDIE + engagement analysis | ✅ Returns real scores |
-| **VAAM** | Vocabulary Acquisition And Mastery — word scanning + Coal | ✅ Scanning works |
+| **VAAM** | Vocabulary Acquisition Autonomy Mastery — word scanning + Coal | ✅ Scanning works |
 | **30 Agentic Tools** | File I/O, quest, shell, image gen, lesson plans, rubrics | ✅ All 30 dispatched |
 | **Security** | 44 blocked command patterns, 3-tier tool permissions, path sandboxing | ✅ Verified |
 | **User Model** | Single-user prototype — one CharacterSheet per instance | ✅ By design |
@@ -335,7 +335,7 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 ### 3. Source Code Review
 - Download the source archive: [TRINITY_ID_AI_OS_v1.0_source.tar.gz](https://LDTAtkinson.com/downloads/TRINITY_ID_AI_OS_v1.0_source.tar.gz)
 - Follow [INSTALL.md](INSTALL.md) to build locally
-- Run tests: `cargo test` (179+ tests across 6 crates)
+- Run tests: `cargo test` (264 tests across 6 crates)
 - Read [TRINITY_FANCY_BIBLE.md](TRINITY_FANCY_BIBLE.md) for the full architecture
 
 ### 4. Key Things to Notice
@@ -600,9 +600,23 @@ Hooks are organized by **School** (domain of application) and **Tier** (current 
 | **3D Asset Generation** | 🟡 | Hunyuan3D. Text → 3D models for VR/XR educational environments. |
 | **Voice Narration** | 🟢 | Supertonic-2 TTS, native ONNX. 10 voices. Real-time narration of Pete's responses. |
 | **Asset Pipeline** | 🟢 | All creative outputs stored in the local asset library. Reusable across projects. |
-| **Bevy Game Scaffold** | 🟡 | Generate a working Bevy game project from instructional design data. Course → game. |
+| **Bevy Game Scaffold** | 🟡 | Generate a working Bevy game project from instructional design data. DAYDREAM engine provides 3D LitNovel world that Pete constructs via PEARL-driven blueprints. Course → game. |
 | **VR/XR Scene Builder** | 🔴 | Generate immersive VR/XR educational environments from design documents. The endgame. |
 | **Interactive Simulation** | 🔴 | Bevy-powered simulations that teach through play. Physics, chemistry, history — any domain. |
+
+#### DAYDREAM — The Pedagogical 3D LitNovel
+
+DAYDREAM is not a separate product — it is the **visual manifestation of the user's PEARL** in 3D space. Where the Book-View UI (ZenMode) renders the student's learning journey as flowing prose, DAYDREAM renders that **same pedagogical story as an explorable 3D world**.
+
+The key insight: **quest waypoints in 3D space ARE ADDIECRAPEYE objectives.** Completing a waypoint is the same as completing an instructional design task — it burns Coal, generates Steam, and advances the quest. The student doesn't choose between "doing homework" and "playing a game" — they are the same action.
+
+The world evolves with the student's cognitive progression:
+- **Extracting** (ADDIE phases 1-5): Dense fog, dim lighting — the student hasn't yet formed their understanding
+- **Placing** (CRAP phases 6-9): Fog lifts, paths and landmarks appear — design principles are taking shape
+- **Refining** (EYE phases 10-12): Clear sky, vibrant world — the PEARL is nearly manifest
+- **Polished**: The DAYDREAM is complete — the student explores freely and owns the artifact
+
+**Institutional significance:** DAYDREAM operationalizes Papert's Constructionism (1980) in a way no LMS can — the student literally *builds their own learning world* through the act of completing instructional design tasks. The AI (Pete) constructs the 3D environment based on the student's subject expertise, making each student's world unique and reflective of their actual learning domain.
 
 ---
 
@@ -644,7 +658,7 @@ Hooks are organized by **School** (domain of application) and **Tier** (current 
 ```
 TODAY (v1.0 — Single User, Local)
 ├── One student, one machine, one AI mentor
-├── 194K LOC Rust, 179+ tests, 73 API endpoints
+├── 194K LOC Rust, 264 tests, 73 API endpoints
 └── Fully functional prototype, zero cloud dependencies
 
 THIS YEAR (v2.0 — Multi-User, Institutional)
@@ -654,6 +668,7 @@ THIS YEAR (v2.0 — Multi-User, Institutional)
 └── Peer review → multiplayer pedagogy
 
 NEXT YEAR (v3.0 — VR/XR Education)
+├── DAYDREAM engine → 3D LitNovel worlds forged through quest system
 ├── Bevy game engine → immersive learning environments
 ├── VR/XR scene builder → spatial education design
 ├── AI-generated simulations → learn by playing

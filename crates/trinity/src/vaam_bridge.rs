@@ -293,7 +293,7 @@ mod tests {
 
     async fn test_bridge() -> VaamBridge {
         // Create a bridge with Sacred Circuitry foundation vocabulary loaded
-        let mut vaam = VaamState::new(Genre::default()).await;
+        let vaam = VaamState::new(Genre::default()).await;
         {
             let mut db = vaam.database.write().await;
             // Load Sacred Circuitry foundation words

@@ -70,6 +70,7 @@ pub async fn vault_portfolio_artifact(
 
 /// Generate Pete's system prompt with cognitive logistics and portfolio awareness.
 /// This is the Isomorphism bridge — academic rules become AI behavioral constraints.
+#[allow(dead_code)] // Called by agent prompt system at runtime
 pub fn generate_pete_system_prompt(
     sheet: &trinity_protocol::CharacterSheet,
     current_phase: &str,

@@ -4,7 +4,7 @@
 type = "Auto"  # Auto-detect Brain/Body
 
 [inference]
-primary = "llama-server"
+primary = "vllm"
 auto_detect = true
 ctx_size = 262144
 max_tokens = 16384
@@ -25,7 +25,7 @@ supports_vision = true
 [inference.backends.vllm]
 url = "http://127.0.0.1:8000"
 supports_tools = true
-supports_vision = false
+supports_vision = true
 
 [inference.backends.ollama]
 url = "http://127.0.0.1:11434"

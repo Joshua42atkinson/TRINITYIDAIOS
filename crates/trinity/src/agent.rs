@@ -5,6 +5,21 @@
 // FILE:        agent.rs
 // PURPOSE:     Multi-turn agentic chat with tool-calling loop (Dev Console)
 //
+// 🪟 THE LIVING CODE TEXTBOOK:
+// This file is the brain of Programmer Pete and the Great Recycler. It is 
+// designed to be read, modified, and authored by YOU. As you transition from 
+// LEARNING to WORK, this is where the AI logic lives. 
+//
+// 📖 THE HOOK BOOK CONNECTION:
+// This file manages the Socratic Interview and Multi-Model Routing Hooks. You 
+// can safely extend these multi-turn loops for your own AI applications. 
+// For a full catalogue of system capabilities, see: docs/HOOK_BOOK.md
+//
+// 🛡️ THE COW CATCHER & AUTOPOIESIS:
+// All files operate under the autonomous Cow Catcher telemetry system. Runtime
+// errors and scope creep are intercepted to prevent catastrophic derailment,
+// maintaining the Socratic learning loop and keeping drift at bay.
+//
 // ARCHITECTURE:
 //   • Handles POST /api/agent/chat endpoint with SSE streaming
 //   • Multi-turn loop: AI generates → tools execute → results fed back
@@ -172,10 +187,26 @@ You are running inside the Trinity ID AI OS project.
 - Rust backend: crates/trinity/src/ (main.rs, agent.rs, tools.rs, persistence.rs)
 - React frontend: crates/trinity/frontend/src/ (App.jsx, components/, hooks/)
 - Documentation: CONTEXT.md, TRINITY_FANCY_BIBLE.md, IRON_ROAD_DEMO_SCRIPT.md
-- Archive: archive/ (old concepts, scratch scripts)
+- Archive: archive/ (old concepts, scratch scripts, legacy crates)
 - Quests: quests/ (ADDIECRAPEYE quest definitions)
+- Launch scripts: scripts/ (start_comfyui.sh, start_trinity.sh, vllm_serve.sh, etc.)
+- Models (GGUF): ~/trinity-models/gguf/
+- Models (safetensors): ~/trinity-models/safetensors/
 - User home: /home/joshua
 You ARE the Yardmaster tab in this UI. You already know where everything is.
+
+SIDECAR & SERVICE ROLES:
+- LLM sidecars: 'conductor-llama', 'pete-llama' (NOT just 'pete' or 'conductor')
+- ComfyUI: port 8188 — check sidecar_status() BEFORE trying to generate images
+- Supertonic TTS: port 7777 — native Rust, no sidecar needed
+- Voxtral TTS: port 8100 — requires vLLM (not yet active)
+- llama-server: port 8080 — current inference backend
+
+PYTHON ENVIRONMENTS (NEVER mix these):
+- ~/trinity-vllm-env — LLM inference (vLLM, torch, mistral_common)
+- ~/trinity-voice-env — Voice (chatterbox-tts, onnxruntime)
+- ComfyUI has its OWN venv at ~/ComfyUI/venv
+- ALWAYS activate the RIGHT env before running Python commands
 
 TOOL FORMAT: Output a JSON object on its own line to call a tool:
 {"tool": "scaffold_bevy_game", "name": "dragon_familiars", "title": "Dragon Familiars", "subject": "fantasy strategy", "vocabulary": ["familiar", "territory", "hoard"], "objectives": ["Build a turn-based game loop", "Implement dragon AI"]}
@@ -217,6 +248,22 @@ SAFETY PROTOCOL (Cow Catcher):
 2. Use shell(dry_run=true) first for destructive commands, then execute if safe.
 3. If cargo_check fails, read the error, fix it, and check again. Do NOT leave broken code.
 4. Check cowcatcher_log() if things seem broken — it tracks all recent failures.
+
+ERROR RECOVERY PROTOCOL:
+1. When a tool call FAILS: STOP. Read the error message carefully.
+2. Do NOT retry the same command. Think about WHY it failed.
+3. If a service isn't running, check sidecar_status() first — don't blindly start things.
+4. If a path doesn't exist, use list_dir() to find the right path — don't guess.
+5. If 2 tool calls fail on the same task: TELL THE USER what's wrong and what's needed.
+6. NEVER chain more than 3 shell calls in a row. You WILL hit the rate limiter.
+7. Rate limiter means STOP. Explain the situation, don't keep hammering.
+
+A-R-T CREATIVE MODELS (separate from your brain):
+You have creative helper models for non-code tasks. Use sidecar_status() to see them:
+- REAP 25B MoE (Researcher) — OCR, document analysis, image understanding
+- Crow 9B (ART) — Quick image captions, simple classification
+These do NOT replace you. YOU are the sole brain for reasoning, coding, and execution.
+Use these only for creative/analysis tasks where vision or OCR is specifically needed.
 
 QUEST AWARENESS:
 - Use quest_status() to understand where the player is in the ADDIECRAPEYE lifecycle.
@@ -319,6 +366,16 @@ pub async fn agent_chat_stream(
                 let msg = format!("\n\n⚔️ **COMBAT ENCOUNTER!** A wild *Scope Creep* appears!\nThreat Level: {}\nPenalty: -{:.1} Steam if you yield.\n", creep.threat_level, creep.steam_penalty);
                 let json_str = serde_json::json!({ "content": msg }).to_string();
                 let _ = tx.send(format!("data: {}\n\n", json_str)).await;
+
+                // ── Soft Spot 6: Scope Creep encounter → friction rises ──
+                // Detection = extraneous cognitive load. The scope_creep_decision
+                // handler reduces friction on tame (-3) and nope (-1), completing
+                // the cycle. +8.0 matches MATURATION_MAP.md Soft Spot §6 spec.
+                let mut sheet = state.player.character_sheet.write().await;
+                sheet.track_friction = (sheet.track_friction + 8.0).min(100.0);
+                sheet.recalculate_vulnerability();
+                crate::character_sheet::save_character_sheet(&sheet).ok();
+                drop(sheet);
             }
 
             if vaam_result.has_detections() {
@@ -395,7 +452,7 @@ pub async fn agent_chat_stream(
 
         // === IRON ROAD: Inject Coal level + Sacred Circuitry focus ===
         // The AI needs to know its own attention level to self-regulate.
-        let mut last_focus_directive = String::new();
+        let mut _last_focus_directive = String::new();
         if is_ironroad {
             let gs = game_state.read().await;
             let coal = gs.stats.coal_reserves;
@@ -528,8 +585,10 @@ pub async fn agent_chat_stream(
 
         let mut continuation_count: u32 = 0;
 
-        // Build structured tool definitions for native function calling (Phase 2)
-        let tool_defs = inference::build_tool_definitions(&crate::tools::get_tool_list());
+        // Build structured tool definitions — The Turntable selects the right gauge
+        let gauge = crate::tools::gauge_for_mode(&request.mode);
+        let tool_defs = inference::build_tool_definitions(&crate::tools::get_tools_for_gauge(gauge));
+        info!("[Turntable] Mode '{}' → {:?} gauge ({} tools)", request.mode, gauge, tool_defs.len());
 
         for turn in 0..max_turns {
             info!(
@@ -538,6 +597,14 @@ pub async fn agent_chat_stream(
                 max_turns,
                 continuation_count
             );
+
+            // Emit status so SSE stream stays alive during inference (prevents Cloudflare 524)
+            let status_json = serde_json::json!({
+                "status": "thinking",
+                "turn": turn + 1,
+                "message": format!("Turn {} — Pete is thinking...", turn + 1)
+            });
+            let _ = tx.send(format!("event: status\ndata: {}\n\n", status_json)).await;
 
             // Phase 2: Try structured tool calling first, fall back to regex
             let (response, structured_tool_calls) = if !tool_defs.is_empty() {
@@ -727,7 +794,7 @@ pub async fn agent_chat_stream(
                 }
 
                 // Store focus directive for next turn's system prompt
-                last_focus_directive = alignment.focus_directive.clone();
+                _last_focus_directive = alignment.focus_directive.clone();
 
                 // Send circuit alignment event to frontend
                 let circuit_json = serde_json::to_string(&alignment).unwrap_or_default();
@@ -751,6 +818,14 @@ pub async fn agent_chat_stream(
             // Execute each tool call
             let mut tool_results = String::new();
             for (tool_name, tool_params) in &tool_calls {
+                // Emit tool status so the Forge shows what's happening (and keeps SSE alive)
+                let tool_status = serde_json::json!({
+                    "status": "tool",
+                    "tool": tool_name,
+                    "message": format!("Running {}...", tool_name)
+                });
+                let _ = tx.send(format!("event: status\ndata: {}\n\n", tool_status)).await;
+
                 // IRON ROAD: Skill check gate (d20 roll to use tools)
                 if is_ironroad {
                     let game_mode = if request.hardcore_mode {
@@ -846,6 +921,25 @@ pub async fn agent_chat_stream(
                 .await
                 {
                     warn!("[Agent] Failed to persist tool call: {}", e);
+                }
+
+                // ── Block C: Wire skills.rs XP/Coal rewards for tool execution ──
+                // In Iron Road mode, every tool use generates XP and spends Coal.
+                // Uses skills::calculate_xp() for dynamic rewards based on tool type.
+                if is_ironroad && !is_error {
+                    let skill_result = crate::skills::SkillResult::auto_success();
+                    let xp = crate::skills::calculate_xp(tool_name, &skill_result, false);
+                    let coal_cost = match tools::tool_permission(tool_name) {
+                        tools::ToolPermission::Safe => 1.0_f32,
+                        tools::ToolPermission::NeedsApproval => 3.0,
+                        tools::ToolPermission::Destructive => 5.0,
+                    };
+                    let mut game = game_state.write().await;
+                    game.quest.xp_earned += xp;
+                    game.quest.coal_used += coal_cost;
+                    game.stats.total_xp += xp;
+                    game.stats.coal_reserves = (game.stats.coal_reserves - coal_cost).max(0.0);
+                    drop(game);
                 }
 
                 let truncated = if result.len() > 16000 {
@@ -990,13 +1084,50 @@ pub async fn agent_chat_stream(
     });
 
     let stream = async_stream::stream! {
-        while let Some(token) = rx.recv().await {
-            yield Ok(sse::Event::default().data(token));
+        // Immediate status event so Cloudflare sees bytes within 1 second
+        yield Ok(sse::Event::default()
+            .event("status")
+            .data("{\"status\":\"connected\",\"message\":\"Pete is reading your message...\"}"));
+
+        loop {
+            tokio::select! {
+                // Real data from the agent loop
+                token = rx.recv() => {
+                    match token {
+                        Some(t) => {
+                            // Detect pre-formatted SSE events from the agent loop
+                            // Format: "event: <type>\ndata: <json>\n\n"
+                            if t.starts_with("event: ") {
+                                // Parse event type and data from pre-formatted string
+                                let parts: Vec<&str> = t.splitn(2, '\n').collect();
+                                if parts.len() >= 2 {
+                                    let event_type = parts[0].trim_start_matches("event: ").trim();
+                                    let data = parts[1].trim_start_matches("data: ").trim().trim_end_matches('\n');
+                                    yield Ok(sse::Event::default().event(event_type).data(data));
+                                } else {
+                                    yield Ok(sse::Event::default().data(t));
+                                }
+                            } else {
+                                yield Ok(sse::Event::default().data(t));
+                            }
+                        }
+                        None => break,  // channel closed — agent loop finished
+                    }
+                }
+                // Heartbeat every 15 seconds to keep Cloudflare tunnel alive
+                _ = tokio::time::sleep(std::time::Duration::from_secs(15)) => {
+                    yield Ok(sse::Event::default().comment("heartbeat"));
+                }
+            }
         }
         yield Ok(sse::Event::default().data("[DONE]"));
     };
 
-    Sse::new(stream)
+    Sse::new(stream).keep_alive(
+        axum::response::sse::KeepAlive::new()
+            .interval(std::time::Duration::from_secs(15))
+            .text("ping")
+    )
 }
 
 // ============================================================================

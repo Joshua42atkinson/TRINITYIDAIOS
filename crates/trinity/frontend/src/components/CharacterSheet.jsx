@@ -594,9 +594,9 @@ export default function CharacterSheet() {
 
 const s = {
   container: {
-    minHeight: '100vh', background: '#131210', color: '#E2E8F0',
-    padding: '24px', fontFamily: "'Inter', sans-serif", fontSize: '14px',
-    lineHeight: 1.5, overflowY: 'auto',
+    padding: '32px 24px', position: 'relative',
+    maxWidth: '1200px', margin: '0 auto', fontFamily: "'Crimson Text', serif", fontSize: '14px',
+    lineHeight: 1.5,
   },
   loading: { padding: '32px', fontFamily: "'Cinzel', serif", fontSize: '24px', color: '#CFB991' },
   loadingPulse: { animation: 'pulse 2s ease-in-out infinite', letterSpacing: '4px' },

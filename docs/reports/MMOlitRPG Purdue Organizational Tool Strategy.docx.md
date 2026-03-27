@@ -80,7 +80,7 @@ To address the growing crisis of privacy and data ownership in the age of cloud-
 The integration of GPS functionality transforms the entire Purdue campus into a game board, operationalizing the concept of **Physical AI**. The platform integrates the **Ferrostar** navigation engine to manage complex geospatial logic and location-based interactions.
 
 * **Node Gardens:** Specific physical locations on campus (e.g., the Engineering Fountain, the Bell Tower, the Union) are geofenced as "Node Gardens." These are not merely waypoints but active game zones where the digital and physical worlds converge.  
-* **Vocabulary-as-a-Mechanic (VaaM):** When a student physically enters a Node Garden, the **"VaaM"** system is triggered. In this mode, vocabulary words are treated as 3D physics objects within the game interface. To solve a location-based puzzle—for instance, "Unlock the Bell Tower"—the student must "equip" a specific vocabulary word (e.g., *Resonance*) from their inventory and apply it to the physical context. This mechanic grounds abstract language acquisition in physical experience, leveraging the principles of **Situated Cognition**.7  
+* **Vocabulary Acquisition Autonomy Mastery (VAAM):** When a student physically enters a Node Garden, the **"VAAM"** system is triggered. In this mode, vocabulary words are treated as 3D physics objects within the game interface. To solve a location-based puzzle—for instance, "Unlock the Bell Tower"—the student must "equip" a specific vocabulary word (e.g., *Resonance*) from their inventory and apply it to the physical context. This mechanic grounds abstract language acquisition in physical experience, leveraging the principles of **Situated Cognition**.7  
 * **Digital Twin Alignment:** By tracking student movement and their interaction with physical campus landmarks, "Ask Pete" creates a **Semantic Layer** over the physical campus. This process effectively builds a "Digital Twin" of the student experience, mapping cognitive states (e.g., confusion, flow) to physical locations. This capability directly maps to the "We Move" and "We Thrive" pillars of Purdue's Institute for Physical AI (IPAI), positioning the student as a key agent in the smart campus ecosystem.4
 
 ### **2.4 The Ferrostar Geospatial Logic**
@@ -156,7 +156,7 @@ The Pitch: "Ask Pete" represents the "Anti-ChatGPT"—a tool for thinking, not j
 To satisfy the Google/IPAI requirements early in the development cycle, the MVP must include one fully functional **GPS-enabled Node Garden**.
 
 * **Location:** The Purdue Bell Tower.  
-* **Interaction:** A "VaaM" (Vocabulary-as-a-Mechanic) puzzle where the student must physically be present at the Bell Tower to "unlock" a specific narrative node. To solve the puzzle, the student must use a vocabulary word acquired in the "Train Yard" module. This demonstrates the convergence of digital learning and physical location, proving the platform's capability as a **Human-Centric Physical AI** application.
+* **Interaction:** A "VAAM" (Vocabulary Acquisition Autonomy Mastery) puzzle where the student must physically be present at the Bell Tower to "unlock" a specific narrative node. To solve the puzzle, the student must use a vocabulary word acquired in the "Train Yard" module. This demonstrates the convergence of digital learning and physical location, proving the platform's capability as a **Human-Centric Physical AI** application.
 
 ---
 

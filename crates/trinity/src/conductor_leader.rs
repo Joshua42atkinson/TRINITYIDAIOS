@@ -6,6 +6,22 @@
 // FILE:        conductor_leader.rs
 // PURPOSE:     The Conductor — ADDIECRAPEYE phase orchestrator and Hotel manager
 //
+// 🪟 THE LIVING CODE TEXTBOOK (P-ART-Y Framework Orchestration):
+// This file is the beating heart of the ADDIECRAPEYE quest system. It is 
+// designed to be read, modified, and authored by YOU. If you want to change how 
+// the AI transitions between learning phases or swaps models, edit this logic.
+// ACTION: Modify `manage_hotel_sidecars()` to change how AI agents are swapped.
+//
+// 📖 THE HOOK BOOK CONNECTION:
+// This file implements the '12-Station Quest' and 'Model Switching' Hooks. 
+// You can use this state machine pattern to build your own gamified apps.
+// For a full catalogue of system capabilities, see: docs/HOOK_BOOK.md
+//
+// 🛡️ THE COW CATCHER & AUTOPOIESIS:
+// All files operate under the autonomous Cow Catcher telemetry system. Runtime
+// errors and scope creep are intercepted to prevent catastrophic derailment,
+// maintaining the Socratic learning loop and keeping drift at bay.
+//
 // ARCHITECTURE:
 //   • The 12 phases of ADDIECRAPEYE (ADD + IECRAP + EYE) as state machine
 //   • Hotel Manager: enforces "One Heavyweight at a Time" (Pete/Ming/ART models)

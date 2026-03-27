@@ -4,11 +4,9 @@ const IS_HOSTED = window.location.pathname.startsWith('/trinity');
 
 export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) {
   const tabs = [
-    { id: 'voice',     label: '📖 Story Mode' },
-    { id: 'ironroad',  label: '🚂 Iron Road' },
-    { id: 'art',       label: '🎨 ART Studio' },
-    { id: 'character', label: '🎭 Character' },
-    { id: 'yard',      label: '⚙️ Yardmaster' },
+    { id: 'ironroad',  label: '🚂 ID · Learning' },
+    { id: 'art',       label: '🎨 AI · Fun' },
+    { id: 'yard',      label: '⚙️ OS · Work' },
   ];
 
   // Help Menu — The Four Chariots

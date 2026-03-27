@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Protocol Layer
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     artifact.rs
+// PURPOSE:  Portfolio artifact types for LDT graduation tracking and QM scoring
+// BIBLE:    Car 10 — ENVISION (LDT Portfolio, §10.5)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 // Trinity AI Agent System
 // Copyright (c) Joshua
 // Shared under license for Ask_Pete (Purdue University)

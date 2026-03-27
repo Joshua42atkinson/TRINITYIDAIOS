@@ -1,7 +1,32 @@
-//! Calculator WASM Plugin
-//!
-//! A simple calculator that evaluates mathematical expressions.
-//! Used as an example WASM tool for the Trinity sandbox.
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — WASM Plugin: Calculator
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:         plugins/calculator/src/lib.rs
+// BIBLE CAR:    Car 12 — EVOLVE (Deployment & Extension)
+// HOOK SCHOOL:  ⚙️ Systems — WASM Sandbox
+// PURPOSE:      Calculator WASM plugin for the Trinity sandbox. Evaluates
+//               mathematical expressions via the meval crate. Demonstrates
+//               the WASM plugin ABI: alloc/dealloc memory management with
+//               i64-packed ptr+len result format. Used as a reference for
+//               building additional sandboxed tools.
+//
+// ARCHITECTURE:
+//   • WASM ABI: alloc(len) → ptr, dealloc(ptr, len), calculate(ptr, len) → i64
+//   • Input: JSON {"expression": "2 + 2"} via shared memory
+//   • Output: JSON {"result": 4.0} or {"error": "..."} packed into i64
+//   • Host calls alloc(), writes input, calls calculate(), reads output
+//   • Bible Car 5.4: Part of Ring 5 sandboxing — plugin cannot access host FS
+//
+// DEPENDENCIES:
+//   - serde      — JSON serialization for plugin I/O
+//   - meval      — Safe mathematical expression evaluator
+//
+// CHANGES:
+//   2026-03-16  Joshua Atkinson  Created as WASM plugin prototype
+//   2026-03-26  Cascade          Added §17 header
+//
+// ═══════════════════════════════════════════════════════════════════════════════
 
 use serde::{Deserialize, Serialize};
 

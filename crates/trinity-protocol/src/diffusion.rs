@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Protocol Layer
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     diffusion.rs
+// PURPOSE:  Diffusion model types for NPU-optimized image generation pipeline
+// BIBLE:    Car 11 — YOKE (ART Creative Pipeline, §11.2)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 // Trinity Diffusion Model Types
 // Shared types for NPU-optimized diffusion pipeline.
 

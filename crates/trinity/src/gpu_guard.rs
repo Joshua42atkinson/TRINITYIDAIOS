@@ -27,7 +27,10 @@ pub enum LaunchDecision {
     /// Safe to launch — nothing running, enough memory
     SafeToLaunch,
     /// Already running on the expected port — just connect
-    AlreadyRunning { pid: Option<u32> },
+    AlreadyRunning {
+        #[allow(dead_code)] // Used in Debug output for diagnostics
+        pid: Option<u32>,
+    },
     /// Process exists but port not responding — wait for it
     StillLoading { pid: u32 },
     /// Not enough memory to safely load the model

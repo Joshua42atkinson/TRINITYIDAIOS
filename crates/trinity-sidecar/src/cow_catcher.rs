@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Sidecar Manager
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     cow_catcher.rs
+// PURPOSE:  Error classification and recovery for sidecar process failures
+// BIBLE:    Car 5 — EVALUATE (Cow Catcher, §5.8)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 //! Cow Catcher Integration for Sidecar
 //!
 //! Routes timeout errors, compilation failures, and other obstacles

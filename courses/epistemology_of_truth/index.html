@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Epistemological Evolution of Truth — Trinity E-Learning</title>
+  <meta name="description" content="An interactive e-learning module exploring the history, philosophy, psychology, and future of truth — from Proto-Indo-European roots to post-human epistemology.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- ═══ Navigation Sidebar ═══ -->
+  <nav id="sidebar" class="sidebar">
+    <div class="sidebar__brand">
+      <span class="sidebar__icon">✦</span>
+      <span class="sidebar__title">TRINITY<br><small>E-Learning</small></span>
+    </div>
+    <div class="sidebar__progress">
+      <div class="sidebar__progress-bar"><div id="progress-fill" class="sidebar__progress-fill"></div></div>
+      <span id="progress-label" class="sidebar__progress-label">0 / 6 modules</span>
+    </div>
+    <ul class="sidebar__nav" id="module-nav"></ul>
+    <div class="sidebar__footer">
+      <button id="btn-download" class="sidebar__btn" title="Download Progress">📥 Export</button>
+      <button id="btn-reset" class="sidebar__btn sidebar__btn--danger" title="Reset Progress">🔄 Reset</button>
+    </div>
+  </nav>
+
+  <!-- ═══ Main Content ═══ -->
+  <main id="main" class="main">
+    <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle navigation">☰</button>
+
+    <!-- Hero / Landing -->
+    <section id="landing" class="module landing active">
+      <div class="landing__hero">
+        <div class="landing__badge">TRINITY E-LEARNING MODULE</div>
+        <h1 class="landing__title">The Epistemological Evolution of Truth</h1>
+        <p class="landing__subtitle">From Etymological Roots to Post-Human Futures</p>
+        <div class="landing__meta">
+          <span>🎓 Graduate Level</span>
+          <span>⏱ ~90 min</span>
+          <span>📖 6 Modules</span>
+          <span>📝 6 Quizzes</span>
+        </div>
+        <p class="landing__desc">
+          Trace the concept of truth across millennia — from the Proto-Indo-European root <em>*deru-</em> (tree, steadfast)
+          through Aristotle's correspondence theory, Tarski's formal semantics, Perry's epistemic maturity,
+          and into the post-human age of AI-augmented knowledge systems.
+        </p>
+        <button id="btn-start" class="btn btn--primary btn--lg">Begin Module 1 →</button>
+      </div>
+      <div class="landing__objectives">
+        <h3>Course Learning Objectives</h3>
+        <ol>
+          <li>Trace the etymological evolution of "truth" across Proto-Indo-European, Germanic, Greek, Latin, and Sanskrit traditions</li>
+          <li>Compare and contrast correspondence, coherence, deflationary, and pluralist theories of truth</li>
+          <li>Map the developmental trajectory of epistemic maturity from infancy through Perry's Scheme</li>
+          <li>Design pedagogical interventions using P4C and Community of Inquiry frameworks</li>
+          <li>Analyze contemporary epistemic threats including deepfakes, truth decay, and the Liar's Dividend</li>
+          <li>Evaluate the emerging paradigm of post-human epistemology and computational reliabilism</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ═══ MODULE 1: Etymology ═══ -->
+    <section id="mod-1" class="module" data-module="1">
+      <div class="module__header">
+        <span class="module__number">01</span>
+        <h2>Philological & Etymological Foundations</h2>
+        <span class="module__time">~15 min</span>
+      </div>
+      <div class="module__content prose">
+        <div class="callout callout--key">
+          <strong>Key Question:</strong> How does the word we use for "truth" shape what we think truth <em>is</em>?
+        </div>
+
+        <h3>The Proto-Indo-European Root</h3>
+        <p>The English words <strong>"true"</strong> and <strong>"tree"</strong> share the same Proto-Indo-European root: <em>*deru-</em> or <em>*dreu-</em>, meaning <strong>"be firm, solid, steadfast."</strong> This root carried a secondary sense referring to wood and trees — objects defined by their deep roots, unyielding presence, and reliability against the elements.</p>
+        <p>From this root, the Proto-Germanic <em>*treuwaz</em> emerged, meaning "having good faith," "faithful," or "trustworthy." Early Germanic truth was <strong>relational and ethical</strong> — a measure of fidelity, a social pledge, the state of being steady in adhering to promises. The noun form <em>*trewwō</em> indicated a pledge.</p>
+
+        <div class="timeline">
+          <div class="timeline__item">
+            <div class="timeline__date">~3500 BCE</div>
+            <div class="timeline__text">Proto-Indo-European <em>*deru-</em> — "firm, solid" (tree/wood)</div>
+          </div>
+          <div class="timeline__item">
+            <div class="timeline__date">~500 BCE</div>
+            <div class="timeline__text">Proto-Germanic <em>*treuwaz</em> — "faithful, trustworthy"</div>
+          </div>
+          <div class="timeline__item">
+            <div class="timeline__date">~700 CE</div>
+            <div class="timeline__text">Old English <em>triewe</em> (West Saxon) / <em>treowe</em> (Mercian)</div>
+          </div>
+          <div class="timeline__item">
+            <div class="timeline__date">~1200 CE</div>
+            <div class="timeline__text">Middle English <em>true</em> — solidifies modern form</div>
+          </div>
+          <div class="timeline__item">
+            <div class="timeline__date">1560s</div>
+            <div class="timeline__text">Derivatives like "reliable" emerge; physical alignment sense ("true arrow")</div>
+          </div>
+        </div>
+
+        <h3>Cross-Cultural Divergence</h3>
+        <p>The translation of truth is never mere vocabulary substitution — it shifts entire epistemological paradigms.</p>
+
+        <div class="comparison-table">
+          <table>
+            <thead><tr><th>Tradition</th><th>Term</th><th>Core Meaning</th></tr></thead>
+            <tbody>
+              <tr><td>Old Norse</td><td><em>Tryggr</em></td><td>Faithful, trusty, safe (from *treuwaz)</td></tr>
+              <tr><td>Latin</td><td><em>Veritas</em></td><td>Objective possession, authoritative decree — truth as a <strong>noun</strong></td></tr>
+              <tr class="highlight-row"><td>Greek</td><td><em>Aletheia</em> (ἀλήθεια)</td><td><strong>Un-concealment</strong> — truth as dynamic revelation, not static fact</td></tr>
+              <tr><td>Sanskrit</td><td><em>Satya</em> (सत्य)</td><td>Absolute reality pervading all constancy — cosmological AND ethical</td></tr>
+              <tr><td>Bantu/Zulu</td><td><em>Ubuntu</em></td><td>"I am because we are" — relational, communal truth</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout callout--insight">
+          <strong>Heidegger's Critique:</strong> Martin Heidegger argued that translating Greek <em>Aletheia</em> into Latin <em>veritas</em> was a "massive historical mistake" that distorted foundational Greek thought. For early Greeks, truth was not a static statement's correspondence to objective reality, but the <strong>dynamic event of reality revealing itself</strong> — the "clearing" of being.
+        </div>
+
+        <div class="callout callout--reflect">
+          <strong>🪞 Reflection:</strong> Indigenous epistemologies treat oral traditions as sophisticated communal methods of encoding factual data and ecological mapping. Truth is relational, grounded in specific territories, validated by experience — not detached scientific objectivity. How does this challenge your own assumptions about what counts as "evidence"?
+        </div>
+      </div>
+
+      <!-- Quiz -->
+      <div class="quiz" data-quiz="1">
+        <h3 class="quiz__title">📝 Check Your Understanding</h3>
+        <div class="quiz__questions">
+          <div class="quiz__q" data-correct="1">
+            <p><strong>1.</strong> The Proto-Indo-European root *deru- originally referred to:</p>
+            <label><input type="radio" name="q1-1" value="0"> Abstract philosophical truth</label>
+            <label><input type="radio" name="q1-1" value="1"> Being firm, solid, steadfast (wood/tree)</label>
+            <label><input type="radio" name="q1-1" value="2"> Mathematical correspondence</label>
+            <label><input type="radio" name="q1-1" value="3"> Divine revelation</label>
+          </div>
+          <div class="quiz__q" data-correct="2">
+            <p><strong>2.</strong> The Greek term Aletheia literally means:</p>
+            <label><input type="radio" name="q1-2" value="0"> Correspondence to facts</label>
+            <label><input type="radio" name="q1-2" value="1"> Objective possession</label>
+            <label><input type="radio" name="q1-2" value="2"> Un-concealment (the state of no longer being hidden)</label>
+            <label><input type="radio" name="q1-2" value="3"> Communal agreement</label>
+          </div>
+          <div class="quiz__q" data-correct="1">
+            <p><strong>3.</strong> Ubuntu philosophy defines truth primarily through:</p>
+            <label><input type="radio" name="q1-3" value="0"> Individual empirical observation</label>
+            <label><input type="radio" name="q1-3" value="1"> Communal relationships and interconnectedness</label>
+            <label><input type="radio" name="q1-3" value="2"> Divine authority</label>
+            <label><input type="radio" name="q1-3" value="3"> Mathematical proof</label>
+          </div>
+        </div>
+        <button class="btn btn--primary quiz__submit">Check Answers</button>
+        <div class="quiz__result"></div>
+      </div>
+      <div class="module__nav">
+        <button class="btn btn--secondary" data-goto="landing">← Overview</button>
+        <button class="btn btn--primary" data-goto="mod-2">Module 2 →</button>
+      </div>
+    </section>
+
+    <!-- ═══ MODULE 2: Philosophy ═══ -->
+    <section id="mod-2" class="module" data-module="2">
+      <div class="module__header">
+        <span class="module__number">02</span>
+        <h2>Historical & Philosophical Conceptions</h2>
+        <span class="module__time">~15 min</span>
+      </div>
+      <div class="module__content prose">
+        <div class="callout callout--key">
+          <strong>Key Question:</strong> Is truth a property of sentences, beliefs, or reality itself?
+        </div>
+
+        <h3>Aristotle's Correspondence Theory</h3>
+        <p>In <em>Metaphysics</em>, Aristotle defined truth in seemingly simple terms: <strong>"To say of what is that it is, and of what is not that it is not, is true."</strong></p>
+        <p>This formulation embeds three assumptions:</p>
+        <ol>
+          <li><strong>Priority of nature over language</strong> — reality has an identity independent of human culture</li>
+          <li><strong>Truth as sameness</strong> — truth is imitation between thought and physical existence</li>
+          <li><strong>Words are secondary</strong> — symbols are subordinate to the objects they represent</li>
+        </ol>
+
+        <h3>Tarski's Semantic Revolution (1933)</h3>
+        <p>Alfred Tarski resolved classical paradoxes like the Liar Paradox ("This sentence is false") by mandating strict <strong>language separation</strong>:</p>
+        <div class="concept-card">
+          <div class="concept-card__title">Convention T (Material Adequacy)</div>
+          <div class="concept-card__body">
+            <code>The sentence "snow is white" is true <strong>if and only if</strong> snow is white.</code>
+            <p>The <em>Object Language</em> (being discussed) must be strictly separated from the <em>Metalanguage</em> (used for discussion). This prevents self-referential paradoxes.</p>
+          </div>
+        </div>
+
+        <h3>Deflationary Theory</h3>
+        <p>Ramsey and Horwich argue that "is true" adds <strong>nothing</strong>. Saying <em>"It is true that 3+2=5"</em> is semantically identical to <em>"3+2=5"</em>. The truth predicate is merely a convenient linguistic shorthand.</p>
+
+        <h3>Semantic Pluralism</h3>
+        <p>Wright and Lynch argue truth <strong>shifts by domain</strong>:</p>
+        <div class="three-col">
+          <div class="domain-card">
+            <div class="domain-card__icon">🔬</div>
+            <div class="domain-card__title">Empirical Domain</div>
+            <div class="domain-card__theory">Correspondence Theory</div>
+            <p>"Sugar is C₆H₁₂O₆" — depends on physical reality</p>
+          </div>
+          <div class="domain-card">
+            <div class="domain-card__icon">🔢</div>
+            <div class="domain-card__title">Mathematical Domain</div>
+            <div class="domain-card__theory">Coherence Theory</div>
+            <p>"3+2=5" — no tangible reality, just internal consistency</p>
+          </div>
+          <div class="domain-card">
+            <div class="domain-card__icon">⚖️</div>
+            <div class="domain-card__title">Ethical Domain</div>
+            <div class="domain-card__theory">Coherence Theory</div>
+            <p>"Stealing is illegal" — coherence with the legal system</p>
+          </div>
+        </div>
+        <div class="callout callout--insight">
+          <strong>Cross-Linguistic Data:</strong> 38 global languages colexify "true" and "certain" into a single word — suggesting truth natively expresses internal coherence for many cultures, not external correspondence.
+        </div>
+      </div>
+      <div class="quiz" data-quiz="2">
+        <h3 class="quiz__title">📝 Check Your Understanding</h3>
+        <div class="quiz__questions">
+          <div class="quiz__q" data-correct="0">
+            <p><strong>1.</strong> Aristotle's correspondence theory prioritizes:</p>
+            <label><input type="radio" name="q2-1" value="0"> Nature over language — reality exists independently</label>
+            <label><input type="radio" name="q2-1" value="1"> Language over nature — words create reality</label>
+            <label><input type="radio" name="q2-1" value="2"> Social consensus determines truth</label>
+          </div>
+          <div class="quiz__q" data-correct="1">
+            <p><strong>2.</strong> Tarski's Convention T resolves the Liar Paradox by:</p>
+            <label><input type="radio" name="q2-2" value="0"> Declaring paradoxes meaningless</label>
+            <label><input type="radio" name="q2-2" value="1"> Separating the Object Language from the Metalanguage</label>
+            <label><input type="radio" name="q2-2" value="2"> Using probability theory instead of binary truth</label>
+          </div>
+          <div class="quiz__q" data-correct="2">
+            <p><strong>3.</strong> Semantic pluralism argues that:</p>
+            <label><input type="radio" name="q2-3" value="0"> One theory of truth works for all domains</label>
+            <label><input type="radio" name="q2-3" value="1"> Truth is entirely subjective</label>
+            <label><input type="radio" name="q2-3" value="2"> The mechanism of truth shifts depending on the domain</label>
+          </div>
+        </div>
+        <button class="btn btn--primary quiz__submit">Check Answers</button>
+        <div class="quiz__result"></div>
+      </div>
+      <div class="module__nav">
+        <button class="btn btn--secondary" data-goto="mod-1">← Module 1</button>
+        <button class="btn btn--primary" data-goto="mod-3">Module 3 →</button>
+      </div>
+    </section>
+
+    <!-- ═══ MODULE 3: Psychology ═══ -->
+    <section id="mod-3" class="module" data-module="3">
+      <div class="module__header">
+        <span class="module__number">03</span>
+        <h2>The Psychological Expansion of Truth</h2>
+        <span class="module__time">~15 min</span>
+      </div>
+      <div class="module__content prose">
+        <div class="callout callout--key">
+          <strong>Key Question:</strong> How does the capacity to discern truth develop from infancy to adulthood?
+        </div>
+
+        <h3>Early Childhood: Epistemic Vigilance</h3>
+        <p>Infants as young as <strong>14 months</strong> discount information from unreliable informants. By ages 3-5, children actively distinguish between adults who "guess" vs. "know."</p>
+        <p>Preschoolers find it easier to forgive <em>episodic errors</em> (wrong about a box's contents because they didn't look) than <em>semantic errors</em> (calling an apple a banana).</p>
+
+        <h3>Perry's Scheme of Intellectual Development</h3>
+        <p>William Perry identified four major cognitive stages in how adults understand truth:</p>
+        <div class="perry-scheme">
+          <div class="perry-stage" data-stage="1">
+            <div class="perry-stage__num">1</div>
+            <div class="perry-stage__name">Dualism</div>
+            <div class="perry-stage__aka">Received Knowledge</div>
+            <p>Knowledge is binary: right/wrong, true/false. Truth exists on "Golden Tablets" possessed by omniscient Authorities. The learner's role is to obey and memorize.</p>
+            <div class="perry-stage__quote">"The professor <em>has</em> the answer."</div>
+          </div>
+          <div class="perry-stage" data-stage="2">
+            <div class="perry-stage__num">2</div>
+            <div class="perry-stage__name">Multiplicity</div>
+            <div class="perry-stage__aka">Subjective Knowledge</div>
+            <p>Authorities disagree. Uncertainty exists. <strong>Dangerous trap:</strong> "Everyone has a right to their own opinion" — all views treated as equally valid without evidence.</p>
+            <div class="perry-stage__quote">"Well, that's just my opinion."</div>
+          </div>
+          <div class="perry-stage" data-stage="3">
+            <div class="perry-stage__num">3</div>
+            <div class="perry-stage__name">Relativism</div>
+            <div class="perry-stage__aka">Procedural Knowledge</div>
+            <p>Knowledge is contextual. Solutions require <strong>reasons, evidence, and disciplinary methods</strong>. Authorities are experts subject to logical scrutiny.</p>
+            <div class="perry-stage__quote">"What's the evidence for that claim?"</div>
+          </div>
+          <div class="perry-stage" data-stage="4">
+            <div class="perry-stage__num">4</div>
+            <div class="perry-stage__name">Commitment within Relativism</div>
+            <div class="perry-stage__aka">Constructed Knowledge</div>
+            <p>Full acceptance of contextual reality, with <strong>conscious personal commitments</strong> to values and paradigms — knowing they are not absolute but necessary anchors.</p>
+            <div class="perry-stage__quote">"I choose this path, knowing I may revise it."</div>
+          </div>
+        </div>
+
+        <h3>The Reflective Judgment Model (King & Kitchener)</h3>
+        <div class="three-col">
+          <div class="domain-card">
+            <div class="domain-card__icon">🔵</div>
+            <div class="domain-card__title">Pre-Reflective</div>
+            <div class="domain-card__theory">Stages 1-3</div>
+            <p>Knowledge exists absolutely. Beliefs need no justification. "It's just a guess until they find the answer."</p>
+          </div>
+          <div class="domain-card">
+            <div class="domain-card__icon">🟡</div>
+            <div class="domain-card__title">Quasi-Reflective</div>
+            <div class="domain-card__theory">Stages 4-5</div>
+            <p>Knowledge is subjective but poorly balanced. Evidence filtered through preexisting biases.</p>
+          </div>
+          <div class="domain-card">
+            <div class="domain-card__icon">🟢</div>
+            <div class="domain-card__title">Reflective</div>
+            <div class="domain-card__theory">Stages 6-7</div>
+            <p>Knowledge constructed through rigorous inquiry. Absolute certainty impossible, but some conclusions demonstrably more plausible.</p>
+          </div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="3">
+        <h3 class="quiz__title">📝 Check Your Understanding</h3>
+        <div class="quiz__questions">
+          <div class="quiz__q" data-correct="1">
+            <p><strong>1.</strong> In Perry's Multiplicity stage, the cognitive trap is:</p>
+            <label><input type="radio" name="q3-1" value="0"> Blind obedience to authority</label>
+            <label><input type="radio" name="q3-1" value="1"> Believing all opinions are equally valid</label>
+            <label><input type="radio" name="q3-1" value="2"> Rejecting all evidence</label>
+          </div>
+          <div class="quiz__q" data-correct="2">
+            <p><strong>2.</strong> King & Kitchener's Reflective Judgment focuses on:</p>
+            <label><input type="radio" name="q3-2" value="0"> Well-structured problems with clear answers</label>
+            <label><input type="radio" name="q3-2" value="1"> Mathematical proofs</label>
+            <label><input type="radio" name="q3-2" value="2"> Ill-structured problems that cannot be solved with certainty</label>
+          </div>
+          <div class="quiz__q" data-correct="0">
+            <p><strong>3.</strong> Infants demonstrate epistemic vigilance as early as:</p>
+            <label><input type="radio" name="q3-3" value="0"> 14 months</label>
+            <label><input type="radio" name="q3-3" value="1"> 3 years</label>
+            <label><input type="radio" name="q3-3" value="2"> 6 years</label>
+          </div>
+        </div>
+        <button class="btn btn--primary quiz__submit">Check Answers</button>
+        <div class="quiz__result"></div>
+      </div>
+      <div class="module__nav">
+        <button class="btn btn--secondary" data-goto="mod-2">← Module 2</button>
+        <button class="btn btn--primary" data-goto="mod-4">Module 4 →</button>
+      </div>
+    </section>
+
+    <!-- ═══ MODULE 4: Pedagogy ═══ -->
+    <section id="mod-4" class="module" data-module="4">
+      <div class="module__header">
+        <span class="module__number">04</span>
+        <h2>Pedagogical Frameworks for Truth</h2>
+        <span class="module__time">~15 min</span>
+      </div>
+      <div class="module__content prose">
+        <div class="callout callout--key">
+          <strong>Key Question:</strong> How do we <em>teach</em> people to move from dualistic thinking to reflective judgment?
+        </div>
+
+        <h3>Philosophy for Children (P4C)</h3>
+        <p>Matthew Lipman's P4C methodology shifts education from <strong>teacher-centered transmission</strong> to <strong>learner-centered search for meaning</strong>. The "Community of Inquiry" model:</p>
+        <ol>
+          <li>Present a stimulus (story, image, dilemma)</li>
+          <li>Students generate their own philosophical questions</li>
+          <li>Class votes on a primary question</li>
+          <li>Socratic dialogue — students evaluate evidence, demand logical reasoning</li>
+          <li>Metacognitive reflection — "How do I know what I believe is true?"</li>
+        </ol>
+
+        <h3>Sample Lesson: Truth, Opinion, and Evidence</h3>
+        <div class="lesson-plan">
+          <div class="lesson-plan__meta">
+            <span>🎯 Grades 9-12</span>
+            <span>⏱ 90 minutes</span>
+            <span>📋 P4C Community of Inquiry</span>
+          </div>
+          <div class="lesson-plan__phases">
+            <div class="lesson-phase">
+              <div class="lesson-phase__time">15 min</div>
+              <div class="lesson-phase__name">1. The Stimulus</div>
+              <p>AWTT portrait of a "Truth Teller" + historical narrative featuring an ill-structured problem (whistleblower, conflicting ethical obligations).</p>
+              <div class="lesson-phase__goal">Goal: Disrupt dualistic thinking</div>
+            </div>
+            <div class="lesson-phase">
+              <div class="lesson-phase__time">15 min</div>
+              <div class="lesson-phase__name">2. Question Generation</div>
+              <p>Small groups formulate philosophical questions. Class votes on one primary question.</p>
+              <div class="lesson-phase__goal">Goal: Foster intellectual autonomy</div>
+            </div>
+            <div class="lesson-phase">
+              <div class="lesson-phase__time">40 min</div>
+              <div class="lesson-phase__name">3. Community of Inquiry</div>
+              <p>Socratic dialogue with explicit epistemological vocabulary: "certainty," "justification," "consensus."</p>
+              <div class="lesson-phase__goal">Goal: Practice reflective thinking</div>
+            </div>
+            <div class="lesson-phase">
+              <div class="lesson-phase__time">20 min</div>
+              <div class="lesson-phase__name">4. Metacognitive Reflection</div>
+              <p>Structured writing: "How do you know that what you believe is true?"</p>
+              <div class="lesson-phase__goal">Goal: Build rhetorical maturity</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="quiz" data-quiz="4">
+        <h3 class="quiz__title">📝 Check Your Understanding</h3>
+        <div class="quiz__questions">
+          <div class="quiz__q" data-correct="1">
+            <p><strong>1.</strong> The P4C "Community of Inquiry" begins with:</p>
+            <label><input type="radio" name="q4-1" value="0"> A lecture on epistemology</label>
+            <label><input type="radio" name="q4-1" value="1"> Students generating their own philosophical questions from a stimulus</label>
+            <label><input type="radio" name="q4-1" value="2"> Memorizing definitions of truth theories</label>
+          </div>
+          <div class="quiz__q" data-correct="2">
+            <p><strong>2.</strong> The metacognitive reflection phase asks students:</p>
+            <label><input type="radio" name="q4-2" value="0"> To repeat the teacher's definitions</label>
+            <label><input type="radio" name="q4-2" value="1"> To grade each other's participation</label>
+            <label><input type="radio" name="q4-2" value="2"> "How do you know that what you believe is true?"</label>
+          </div>
+        </div>
+        <button class="btn btn--primary quiz__submit">Check Answers</button>
+        <div class="quiz__result"></div>
+      </div>
+      <div class="module__nav">
+        <button class="btn btn--secondary" data-goto="mod-3">← Module 3</button>
+        <button class="btn btn--primary" data-goto="mod-5">Module 5 →</button>
+      </div>
+    </section>
+
+    <!-- ═══ MODULE 5: Epistemic Crisis ═══ -->
+    <section id="mod-5" class="module" data-module="5">
+      <div class="module__header">
+        <span class="module__number">05</span>
+        <h2>The Contemporary Epistemic Crisis</h2>
+        <span class="module__time">~15 min</span>
+      </div>
+      <div class="module__content prose">
+        <div class="callout callout--key">
+          <strong>Key Question:</strong> When anyone can fabricate convincing evidence, what happens to truth?
+        </div>
+
+        <h3>Truth Decay</h3>
+        <p><strong>Truth Decay</strong> describes a systemic phenomenon: rapidly diminishing reliance on facts in public life, the intentional blurring of opinion and fact, and declining trust in institutional information sources.</p>
+
+        <h3>The Information Supply Chain</h3>
+        <p>"Epistemic Security" treats information integrity with the same urgency as physical borders. The information supply chain has six stages, each vulnerable:</p>
+        <div class="supply-chain">
+          <div class="supply-chain__step"><span class="supply-chain__num">1</span><strong>Production</strong><br>Research, observation, reasoning</div>
+          <div class="supply-chain__arrow">→</div>
+          <div class="supply-chain__step"><span class="supply-chain__num">2</span><strong>Distribution</strong><br>News, textbooks, social media</div>
+          <div class="supply-chain__arrow">→</div>
+          <div class="supply-chain__step"><span class="supply-chain__num">3</span><strong>Acquisition</strong><br>Retrieval by recipients</div>
+          <div class="supply-chain__arrow">→</div>
+          <div class="supply-chain__step"><span class="supply-chain__num">4</span><strong>Evaluation</strong><br>Decide whether to believe</div>
+          <div class="supply-chain__arrow">→</div>
+          <div class="supply-chain__step"><span class="supply-chain__num">5</span><strong>Decision</strong><br>Form beliefs, take action</div>
+          <div class="supply-chain__arrow">→</div>
+          <div class="supply-chain__step"><span class="supply-chain__num">6</span><strong>Coordination</strong><br>Collective response</div>
+        </div>
+
+        <h3>The Liar's Dividend</h3>
+        <div class="callout callout--danger">
+          <strong>⚠️ The Liar's Dividend:</strong> As awareness of deepfakes grows, <em>all</em> genuine evidence becomes dismissable as fake. Corrupt actors exploit this: "That video is a deepfake" — even when it's real. When visual evidence is no longer reliable, persuasion across ideological lines ceases entirely.
+        </div>
+        <p>The synthesis-to-detection personnel ratio is estimated at <strong>100:1</strong>. The arms race heavily favors creators of synthetic media over those trying to detect it.</p>
+      </div>
+      <div class="quiz" data-quiz="5">
+        <h3 class="quiz__title">📝 Check Your Understanding</h3>
+        <div class="quiz__questions">
+          <div class="quiz__q" data-correct="2">
+            <p><strong>1.</strong> The "Liar's Dividend" refers to:</p>
+            <label><input type="radio" name="q5-1" value="0"> Profit from creating deepfakes</label>
+            <label><input type="radio" name="q5-1" value="1"> The benefit of telling the truth</label>
+            <label><input type="radio" name="q5-1" value="2"> The ability to dismiss genuine evidence as "fake"</label>
+          </div>
+          <div class="quiz__q" data-correct="1">
+            <p><strong>2.</strong> "Truth Decay" is characterized by:</p>
+            <label><input type="radio" name="q5-2" value="0"> Increasing trust in institutions</label>
+            <label><input type="radio" name="q5-2" value="1"> Blurring of opinion and fact, declining trust in institutions</label>
+            <label><input type="radio" name="q5-2" value="2"> Better fact-checking technology</label>
+          </div>
+        </div>
+        <button class="btn btn--primary quiz__submit">Check Answers</button>
+        <div class="quiz__result"></div>
+      </div>
+      <div class="module__nav">
+        <button class="btn btn--secondary" data-goto="mod-4">← Module 4</button>
+        <button class="btn btn--primary" data-goto="mod-6">Module 6 →</button>
+      </div>
+    </section>
+
+    <!-- ═══ MODULE 6: Post-Human ═══ -->
+    <section id="mod-6" class="module" data-module="6">
+      <div class="module__header">
+        <span class="module__number">06</span>
+        <h2>The Future: Post-Human Epistemology</h2>
+        <span class="module__time">~15 min</span>
+      </div>
+      <div class="module__content prose">
+        <div class="callout callout--key">
+          <strong>Key Question:</strong> When AI generates knowledge humans can't fully understand, who decides what's "true"?
+        </div>
+
+        <h3>From Humanist to Post-Humanist Epistemology</h3>
+        <p>In traditional humanism, the boundaries of the subject are secure — cognition is entirely internal to the biological brain, and humans possess sole epistemic authority.</p>
+        <p>Advanced LLMs and neural networks now demonstrate capacities for synthesis, pattern recognition, and problem-solving that arrive at conclusions via <strong>fundamentally opaque processes</strong> — the "black box" problem. AI doesn't merely augment thinking; it <strong>alters what thinking is</strong>.</p>
+
+        <h3>Human-AI Complementarity</h3>
+        <p>The theoretical premise: a human + AI can outperform either alone. However, meta-analyses reveal true complementarity is <strong>notoriously difficult to achieve</strong>:</p>
+        <ul>
+          <li>Human-AI teams often perform <em>worse</em> than AI alone</li>
+          <li>Miscalibrated self-assessment — humans overestimate their own contribution</li>
+          <li><strong>Error mirroring</strong> — humans adopt the AI's mistakes</li>
+        </ul>
+
+        <h3>Computational Reliabilism</h3>
+        <div class="concept-card">
+          <div class="concept-card__title">The New Epistemic Contract</div>
+          <div class="concept-card__body">
+            <p>Justification becomes a <strong>systemic property</strong> of the socio-technical network. A medical diagnosis produced by a human consulting an AI is validated not by human understanding, but by the <strong>statistical reliability</strong> of the team's historical performance.</p>
+            <p>The team functions as a reliable epistemic process — even if the human can't fully parse the AI's neural weights.</p>
+          </div>
+        </div>
+
+        <div class="callout callout--reflect">
+          <strong>🪞 Final Reflection:</strong> Post-human epistemology echoes Ubuntu philosophy — truth is not a static object dominated by a singular mind, but a <strong>dynamic, symbiotic network of knowing</strong>. The ultimate challenge is not building more intelligent machines, but becoming wiser stewards of a distributed, hybrid reality.
+        </div>
+      </div>
+      <div class="quiz" data-quiz="6">
+        <h3 class="quiz__title">📝 Check Your Understanding</h3>
+        <div class="quiz__questions">
+          <div class="quiz__q" data-correct="1">
+            <p><strong>1.</strong> "Computational reliabilism" redefines justification as:</p>
+            <label><input type="radio" name="q6-1" value="0"> A property of individual human reasoning</label>
+            <label><input type="radio" name="q6-1" value="1"> A systemic property of the socio-technical network</label>
+            <label><input type="radio" name="q6-1" value="2"> The AI's internal confidence score</label>
+          </div>
+          <div class="quiz__q" data-correct="2">
+            <p><strong>2.</strong> Human-AI complementarity fails mostly because of:</p>
+            <label><input type="radio" name="q6-2" value="0"> AI being too slow</label>
+            <label><input type="radio" name="q6-2" value="1"> Humans being too skeptical of AI</label>
+            <label><input type="radio" name="q6-2" value="2"> Miscalibrated self-assessment and error mirroring</label>
+          </div>
+        </div>
+        <button class="btn btn--primary quiz__submit">Check Answers</button>
+        <div class="quiz__result"></div>
+      </div>
+      <div class="module__nav">
+        <button class="btn btn--secondary" data-goto="mod-5">← Module 5</button>
+        <button class="btn btn--primary" data-goto="completion">Complete Course →</button>
+      </div>
+    </section>
+
+    <!-- ═══ Completion ═══ -->
+    <section id="completion" class="module completion">
+      <div class="completion__content">
+        <div class="completion__icon">🎓</div>
+        <h2>Course Complete</h2>
+        <p class="completion__subtitle">The Epistemological Evolution of Truth</p>
+        <div id="completion-stats" class="completion__stats"></div>
+        <div class="completion__reflection">
+          <h3>Final Synthesis</h3>
+          <p>You've traced truth from the physical firmness of ancient trees through Aristotle's correspondence, Tarski's semantics, Perry's developmental stages, the epistemic crisis of the digital age, and into the emerging paradigm of post-human epistemology.</p>
+          <p>The journey reveals: truth is not a static object to be possessed, but a dynamic process of <strong>un-concealment</strong>, constantly renegotiated between minds — biological and silicon alike.</p>
+        </div>
+        <div class="completion__actions">
+          <button id="btn-certificate" class="btn btn--primary btn--lg">📜 Download Certificate</button>
+          <button class="btn btn--secondary" data-goto="landing">Return to Overview</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

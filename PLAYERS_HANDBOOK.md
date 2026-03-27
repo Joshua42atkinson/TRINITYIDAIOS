@@ -431,7 +431,7 @@ Buber taught that *"All real living is meeting."* The Steward protects their ene
 
 If you are distracted, tired, or faking it, you are stuck in I-It. You are treating people like NPCs (Non-Player Characters). When you Steward your attention, you grant others the dignity of being *Players*. You acknowledge that they, too, are holding a controller. And that acknowledgment is the most powerful gift a human being can give.
 
-> 🎮 **IN TRINITY**: The **Coal / Steam** economy is attention economics made visible. **Coal** is raw material — the vocabulary words you collect, the concepts you encounter. **Steam** is what happens when you *process* that Coal through genuine engagement. You can grind for Coal (collecting words mindlessly), but you only generate Steam (momentum) when you actually **engage** with the material. The VAAM system (Vocabulary Acquisition and Mastery) measures this: not just *did you see the word*, but *did you use it in context*. Fake attention = counterfeit Coal. Real engagement = Gold.
+> 🎮 **IN TRINITY**: The **Coal / Steam** economy is attention economics made visible. **Coal** is raw material — the vocabulary words you collect, the concepts you encounter. **Steam** is what happens when you *process* that Coal through genuine engagement. You can grind for Coal (collecting words mindlessly), but you only generate Steam (momentum) when you actually **engage** with the material. The VAAM system (Vocabulary Acquisition Autonomy Mastery) measures this: not just *did you see the word*, but *did you use it in context*. Fake attention = counterfeit Coal. Real engagement = Gold.
 
 ---
 

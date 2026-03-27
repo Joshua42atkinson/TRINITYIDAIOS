@@ -62,7 +62,7 @@ Trinity ID AI OS is **not** another AI chatbot. It's an **instructional design o
 ## Trinity's Unique Position (What Nobody Else Has)
 
 1. **Isomorphic AI-Human Training**: Same pipeline structure (pre-train → fine-tune → RLHF → evaluate) applied to both the AI and the human. No competitor does this.
-2. **Vocabulary Acquisition And Mastery (VAAM)**: Words as game mechanics. Scope creep as literal monsters. No competitor gamifies professional vocabulary acquisition.
+2. **Vocabulary Acquisition Autonomy Mastery (VAAM)**: Words as game mechanics. Scope creep as literal monsters. No competitor gamifies professional vocabulary acquisition.
 3. **100% Local Edge AI**: 119B MoE on 128GB unified RAM. No cloud, no subscription, no data leaving the machine.
 4. **Dual KV Cache Duality**: Two persistent AI thinking modes (strategic/tactical) with instant switching. No competitor has this.
 5. **ADDIECRAPEYE**: The only system that formally combines ADDIE + CRAP + EYE into a single lifecycle with Bloom's scaffolding at every station.

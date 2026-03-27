@@ -5,6 +5,22 @@
 // FILE:        character_sheet.rs
 // PURPOSE:     Character Sheet persistence — user preferences and IBSTPI progress
 //
+// 🪟 THE LIVING CODE TEXTBOOK (Identity & Motivation):
+// This file is the permanent agreement between YOU and the OS. It is designed 
+// to be read, modified, and authored by YOU. If you want to add new skills to  
+// track, or change how Trinity remembers your workflow preferences, edit this.
+// ACTION: Check how `load_character_sheet()` pulls your profile from `~/.local`.
+//
+// 📖 THE HOOK BOOK CONNECTION:
+// This file defines the 'Character Sheet' Hook from the School of Identity. 
+// It is the foundational data structure that tells Pete who he is talking to.
+// For a full catalogue of system capabilities, see: docs/HOOK_BOOK.md
+//
+// 🛡️ THE COW CATCHER & AUTOPOIESIS:
+// All files operate under the autonomous Cow Catcher telemetry system. Runtime
+// errors and scope creep are intercepted to prevent catastrophic derailment,
+// maintaining the Socratic learning loop and keeping drift at bay.
+//
 // ARCHITECTURE:
 //   • Loads/saves CharacterSheet to ~/.trinity/character_sheet.json
 //   • Single source of truth for user progress and creative settings

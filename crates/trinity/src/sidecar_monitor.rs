@@ -5,6 +5,22 @@
 // FILE:        sidecar_monitor.rs
 // PURPOSE:     Sidecar health monitor — checks real sidecars, not phantom ports
 //
+// 🪟 THE LIVING CODE TEXTBOOK (P-ART-Y Infrastructure):
+// This file is the immune system of the OS. It is designed to be read, modified, 
+// and authored by YOU. It monitors the external AI workers (ComfyUI, Voice, etc.)
+// and reports real, hard crashes directly to the Cow Catcher system.
+// ACTION: Edit `targets: Vec<SidecarTarget>` to add your own external AI models.
+//
+// 📖 THE HOOK BOOK CONNECTION:
+// This file bridges the '30 Agentic Tools' Hook and the external Python ecosystems.
+// By mastering this pattern, you can connect your Rust app to any external AI.
+// For a full catalogue of system capabilities, see: docs/HOOK_BOOK.md
+//
+// 🛡️ THE COW CATCHER & AUTOPOIESIS:
+// All files operate under the autonomous Cow Catcher telemetry system. Runtime
+// errors and scope creep are intercepted to prevent catastrophic derailment,
+// maintaining the Socratic learning loop and keeping drift at bay.
+//
 // ARCHITECTURE:
 //   • Periodically checks the actual sidecars: ComfyUI (:8188), Voice (:7777),
 //     Researcher (:8081)

@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Protocol Layer
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     agents.rs
+// PURPOSE:  Agent role types and P-ART-Y party configuration for multi-model orchestration
+// BIBLE:    Car 3 — DEVELOPMENT (P-ART-Y Framework, §3.2)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 // Trinity ID AI OS - Agent Protocol Definitions
 // Copyright (c) Joshua
 // Shared under license for Ask_Pete (Purdue University)

@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Protocol Layer
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     sidecars.rs
+// PURPOSE:  Sidecar RPC protocol types for vLLM, llama.cpp, and ORT model backends
+// BIBLE:    Car 3 — DEVELOPMENT (Hotel Management, §3.3)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 //! Trinity Sidecar RPC Protocol
 //!
 //! Defines the shared services for vLLM, Llama.cpp, and ORT sidecars.

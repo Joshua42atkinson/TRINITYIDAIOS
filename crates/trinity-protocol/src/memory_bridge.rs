@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Protocol Layer
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     memory_bridge.rs
+// PURPOSE:  Zero-copy memory sharing types for Trinity AI inference across unified memory
+// BIBLE:    Car 12 — EVOLVE (AMD Strix Halo Platform, §12.1)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 // Trinity Zero-Copy Memory Bridge
 // Copyright (c) Joshua
 // Shared under license for Ask_Pete (Purdue University)

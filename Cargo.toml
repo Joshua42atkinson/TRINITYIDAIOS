@@ -37,7 +37,7 @@ resolver = "2"
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-license = "MIT"
+license = "Apache-2.0"
 repository = "https://github.com/joshua42atkinson/desktop_trinity"
 authors = ["Joshua Atkinson"]
 
@@ -77,6 +77,9 @@ toml = "0.8"
 # ECS & Game Engine
 bevy = { version = "0.18.1", default-features = false, features = ["bevy_state", "bevy_pbr", "bevy_sprite", "bevy_render", "bevy_core_pipeline", "bevy_asset", "bevy_scene", "bevy_text", "bevy_window", "bevy_winit", "bevy_log", "bevy_mesh", "multi_threaded", "bevy_ui"] }
 bevy_egui = "0.39.1"
+bevy_rapier3d = { version = "0.33", default-features = false, features = ["dim3", "async-collider", "debug-render-3d"] }
+bevy_panorbit_camera = { version = "0.34", default-features = false }
+noise = { version = "0.9", default-features = false }
 image = "0.25"
 
 # Web / Network

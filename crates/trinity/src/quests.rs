@@ -5,6 +5,22 @@
 // FILE:        quests.rs
 // PURPOSE:     HTTP API endpoints for quest system
 //
+// 🪟 THE LIVING CODE TEXTBOOK (ADDIE Framework: The Iron Road):
+// This file is the primary syllabus of the 12-Station Quest. It is designed to 
+// be read, modified, and authored by YOU. If you want to change how XP is 
+// calculated, or how the AI grades your PEARL alignment, edit this file.
+// ACTION: Edit `get_game_state()` to add custom player metrics to the HUD.
+//
+// 📖 THE HOOK BOOK CONNECTION:
+// This file implements the 'Iron Road' and '12-Station Quest' Hooks from the 
+// School of Pedagogy. You can use its HTTP endpoints to build your own React UIs!
+// For a full catalogue of system capabilities, see: docs/HOOK_BOOK.md
+//
+// 🛡️ THE COW CATCHER & AUTOPOIESIS:
+// All files operate under the autonomous Cow Catcher telemetry system. Runtime
+// errors and scope creep are intercepted to prevent catastrophic derailment,
+// maintaining the Socratic learning loop and keeping drift at bay.
+//
 // ARCHITECTURE:
 //   • Wraps trinity-quest crate for HTTP API
 //   • Provides endpoints: get state, complete objective, advance, toggle party

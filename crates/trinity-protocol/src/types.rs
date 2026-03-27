@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Protocol Layer
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     types.rs
+// PURPOSE:  Core shared types: ChatMessage, ToolCall, ToolResult, MemoryFact, InferenceRequest
+// BIBLE:    Car 1 — ANALYSIS (System Overview, §1.3)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 // Trinity AI Agent System
 // Copyright (c) Joshua
 // Shared under license for Ask_Pete (Purdue University)

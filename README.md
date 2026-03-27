@@ -37,9 +37,12 @@ Trinity combines instructional design methodology (ADDIE), visual design princip
 ### Run
 
 ```bash
-# 1. Start the LLM (or let Trinity auto-detect and launch it)
+# 1. Start the LLM (Option A: llama-server GGUF — current default)
 llama-server -m ~/trinity-models/gguf/Mistral-Small-4-119B-2603-Q4_K_M-00001-of-00002.gguf \
   --host 127.0.0.1 --port 8080 -ngl 99 --ctx-size 262144 --flash-attn on --jinja
+
+# 1. Start the LLM (Option B: vLLM safetensors — higher quality, P-EAGLE speculative decoding)
+./scripts/launch/start_vllm_ms4.sh  # Serves on :8000, auto-detected by InferenceRouter
 
 # 2. Build the React frontend
 cd crates/trinity/frontend && npm install && npm run build && cd ../../..
@@ -72,14 +75,15 @@ python scripts/voice_sidecar.py  # Port 7777
 ```
 One brain, many modes.
 
-Pete (Mistral Small 4 119B MoE) ─── The AI personality (~68 GB Q4_K_M)
+Pete (Mistral Small 4 119B MoE) ─── The AI personality (~68 GB Q4_K_M / 116 GB safetensors)
  ├── Aesthetics mode ─── CRAP visual design prompts
  ├── Research mode ───── Qianfan-OCR 4B document intelligence (:8081)
  └── Tempo mode ──────── Code generation, game scaffolding
 
-Rust Axum Server (:3000) ─── ADDIECRAPEYE orchestration, 29 agentic tools
+Rust Axum Server (:3000) ─── ADDIECRAPEYE orchestration, 30 agentic tools
 React Frontend ──────────── Book-view UI, 6 tabs (Iron Road / ART Studio / Character / Yardmaster / Scorecard / Voice)
 PostgreSQL + pgvector ───── Sessions, RAG knowledge base
+Inference Backends ──────── llama-server (:8080) | vLLM (:8000) | Ollama | SGLang (auto-detected)
 ComfyUI (:8188) ─────────── SDXL Turbo image generation
 Voice (:7777) ───────────── Whisper STT + Kokoro TTS
 GPU Guard ───────────────── Hotel protocol (prevents double LLM loads)
@@ -88,7 +92,7 @@ Sidecar Monitor ─────────── Checks real sidecar health, re
 
 ## Codebase
 
-**6 workspace crates · 179 tests · 0 failures · 0 compile errors**
+**6 workspace crates · 264 tests · 0 failures · 0 compile errors**
 
 | Crate | Tests | Description |
 |-------|:-----:|-------------|

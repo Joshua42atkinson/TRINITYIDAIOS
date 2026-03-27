@@ -5,6 +5,22 @@
 // FILE:        rag.rs
 // PURPOSE:     RAG (Retrieval-Augmented Generation) — pgvector semantic + text search
 //
+// 🪟 THE LIVING CODE TEXTBOOK (P-ART-Y Gear R: Research):
+// This file is the memory cortex of the OS. It is designed to be read, modified, 
+// and authored by YOU. If you want to change how Trinity understands or searches
+// its own files and your portfolios, this is the system to edit.
+// ACTION: Edit `search_documents()` to adjust semantic similarity thresholds.
+//
+// 📖 THE HOOK BOOK CONNECTION:
+// This file powers the 'Vector Database' Hook. It uses pgvector to turn natural 
+// language into mathematical meaning. You can use this engine to build your own 
+// AI search apps! For a full catalogue of capabilities, see: docs/HOOK_BOOK.md
+//
+// 🛡️ THE COW CATCHER & AUTOPOIESIS:
+// All files operate under the autonomous Cow Catcher telemetry system. Runtime
+// errors and scope creep are intercepted to prevent catastrophic derailment,
+// maintaining the Socratic learning loop and keeping drift at bay.
+//
 // ARCHITECTURE:
 //   • pgvector for semantic search (cosine similarity via HNSW index)
 //   • Full-text search (PostgreSQL ts_rank) as fallback
@@ -444,4 +460,71 @@ fn chunk_text(text: &str, max_words: usize) -> Vec<String> {
     }
 
     chunks
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AUTOPOIESIS (RAG SCALING SYSTEM)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Background task to scan the workspace and auto-index Code Textbook headers
+///
+/// WHY: This establishes the human/AI harmony loop. Humans read the natural-language
+/// headers at the top of the `.rs` files. Pete and the Great Recycler read the
+/// identical vector embeddings in the Qdrant DB. 
+pub async fn auto_index_workspace(pool: &PgPool) -> anyhow::Result<()> {
+    use std::path::PathBuf;
+
+    // We know `env!("CARGO_MANIFEST_DIR")` is `[workspace]/crates/trinity`
+    // So moving up two levels gives us the workspace root.
+    let workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .to_path_buf();
+        
+    let crates_dir = workspace_root.join("crates");
+    if !crates_dir.exists() {
+        warn!("⚠️ Autopoiesis RAG Indexer aborting: crates/ dir not found at {:?}", crates_dir);
+        return Ok(());
+    }
+    
+    info!("🔍 Autopoiesis RAG Indexer starting on {:?}", crates_dir);
+    
+    let mut files_indexed = 0;
+    let mut dirs_to_visit = vec![crates_dir];
+    
+    // Simple async recursive directory walker
+    while let Some(dir) = dirs_to_visit.pop() {
+        if let Ok(mut entries) = tokio::fs::read_dir(&dir).await {
+            while let Ok(Some(entry)) = entries.next_entry().await {
+                let path = entry.path();
+                if path.is_dir() {
+                    dirs_to_visit.push(path);
+                } else if path.extension().map_or(false, |ext| ext == "rs") {
+                    
+                    // Read file looking for the Autopoiesis header
+                    if let Ok(content) = tokio::fs::read_to_string(&path).await {
+                        // Semantic target: Is this file part of the Code Textbook?
+                        if content.contains("🪟 THE LIVING CODE TEXTBOOK") {
+                            // Extract just the top 50 lines to keep the DB fast and noise-free
+                            let header: String = content.lines().take(50).collect::<Vec<_>>().join("\n");
+                            let file_name = path.file_name().unwrap().to_string_lossy().to_string();
+                            
+                            match ingest_document(pool, &file_name, &header, "architecture").await {
+                                Ok(chunks) => {
+                                    debug!("✅ Ingested Code Textbook: {} ({} chunks)", file_name, chunks);
+                                    files_indexed += 1;
+                                },
+                                Err(e) => warn!("⚠️ Failed to ingest {}: {}", file_name, e),
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    info!("🧠 Autopoiesis RAG Indexer complete: {} Actionable Textbook modules loaded into Vector Memory", files_indexed);
+    Ok(())
 }

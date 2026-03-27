@@ -1,3 +1,35 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Iron Road / VAAM Subsystem
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:         vaam/madlibs.rs
+// BIBLE CAR:    Car 4 — IMPLEMENT (Iron Road Game Mechanics, §4.5)
+// HOOK SCHOOL:  🏫 Pedagogy — Scope Creep Combat
+// PURPOSE:      Lesson MadLibs quest mechanic — structured lesson plan templates
+//               with typed gaps (noun_topic, adjective_quality, etc.) that the
+//               user fills with tamed SemanticCreep vocabulary. When all slots
+//               are filled, the lesson is complete and generates a
+//               LessonCompleted event that flows into the Book system.
+//
+// ARCHITECTURE:
+//   • MadlibPrompt — template with typed slots (required_parts_of_speech)
+//   • LessonMadlib — multi-slot lesson with subject, target tier, and scoring
+//   • CreepCard — display data for SemanticCreep creatures
+//   • fill_slot() validates part-of-speech match, awards Context Points
+//   • battle() resolves contested slots between two SemanticCreeps
+//   • generate_lesson_madlibs() produces templates for a given subject/phase
+//   • Bible Car 4.5: tamed Creeps fill MadLib slots → LessonCompleted event
+//
+// DEPENDENCIES:
+//   - serde              — JSON serialization for frontend display
+//   - trinity_protocol   — SemanticCreep, CreepState, battle() function
+//
+// CHANGES:
+//   2026-03-16  Joshua Atkinson  Created for Lesson MadLib quest mechanic
+//   2026-03-26  Cascade          Added §17 header
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 use serde::{Deserialize, Serialize};
 use trinity_protocol::semantic_creep::{battle, CreepState, SemanticCreep};
 

@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Protocol Layer
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     brain.rs
+// PURPOSE:  Cognitive state types for the dual-persona KV cache and memory management
+// BIBLE:    Car 8 — ALIGNMENT (Dual Persona Architecture, §8.3)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 // Trinity AI Agent System
 // Copyright (c) Joshua
 // Shared under license for Ask_Pete (Purdue University)

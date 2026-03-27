@@ -13,6 +13,7 @@ import ChariotViewer from './components/ChariotViewer';
 import JournalViewer from './components/JournalViewer';
 import ZenMode from './components/ZenMode';
 import PortfolioView from './components/PortfolioView';
+import ActivityBar from './components/ActivityBar';
 import { useQuest } from './hooks/useQuest';
 import { useBestiary } from './hooks/useBestiary';
 import { useSSE } from './hooks/useSSE';
@@ -45,10 +46,10 @@ function SubjectPicker({ onSelect }) {
 
   return (
     <div className="subject-picker">
-      <div className="subject-picker__title">THE IRON ROAD</div>
+      <div className="subject-picker__title">ID · Learning</div>
       <div className="subject-picker__subtitle">
-        Choose your subject. Pete will guide you through ADDIECRAPEYE —
-        the 12-chapter pedagogical framework for building gamified lessons.
+        Welcome to the Iron Road. Choose a subject to begin a guided journey
+        through the ADDIECRAPEYE framework to build something extraordinary.
       </div>
 
       {/* Subject Grid */}
@@ -109,6 +110,17 @@ function SubjectPicker({ onSelect }) {
       >
         BEGIN JOURNEY
       </button>
+
+      {/* Walkthrough Link */}
+      <button
+        className="see-what-btn"
+        onClick={() => {
+          // Dispatch chariot event — App.jsx listens for 'chariot:' prefix in tab changes
+          window.dispatchEvent(new CustomEvent('trinity-walkthrough', { detail: 'PLAYERS_HANDBOOK.md' }));
+        }}
+      >
+        📖 See What It Does
+      </button>
     </div>
   );
 }
@@ -137,8 +149,18 @@ export default function App() {
         setActiveTab('yard');
       }
     };
+    const handleWalkthrough = (e) => {
+      if (e.detail) {
+        setChariotDoc(e.detail);
+        setActiveTab('chariot');
+      }
+    };
     window.addEventListener('trinity-mode', handleModeSwitch);
-    return () => window.removeEventListener('trinity-mode', handleModeSwitch);
+    window.addEventListener('trinity-walkthrough', handleWalkthrough);
+    return () => {
+      window.removeEventListener('trinity-mode', handleModeSwitch);
+      window.removeEventListener('trinity-walkthrough', handleWalkthrough);
+    };
   }, []);
 
   const startJourney = async (subject, medium, vision) => {
@@ -188,7 +210,8 @@ export default function App() {
           onBack={() => setActiveTab('ironroad')}
         />
       ) : activeTab === 'portfolio' ? (
-        <div style={{ gridColumn: '1 / -1', gridRow: 2, overflow: 'auto' }}>
+        <div style={{ gridColumn: '1 / -1', gridRow: 2, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: '32px', paddingBottom: '40px' }}>
+          <CharacterSheet />
           <PortfolioView />
         </div>
       ) : activeTab === 'voice' ? (
@@ -196,10 +219,6 @@ export default function App() {
       ) : activeTab === 'art' ? (
         <div style={{ gridColumn: '1 / -1', gridRow: 2, overflow: 'auto' }}>
           <ArtStudio />
-        </div>
-      ) : activeTab === 'character' ? (
-        <div style={{ gridColumn: '1 / -1', gridRow: 2, overflow: 'auto' }}>
-          <CharacterSheet />
         </div>
       ) : activeTab === 'scorecard' ? (
         <div style={{ gridColumn: '1 / -1', gridRow: 2, overflow: 'auto' }}>
@@ -252,6 +271,7 @@ export default function App() {
         </>
       )}
 
+      <ActivityBar />
       <footer className="footer">
         <span className="footer__label">TRINITY ID AI OS</span>
         <span className="sep">|</span>

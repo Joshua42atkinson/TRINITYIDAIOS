@@ -5,6 +5,22 @@
 // FILE:        cow_catcher.rs
 // BIBLE CAR:   Car 5 — EVALUATE (Quality Systems & Security Rings)
 // HOOK SCHOOL: ⚙️ Systems
+//
+// 🪟 THE LIVING CODE TEXTBOOK (P-ART-Y Safety & Self-Healing):
+// This file is the literal Cow Catcher. It is designed to be read, modified, 
+// and authored by YOU. If Pete or the Yardmaster gets stuck in a loop, or a 
+// Python script crashes, this file catches the error and restarts the pipeline.
+// ACTION: Edit `analyze_and_respond()` to add custom error-handling logic.
+//
+// 📖 THE HOOK BOOK CONNECTION:
+// This file powers the 'CowCatcher' and 'Autopoiesis' Hooks. By mastering this
+// file, you learn how to build AI systems that can heal themselves at runtime!
+// For a full catalogue of system capabilities, see: docs/HOOK_BOOK.md
+//
+// 🛡️ THE COW CATCHER & AUTOPOIESIS:
+// All files operate under the autonomous Cow Catcher telemetry system. Runtime
+// errors and scope creep are intercepted to prevent catastrophic derailment,
+// maintaining the Socratic learning loop and keeping drift at bay.
 // PURPOSE:     Runtime error classification, obstacle reporting, hardware monitoring
 //
 // ═══════════════════════════════════════════════════════════════════════════════

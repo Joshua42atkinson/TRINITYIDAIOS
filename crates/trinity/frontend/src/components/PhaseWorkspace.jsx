@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PerspectiveSidebar from './PerspectiveSidebar';
 import JournalViewer from './JournalViewer';
+import MicButton from './MicButton';
 
 // ─── Phase Data ────────────────────────────────────────────────────────────────
 const PHASE_DATA = {
@@ -299,7 +300,7 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
     if (quest?.coal >= 20) setLowCoalWarned(false);
   }, [quest?.coal]);
 
-  // Handle SSE events — scope creep, objective completion, phase advance
+  // Handle SSE events — scope creep, objective completion, phase advance, VAAM emotional
   useEffect(() => {
     if (!sseEvents?.length) return;
     let needsRefetch = false;
@@ -325,6 +326,32 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
             word: data.word, element: data.element || '⚪',
             logos: data.logos, pathos: data.pathos, ethos: data.ethos,
           });
+        }
+        // VAAM vocabulary detection → emotional narrator response
+        if (data.type === 'vaam' && data.detections?.length > 0) {
+          const words = data.detections.map(d => d.word).join(', ');
+          const coal = data.total_coal || 0;
+          const mastered = data.detections.filter(d => d.mastered).length;
+          const messages = [
+            `「 ▸ VAAM ◂ The rails hum with recognition — **${words}**. +${coal} coal feeds the furnace. 」`,
+            `「 ▸ VAAM ◂ Words of power shimmer on the track — **${words}**. The vocabulary matrix grows stronger. 」`,
+            `「 ▸ VAAM ◂ The Great Recycler senses domain mastery — **${words}** etched into the rails. +${coal} coal. 」`,
+          ];
+          setNarrative(n => [...n, {
+            role: 'narrator',
+            content: mastered > 0
+              ? `「 ▸ MASTERY ◂ **${words}** — fully tamed. The word-creatures bow. The Bestiary grows. 」`
+              : messages[Math.floor(Math.random() * messages.length)],
+          }]);
+        }
+        // Cognitive load / friction feedback
+        if (data.type === 'cognitive_load' && data.friction !== undefined) {
+          if (data.friction > 50) {
+            setNarrative(n => [...n, {
+              role: 'narrator',
+              content: '「 ▸ FRICTION ◂ The tracks groan under weight. The Gilbreth Protocol suggests — simplify. Reduce scope. Breathe. 」',
+            }]);
+          }
         }
       } catch { /* silent */ }
     });
@@ -890,6 +917,10 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
               value={message}
               onChange={e => setMessage(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }}}
+              disabled={isStreaming}
+            />
+            <MicButton
+              onTranscript={(text) => setMessage(prev => prev ? prev + ' ' + text : text)}
               disabled={isStreaming}
             />
             <button

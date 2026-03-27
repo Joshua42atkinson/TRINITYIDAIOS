@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useYardmaster } from '../hooks/useYardmaster';
+import MicButton from './MicButton';
 
 const FOCUS_TAGS = [
   { id: 'system tools', icon: '📊', label: 'System' },
@@ -8,6 +9,18 @@ const FOCUS_TAGS = [
   { id: 'file search', icon: '🔍', label: 'Search' },
   { id: 'avatar creation', icon: '🎭', label: 'Avatar' },
   { id: 'image generation', icon: '🖼️', label: 'Image' },
+];
+
+const PROJECT_SCOPES = [
+  { id: 'global',    icon: '🌐', label: 'Global',    path: null,                          tip: 'Full workspace — no constraints' },
+  { id: 'frontend',  icon: '⚛️', label: 'Frontend',  path: 'crates/trinity/frontend/src', tip: 'React components, hooks, styles' },
+  { id: 'backend',   icon: '🦀', label: 'Backend',   path: 'crates/trinity/src',          tip: 'Rust Axum server modules' },
+  { id: 'protocol',  icon: '📐', label: 'Protocol',  path: 'crates/trinity-protocol/src', tip: 'Shared types and traits' },
+  { id: 'quest',     icon: '🚂', label: 'Quest',     path: 'crates/trinity-quest/src',    tip: 'Quest board, XP, objectives' },
+  { id: 'voice',     icon: '🎤', label: 'Voice',     path: 'crates/trinity-voice/src',    tip: 'SSML, VAAM, voice pipeline' },
+  { id: 'templates', icon: '🎮', label: 'Templates', path: 'templates/',                  tip: 'Bevy game templates' },
+  { id: 'docs',      icon: '📖', label: 'Docs',      path: 'docs/',                       tip: 'Documentation and maturation map' },
+  { id: 'scripts',   icon: '⚡', label: 'Scripts',   path: 'scripts/',                    tip: 'Launch, systemd, and test scripts' },
 ];
 
 const PERSONAS = [
@@ -87,10 +100,13 @@ export default function Yardmaster() {
 
   const [input, setInput] = useState('');
   const [persona, setPersona] = useState('dev');
+  const [scope, setScope] = useState('global');
   const [thinkingOpen, setThinkingOpen] = useState(true);
   const chatRef = useRef(null);
   const forgeRef = useRef(null);
   const inputRef = useRef(null);
+
+  const activeScope = PROJECT_SCOPES.find(s => s.id === scope) || PROJECT_SCOPES[0];
 
   // Auto-scroll chat and forge
   useEffect(() => {
@@ -109,7 +125,7 @@ export default function Yardmaster() {
 
   const handleSend = () => {
     if (!input.trim()) return;
-    sendMessage(input.trim(), persona);
+    sendMessage(input.trim(), persona, activeScope.path);
     setInput('');
     if (inputRef.current) inputRef.current.style.height = 'auto';
     requestAnimationFrame(() => {
@@ -245,17 +261,34 @@ export default function Yardmaster() {
 
         {/* CENTER: Chat + Forge */}
         <div className="ym-chat-col">
-          {/* Focus Buttons */}
+          {/* Scope + Focus Buttons */}
           <div className="ym-focus-bar">
-            {FOCUS_TAGS.map((t) => (
-              <button
-                key={t.id}
-                className={`focus-btn ${focus.has(t.id) ? 'active' : ''}`}
-                onClick={() => toggleFocus(t.id)}
-              >
-                {t.icon} {t.label}
-              </button>
-            ))}
+            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: '9px', color: '#64748b', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '1px', marginRight: '4px' }}>SCOPE:</span>
+              {PROJECT_SCOPES.map((s) => (
+                <button
+                  key={s.id}
+                  className={`focus-btn ${scope === s.id ? 'active' : ''}`}
+                  onClick={() => setScope(s.id)}
+                  title={s.tip}
+                  style={{ fontSize: '10px', padding: '2px 6px' }}
+                >
+                  {s.icon} {s.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center', marginTop: '4px' }}>
+              <span style={{ fontSize: '9px', color: '#64748b', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '1px', marginRight: '4px' }}>FOCUS:</span>
+              {FOCUS_TAGS.map((t) => (
+                <button
+                  key={t.id}
+                  className={`focus-btn ${focus.has(t.id) ? 'active' : ''}`}
+                  onClick={() => toggleFocus(t.id)}
+                >
+                  {t.icon} {t.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Chat Messages */}
@@ -331,6 +364,10 @@ export default function Yardmaster() {
               onKeyDown={handleKey}
               disabled={sending}
               rows={1}
+            />
+            <MicButton
+              onTranscript={(text) => setInput(prev => prev ? prev + ' ' + text : text)}
+              disabled={sending}
             />
             <button
               className="chat-send ym-send-btn"

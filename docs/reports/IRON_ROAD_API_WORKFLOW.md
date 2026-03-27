@@ -22,7 +22,7 @@ The **Iron Road** is the central nervous system of Trinity. It connects the user
 
 ## 🛤️ 2. API Data Flow by System
 
-### 2.1 The Weigh Station (VaaM - Vocabulary Acquisition and Mastery)
+### 2.1 The Weigh Station (VAAM - Vocabulary Acquisition Autonomy Mastery)
 * **Goal**: Determine the *Intrinsic Load* (Mass) of a concept being taught.
 * **Flow**:
   1. User introduces a concept/word.
@@ -54,7 +54,7 @@ The **Iron Road** is the central nervous system of Trinity. It connects the user
 
 To ensure we are not creating redundant features and can measure actual results:
 
-1. **VaaM Measurement**: We can measure the success of the Weigh Station by logging the `tokens/sec` during the `WordPhysics` JSON generation and validating the strict adherence to the output schema.
+1. **VAAM Measurement**: We can measure the success of the Weigh Station by logging the `tokens/sec` during the `WordPhysics` JSON generation and validating the strict adherence to the output schema.
 2. **Hardware Friction Measurement**: We will monitor the Vulkan flags (`-fa`, `-ctk q4_0`, `--mmap 1`) during a 65K context window conversation to measure if the UMA trap is avoided and memory usage remains stable without OOM panics.
 3. **Audio NPU Pipeline Test**: We can measure latency from `NpuAudioEngine::speech_to_text` using the newly integrated `ort` Vitis AI execution provider vs the legacy dummy mocks.
 4. **Quest Chaining Evaluation**: Testing will simulate a user going from Station 1 (Awakening/Analysis) to Station 5 (Evaluation) to verify that `ConductorLeader` successfully hot-swaps the `Engineer` and `Evaluator` without dropping the `SharedContext`.

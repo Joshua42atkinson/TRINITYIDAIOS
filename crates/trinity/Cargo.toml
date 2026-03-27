@@ -14,7 +14,7 @@ trinity-protocol = { path = "../trinity-protocol" }
 trinity-quest = { path = "../trinity-quest" }
 
 # HTTP & Web
-axum = { version = "0.7", features = ["macros", "multipart"] }
+axum = { version = "0.7", features = ["macros", "multipart", "ws"] }
 tower-http = { version = "0.5", features = ["cors", "fs"] }
 reqwest = { version = "0.12", features = ["json", "stream"] }
 async-stream = "0.3"
@@ -62,6 +62,9 @@ trinity-iron-road = { version = "0.1.0", path = "../trinity-iron-road" }
 llama-cpp-2 = { version = "0.1", features = ["vulkan", "sampler"] }
 encoding_rs = "0.8"
 toml = "0.8"
+
+# DOCX export — pure Rust .docx generation for student portfolios
+docx-rs = "0.4"
 
 # Native TTS — Supertonic-2 via ONNX Runtime
 ort = { version = "2.0.0-rc.7", features = ["ndarray"] }

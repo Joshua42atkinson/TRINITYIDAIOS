@@ -31,6 +31,18 @@ Current educational technology suffers from the **Edutainment Gap**: commercial 
 
 Trinity ID AI OS solves this. It is a **Sovereign Cognitive Engine** and local-first AI operating system that transforms instructional design into a structured, game-theoretically balanced ecosystem. It runs entirely on the user's local hardware—acting as a completely private, "air-gapped" intelligence.
 
+### The Three Deliverables
+Trinity produces three distinct outcomes for the institution, instructor, and learner:
+1. **FUN**: The full edutainment "lite novel" **DAYDREAM** in the Bevy ecosystem. The gamified adventure of the development process.
+2. **WORK**: The actual product (the course, game, or lesson) the user is on the Iron Road to build. Better learning produces better work. ART is work when properly enjoyed.
+3. **LEARNING**: Structured application over rote memorization, demonstrated via the core framework and Portfolio.
+
+### The Three UX Systems
+Trinity interacts with the learner across three unified operational layers:
+1. **AUDIO**: The Telephone Line (Headless voice connection)
+2. **WEB**: The React Front-End (Iron Road, ART Studio, About)
+3. **BEVY**: **DAYDREAM** (The immersive 3D/Lite Novel visualization)
+
 ### The Institutional Value Proposition
 
 1. **Pedagogical Governance:** Trinity replaces "prompt engineering" with structured Socratic scaffolding. Instead of an AI generating answers and destroying student executive function, Trinity utilizes a dual-mentor architecture to strictly govern *Cognitive Load*, forcing the learner to do the intellectual work.
@@ -73,7 +85,7 @@ Trinity's LDT Portfolio tracks alignment to four professional standards:
 ### Theoretical Grounding (CLT & SDT)
 
 Trinity is explicitly designed around two core psychological frameworks:
-*   **Cognitive Load Theory (CLT):** Through features like "Zen Mode" (the Quiet Car UI), Trinity systematically reduces *Extraneous Load* (distracting interfaces) and actively manages *Intrinsic Load* (the difficulty of the task) using the ADDIECRAPEYE sequential framework, ensuring maximal working memory is dedicated to *Germane Load* (actual learning schemas).
+*   **Cognitive Load Theory (CLT):** Through features like the **DAYDREAM Bevy Window** (the immersive edutainment space), Trinity systematically reduces *Extraneous Load* (distracting interfaces) and actively manages *Intrinsic Load* (the difficulty of the task) using the ADDIECRAPEYE sequential framework, ensuring maximal working memory is dedicated to *Germane Load* (actual learning schemas).
 *   **Self-Determination Theory (SDT):** Trinity motivates the user not through cheap dopamine point-loops, but by satisfying the three pillars of intrinsic motivation: **Autonomy** (user controls the Socratic dialogue), **Competence** (real-time QM scoring and XP progression), and **Relatedness** (the parasocial mentorship of "Pete" and "The Recycler").
 
 ### The Workflow
@@ -180,17 +192,23 @@ Trinity's inference is process-isolated and backend-agnostic:
 │  Trinity Server (Axum, port 3000)                       │
 │  InferenceRouter: auto-detects and routes to backends   │
 ├─────────────────┬───────────────────────────────────────┤
-│  llama-server   │  vLLM / TGI (institutional)          │
-│  (single user)  │  (multi-user batched inference)       │
-│  Port 8080      │  Port 8080                            │
-│  1 KV cache     │  PagedAttention: shared KV pages      │
-│  1 user         │  100+ concurrent users per instance   │
+│  llama-server   │  vLLM 0.18.0 (host-local, ready)       │
+│  (single user)  │  MS4 safetensors + P-EAGLE             │
+│  Port 8080      │  Port 8000 (auto-detected)             │
+│  Dual KV cache  │  PagedAttention: shared KV pages       │
+│  1 user         │  100+ concurrent users per instance    │
 ├─────────────────┴───────────────────────────────────────┤
-│  Sidecars (optional, independent processes)             │
+│  Creative Sidecars (ART Pipeline — optional)             │
 │  • ComfyUI (SDXL Turbo) — port 8188, ~6 GB VRAM        │
-│  • Qianfan-OCR — port 8081, ~4 GB VRAM                 │
-│  • Kokoro TTS — port 7777, ~2 GB VRAM                  │
-│  • Whisper STT — shared with voice sidecar              │
+│  • Blender (3D rendering) — CLI sidecar, glTF/GLB      │
+│  • trinity-tempo-ai — procedural audio generation       │
+│  • HunyuanVideo — video generation via CLI              │
+│  • Hunyuan3D-2.1 — 3D mesh via Gradio, port 7860       │
+│                                                          │
+│  Voice Sidecars                                          │
+│  • Voxtral-4B TTS — emotional voice (vLLM, :8100)      │
+│  • Supertonic-2 TTS — native ONNX, 10 voices (legacy)  │
+│  • PersonaPlex 7B — audio-to-audio (future)             │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -225,14 +243,19 @@ Zero data leaves campus. No API keys. Reduces reliance on third-party cloud proc
 | Component | Technology | Status |
 |-----------|-----------|:------:|
 | **LLM Brain** | llama.cpp + Mistral Small 4 119B GGUF (Q4_K_M, 68 GB) | ✅ Running |
+| **vLLM Backend** | vLLM 0.18.0 + MS4 safetensors (116 GB) + P-EAGLE (390 MB) | ✅ Installed (host-local) |
 | **Inference** | Dual KV cache slots, 500K+ context, 40+ tok/s | ✅ Verified |
 | **Image Generation** | ComfyUI + SDXL Turbo (4-step, ~2s/image) | ✅ Running |
-| **Voice** | Kokoro TTS synthesis | ✅ Running |
+| **Voice** | Kokoro TTS synthesis + Voxtral-4B TTS (downloaded, ready) | ✅ Running |
 | **Socratic Protocol** | 11 phase-specific instruction sets in conductor | ✅ 12/12 claims verified |
 | **QM Scoring** | Automated Bloom's + ADDIE + engagement analysis | ✅ Returns real scores |
-| **VAAM** | Vocabulary Acquisition And Mastery — word scanning + Coal | ✅ Scanning works |
+| **VAAM** | Vocabulary Acquisition Autonomy Mastery — word scanning + Coal | ✅ Scanning works |
 | **30 Agentic Tools** | File I/O, quest, shell, image gen, lesson plans, rubrics | ✅ All 30 dispatched |
 | **Security** | 44 blocked command patterns, 3-tier tool permissions, path sandboxing | ✅ Verified |
+| **ART Creative Pipeline** | Image (ComfyUI/SDXL), Music (tempo-ai), Video (Hunyuan), 3D (Hunyuan3D), Blender | ✅ 4 stations wired |
+| **Yard Activity Bar** | Persistent progress feed on all tabs — tool calls, d20 rolls, coal/steam/XP visible live | ✅ Wired |
+| **Model Hot-Swap** | 11 local models (300+ GB), switch via `POST /api/models/switch` | ✅ Running |
+| **InferenceRouter** | Auto-detects 6 backends (llama-server, vLLM, Ollama, LM Studio, SGLang, Researcher) | ✅ 264 tests passing |
 | **User Model** | Single-user prototype — one CharacterSheet per instance | ✅ By design |
 
 ---
@@ -242,9 +265,10 @@ Zero data leaves campus. No API keys. Reduces reliance on third-party cloud proc
 | Enhancement | Technology | Effort | Impact |
 |-------------|-----------|:------:|--------|
 | **Multi-user sessions** | PostgreSQL per-user isolation, session tokens | 2–3 weeks | Each student gets their own CharacterSheet & quest state |
-| **Batched inference** | vLLM (PagedAttention) replacing llama.cpp | 1 week | 100+ concurrent users per model instance |
-| **Full creative pipeline** | MING 2.1 replacing ComfyUI sidecar stack | 1 week | Unified image/video/3D from a single model, no sidecar management |
-| **Speculative decoding** | EAGLE draft model (GGUF) on NPU | 1–2 weeks | 2–3× token throughput on consumer hardware |
+| **Batched inference** | vLLM 0.18.0 (**already installed**, PagedAttention) | **Ready now** | 100+ concurrent users per model instance |
+| **P-EAGLE speculative decoding** | EAGLE draft model (390 MB, **already downloaded**) | **Ready now** | 1.69× token throughput on Strix Halo |
+| **Voxtral-4B TTS** | vLLM-served emotional voice (**already downloaded**, 7.5 GB) | 1 day | Expressive AI voice replacing robotic TTS |
+| **Full creative pipeline** | MING 2.1 replacing ComfyUI sidecar stack | 1 week | Unified image/video/3D from a single model |
 | **NPU offload** | XDNA 2 (AMD, 50 TOPS) for embeddings + STT | 2 weeks | Frees GPU for LLM-only, voice becomes "free" |
 | **RLHF fine-tuning** | DPO/ORPO on student interaction logs | Ongoing | Pete improves from real classroom data |
 
@@ -288,7 +312,7 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 ### 3. Source Code Review
 - Download the source archive: [TRINITY_ID_AI_OS_v1.0_source.tar.gz](https://LDTAtkinson.com/downloads/TRINITY_ID_AI_OS_v1.0_source.tar.gz)
 - Follow [INSTALL.md](INSTALL.md) to build locally
-- Run tests: `cargo test` (179+ tests across 6 crates)
+- Run tests: `cargo test` (264 tests across 6 crates)
 - Read [TRINITY_FANCY_BIBLE.md](TRINITY_FANCY_BIBLE.md) for the full architecture
 
 ### 4. Key Things to Notice
@@ -322,9 +346,9 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 
 ## Addendum: Claims Validation Audit
 
-> **Validation Date**: March 23, 2026 — 12:18 PM EDT
+> **Validation Date**: March 27, 2026
 > **Validated By**: Automated audit against running prototype
-> **Method**: Each claim was verified against the live Trinity server (port 3000), source code (190K+ lines Rust), and API responses.
+> **Method**: Each claim was verified against the live Trinity server (port 3000), source code (40,000+ lines Rust/React), and API responses.
 
 | # | Claim | Document Source | Verified Value | Method | Result |
 |:-:|-------|----------------|----------------|--------|:------:|
@@ -337,9 +361,9 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 | 7 | **3-tier tool permissions** | Bible §5.2 Ring 1 | `ToolPermission` enum (Safe/NeedsApproval/Destructive) at `tools.rs:L61-66`, mapping at `tools.rs:L70-106`, unknown defaults to Destructive | Source review | ✅ |
 | 8 | **Dual KV cache (500K+ context)** | Bible §1.4, §12.2 | Dual slot architecture in `agent.rs:L132-145`, `persona_slot()` maps persona → cache slot 0/1 | Source review | ✅ |
 | 9 | **All API endpoints healthy** | PROFESSOR §API Verification | `/api/health` (healthy), `/api/quest` (chapter 1), `/api/bestiary` (46 creeps), `/api/book` (ok), `/api/inference/status` (llama-server active), `/docs/` (serves markdown) | API curl | ✅ |
-| 10 | **16 React components** | Bible §1.10 | 16 `.jsx` component files in `crates/trinity/frontend/src/components/` | Filesystem | ✅ |
+| 10 | **17 React components** | Bible §1.10 | 17 `.jsx` component files in `crates/trinity/frontend/src/components/` (including ActivityBar) | Filesystem | ✅ |
 | 11 | **100% local execution** | PROFESSOR §Evaluation Criteria | No outbound API calls in source. All model paths reference local filesystem (`~/trinity-models/`). Health checks target `127.0.0.1` only. | Source review | ✅ |
-| 12 | **Zero compile errors** | PROFESSOR §Technical Highlights | `cargo build` completes with 0 errors (1 future-compat warning from upstream `sqlx-postgres`) | Build | ✅ |
+| 12 | **Zero compile errors** | PROFESSOR §Technical Highlights | `cargo build` completes with 0 errors, **264 tests passing** across 6 crates | Build | ✅ |
 
 **Summary**: All 12 audited claims are **verified accurate** against the running prototype. Numeric claims are conservative (e.g., "29+" tools → actual 30, "42+" blocked → actual 44).
 

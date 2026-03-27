@@ -487,6 +487,78 @@
   color: var(--black);
 }
 
+/* ── Mic Button — Speech-to-Text ── */
+.mic-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--border-glass);
+  background: rgba(207, 185, 145, 0.04);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mic-btn:hover {
+  border-color: var(--gold-dark);
+  color: var(--gold);
+  background: rgba(207, 185, 145, 0.1);
+  transform: scale(1.05);
+}
+
+.mic-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.mic-btn--recording {
+  border-color: var(--red);
+  color: var(--red);
+  background: rgba(239, 68, 68, 0.1);
+  animation: micGlow 1.5s ease-in-out infinite;
+}
+
+.mic-btn--processing {
+  border-color: var(--gold);
+  color: var(--gold);
+  animation: micSpin 1s linear infinite;
+}
+
+.mic-btn__icon {
+  font-size: 16px;
+  z-index: 1;
+}
+
+.mic-btn__pulse {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--red);
+  animation: micPulse 1.2s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes micGlow {
+  0%, 100% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.5); }
+}
+
+@keyframes micPulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+@keyframes micSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* ═══════════════════════════════════════════════
    SCOPE HOPE/NOPE CARD
    ═══════════════════════════════════════════════ */
@@ -1642,6 +1714,41 @@
 }
 
 .begin-btn:disabled::before { display: none; }
+
+/* ── See What It Does — Walkthrough Link ── */
+.see-what-btn {
+  padding: 10px 28px;
+  background: transparent;
+  border: 1px solid rgba(207, 185, 145, 0.25);
+  border-radius: var(--r-sm);
+  color: var(--gold);
+  font-family: var(--font-ui);
+  font-size: var(--type-sm);
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  position: relative;
+}
+
+.see-what-btn:hover {
+  border-color: var(--gold-dark);
+  background: rgba(207, 185, 145, 0.06);
+  box-shadow: 0 0 20px rgba(207, 185, 145, 0.1);
+  transform: translateY(-1px);
+}
+
+/* ── VAAM Vocabulary Highlight in Narrative ── */
+.vaam-word-glow {
+  color: var(--gold);
+  text-shadow: 0 0 8px rgba(207, 185, 145, 0.4);
+  font-weight: 600;
+  animation: vaamPulse 2s ease-in-out infinite;
+}
+
+@keyframes vaamPulse {
+  0%, 100% { text-shadow: 0 0 6px rgba(207, 185, 145, 0.2); }
+  50% { text-shadow: 0 0 14px rgba(207, 185, 145, 0.5); }
+}
 
 /* ═══════════════════════════════════════════════
    WORD PHYSICS — Cognitive Load Visualized
@@ -4406,3 +4513,160 @@ select.art-input option {
   color: var(--gold-dark);
   flex-shrink: 0;
 }
+
+/* ═══════════════════════════════════════════════
+   ACTIVITY BAR — The Yard's Kitchen Window
+   Persistent bottom dock, visible on every tab.
+   ═══════════════════════════════════════════════ */
+
+.activity-bar {
+  position: relative;
+  z-index: 50;
+  background: rgba(12, 11, 9, 0.95);
+  border-top: 1px solid var(--border-glass);
+  backdrop-filter: blur(16px);
+  transition: all var(--transition-normal);
+}
+
+.activity-bar--expanded {
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5);
+}
+
+.activity-bar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px var(--sp-md);
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition-fast);
+  min-height: 28px;
+}
+
+.activity-bar__header:hover {
+  background: rgba(207, 185, 145, 0.04);
+}
+
+.activity-bar__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.activity-bar__right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.activity-bar__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+
+.activity-bar__dot--active {
+  background: var(--green);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+  animation: yardPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes yardPulse {
+  0%, 100% { box-shadow: 0 0 4px rgba(16, 185, 129, 0.4); }
+  50% { box-shadow: 0 0 12px rgba(16, 185, 129, 0.8); }
+}
+
+.activity-bar__title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.activity-bar__count {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.activity-bar__preview {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 400px;
+  flex: 1;
+  text-align: right;
+}
+
+.activity-bar__toggle {
+  font-size: 10px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+/* Expanded Terminal */
+.activity-bar__terminal {
+  background: rgba(0, 0, 0, 0.9);
+  padding: var(--sp-sm) var(--sp-md);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #ffffff;
+  max-height: 180px;
+  overflow-y: auto;
+  box-shadow: inset 0 0 20px rgba(78, 201, 176, 0.06);
+  border-top: 1px solid rgba(78, 201, 176, 0.1);
+  animation: barSlideDown 0.2s ease-out;
+}
+
+@keyframes barSlideDown {
+  from { max-height: 0; opacity: 0; }
+  to { max-height: 180px; opacity: 1; }
+}
+
+.activity-bar__line {
+  margin-bottom: 3px;
+  border-left: 2px solid var(--accent);
+  padding-left: 8px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-all;
+  animation: beastSlide 0.15s ease-out;
+}
+
+.activity-bar__line.command { color: var(--blue); font-weight: bold; }
+.activity-bar__line.error   { color: var(--red); border-left-color: var(--red); }
+.activity-bar__line.success { color: var(--green); border-left-color: var(--green); }
+.activity-bar__line.system  { color: var(--text-dim); font-style: italic; opacity: 0.8; }
+.activity-bar__line.vaam    { color: var(--purple); border-left-color: var(--purple); }
+
+.activity-bar__empty {
+  color: var(--text-dim);
+  font-style: italic;
+  font-size: 10px;
+  padding: 4px 0;
+}
+
+.activity-bar__cursor {
+  display: inline-block;
+  width: 6px;
+  height: 12px;
+  background: var(--accent);
+  animation: blink 1s infinite;
+  vertical-align: middle;
+}
+

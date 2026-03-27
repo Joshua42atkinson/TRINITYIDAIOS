@@ -98,7 +98,7 @@ pub enum AwakeningPhase {
     /// User describes goals, AI suggests words, user accepts/rejects.
     ///
     /// THEMATIC PREP for Station 2 (Design/Brain):
-    /// Vocabulary = neural pathways for VAAM (Vocabulary Acquisition And Mastery).
+    /// Vocabulary = neural pathways for VAAM (Vocabulary Acquisition Autonomy Mastery).
     /// Each accepted word becomes a synapse in the Golem's Brain.
     /// Coal is earned by using vocabulary — this sets up the mining operation.
     CoCreateVocab,

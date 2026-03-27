@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Bevy 3D Yard
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     lib.rs
+// PURPOSE:  Library root for the Bevy spatial sandbox (Layer 3 of Trinity architecture)
+// BIBLE:    Car 12 — EVOLVE (Server Architecture, §12.3)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 //! 🎨 Trinity Bevy Graphics - Vision Processing Integration
 //!
 //! Sprint 1 Focus: Vision processing with Qwen-35B + mmproj via llama-server
@@ -19,6 +29,11 @@ pub mod vision;
 pub mod art_panels;
 #[cfg(feature = "desktop")]
 pub mod creative_bridge;
+
+// DAYDREAM — 3D LitRPG world (desktop feature required for physics + camera)
+pub mod daydream_commands;
+#[cfg(feature = "desktop")]
+pub mod daydream;
 
 pub use meshes::*;
 pub use vision::*;

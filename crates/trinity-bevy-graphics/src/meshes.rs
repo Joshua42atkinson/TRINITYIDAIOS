@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Bevy 3D Yard
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     meshes.rs
+// PURPOSE:  Procedural mesh generation for the 3D Yard environment
+// BIBLE:    Car 11 — YOKE (ART Pipeline, §11.1)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 //! Mesh generation for Bevy graphics
 //!
 //! Generates 3D meshes from text prompts and vision analysis.

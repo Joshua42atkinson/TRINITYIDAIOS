@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Protocol Layer
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     stream.rs
+// PURPOSE:  Streaming protocol types for agent SSE events and real-time chat delivery
+// BIBLE:    Car 9 — PROXIMITY (UI Experience, §9.1)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 // Trinity AI Agent System
 // Copyright (c) Joshua
 // Shared under license for Ask_Pete (Purdue University)

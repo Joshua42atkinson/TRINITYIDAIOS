@@ -5,6 +5,22 @@
 // FILE:        health.rs
 // PURPOSE:     Real health/readiness endpoint — checks all subsystems
 //
+// 🪟 THE LIVING CODE TEXTBOOK (P-ART-Y Infrastructure):
+// This file is the pulse monitor of the entire Trinity system. It is designed to 
+// be read, modified, and authored by YOU. If you add a new sidecar or AI model, 
+// you must add its health check here to ensure the Yardmaster can monitor it.
+// ACTION: Add a new struct to `HealthResponse` to monitor your own custom models.
+//
+// 📖 THE HOOK BOOK CONNECTION:
+// This file manages the system stability Hooks. Before Pete or the ART agent 
+// execute complex workflows, they check these vital signs to ensure survival.
+// For a full catalogue of system capabilities, see: docs/HOOK_BOOK.md
+//
+// 🛡️ THE COW CATCHER & AUTOPOIESIS:
+// All files operate under the autonomous Cow Catcher telemetry system. Runtime
+// errors and scope creep are intercepted to prevent catastrophic derailment,
+// maintaining the Socratic learning loop and keeping drift at bay.
+//
 // ARCHITECTURE:
 //   • GET /api/health returns honest status of every subsystem
 //   • Used by: UI status bar, curl smoke tests, future CI
@@ -12,7 +28,7 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 
-use axum::{extract::State, response::{Json, IntoResponse}};
+use axum::{extract::State, response::IntoResponse};
 use serde::Serialize;
 
 use crate::AppState;

@@ -1,7 +1,7 @@
 # RLHF & VAAM Integration Strategy (Trinity OS)
 
 ## Concept Overview
-We are integrating **Reinforcement Learning from Human Feedback (RLHF)** (based on Nathan Lambert's frameworks) directly into the **VAAM (Vocabulary Acquisition And Mastery)** and **Semantic Search** engines of Trinity. 
+We are integrating **Reinforcement Learning from Human Feedback (RLHF)** (based on Nathan Lambert's frameworks) directly into the **VAAM (Vocabulary Acquisition Autonomy Mastery)** and **Semantic Search** engines of Trinity. 
 
 This creates a self-optimizing feedback loop where the AI doesn't just passively track what words the user knows, but actively *adjusts its generation* based on explicit and implicit human feedback regarding cognitive load, instructional clarity, and narrative resonance.
 

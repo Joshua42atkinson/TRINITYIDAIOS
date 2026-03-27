@@ -5,6 +5,22 @@
 // FILE:        eye_container.rs
 // PURPOSE:     EYE Container — bundle quest data into exportable artifact
 //
+// 🪟 THE LIVING CODE TEXTBOOK (EYE Framework: The Observer):
+// This file is the central artifact packager. It is designed to be read, 
+// modified, and authored by YOU. It takes everything you built in the quest
+// and exports it. If you want a new export format (like PDF), add it here!
+// ACTION: Edit `ExportFormat` and `compile_container()` to build a new export target.
+//
+// 📖 THE HOOK BOOK CONNECTION:
+// This file powers the 'Export' Hook. It is the bridge between the Trinity 
+// engine and the real world, turning your learning into a tangible product.
+// For a full catalogue of system capabilities, see: docs/HOOK_BOOK.md
+//
+// 🛡️ THE COW CATCHER & AUTOPOIESIS:
+// All files operate under the autonomous Cow Catcher telemetry system. Runtime
+// errors and scope creep are intercepted to prevent catastrophic derailment,
+// maintaining the Socratic learning loop and keeping drift at bay.
+//
 // ARCHITECTURE:
 //   • Compiles quest state + PEARL + vocabulary + assets into a single container
 //   • Used by export.rs to generate HTML5 quizzes, adventures, PDFs
@@ -84,6 +100,8 @@ pub enum ExportFormat {
     Html5Quiz,
     Html5Adventure,
     RawJson,
+    /// Professional DOCX portfolio — the student deliverable
+    DocxPortfolio,
 }
 
 /// Compile an EYE Container from the current game state

@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Sidecar Manager
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     llama.rs
+// PURPOSE:  llama-server process management and health monitoring
+// BIBLE:    Car 12 — EVOLVE (Dual KV Cache, §12.2)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 //! llama-server process management and HTTP client
 //!
 //! Manages two llama-server instances:

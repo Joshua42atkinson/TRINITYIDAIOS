@@ -1,3 +1,31 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Iron Road / VAAM Subsystem
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:         vaam/litrpg.rs
+// BIBLE CAR:    Car 4 — IMPLEMENT (Iron Road Game Mechanics)
+// HOOK SCHOOL:  🎭 Identity — Character Sheet
+// PURPOSE:      Generates LitRPG "Player Handbook" sections from the user's
+//               mastered VAAM vocabulary. Each mastered word becomes a stylized
+//               skill entry with tier and definition. The handbook is the
+//               narrative reflection of vocabulary mastery — making abstract
+//               learning progress feel like character progression.
+//
+// ARCHITECTURE:
+//   • generate_handbook_section() takes player name + quest + mastered words
+//   • Outputs formatted markdown with skill entries per word
+//   • Fed into the Book of the Bible narrative and CharacterSheet display
+//   • Bible Car 4.4: The Bestiary is the Pokédex; this is the skill tree
+//
+// DEPENDENCIES:
+//   - trinity_protocol — VocabularyWord type (word, tier, definition)
+//
+// CHANGES:
+//   2026-03-16  Joshua Atkinson  Created for LitRPG handbook generation
+//   2026-03-26  Cascade          Added §17 header
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 use trinity_protocol::VocabularyWord;
 
 /// Generates a "LitRPG / Player Handbook" style block using the user's mastered VAAM words

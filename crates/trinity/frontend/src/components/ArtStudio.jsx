@@ -42,7 +42,10 @@ function typeIcon(type) {
 function StatusBadge({ label, icon, sidecar }) {
   const running = sidecar?.running;
   return (
-    <div className={`art-status-badge ${running ? 'art-status-badge--on' : ''}`}>
+    <div 
+      className={`art-status-badge ${running ? 'art-status-badge--on' : ''}`}
+      title={sidecar?.message || 'Checking status...'}
+    >
       <span className="art-status-dot" />
       <span>{icon}</span>
       <span>{label}</span>
@@ -186,7 +189,7 @@ export default function ArtStudio() {
     <div className="art-studio">
       {/* ── Status Bar ── */}
       <div className="art-status-bar">
-        <div className="art-status-bar__title">ART STUDIO</div>
+        <div className="art-status-bar__title">✦ AI · FUN (ART Studio)</div>
         <div className="art-status-bar__badges">
           <StatusBadge label="ComfyUI" icon="🖼️" sidecar={status.comfyui} />
           <StatusBadge label="MusicGPT" icon="🎵" sidecar={status.musicgpt} />

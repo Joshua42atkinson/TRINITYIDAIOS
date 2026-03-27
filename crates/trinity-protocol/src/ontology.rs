@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Protocol Layer
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     ontology.rs
+// PURPOSE:  Isomorphic ontology traits governing meaning-making across architectural layers
+// BIBLE:    Car 7 — REPETITION (Isomorphism Principle, §7.1)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 //! Trinity Isomorphic Ontology - Material Integrity
 //!
 //! Defines the traits that govern the "Meaning Making" of our code.

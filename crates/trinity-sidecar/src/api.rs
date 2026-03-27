@@ -1,3 +1,13 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Sidecar Manager
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:     api.rs
+// PURPOSE:  HTTP API for sidecar lifecycle management (start/stop/health)
+// BIBLE:    Car 3 — DEVELOPMENT (Hotel Management, §3.3)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 //! Axum HTTP API for the Sidecar
 //!
 //! Port 8090 — used by the conductor and web UI to control sidecars.
