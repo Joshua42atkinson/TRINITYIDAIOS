@@ -23,3 +23,13 @@
 - All external API calls must be handled using native Rust tools (e.g. `reqreq`, `hyper`, `curl`).
 - All scripts, build tasks, and automations must be handled via `bash`, native shell scripts, or Rust-native tooling like `cargo-xtask` or `cargo-make`.
 - If a quick utility script is needed, write it in Bash or as a standalone Rust binary in the workspace. Never fall back to Python.
+
+## Workspace Hygiene (Agent Settings)
+- **Do NOT index or traverse** the `.agent/` directory (prevents recursive memory loops).
+- **Do NOT index or traverse** the `target/` directory (stops the IDE from choking on massive compiled Rust binaries).
+- **CRITICAL:** **Never create SystemD (`systemctl`) services** or background automation scripts. All startup and inference routing must be fully manual so the user has full CPU control via the UI or terminal.
+
+## CRITICAL ANTI-HANG RULES (Antigravity/Cursor Agent Protections)
+1. **NEVER execute blocking, foreground terminal commands** (e.g., `cargo run`, `npm run dev`, `python app.py`) synchronously. Doing so physically hangs the IDE's agent polling loop until the user forcefully cancels the tool call.
+2. **ALWAYS background server or watch commands** using `nohup [COMMAND] > /tmp/server.log 2>&1 &` before executing them in the IDE terminal.
+3. Your `run_command` requests MUST return true `EOF` signals immediately to prevent the autonomous execution cycle from freezing.

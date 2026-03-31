@@ -1,0 +1,27 @@
+{
+  "productName": "Trinity AI OS",
+  "version": "0.1.0",
+  "identifier": "com.ldtatkinson.trinity",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "frontend/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Trinity AI OS",
+        "width": 1400,
+        "height": 900,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "externalBin": ["daydream"]
+  }
+}

@@ -26,7 +26,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::SqlitePool;
 use tracing::{info, warn};
 
 /// Run all SQL migration files from the migrations/ directory.
@@ -35,7 +35,7 @@ use tracing::{info, warn};
 /// This function reads each `.sql` file, splits on `;` boundaries (respecting
 /// dollar-quoted function bodies like `$$ ... $$`), and executes each statement
 /// individually. Files are sorted by name so numbered migrations run in order.
-pub async fn run_all_migrations(pool: &PgPool) -> anyhow::Result<()> {
+pub async fn run_all_migrations(pool: &SqlitePool) -> anyhow::Result<()> {
     let migrations_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .and_then(|p| p.parent())
@@ -162,7 +162,7 @@ pub struct ProjectSummary {
 }
 
 /// Ensure all persistence tables exist
-pub async fn ensure_persistence_tables(pool: &PgPool) -> anyhow::Result<()> {
+pub async fn ensure_persistence_tables(pool: &SqlitePool) -> anyhow::Result<()> {
     // Sessions table — one per conversation/workflow
     sqlx::query(
         r#"
@@ -170,9 +170,9 @@ pub async fn ensure_persistence_tables(pool: &PgPool) -> anyhow::Result<()> {
             id TEXT PRIMARY KEY,
             alias TEXT NOT NULL DEFAULT '',
             mode TEXT NOT NULL DEFAULT 'dev',
-            metadata JSONB NOT NULL DEFAULT '{}',
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            metadata TEXT NOT NULL DEFAULT '{}',
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
         "#,
     )
@@ -183,13 +183,13 @@ pub async fn ensure_persistence_tables(pool: &PgPool) -> anyhow::Result<()> {
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS trinity_messages (
-            id SERIAL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             session_id TEXT NOT NULL REFERENCES trinity_sessions(id) ON DELETE CASCADE,
             role TEXT NOT NULL,
             content TEXT NOT NULL,
             image_base64 TEXT,
-            metadata JSONB NOT NULL DEFAULT '{}',
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            metadata TEXT NOT NULL DEFAULT '{}',
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
         "#,
     )
@@ -213,12 +213,12 @@ pub async fn ensure_persistence_tables(pool: &PgPool) -> anyhow::Result<()> {
             id TEXT PRIMARY KEY,
             session_id TEXT REFERENCES trinity_sessions(id),
             name TEXT NOT NULL,
-            gdd_json JSONB NOT NULL DEFAULT '{}',
+            gdd_json TEXT NOT NULL DEFAULT '{}',
             status TEXT NOT NULL DEFAULT 'active',
             workspace_path TEXT,
             archive_reason TEXT,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            archived_at TIMESTAMPTZ
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            archived_at DATETIME
         )
         "#,
     )
@@ -229,14 +229,14 @@ pub async fn ensure_persistence_tables(pool: &PgPool) -> anyhow::Result<()> {
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS trinity_tool_calls (
-            id SERIAL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             session_id TEXT NOT NULL,
             tool_name TEXT NOT NULL,
-            params JSONB NOT NULL DEFAULT '{}',
+            params TEXT NOT NULL DEFAULT '{}',
             result_status TEXT NOT NULL DEFAULT 'ok',
             result_preview TEXT,
             latency_ms INTEGER,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
         "#,
     )
@@ -253,13 +253,34 @@ pub async fn ensure_persistence_tables(pool: &PgPool) -> anyhow::Result<()> {
     .execute(pool)
     .await?;
 
+    // Background Jobs table — autonomous agent work
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS trinity_background_jobs (
+            id TEXT PRIMARY KEY,
+            message TEXT NOT NULL,
+            mode TEXT NOT NULL,
+            status TEXT NOT NULL,
+            turns_used INTEGER NOT NULL DEFAULT 0,
+            tools_called TEXT NOT NULL DEFAULT '[]',
+            output_path TEXT,
+            log TEXT NOT NULL DEFAULT '[]',
+            final_response TEXT,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            completed_at DATETIME
+        )
+        "#,
+    )
+    .execute(pool)
+    .await?;
+
     info!("✅ Persistence tables ready");
     Ok(())
 }
 
 /// Log a tool call for analytics and debugging
 pub async fn save_tool_call(
-    pool: &PgPool,
+    pool: &SqlitePool,
     session_id: &str,
     tool_name: &str,
     params: &serde_json::Value,
@@ -286,7 +307,7 @@ pub async fn save_tool_call(
 }
 
 /// Create or get a session
-pub async fn ensure_session(pool: &PgPool, session_id: &str, mode: &str) -> anyhow::Result<()> {
+pub async fn ensure_session(pool: &SqlitePool, session_id: &str, mode: &str) -> anyhow::Result<()> {
     sqlx::query(
         r#"
         INSERT INTO trinity_sessions (id, mode) 
@@ -304,7 +325,7 @@ pub async fn ensure_session(pool: &PgPool, session_id: &str, mode: &str) -> anyh
 
 /// Save a message to the database
 pub async fn save_message(
-    pool: &PgPool,
+    pool: &SqlitePool,
     session_id: &str,
     role: &str,
     content: &str,
@@ -339,7 +360,7 @@ pub async fn save_message(
 
 /// Load conversation history for a session (most recent N messages)
 pub async fn load_session_history(
-    pool: &PgPool,
+    pool: &SqlitePool,
     session_id: &str,
     limit: i64,
 ) -> anyhow::Result<Vec<crate::ChatMessage>> {
@@ -373,7 +394,7 @@ pub async fn load_session_history(
 }
 
 /// List all sessions (most recent first)
-pub async fn list_sessions(pool: &PgPool, limit: i64) -> anyhow::Result<Vec<SessionSummary>> {
+pub async fn list_sessions(pool: &SqlitePool, limit: i64) -> anyhow::Result<Vec<SessionSummary>> {
     let rows: Vec<(String, String, i64, String, String)> = sqlx::query_as(
         r#"
         SELECT 
@@ -407,7 +428,7 @@ pub async fn list_sessions(pool: &PgPool, limit: i64) -> anyhow::Result<Vec<Sess
 
 /// Create a new project linked to a session
 pub async fn create_project(
-    pool: &PgPool,
+    pool: &SqlitePool,
     project_id: &str,
     session_id: &str,
     name: &str,
@@ -435,7 +456,7 @@ pub async fn create_project(
 
 /// Save GDD JSON to a project
 pub async fn save_project_gdd(
-    pool: &PgPool,
+    pool: &SqlitePool,
     project_id: &str,
     gdd: &serde_json::Value,
 ) -> anyhow::Result<()> {
@@ -453,7 +474,7 @@ pub async fn save_project_gdd(
 }
 
 /// Archive a project (DAYDREAM — scope creep to scope hope)
-pub async fn archive_project(pool: &PgPool, project_id: &str, reason: &str) -> anyhow::Result<()> {
+pub async fn archive_project(pool: &SqlitePool, project_id: &str, reason: &str) -> anyhow::Result<()> {
     sqlx::query(
         r#"
         UPDATE trinity_projects 
@@ -476,7 +497,7 @@ pub async fn archive_project(pool: &PgPool, project_id: &str, reason: &str) -> a
 }
 
 /// Restore a project from DAYDREAM archive
-pub async fn restore_project(pool: &PgPool, project_id: &str) -> anyhow::Result<()> {
+pub async fn restore_project(pool: &SqlitePool, project_id: &str) -> anyhow::Result<()> {
     sqlx::query(
         r#"
         UPDATE trinity_projects 
@@ -496,7 +517,7 @@ pub async fn restore_project(pool: &PgPool, project_id: &str) -> anyhow::Result<
 
 /// List projects (active or archived)
 pub async fn list_projects(
-    pool: &PgPool,
+    pool: &SqlitePool,
     status_filter: Option<&str>,
     limit: i64,
 ) -> anyhow::Result<Vec<ProjectSummary>> {
@@ -556,7 +577,7 @@ pub async fn list_projects(
 }
 
 /// Get the total message count across all sessions
-pub async fn total_message_count(pool: &PgPool) -> anyhow::Result<i64> {
+pub async fn total_message_count(pool: &SqlitePool) -> anyhow::Result<i64> {
     let (count,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM trinity_messages")
         .fetch_one(pool)
         .await?;
@@ -564,12 +585,40 @@ pub async fn total_message_count(pool: &PgPool) -> anyhow::Result<i64> {
 }
 
 /// Get the total tool call count across all sessions
-pub async fn total_tool_call_count(pool: &PgPool) -> anyhow::Result<i64> {
+pub async fn total_tool_call_count(pool: &SqlitePool) -> anyhow::Result<i64> {
     let (count,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM trinity_tool_calls")
         .fetch_one(pool)
         .await?;
     Ok(count)
 }
+
+/// Returns recent archived templates for the community feature
+pub async fn list_community_templates(pool: &SqlitePool) -> anyhow::Result<Vec<ProjectSummary>> {
+    let mut conn = pool.acquire().await?;
+    let records = sqlx::query_as::<_, (i64, String, String, String, String, Option<String>, Option<String>)>(
+        "SELECT id, session_id, name, status, created_at, archived_at, archive_reason FROM trinity_projects WHERE status = 'archived' ORDER BY id DESC LIMIT 50"
+    )
+    .fetch_all(&mut *conn)
+    .await?;
+
+    Ok(records
+        .into_iter()
+        .map(
+            |(id, session_id, name, status, created_at, archived_at, archive_reason)| {
+                ProjectSummary {
+                    id: id.to_string(),
+                    session_id,
+                    name,
+                    status,
+                    created_at,
+                    archived_at,
+                    archive_reason,
+                }
+            },
+        )
+        .collect())
+}
+
 
 #[cfg(test)]
 mod tests {

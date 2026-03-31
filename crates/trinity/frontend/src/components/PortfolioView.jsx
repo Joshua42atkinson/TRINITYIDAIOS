@@ -137,8 +137,8 @@ function OverviewTab() {
         gap: '12px', marginBottom: '36px',
       }}>
         {[
-          { value: '194K', label: 'Lines of Rust', icon: '⟨/⟩', color: '#22d3ee' },
-          { value: '179+', label: 'Passing Tests', icon: '✓', color: '#34d399' },
+          { value: '200K+', label: 'Total LOC', icon: '⟨/⟩', color: '#22d3ee' },
+          { value: '24K', label: 'Core Rust', icon: '⚙️', color: '#34d399' },
           { value: '73', label: 'API Endpoints', icon: '⊕', color: '#f59e0b' },
           { value: '30', label: 'Agentic Tools', icon: '⊘', color: '#a78bfa' },
         ].map((stat) => (

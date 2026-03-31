@@ -1,0 +1,78 @@
+[package]
+name = "trinity-daydream"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "3D Yard — Bevy studio sandbox for Trinity (vision, meshes, materials, shaders)"
+
+[[bin]]
+name = "daydream"
+path = "src/bin/daydream.rs"
+required-features = ["desktop"]
+
+[dependencies]
+# Core Trinity Integration
+trinity-protocol = { path = "../trinity-protocol" }
+
+# Bevy ECS — minimal features for library crate (no windowing)
+bevy = { version = "0.18.1", default-features = false, features = ["bevy_render", "bevy_asset", "bevy_color", "bevy_mesh"] }
+
+# Async Runtime
+tokio = { workspace = true }
+async-trait = { workspace = true }
+reqwest = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error Handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+image = { workspace = true }
+base64 = "0.22"
+dirs = { workspace = true }
+
+# egui integration (optional — desktop only)
+bevy_egui = { version = "0.39", optional = true }
+
+# DAYDREAM 3D dependencies (optional — desktop only)
+avian3d = { version = "0.6", optional = true }
+bevy_panorbit_camera = { workspace = true, optional = true }
+noise = { workspace = true, optional = true }
+
+# Utilities
+uuid = { workspace = true }
+chrono = { workspace = true }
+half = "2.4" # For f16 conversion
+
+[features]
+default = []
+desktop = [
+    "bevy/bevy_winit",
+    "bevy/bevy_pbr",
+    "bevy/bevy_core_pipeline",
+    "bevy/bevy_window",
+    "bevy/bevy_text",
+    "bevy/bevy_ui",
+    "bevy/bevy_scene",
+    "bevy/bevy_log",
+    "bevy/bevy_state",
+    "bevy/bevy_sprite",
+    "bevy/bevy_gltf",
+    "bevy/multi_threaded",
+    "bevy/default_font",
+    "bevy/x11",
+    "bevy/wayland",
+    "bevy_egui",
+    "avian3d",
+    "bevy_panorbit_camera",
+    "noise",
+]
+inference = []
+vision = []

@@ -11,9 +11,9 @@ import OnboardingTour from './components/OnboardingTour';
 import QualityScorecard from './components/QualityScorecard';
 import ChariotViewer from './components/ChariotViewer';
 import JournalViewer from './components/JournalViewer';
-import ZenMode from './components/ZenMode';
 import PortfolioView from './components/PortfolioView';
 import ActivityBar from './components/ActivityBar';
+import SetupWizard from './components/SetupWizard';
 import { useQuest } from './hooks/useQuest';
 import { useBestiary } from './hooks/useBestiary';
 import { useSSE } from './hooks/useSSE';
@@ -38,6 +38,14 @@ function SubjectPicker({ onSelect }) {
   const [medium, setMedium] = useState('Game');
   const [vision, setVision] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
+  const [templates, setTemplates] = useState([]);
+
+  React.useEffect(() => {
+    fetch('/api/projects/community')
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setTemplates(d); })
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = () => {
     const subject = selectedSubject || custom.trim();
@@ -74,6 +82,28 @@ function SubjectPicker({ onSelect }) {
           onChange={(e) => { setCustom(e.target.value); setSelectedSubject(''); }}
         />
       </div>
+
+      {/* Community Templates */}
+      {templates.length > 0 && (
+        <div className="subject-section" style={{ marginTop: '24px' }}>
+          <div className="section-label" style={{ color: '#34d399' }}>🌍 FEATURED COMMUNITY TEMPLATES</div>
+          <div className="subject-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+            {templates.map(tpl => (
+              <div 
+                key={tpl.id} 
+                className={`subject-btn ${selectedSubject === tpl.name ? 'subject-btn--active' : ''}`}
+                onClick={() => { setSelectedSubject(tpl.name); setCustom(''); setMedium('Simulation'); }}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '12px' }}
+              >
+                <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{tpl.name}</div>
+                <div style={{ fontSize: '0.8rem', opacity: 0.7, marginTop: '4px', textAlign: 'left' }}>
+                  {tpl.archive_reason || "Starter module"}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Medium Selector */}
       <div className="subject-section">
@@ -130,15 +160,31 @@ export default function App() {
   const [started, setStarted] = useState(false);
   const [viewPhase, setViewPhase] = useState(null);
   const [appMode, setAppMode] = useState('iron_road'); // iron_road | express | yardmaster
+  const [setupComplete, setSetupComplete] = useState(false);
+  const [isCheckingSetup, setIsCheckingSetup] = useState(true);
   const [chariotDoc, setChariotDoc] = useState(null);  // filename of chariot doc to view
   const { quest, phases, currentPhaseIndex, refetch } = useQuest();
   const { bestiary } = useBestiary();
   const { events, dismissEvent } = useSSE();
   const [inferenceModel, setInferenceModel] = React.useState('...');
 
-  // Fetch active model name on mount
+  // Fetch active model name on mount and bypass wizard if the server is already configured
   React.useEffect(() => {
-    fetch('/api/models/active').then(r => r.json()).then(d => setInferenceModel(d.model_name || d.name || '?')).catch(() => {});
+    const localState = localStorage.getItem('trinitySetupState');
+    if (localState) {
+      setSetupComplete(true);
+    }
+
+    fetch('/api/models/active')
+      .then(r => r.json())
+      .then(d => {
+        if (d.healthy && !localState) {
+          setSetupComplete(true);
+        }
+        setInferenceModel(d.model_name || d.name || '?');
+        setIsCheckingSetup(false);
+      })
+      .catch(() => setIsCheckingSetup(false));
   }, []);
 
   // Listen for handoff events from PhaseWorkspace (Recycler → Pete workshop)
@@ -187,6 +233,22 @@ export default function App() {
 
   const clearViewPhase = () => setViewPhase(null);
 
+  if (isCheckingSetup) {
+    return (
+      <div style={{ height: '100vh', width: '100vw', background: '#090a0f', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B3C2D1', fontFamily: '"Inter", sans-serif', fontSize: '1.2rem', letterSpacing: '2px' }}>
+        INITIALIZING NERVOUS SYSTEM...
+      </div>
+    );
+  }
+
+  if (!setupComplete) {
+    return (
+      <SetupWizard onComplete={() => {
+        setSetupComplete(true);
+      }} />
+    );
+  }
+
   return (
     <div className="iron-road-layout">
       <NavBar
@@ -214,12 +276,6 @@ export default function App() {
           <CharacterSheet />
           <PortfolioView />
         </div>
-      ) : activeTab === 'voice' ? (
-        <ZenMode />
-      ) : activeTab === 'art' ? (
-        <div style={{ gridColumn: '1 / -1', gridRow: 2, overflow: 'auto' }}>
-          <ArtStudio />
-        </div>
       ) : activeTab === 'scorecard' ? (
         <div style={{ gridColumn: '1 / -1', gridRow: 2, overflow: 'auto' }}>
           <QualityScorecard />
@@ -240,28 +296,36 @@ export default function App() {
         </div>
       ) : (started || quest?.subject) && quest?.subject !== '' ? (
         <>
-          <ChapterRail
-            phases={phases}
-            currentPhaseIndex={currentPhaseIndex}
-            completedPhases={quest?.completed_phases}
-            onPhaseClick={handlePhaseClick}
-          />
+          <div style={{ display: activeTab === 'art' ? 'block' : 'none', gridColumn: '1 / -1', gridRow: 2, overflow: 'auto' }}>
+            <ArtStudio />
+          </div>
 
-          <PhaseWorkspace
-            quest={quest}
-            sseEvents={events}
-            onDismissEvent={dismissEvent}
-            onRefetch={refetch}
-            viewPhase={viewPhase}
-            allPhases={phases}
-            onClearView={clearViewPhase}
-          />
+          {activeTab === 'ironroad' && (
+            <>
+              <ChapterRail
+                phases={phases}
+                currentPhaseIndex={currentPhaseIndex}
+                completedPhases={quest?.completed_phases}
+                onPhaseClick={handlePhaseClick}
+              />
 
-          <GameHUD
-            quest={quest}
-            bestiary={bestiary}
-            onRefetch={refetch}
-          />
+              <PhaseWorkspace
+                quest={quest}
+                sseEvents={events}
+                onDismissEvent={dismissEvent}
+                onRefetch={refetch}
+                viewPhase={viewPhase}
+                allPhases={phases}
+                onClearView={clearViewPhase}
+              />
+
+              <GameHUD
+                quest={quest}
+                bestiary={bestiary}
+                onRefetch={refetch}
+              />
+            </>
+          )}
         </>
       ) : (
         <>
@@ -273,34 +337,52 @@ export default function App() {
 
       <ActivityBar />
       <footer className="footer">
-        <span className="footer__label">TRINITY ID AI OS</span>
-        <span className="sep">|</span>
-        <span>{quest?.subject || 'No subject selected'}</span>
-        <span className="flex-spacer" />
-        <div className="mode-toggle">
-          {[['iron_road', '🚂'], ['express', '⚡'], ['yardmaster', '🔧']].map(([m, icon]) => (
-            <button
-              key={m}
-              className={`mode-toggle__btn ${appMode === m ? 'mode-toggle__btn--active' : ''}`}
-              onClick={() => {
-                setAppMode(m);
-                fetch('/api/mode', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ mode: m }),
-                }).catch(() => {});
-              }}
-            >
-              {icon}
-            </button>
-          ))}
+        {/* Left: System Telemetry (Proximity: hardware status grouped together) */}
+        <div className="footer-group footer-left">
+          <span className="footer__label">TRINITY ID AI OS</span>
+          <span className="sep">|</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            📡 <span style={{ color: 'var(--green)' }}>ONLINE</span>
+          </span>
+          <span className="sep">|</span>
+          <span title="Active Inference Engine">🚂 {inferenceModel}</span>
         </div>
-        <span className="sep">|</span>
-        <span>Phase: {quest?.phase || '—'}</span>
-        <span className="sep">|</span>
-        <span>XP: {quest?.xp_earned || 0}</span>
-        <span className="sep">|</span>
-        <span>🚂 {inferenceModel}</span>
+
+        {/* Center: Context (Alignment: Dead Center for current active work) */}
+        <div className="footer-group footer-center">
+          <span>{quest?.subject || 'No active subject'}</span>
+          <span className="sep">|</span>
+          <span>Phase: {quest?.phase || '—'}</span>
+          <span className="sep">|</span>
+          <span>XP: {quest?.xp_earned || 0}</span>
+        </div>
+
+        {/* Right: Actionable OS Modes (Proximity: clickable buttons isolated) */}
+        <div className="footer-group footer-right">
+          <div className="mode-toggle">
+            {[['iron_road', '🚂', 'Iron Road (Guided Journey)'], ['express', '⚡', 'Express Mode (Auto-generate)'], ['yardmaster', '🔧', 'Yardmaster (System Tools)']].map(([m, icon, title]) => (
+              <button
+                key={m}
+                title={title}
+                className={`mode-toggle__btn ${appMode === m ? 'mode-toggle__btn--active' : ''}`}
+                onClick={() => {
+                  setAppMode(m);
+                  if (m === 'yardmaster') setActiveTab('yard');
+                  else if (m === 'iron_road') setActiveTab('ironroad');
+                  else if (m === 'express') setActiveTab('express');
+                  
+                  fetch('/api/mode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: m }),
+                  }).catch(() => {});
+                }}
+              >
+                {icon}
+              </button>
+            ))}
+          </div>
+        </div>
       </footer>
       <OnboardingTour />
     </div>

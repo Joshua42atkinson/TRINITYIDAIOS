@@ -41,7 +41,7 @@
 | **Project Save/Preview** | `Verified` | `ExpressWizard.jsx` — save via `/api/projects`, preview via `/api/eye/preview` |
 | **Party Toggle** | `Verified` | `GameHUD.jsx` — click party member → `/api/quest/party` |
 | **Shadow Process** | `Verified` | `CharacterSheet.jsx` — Ghost Train stop button → `/api/character/shadow/process` |
-| **Multi-user Sessions** | `Roadmap` | Planned vLLM PagedAttention deployment |
+| **Multi-user Sessions** | `Roadmap` | Planned llama.cpp continuous batching deployment |
 
 ---
 
@@ -219,8 +219,8 @@ Every route in Trinity shares a single `AppState` struct — the server's comple
 ```rust
 pub struct AppState {
     pub inference_router:    Arc<RwLock<InferenceRouter>>,     // Multi-backend LLM routing
-    pub embedded_model:      Option<Arc<EmbeddedModel>>,       // Direct GGUF (Vulkan GPU)
-    pub db_pool:             sqlx::PgPool,                     // PostgreSQL + pgvector
+    pub embedded_model:      Option<Arc<EmbeddedModel>>,       // Agnostic Proxy (LM Studio)
+    pub db_pool:             sqlx::SqlitePool,                 // SQLite + In-Memory V-RAG
     pub conversation_history: Arc<RwLock<Vec<ChatMessage>>>,   // Current session
     pub game_state:          trinity_quest::SharedGameState,   // Quest engine
     pub book_updates:        broadcast::Sender<String>,        // SSE broadcast
@@ -255,7 +255,7 @@ Trinity exposes **~85 HTTP endpoints** organized into 15 functional groups:
 | Creative | `/api/creative/*` | ComfyUI images, video, music, 3D mesh | L839-850 |
 | Voice | `/api/voice/*` | TTS/STT conversation (Supertonic-2, PersonaPlex) | L852-855 |
 | Persistence | `/api/sessions`, `/api/projects` | Conversation history, DAYDREAM archive | L857-861 |
-| RAG | `/api/rag/*` | Semantic search via pgvector embeddings | L863-864 |
+| RAG | `/api/rag/*` | Semantic search via SQLite in-memory embeddings | L863-864 |
 | Quality | `/api/yard/score` | Pedagogical document evaluation | L866 |
 | Journal | `/api/journal/*` | Chapter milestones, weekly reflections | L868-870 |
 | Tools | `/api/tools/*` | Agentic tool listing and execution | L790-791 |
@@ -275,7 +275,7 @@ crates/trinity/src/
 ├── conductor_leader.rs  — ADDIECRAPEYE phase orchestrator
 ├── cow_catcher.rs       — Error handling, obstacle classification
 ├── creative.rs          — ComfyUI/MusicGPT/Hunyuan3D client (1156 lines)
-├── embedded_inference.rs — Direct GGUF via llama.cpp FFI (Vulkan)
+├── embedded_inference.rs — HTTP Dispatcher for Agnostic Inference (LM Studio)
 ├── export.rs            — EYE Container → HTML5 export
 ├── eye_container.rs     — Bundle quest data into exportable artifact
 ├── gpu_guard.rs         — Hardware-safe GPU resource guard
@@ -286,11 +286,11 @@ crates/trinity/src/
 ├── journal.rs           — Chapter milestones, weekly reflections
 ├── music_streamer.rs    — Background music from CharacterSheet genre
 ├── narrative.rs         — Great Recycler LitRPG prose generation
-├── persistence.rs       — PostgreSQL sessions, messages, projects
+├── persistence.rs       — SQLite sessions, messages, projects
 ├── perspective.rs       — Ring 6: multi-perspective AI evaluation
 ├── quality_scorecard.rs — Pedagogical document scoring (5 dimensions)
 ├── quests.rs            — HTTP API for quest engine
-├── rag.rs               — pgvector semantic + full-text search
+├── rag.rs               — SQLite in-memory semantic + full-text search
 ├── rlhf_api.rs          — RLHF resonance feedback endpoint
 ├── rlhf_ui.rs           — Resonance rating types
 ├── scope_creep.rs       — Scope creep creature generation
@@ -313,7 +313,7 @@ Trinity is designed for a specific class of hardware: **AMD Strix Halo** with un
 | Component | Specification | Trinity Uses For |
 |-----------|--------------|-----------------|
 | **CPU** | Ryzen AI Max+ 395 (16C/32T Zen 5) | Server, I/O, orchestration |
-| **GPU** | Radeon 8060S (40 CUs RDNA 3.5) | LLM inference via llama.cpp (Vulkan), image generation |
+| **GPU** | Radeon 8060S (40 CUs RDNA 3.5) | Image generation (ComfyUI) & LM Studio backend inference |
 | **NPU** | XDNA 2 (50 TOPS) | Planned: speculative decoding, embeddings, voice |
 | **Memory** | 128 GB unified LPDDR5x-8000 | Shared across CPU+GPU+NPU — no copy overhead |
 
@@ -323,7 +323,7 @@ Trinity is designed for a specific class of hardware: **AMD Strix Halo** with un
 
 > 📍 `main.rs:L285-296` — Real GPU/NPU load from sysfs (`/sys/class/drm/renderD128/device/gpu_busy_percent`, `/sys/class/accel/accel0/`)
 > 📍 `main.rs:L224-225` — Primary model: `"Mistral-Small-4-119B-2603-Q4_K_M"` (68 GB split GGUF)
-> 📍 `embedded_inference.rs:L1-16` — Direct GGUF inference via llama.cpp FFI (Vulkan backend)
+> 📍 `embedded_inference.rs:L1-16` — Architectural proxy for agnostic inference backends (LM Studio)
 
 ### 1.10 The Frontend
 
@@ -345,6 +345,7 @@ Trinity's web UI is built with **16 React components** served from the Axum back
 | `PhaseWorkspace.jsx` | Current ADDIECRAPEYE phase workspace |
 | `QualityScorecard.jsx` | Document quality evaluation display |
 | `ScopeCard.jsx` | Scope creep creature encounter card |
+| `SetupWizard.jsx` | Bring Your Own Mind — dynamic backend selection wizard |
 | `TrainStatus.jsx` | Iron Road train progress animation |
 | `Yardmaster.jsx` | IDE/Agent mode — agentic chat with Forge terminal via `useYardmaster` hook |
 | `DAYDREAM` | The Bevy Window — Full lit-novel edutainment RPG ecosystem. Replaces legacy ZenMode/StoryMode. |
@@ -444,7 +445,7 @@ Trinity's `[workspace.dependencies]` reveals its architectural priorities:
 | `tokio` | 1.0 (full) | Async runtime — everything is non-blocking |
 | `axum` | (latest) | HTTP framework — thin, composable, tower-compatible |
 | `serde` + `serde_json` | 1.0 | Every type is serializable — the Protocol is JSON-native |
-| `sqlx` | 0.7 | Async PostgreSQL — compile-time query checking |
+| `sqlx` | 0.7 | Async SQLite — zero-config local file database |
 | `bevy` | 0.18.1 | 3D game engine — the Spatial Sandbox |
 | `reqwest` | 0.11 | HTTP client for sidecar communication |
 | `tracing` | 0.1 | Structured logging — every operation is observable |
@@ -485,8 +486,8 @@ Grouped by responsibility:
 - `skills.rs` — Skill system integration
 
 **Infrastructure** (8 modules):
-- `persistence.rs` — PostgreSQL sessions, messages, projects
-- `rag.rs` — pgvector semantic + full-text search
+- `persistence.rs` — SQLite sessions, messages, projects
+- `rag.rs` — SQLite in-memory semantic + full-text search
 - `health.rs` — Real health endpoint (all subsystems)
 - `http.rs` — Shared HTTP clients (3 timeout profiles)
 - `gpu_guard.rs` — Hardware-safe GPU resource guard
@@ -866,7 +867,7 @@ Completed lessons flow into the **Book of the Bible** — an append-only narrati
 
 ### 4.8 Test Coverage
 
-The game loop has **8 unit tests** validating the core mechanics:
+The game loop has **16 unit tests** validating the core mechanics:
 
 | Test | What It Validates |
 |------|-------------------|
@@ -1681,7 +1682,29 @@ Trinity's **dual KV cache** enables 500K+ effective context:
 - **Slot 1** (256K tokens): Programmer Pete persona — execution, building
 - **Combined**: 512K tokens of persistent context across personas
 
-This is achieved through llama-server's `-np 2` (2 parallel slots) with Q4 KV cache quantization, enabling per-slot system prompt persistence without re-tokenization.
+This is achieved through LM Studio/llama-server's `--parallel 2` (2 parallel slots) with Q4 KV cache quantization, enabling per-slot system prompt persistence without re-tokenization.
+
+> [!NOTE] 
+> **ADDENDUM: Author's Preferred AI LLM: MS4 (Mistral Small 4 119B)**
+>
+> We have conducted extensive real-world memory profiling on the Trinity architecture running on AMD Strix Halo (128GB unified memory).
+> 
+> **1. The MLA Advantage**
+> Mistral Small 4 explicitly uses **Multi-head Latent Attention (MLA)**. Its `config.json` sets `kv_lora_rank: 256`. Instead of storing full `32 heads × 128 dim` KV matrices per token, it stores a compressed 256-dimensional latent vector.
+> * Standard dense FP16 KV cache: ~576 KB per token
+> * MS4 MLA with Q4 KV Quantization: **~9 KB per token** (64x smaller!)
+>
+> **2. Real-World Memory Footprint (1M Context)**
+> Because of MLA, we can safely push MS4 far beyond its native 256k window. Our active production configuration in LM Studio:
+> * **Model**: `mistral-small-4-119b-2603`
+> * **Context Length**: `1,048,576` (1 Million tokens)
+> * **Parallel**: `2`
+> * **KV Cache Quantization**: `Q4` (Must be enabled in LM Studio settings)
+> * **Total Actual Memory**: ~85 GB total (67GB model weights + 18GB for the dual 1M token KV caches). 
+> This comfortably fits within 128GB with headroom for the OS and creative sidecars. LM Studio's built-in memory estimator does *not* account for MLA and will falsely warn that 1M context requires >100GB of KV cache. Ignore the warning.
+>
+> **3. Evaluation Batch Size (n_batch)**
+> Setting evaluation batch size to **512** (or 1024) is correct. This dictates how many tokens are processed simultaneously during prompt ingestion (the "prefill" phase). 512 provides a stable balance between prompt parsing speed and VRAM spike stability on unified memory.
 
 ### 12.3 Server Architecture
 
@@ -1689,7 +1712,7 @@ This is achieved through llama-server's `-np 2` (2 parallel slots) with Q4 KV ca
 Layer 1: Headless Server (trinity crate)
   ├── Axum HTTP/SSE server on :3000
   ├── 85+ API endpoints across 15 groups
-  ├── SQLx database (PostgreSQL)
+  ├── SQLx database (SQLite)
   ├── InferenceRouter (model health + failover)
   └── Tool dispatch (30 tools, 3 permission tiers)
 
@@ -1746,8 +1769,8 @@ Trinity is in **late prototype** stage. The Golem has its skeleton, muscles, and
 - **Purdue Pilot** — First classroom deployment with LDT students
 - **LDTAtkinson.com** — Portfolio website live at [LDTAtkinson.com](https://LDTAtkinson.com), hosted from the same Strix Halo (Caddy reverse proxy + auto-HTTPS)
 - **VAAM as Edge Intelligence** — Vocabulary-based attention management is MORE valuable on constrained devices (7B-32B models, 4-8K context). VAAM's 500-char prompt budget and Sacred Circuitry's Coal scanner reduce prompt engineering burden and manage drift where brute-force context is unavailable. No other system provides cognitive load management for edge AI.
-- **Mobile Trinity** — The VAAM profile (< 2KB JSON) + Sacred Circuitry (15 words) + Coal economy can run as a PWA or React Native shell on a phone, pointing to any local model or remote vLLM server. The cognitive scaffolding layer is device-independent.
-- **Car-Based Crate Chunking** — Organize the Cargo workspace into deployment-target "train cars": Phone Car (VAAM profile + circuitry scanner), Edge Car (+ quest engine), Desktop Car (+ creative pipeline + voice), Server Car (+ multi-user vLLM). A Yardmaster couples the cars for each deployment target.
+- **Mobile Trinity** — The VAAM profile (< 2KB JSON) + Sacred Circuitry (15 words) + Coal economy can run as a PWA or React Native shell on a phone, pointing to any local model or remote llama.cpp server. The cognitive scaffolding layer is device-independent.
+- **Car-Based Crate Chunking** — Organize the Cargo workspace into deployment-target "train cars": Phone Car (VAAM profile + circuitry scanner), Edge Car (+ quest engine), Desktop Car (+ creative pipeline + voice), Server Car (+ multi-user llama.cpp). A Yardmaster couples the cars for each deployment target.
 
 > *The Golem breathes. The iron has been laid. The next train is loading.*
 >

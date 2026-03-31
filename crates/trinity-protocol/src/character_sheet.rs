@@ -129,9 +129,6 @@ pub struct CharacterSheet {
     /// If None, uses the default vocabulary for the selected genre.
     #[serde(default)]
     pub vocabulary_pack_id: Option<Uuid>,
-    /// The AI party configuration (which models fill which roles).
-    #[serde(default)]
-    pub party_config: PartyConfig,
     /// Creative sidecar settings (ComfyUI + MusicGPT) - the "VIBE contract".
     #[serde(default)]
     pub creative_config: CreativeConfig,
@@ -149,6 +146,23 @@ pub struct CharacterSheet {
     /// and agreements between user and AI about what matters.
     #[serde(default)]
     pub vaam_profile: crate::vaam_profile::VaamProfile,
+
+    // --- LORE & ROLEPLAY (The DnD Layer) ---
+    /// The user's visual appearance and avatar description in the Iron Road.
+    #[serde(default)]
+    pub appearance: Option<String>,
+
+    /// The character's origin story, background lore, or how they arrived at the Iron Road.
+    #[serde(default)]
+    pub backstory: Option<String>,
+    
+    /// Narrative alignment or pedagogical stance (e.g., "Chaotic Constructor", "Lawful Guide").
+    #[serde(default)]
+    pub alignment: Option<String>,
+
+    /// Current short-term personal or narrative goal (distinct from the heavy academic goals).
+    #[serde(default)]
+    pub current_quest_flavor: Option<String>,
 
     // --- INTENT ENGINEERING (The Digital Quarry) ---
     // The CharacterSheet IS the intent model. These fields capture not just
@@ -253,13 +267,18 @@ impl CharacterSheet {
             // Project configuration (set during Awakening)
             genre: Genre::default(),
             vocabulary_pack_id: None,
-            party_config: PartyConfig::default(),
             creative_config: CreativeConfig::default(),
             audio_preferences: AudioPreferences::default(),
 
             skills: HashMap::new(),
             completed_contracts: Vec::new(),
             vaam_profile: crate::vaam_profile::VaamProfile::default(),
+
+            // Lore & Roleplay defaults
+            appearance: None,
+            backstory: None,
+            alignment: None,
+            current_quest_flavor: None,
 
             // Intent Engineering — start grounded
             intent_posture: IntentPosture::default(),
@@ -509,234 +528,6 @@ impl BloomLevel {
             BloomLevel::Evaluate => 25,
             BloomLevel::Create => 40,
         }
-    }
-}
-
-// ============================================================================
-// PARTY CONFIGURATION
-// ============================================================================
-
-/// AI Party configuration for the user's project.
-/// Determines which models fill which roles based on hardware.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct PartyConfig {
-    /// Which roles are filled by which models
-    pub roles: HashMap<PartyRole, ModelAssignment>,
-    /// Total memory budget in GB
-    pub memory_budget_gb: u32,
-    /// Whether user has overridden auto-config
-    pub is_customized: bool,
-}
-
-impl PartyConfig {
-    /// Create auto-configured party based on hardware
-    pub fn auto_configure(vram_gb: u32, _ram_gb: u32) -> Self {
-        let (roles, budget) = if vram_gb < 24 {
-            // LoneWolf: Single model, swap as needed
-            let mut roles = HashMap::new();
-            roles.insert(PartyRole::Conductor, ModelAssignment::mistral_small_4());
-            (roles, 12)
-        } else if vram_gb < 64 {
-            // SmallSquad: Conductor + one specialist
-            let mut roles = HashMap::new();
-            roles.insert(PartyRole::Conductor, ModelAssignment::mistral_small_4());
-            roles.insert(PartyRole::Engineer, ModelAssignment::reap_25b());
-            (roles, 36)
-        } else {
-            // Guild: Full party
-            let mut roles = HashMap::new();
-            roles.insert(PartyRole::Conductor, ModelAssignment::mistral_small_4());
-            roles.insert(PartyRole::Engineer, ModelAssignment::reap_25b());
-            roles.insert(PartyRole::Evaluator, ModelAssignment::opus_27b());
-            roles.insert(PartyRole::Artist, ModelAssignment::opus_27b());
-            roles.insert(PartyRole::Brakeman, ModelAssignment::reap_25b());
-            roles.insert(PartyRole::Visionary, ModelAssignment::qwen_35b());
-            (roles, 128)
-        };
-
-        Self {
-            roles,
-            memory_budget_gb: budget,
-            is_customized: false,
-        }
-    }
-
-    /// Get total memory used by assigned models
-    pub fn total_memory_used(&self) -> u32 {
-        self.roles.values().map(|m| m.memory_gb).sum()
-    }
-
-    /// Check if a model can be added within budget
-    pub fn can_add_model(&self, memory_gb: u32) -> bool {
-        self.total_memory_used() + memory_gb <= self.memory_budget_gb
-    }
-}
-
-/// Roles in the AI party (companion system)
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
-pub enum PartyRole {
-    /// Main orchestrator - guides conversation and delegates
-    Conductor,
-    /// Code generation specialist
-    Engineer,
-    /// Quality review and evaluation
-    Evaluator,
-    /// Creative and design work
-    Artist,
-    /// Safety and testing
-    Brakeman,
-    /// Visual analysis (screenshots, UI)
-    Visionary,
-}
-
-impl PartyRole {
-    pub fn display_name(&self) -> &'static str {
-        match self {
-            PartyRole::Conductor => "Conductor",
-            PartyRole::Engineer => "Engineer",
-            PartyRole::Evaluator => "Evaluator",
-            PartyRole::Artist => "Artist",
-            PartyRole::Brakeman => "Brakeman",
-            PartyRole::Visionary => "Visionary",
-        }
-    }
-
-    pub fn emoji(&self) -> &'static str {
-        match self {
-            PartyRole::Conductor => "🎭",
-            PartyRole::Engineer => "⚙️",
-            PartyRole::Evaluator => "📊",
-            PartyRole::Artist => "🎨",
-            PartyRole::Brakeman => "🛡️",
-            PartyRole::Visionary => "👁️",
-        }
-    }
-
-    pub fn description(&self) -> &'static str {
-        match self {
-            PartyRole::Conductor => "Guides conversation and delegates tasks",
-            PartyRole::Engineer => "Generates and modifies code",
-            PartyRole::Evaluator => "Reviews quality against rubrics",
-            PartyRole::Artist => "Creates designs and narratives",
-            PartyRole::Brakeman => "Tests and validates safety",
-            PartyRole::Visionary => "Analyzes visuals and UI",
-        }
-    }
-}
-
-/// A model assigned to a party role
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ModelAssignment {
-    /// Model identifier (e.g., "gpt-oss-20b")
-    pub model_id: String,
-    /// Display name (e.g., "GPT-OSS 20B")
-    pub display_name: String,
-    /// Path to model files
-    pub model_path: String,
-    /// Memory requirement in GB
-    pub memory_gb: u32,
-    /// Whether model is currently loaded
-    pub is_loaded: bool,
-}
-
-impl ModelAssignment {
-    /// P — Conductor (Pete): Mistral Small 4 119B MoE
-    /// Split GGUF: 37GB + 31GB = 68GB total, ~6.5B active params, 40+ tok/s
-    /// 256k context with Q4 KV cache quantization, vision capable
-    /// Served via llama-server on port 8080
-    pub fn mistral_small_4() -> Self {
-        Self {
-            model_id: "mistral-small-4-119b".to_string(),
-            display_name: "Mistral Small 4 119B MoE (256k Q4 KV + Vision)".to_string(),
-            model_path: "trinity-models/gguf/Mistral-Small-4-119B-2603-Q4_K_M-00001-of-00002.gguf"
-                .to_string(),
-            memory_gb: 68,
-            is_loaded: false,
-        }
-    }
-
-    /// Y — Yardmaster: Ming-flash-omni-2.0
-    /// ~195GB safetensors (42 shards), true omni-modal (text+vision+audio)
-    /// BailingMoeV2 backbone: 256 experts, 8 active per token
-    /// MUST be served via vLLM (custom /generate protocol, NOT OpenAI-compat)
-    pub fn ming_omni() -> Self {
-        Self {
-            model_id: "ming-flash-omni-2.0".to_string(),
-            display_name: "Ming-flash-omni-2.0 (Truly OMNI — text+vision+audio)".to_string(),
-            model_path: "trinity-models/safetensors/Ming-flash-omni-2.0".to_string(),
-            memory_gb: 195,
-            is_loaded: false,
-        }
-    }
-
-    /// A-R-T (R — Research): Qwen3-Coder-REAP-25B MoE
-    /// 15GB GGUF, 3B active params, Rust-specialized code generation
-    pub fn reap_25b() -> Self {
-        Self {
-            model_id: "reap-25b-a3b".to_string(),
-            display_name: "REAP 25B MoE (Rust Code Gen)".to_string(),
-            model_path: "trinity-models/gguf/Qwen3-Coder-REAP-25B-A3B-Rust-Q4_K_M.gguf".to_string(),
-            memory_gb: 15,
-            is_loaded: false,
-        }
-    }
-
-    /// A-R-T (R — Research): Crow 9B
-    /// 5.3GB GGUF, fast research/reasoning agent
-    pub fn crow_9b() -> Self {
-        Self {
-            model_id: "crow-9b".to_string(),
-            display_name: "Crow 9B (Research Agent)".to_string(),
-            model_path:
-                "trinity-models/gguf/Crow-9B-Opus-4.6-Distill-Heretic_Qwen3.5.i1-Q4_K_M.gguf"
-                    .to_string(),
-            memory_gb: 5,
-            is_loaded: false,
-        }
-    }
-
-    /// A-R-T (T — Tempo): OmniCoder 9B
-    /// 5.4GB GGUF, code generation for tempo/music pipeline
-    pub fn omnicoder_9b() -> Self {
-        Self {
-            model_id: "omnicoder-9b".to_string(),
-            display_name: "OmniCoder 9B (Tempo/Code)".to_string(),
-            model_path: "trinity-models/gguf/OmniCoder-9B-Q4_K_M.gguf".to_string(),
-            memory_gb: 5,
-            is_loaded: false,
-        }
-    }
-
-    /// Reserve: Qwen3.5-27B Claude Opus Reasoning Distilled
-    /// 21GB GGUF, advanced reasoning for evaluation
-    pub fn opus_27b() -> Self {
-        Self {
-            model_id: "opus-27b".to_string(),
-            display_name: "Qwen3.5-27B Claude Opus (Evaluator)".to_string(),
-            model_path:
-                "trinity-models/gguf/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled.i1-Q6_K.gguf"
-                    .to_string(),
-            memory_gb: 21,
-            is_loaded: false,
-        }
-    }
-
-    /// Reserve: Qwen3.5-35B-A3B (Visionary with vision projector)
-    /// 20GB GGUF, MoE with 3B active
-    pub fn qwen_35b() -> Self {
-        Self {
-            model_id: "qwen-35b-a3b".to_string(),
-            display_name: "Qwen3.5-35B-A3B (Visionary)".to_string(),
-            model_path: "trinity-models/gguf/Qwen3.5-35B-A3B-Q4_K_M.gguf".to_string(),
-            memory_gb: 20,
-            is_loaded: false,
-        }
-    }
-}
-
-impl Default for ModelAssignment {
-    fn default() -> Self {
-        Self::mistral_small_4()
     }
 }
 

@@ -24,8 +24,11 @@ pub struct RecyclerEvent {
     pub phase: String,
     /// Human-readable description of what happened
     pub description: String,
-    /// Player alias
     pub alias: String,
+    pub appearance: Option<String>,
+    pub backstory: Option<String>,
+    pub alignment: Option<String>,
+    pub current_quest_flavor: Option<String>,
     /// Current game stats
     pub coal: f32,
     pub steam: u32,
@@ -68,6 +71,10 @@ impl GreatRecycler {
             xp: event.xp,
             resonance_level: event.resonance_level,
             alias: event.alias.clone(),
+            appearance: event.appearance.clone(),
+            backstory: event.backstory.clone(),
+            alignment: event.alignment.clone(),
+            current_quest_flavor: event.current_quest_flavor.clone(),
         };
 
         // Generate prose via the narrative engine (calls vLLM or uses fallback)

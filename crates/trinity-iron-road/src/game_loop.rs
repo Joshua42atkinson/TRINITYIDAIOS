@@ -224,6 +224,10 @@ impl GameLoopEvent {
         xp: u64,
         resonance_level: u32,
         genre: Genre,
+        appearance: Option<String>,
+        backstory: Option<String>,
+        alignment: Option<String>,
+        current_quest_flavor: Option<String>,
     ) -> Option<RecyclerEvent> {
         match self {
             GameLoopEvent::LessonCompleted {
@@ -245,6 +249,10 @@ impl GameLoopEvent {
                 xp,
                 resonance_level,
                 genre,
+                appearance: appearance.clone(),
+                backstory: backstory.clone(),
+                alignment: alignment.clone(),
+                current_quest_flavor: current_quest_flavor.clone(),
             }),
             GameLoopEvent::CreepTameable {
                 word,
@@ -265,6 +273,10 @@ impl GameLoopEvent {
                 xp,
                 resonance_level,
                 genre,
+                appearance: appearance.clone(),
+                backstory: backstory.clone(),
+                alignment: alignment.clone(),
+                current_quest_flavor: current_quest_flavor.clone(),
             }),
             _ => None,
         }
@@ -469,6 +481,10 @@ mod tests {
             1000,
             3,
             Genre::Steampunk,
+            None,
+            None,
+            None,
+            None,
         );
         assert!(recycler.is_some());
         let r = recycler.unwrap();

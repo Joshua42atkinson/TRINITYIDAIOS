@@ -134,3 +134,5 @@ trinity_key.pub
 *.key
 id_rsa
 id_ed25519
+crates/trinity/daydream-x86_64-unknown-linux-gnu
+crates/trinity/frontend/public/forge/engine-pkg-webgl2/forge_engine_bg.wasm

@@ -334,7 +334,6 @@ async fn evaluate_single_lens(
             &messages,
             lens.max_tokens,
             Some("low"), // Low effort — these should be quick evaluations
-            None,        // No specific slot — use LRU
         ),
     )
     .await;

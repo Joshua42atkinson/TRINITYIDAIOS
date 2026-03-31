@@ -1,6 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useYardmaster } from '../hooks/useYardmaster';
+import { useCreative } from '../hooks/useCreative';
 import MicButton from './MicButton';
+import '../styles/yardmaster_premium.css';
 
 const FOCUS_TAGS = [
   { id: 'system tools', icon: '📊', label: 'System' },
@@ -29,6 +31,25 @@ const PERSONAS = [
   { id: 'programmer', icon: '⚙️', label: 'Pete', tip: 'Programmer Pete — slot 1 (exhale: builder/executor)', slot: 1 },
 ];
 
+/* ─── Global Beast Logger Helpers ─── */
+function tagClass(tag) {
+  const t = (tag || '').toUpperCase();
+  if (['SUCCESS', 'COMPLETE', 'DONE'].includes(t)) return 'beast-tag--success';
+  if (['ERROR', 'FAILED', 'CRITICAL'].includes(t)) return 'beast-tag--error';
+  if (t === 'COMFYUI') return 'beast-tag--comfyui';
+  if (t === 'ACE_STEP') return 'beast-tag--ace';
+  if (t === 'AVATAR') return 'beast-tag--avatar';
+  if (t === 'FORGE' || t === 'YARD') return 'beast-tag--forge';
+  if (t === 'SYSTEM') return 'beast-tag--ace';
+  return '';
+}
+
+function fmtTime(ts) {
+  try {
+    return new Date(ts).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  } catch { return '—'; }
+}
+
 // Strip raw JSON tool calls and truncated file content from AI output
 function cleanToolCalls(text) {
   if (!text) return '';
@@ -42,8 +63,6 @@ function cleanToolCalls(text) {
       if (trimmed.startsWith('``{"tool"')) return false;
       // Remove truncated file content markers
       if (trimmed.startsWith('[truncated:')) return false;
-      // Remove very long file dumps (>2000 chars of raw code)
-      if (trimmed.length > 2000 && !trimmed.startsWith('▶') && !trimmed.startsWith('#')) return false;
       return true;
     })
     .join('\n')
@@ -53,14 +72,30 @@ function cleanToolCalls(text) {
 }
 
 // Simple markdown → HTML for AI messages
+// FIX: Extract code blocks FIRST, then escape HTML on remaining text,
+// then reinsert code blocks. This prevents <pre>/<code> from being mangled.
 function renderYmMarkdown(text) {
   if (!text) return '';
-  // Clean tool calls first
   const cleaned = cleanToolCalls(text);
   if (!cleaned) return '';
-  let html = cleaned
-    .replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) =>
-      `<pre class="ym-code-block"><code>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`)
+
+  // Step 1: Extract fenced code blocks into placeholders
+  const codeBlocks = [];
+  let withPlaceholders = cleaned.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+    const idx = codeBlocks.length;
+    // Escape HTML inside code blocks separately
+    const escaped = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    codeBlocks.push(`<pre class="ym-code-block"><code>${escaped}</code></pre>`);
+    return `__CODEBLOCK_${idx}__`;
+  });
+
+  // Step 2: Escape HTML in the rest (so <thinking> tags show as text)
+  let html = withPlaceholders
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // Step 3: Apply markdown formatting
+  html = html
     .replace(/`([^`]+)`/g, '<code class="ym-inline-code">$1</code>')
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -72,9 +107,14 @@ function renderYmMarkdown(text) {
   html = html.split(/\n{2,}/).map(block => {
     const t = block.trim();
     if (!t) return '';
-    if (t.startsWith('<pre') || t.startsWith('<ul') || t.startsWith('<ol') || t.startsWith('<h')) return t;
+    if (t.startsWith('<pre') || t.startsWith('<ul') || t.startsWith('<ol') || t.startsWith('<h') || t.startsWith('__CODEBLOCK_')) return t;
     return `<p>${t.replace(/\n/g, '<br/>')}</p>`;
   }).join('');
+
+  // Step 4: Reinsert code blocks
+  codeBlocks.forEach((block, i) => {
+    html = html.replace(`__CODEBLOCK_${i}__`, block);
+  });
 
   return html;
 }
@@ -85,7 +125,7 @@ function renderYmMarkdown(text) {
 export default function Yardmaster() {
   const {
     messages,
-    forgeLines,
+    activityLogs: forgeLines,
     sending,
     focus,
     hardware,
@@ -94,9 +134,26 @@ export default function Yardmaster() {
     questState,
     turnInfo,
     modelInfo,
+    taskQueue,
     toggleFocus,
     sendMessage,
+    cancelRequest,
+    startSession,
   } = useYardmaster();
+
+  const { logs: creativeLogs } = useCreative();
+  const [sessionInput, setSessionInput] = useState('');
+  const [showSessionInput, setShowSessionInput] = useState(false);
+
+  const allLogs = useMemo(() => {
+    const formattedYards = forgeLines.map((line, i) => ({
+      id: `yard-${i}`,
+      timestamp: line.timestamp || new Date().toISOString(),
+      tag: line.type === 'result' ? 'FORGE' : 'YARD',
+      message: line.text,
+    }));
+    return [...creativeLogs, ...formattedYards].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  }, [creativeLogs, forgeLines]);
 
   const [input, setInput] = useState('');
   const [persona, setPersona] = useState('dev');
@@ -108,13 +165,46 @@ export default function Yardmaster() {
 
   const activeScope = PROJECT_SCOPES.find(s => s.id === scope) || PROJECT_SCOPES[0];
 
-  // Auto-scroll chat and forge
+  // Auto-scroll chat and beast logger
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [messages]);
   useEffect(() => {
     if (forgeRef.current) forgeRef.current.scrollTop = forgeRef.current.scrollHeight;
-  }, [forgeLines]);
+  }, [allLogs]);
+
+  // Ignition state is SERVER-DRIVEN via hardware.ignition_status
+  // No local timer — survives tab switches because it lives in AppState.
+  const ignitionStatus = hardware?.ignition_status || 'idle';
+  const isIgniting = !['idle', 'ready', 'failed'].includes(ignitionStatus);
+  const isOnline = hardware?.inference_server === 'connected';
+
+  // Poll hardware at 2s during ignition, 10s otherwise (keeps UI in sync)
+  useEffect(() => {
+    const pollHz = isIgniting ? 2000 : 10000;
+    const poll = setInterval(async () => {
+      try {
+        const res = await fetch('/api/hardware');
+        if (res.ok) {
+          const data = await res.json();
+          // Update the hardware state in parent hook via ref
+          if (window.__trinityHardwareUpdate) window.__trinityHardwareUpdate(data);
+        }
+      } catch (_) {}
+    }, pollHz);
+    return () => clearInterval(poll);
+  }, [isIgniting]);
+
+  // Phase labels for human-readable display
+  const phaseLabels = {
+    launching: '🚀 Launching LM Studio...',
+    daemon_up: '⚙️ Daemon active...',
+    server_starting: '🔧 Starting API server...',
+    polling: '📡 Waiting for server...',
+    loading_model: '🧠 Loading Mistral 119B...',
+    ready: '🟢 FURNACE ONLINE',
+    failed: '❌ Ignition Failed — Click to Retry',
+  };
 
   // Focus input on mount and after sending completes
   useEffect(() => {
@@ -189,73 +279,137 @@ export default function Yardmaster() {
       {/* ── Three-column layout ── */}
       <div className="ym-3col-layout">
 
-        {/* LEFT: Quest Sidebar */}
+        {/* LEFT: Work Session Sidebar */}
         <div className="ym-quest-sidebar">
           <div className="card ym-quest-card">
-            <div className="card-header">📜 QUEST STATUS</div>
-            {questState ? (
-              <div className="ym-quest-content">
-                <div className="ym-quest-chapter">
-                  {questState.quest?.quest_title || 'The Ordinary World'}
-                </div>
-                <div className="ym-quest-phase">
-                  Phase: <strong>{questState.quest?.current_phase || 'Analysis'}</strong>
-                </div>
-                <div className="ym-quest-subject">
-                  {questState.quest?.subject || 'No subject'}
-                </div>
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>🎯 WORK SESSION</span>
+              <button
+                className="ym-session-new-btn"
+                onClick={() => setShowSessionInput(!showSessionInput)}
+                title="Start a new work session"
+              >
+                {showSessionInput ? '✕' : '＋'}
+              </button>
+            </div>
 
-                {/* Objectives */}
-                <div className="ym-quest-objectives">
-                  {(questState.quest?.phase_objectives || []).map((obj, i) => (
-                    <div key={i} className={`ym-quest-obj ${obj.completed ? 'ym-quest-obj--done' : ''}`}>
-                      <span className="ym-quest-obj__check">
-                        {obj.completed ? '✓' : '○'}
-                      </span>
-                      <span className="ym-quest-obj__text">{obj.description}</span>
+            {/* New Session Input */}
+            {showSessionInput && (
+              <div className="ym-session-input-row">
+                <input
+                  className="ym-session-input"
+                  placeholder="What are you working on?"
+                  value={sessionInput}
+                  onChange={e => setSessionInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && sessionInput.trim()) {
+                      startSession(sessionInput.trim());
+                      setSessionInput('');
+                      setShowSessionInput(false);
+                    }
+                  }}
+                  autoFocus
+                />
+                <button
+                  className="ym-session-go-btn"
+                  onClick={() => {
+                    if (sessionInput.trim()) {
+                      startSession(sessionInput.trim());
+                      setSessionInput('');
+                      setShowSessionInput(false);
+                    }
+                  }}
+                  disabled={!sessionInput.trim()}
+                >
+                  GO
+                </button>
+              </div>
+            )}
+
+            {/* Session Info */}
+            <div className="ym-quest-content">
+              <div className="ym-quest-chapter">
+                {questState?.subject || 'No active session'}
+              </div>
+              {questState?.subject && (
+                <div className="ym-quest-phase">
+                  Phase: <strong>{questState?.phase || 'Analysis'}</strong>
+                </div>
+              )}
+
+              {/* Live Task Queue */}
+              {taskQueue.length > 0 && (
+                <div className="ym-task-queue">
+                  <div className="ym-task-header">
+                    <span>📋 Tasks</span>
+                    <span className="ym-task-progress">
+                      {taskQueue.filter(t => t.done).length}/{taskQueue.length}
+                    </span>
+                  </div>
+                  <div className="ym-task-bar">
+                    <div
+                      className="ym-task-bar__fill"
+                      style={{ width: `${(taskQueue.filter(t => t.done).length / taskQueue.length) * 100}%` }}
+                    />
+                  </div>
+                  {taskQueue.map((task) => (
+                    <div key={task.index} className={`ym-task-item ${task.done ? 'ym-task-item--done' : ''}`}>
+                      <span className="ym-task-check">{task.done ? '✓' : '○'}</span>
+                      <span className="ym-task-text">{task.text}</span>
                     </div>
                   ))}
                 </div>
+              )}
 
-                {/* Stats */}
-                <div className="ym-quest-stats">
-                  <div className="ym-quest-stat">
-                    <span className="ym-quest-stat__val">⛏️ {questState.stats?.coal_reserves?.toFixed(0) || 0}</span>
-                    <span className="ym-quest-stat__label">Coal</span>
-                  </div>
-                  <div className="ym-quest-stat">
-                    <span className="ym-quest-stat__val">💨 {questState.quest?.steam_generated?.toFixed(0) || 0}</span>
-                    <span className="ym-quest-stat__label">Steam</span>
-                  </div>
-                  <div className="ym-quest-stat">
-                    <span className="ym-quest-stat__val">⭐ {questState.stats?.total_xp || 0}</span>
-                    <span className="ym-quest-stat__label">XP</span>
-                  </div>
+              {/* Stats (compact) */}
+              <div className="ym-quest-stats">
+                <div className="ym-quest-stat">
+                  <span className="ym-quest-stat__val">⛏️ {questState?.coal?.toFixed(0) || 0}</span>
+                  <span className="ym-quest-stat__label">Coal</span>
+                </div>
+                <div className="ym-quest-stat">
+                  <span className="ym-quest-stat__val">💨 {questState?.steam?.toFixed(0) || 0}</span>
+                  <span className="ym-quest-stat__label">Steam</span>
+                </div>
+                <div className="ym-quest-stat">
+                  <span className="ym-quest-stat__val">⭐ {questState?.xp || 0}</span>
+                  <span className="ym-quest-stat__label">XP</span>
                 </div>
               </div>
-            ) : (
-              <div className="ym-hw-loading">Loading quest…</div>
-            )}
+            </div>
           </div>
 
-          {/* Thinking Panel */}
-          <div className="card ym-thinking-card">
-            <div
-              className="card-header ym-thinking-header"
-              onClick={() => setThinkingOpen(!thinkingOpen)}
-            >
-              🧠 REASONING {thinking ? '●' : '○'}
-              <span className="ym-thinking-toggle">{thinkingOpen ? '▾' : '▸'}</span>
+          {/* Beast Logger Master Terminal */}
+          <div className="beast-logger card" style={{ flex: 1, minHeight: 0, marginTop: '16px', marginBottom: '0', overflowY: 'auto' }} ref={forgeRef}>
+            <div className="card-header" style={{ position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 10 }}>
+              🖥️ BEAST LOGGER — ROOT DEV ZONE <span style={{ float: 'right', fontSize: '10px', color: 'var(--text-dim)' }}>{allLogs.length} events</span>
             </div>
-            {thinkingOpen && (
-              <div className="ym-thinking-content">
-                {thinking ? (
-                  <pre className="ym-thinking-text">{thinking}</pre>
-                ) : (
-                  <div className="ym-hw-loading">No reasoning yet — send a message to see the model think.</div>
-                )}
+            {allLogs.length === 0 ? (
+              <div style={{ padding: '20px', color: 'var(--text-dim)', fontStyle: 'italic', textAlign: 'center' }}>
+                System initializing telemetry stream...
               </div>
+            ) : (
+              allLogs.slice(-150).map((log, i) => {
+                const isExpandable = log.message?.length > 120;
+                return (
+                  <div key={log.id || i} className="beast-log-line" style={{ display: 'flex', gap: '12px', padding: '4px 8px', borderBottom: '1px solid rgba(255,255,255,0.02)', fontFamily: 'var(--mono)', fontSize: '11px', alignItems: 'flex-start' }}>
+                    <span style={{ color: 'var(--text-dim)', flexShrink: 0 }}>[{fmtTime(log.timestamp)}]</span>
+                    <span className={`beast-tag ${tagClass(log.tag)}`} style={{ minWidth: '70px', flexShrink: 0, textAlign: 'center' }}>[{log.tag}]</span>
+                    {isExpandable ? (
+                      <details className="forge-details" style={{ flex: 1, color: 'var(--text)', wordWrap: 'break-word', whiteSpace: 'pre-wrap' }}>
+                        <summary className="forge-summary">{log.message.substring(0, 120)}…</summary>
+                        <div style={{ marginTop: '4px', opacity: 0.8 }}>{log.message}</div>
+                      </details>
+                    ) : (
+                      <span style={{ flex: 1, color: 'var(--text)', wordWrap: 'break-word', whiteSpace: 'pre-wrap' }}>{log.message}</span>
+                    )}
+                  </div>
+                );
+              })
             )}
+            <div className="forge-line" style={{ padding: '4px 8px' }}>
+              <span className="forge-cursor" />
+            </div>
           </div>
         </div>
 
@@ -291,10 +445,25 @@ export default function Yardmaster() {
             </div>
           </div>
 
+          {/* Thinking / Reasoning Panel */}
+          {thinking && (
+            <div className="ym-thinking-panel">
+              <button
+                className="ym-thinking-toggle"
+                onClick={() => setThinkingOpen(!thinkingOpen)}
+              >
+                🧠 REASONING {thinkingOpen ? '▾' : '▸'}
+              </button>
+              {thinkingOpen && (
+                <div className="ym-thinking-content">{thinking}</div>
+              )}
+            </div>
+          )}
+
           {/* Chat Messages */}
           <div className="ym-messages" ref={chatRef}>
             {messages.map((msg, i) => (
-              <div key={i} className={`chat-msg ${msg.role === 'user' ? 'ym-msg-user' : msg.role === 'image' ? 'ym-msg-image' : 'ym-msg-ai'}`}>
+              <div key={i} className={`chat-msg ${msg.role === 'user' ? 'ym-msg-user' : msg.role === 'image' ? 'ym-msg-image' : msg.role === 'error' ? 'ym-msg-error' : 'ym-msg-ai'}`}>
                 {msg.speaker && (
                   <div className="ym-speaker">{msg.speaker}</div>
                 )}
@@ -321,36 +490,7 @@ export default function Yardmaster() {
             ))}
           </div>
 
-          {/* Forge Terminal */}
-          <div className="forge-section">
-            <div className="forge-header">
-              <span className="forge-header__icon">⚒️</span>
-              <span className="forge-header__title">THE FORGE</span>
-              <span className="forge-header__count">{forgeLines.length} events</span>
-            </div>
-            <div className="forge-terminal" ref={forgeRef}>
-              {forgeLines.map((line, i) => {
-                if (line.type === 'result' && line.text.length > 80) {
-                  return (
-                    <details key={i} className="forge-line forge-details">
-                      <summary className="forge-summary">
-                        {line.text.substring(0, 60)}…
-                      </summary>
-                      <pre className="forge-result-full">{line.text}</pre>
-                    </details>
-                  );
-                }
-                return (
-                  <div key={i} className={`forge-line ${line.type || ''}`}>
-                    {line.text}
-                  </div>
-                );
-              })}
-              <div className="forge-line">
-                <span className="forge-cursor" />
-              </div>
-            </div>
-          </div>
+
 
           {/* Input */}
           <div className="ym-input-row">
@@ -369,13 +509,23 @@ export default function Yardmaster() {
               onTranscript={(text) => setInput(prev => prev ? prev + ' ' + text : text)}
               disabled={sending}
             />
-            <button
-              className="chat-send ym-send-btn"
-              onClick={handleSend}
-              disabled={sending || !input.trim()}
-            >
-              {sending ? 'WORKING…' : 'SEND'}
-            </button>
+            {sending ? (
+              <button
+                className="chat-send ym-stop-btn"
+                onClick={cancelRequest}
+                title="Stop the agent"
+              >
+                ⛔ STOP
+              </button>
+            ) : (
+              <button
+                className="chat-send ym-send-btn"
+                onClick={handleSend}
+                disabled={!input.trim()}
+              >
+                SEND
+              </button>
+            )}
           </div>
         </div>
 
@@ -386,30 +536,59 @@ export default function Yardmaster() {
             <div className="card-header">⚙️ SYSTEM STATUS</div>
             {hardware ? (
               <div className="ym-hardware">
-                {hardware.cpu && <div className="ym-hw-row"><span>CPU</span><span>{hardware.cpu}</span></div>}
-                {hardware.memory && <div className="ym-hw-row"><span>Memory</span><span>{hardware.memory}</span></div>}
-                {hardware.gpu && <div className="ym-hw-row"><span>GPU</span><span>{hardware.gpu}</span></div>}
-                {hardware.disk && <div className="ym-hw-row"><span>Disk</span><span>{hardware.disk}</span></div>}
-                {hardware.llm_status && (
-                  <div className="ym-hw-row">
-                    <span>LLM</span>
-                    <span className={hardware.llm_status === 'connected' ? 'ym-hw-ok' : 'ym-hw-err'}>
-                      {hardware.llm_status}
-                    </span>
-                  </div>
-                )}
-                {!hardware.cpu && !hardware.memory && (
-                  <pre className="ym-hw-raw">{JSON.stringify(hardware, null, 2)}</pre>
-                )}
+                <div className="ym-hw-row"><span>CPU</span><span>{hardware.cpu_load?.toFixed(1)}%</span></div>
+                <div className="ym-hw-row"><span>Memory</span><span>{hardware.mem_used_gb?.toFixed(1)} / {hardware.mem_total_gb?.toFixed(0)} GB ({hardware.mem_percent?.toFixed(1)}%)</span></div>
+                <div className="ym-hw-row"><span>GPU</span><span>{hardware.gpu_load?.toFixed(0)}%</span></div>
+                {hardware.npu_load > 0 && <div className="ym-hw-row"><span>NPU</span><span>{hardware.npu_load?.toFixed(0)}%</span></div>}
+                <div className="ym-hw-row">
+                  <span>LLM</span>
+                  <span className={hardware.inference_server === 'connected' ? 'ym-hw-ok' : 'ym-hw-err'}>
+                    {hardware.inference_server || 'unknown'}
+                  </span>
+                </div>
+                <div className="ym-hw-row"><span>Database</span><span className={hardware.database === 'connected' ? 'ym-hw-ok' : 'ym-hw-err'}>{hardware.database || 'unknown'}</span></div>
+                <button
+                  className="ym-send-btn"
+                  style={{
+                    width: '100%', marginTop: '12px', padding: '10px',
+                    background: isOnline
+                      ? 'linear-gradient(135deg, #22c55e, #10b981)'
+                      : ignitionStatus === 'failed'
+                        ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                        : 'linear-gradient(135deg, #ef4444, #f59e0b)',
+                    color: isOnline ? '#fff' : '#000',
+                    fontSize: '11px',
+                    opacity: isOnline ? 0.7 : 1,
+                    cursor: (isIgniting && ignitionStatus !== 'failed') ? 'wait' : 'pointer',
+                  }}
+                  onClick={async (e) => {
+                    if (isIgniting || isOnline) return;
+                    try {
+                      const st = JSON.parse(localStorage.getItem('trinitySetupState') || '{"engine":"lm_studio"}');
+                      await fetch('/api/system/backend-start', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ backend: st.engine })
+                      });
+                    } catch(e) { /* fallback */ }
+                  }}
+                  disabled={isIgniting && ignitionStatus !== 'failed'}
+                  title="Starts LM Studio or Ollama and boots Mistral Small 4"
+                >
+                  {isOnline
+                    ? '🟢 FURNACE ONLINE'
+                    : phaseLabels[ignitionStatus] || '🔥 IGNITE FURNACE'
+                  }
+                </button>
               </div>
             ) : (
               <div className="ym-hw-loading">Checking system…</div>
             )}
           </div>
 
-          {/* Available Tools */}
+          {/* Available Tools -> The Hook Book */}
           <div className="card ym-tools-card">
-            <div className="card-header">🔧 TOOLS ({tools.length})</div>
+            <div className="card-header">📖 THE HOOK BOOK ({tools.length})</div>
             <div className="ym-tool-grid">
               {tools.length === 0 && <div className="ym-hw-loading">Loading tools…</div>}
               {tools.map((tool) => (
@@ -421,69 +600,17 @@ export default function Yardmaster() {
             </div>
           </div>
 
-          {/* Model Switcher */}
-          <ModelSwitcher />
-
           {/* RAG Search */}
           <RagSearch />
+
+          {/* Background Jobs */}
+          <JobsPanel />
         </div>
       </div>
     </div>
   );
 }
 
-/* ── Model Switcher sub-component ── */
-function ModelSwitcher() {
-  const [models, setModels] = React.useState([]);
-  const [active, setActive] = React.useState('');
-  const [refreshing, setRefreshing] = React.useState(false);
-
-  React.useEffect(() => {
-    fetch('/api/models').then(r => r.json()).then(d => {
-      setModels(Array.isArray(d) ? d : d.models || []);
-    }).catch(() => {});
-    fetch('/api/models/active').then(r => r.json()).then(d => {
-      setActive(d.model_name || d.name || '');
-    }).catch(() => {});
-  }, []);
-
-  const switchModel = async (name) => {
-    await fetch('/api/models/switch', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model_name: name }),
-    });
-    setActive(name);
-  };
-
-  const refresh = async () => {
-    setRefreshing(true);
-    await fetch('/api/inference/refresh', { method: 'POST' }).catch(() => {});
-    setRefreshing(false);
-  };
-
-  return (
-    <div className="card ym-system-card">
-      <div className="card-header">🧠 MODELS
-        <button className="ym-tool-desc" onClick={refresh} style={{ float: 'right', cursor: 'pointer', background: 'none', border: 'none', color: '#CFB991', fontSize: '10px' }}>
-          {refreshing ? '⟳' : '↻ Refresh'}
-        </button>
-      </div>
-      <div className="ym-hardware">
-        {models.length === 0 && <div className="ym-hw-loading">No models detected</div>}
-        {(Array.isArray(models) ? models : []).map((m, i) => {
-          const name = typeof m === 'string' ? m : m.name || m.model_name || `model-${i}`;
-          const isActive = name === active;
-          return (
-            <div key={i} className="ym-hw-row" style={{ cursor: 'pointer', opacity: isActive ? 1 : 0.5 }} onClick={() => switchModel(name)}>
-              <span>{isActive ? '🟢' : '⚪'} {name}</span>
-              {isActive && <span style={{ color: '#34d399', fontSize: '9px' }}>ACTIVE</span>}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 /* ── RAG Search sub-component ── */
 function RagSearch() {
@@ -529,6 +656,133 @@ function RagSearch() {
             <span style={{ fontSize: '9px', color: '#6B7280' }}>{(r.content || r.text || '').slice(0, 120)}…</span>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Background Jobs sub-component ── */
+function JobsPanel() {
+  const [jobs, setJobs] = React.useState([]);
+  const [total, setTotal] = React.useState(0);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [newTask, setNewTask] = React.useState('');
+  const [mode, setMode] = React.useState('dev');
+
+  const fetchJobs = async () => {
+    try {
+      const res = await fetch('/api/jobs');
+      if (res.ok) {
+        const data = await res.json();
+        setJobs(data.jobs || []);
+        setTotal(data.total || 0);
+      }
+    } catch {}
+  };
+
+  React.useEffect(() => {
+    fetchJobs();
+    const interval = setInterval(fetchJobs, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const submitJob = async () => {
+    if (!newTask.trim()) return;
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: newTask.trim(), mode })
+      });
+      if (res.ok) {
+        setNewTask('');
+        fetchJobs();
+      }
+    } catch {} finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const cancelJob = async (id) => {
+    try {
+      await fetch(`/api/jobs/${id}`, { method: 'DELETE' });
+      fetchJobs();
+    } catch {}
+  };
+
+  return (
+    <div className="card ym-system-card" style={{ marginTop: '16px' }}>
+      <div className="card-header">🔧 OVERNIGHT CREW
+        <span style={{ float: 'right', fontSize: '9px', color: '#6B7280' }}>
+          {jobs.filter(j => j.status === 'running').length} active / {total} total
+        </span>
+      </div>
+      
+      <div className="ym-hardware" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {/* Job Queue List */}
+        {jobs.length === 0 && <div className="ym-hw-row" style={{ color: '#6B7280', fontSize: '10px' }}>No background jobs</div>}
+        
+        {jobs.slice(0, 5).map(job => (
+          <div key={job.id} className="ym-hw-row" style={{ flexDirection: 'column', alignItems: 'flex-start', borderLeft: job.status === 'running' ? '2px solid #3b82f6' : job.status === 'complete' ? '2px solid #22c55e' : '2px solid #ef4444', paddingLeft: '6px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+              <span style={{ fontSize: '10px', color: '#e5e7eb', fontWeight: 500 }}>
+                {job.status === 'running' ? '🔄' : job.status === 'complete' ? '✅' : '🛑'} {job.status.toUpperCase()}
+              </span>
+              <span style={{ fontSize: '9px', color: '#9ca3af' }}>Turns: {job.turns_used}</span>
+            </div>
+            <div style={{ fontSize: '10px', color: '#d1d5db', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
+              "{job.message}"
+            </div>
+            {job.status === 'running' && (
+              <button onClick={() => cancelJob(job.id)} style={{ marginTop: '4px', background: '#374151', border: '1px solid #4b5563', borderRadius: '4px', color: '#f87171', fontSize: '9px', padding: '2px 6px', cursor: 'pointer' }}>
+                Cancel Job
+              </button>
+            )}
+            {job.output_path && (
+              <div style={{ fontSize: '9px', color: '#6B7280', marginTop: '2px', wordBreak: 'break-all' }}>
+                Saved to: {job.output_path.split('/').pop()}
+              </div>
+            )}
+          </div>
+        ))}
+        
+        {/* Submit New Job */}
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '8px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ fontSize: '10px', color: '#9ca3af', marginBottom: '2px' }}>New Autonomous Task:</div>
+          <select 
+            value={mode} 
+            onChange={e => setMode(e.target.value)}
+            style={{ fontSize: '10px', padding: '4px', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '4px' }}
+          >
+            <option value="dev">Dev Mode (No Persona)</option>
+            <option value="programmer">Programmer Pete (Builder)</option>
+            <option value="recycler">Great Recycler (Strategist)</option>
+          </select>
+          <textarea
+            className="chat-input"
+            style={{ fontSize: '11px', padding: '6px', minHeight: '50px', resize: 'vertical' }}
+            placeholder="e.g. Build the Truth e-learning module..."
+            value={newTask}
+            onChange={e => setNewTask(e.target.value)}
+          />
+          <button 
+            onClick={submitJob}
+            disabled={isSubmitting || !newTask.trim()}
+            style={{ 
+              background: isSubmitting ? '#374151' : 'rgba(59, 130, 246, 0.2)', 
+              border: '1px solid #3b82f6', 
+              color: '#93c5fd', 
+              padding: '6px', 
+              borderRadius: '6px', 
+              cursor: (isSubmitting || !newTask.trim()) ? 'not-allowed' : 'pointer',
+              fontSize: '11px',
+              fontWeight: 500
+            }}
+          >
+            {isSubmitting ? 'Queueing...' : '► Start Background Job'}
+          </button>
+        </div>
       </div>
     </div>
   );

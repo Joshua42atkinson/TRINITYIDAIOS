@@ -66,7 +66,7 @@ Hooks are organized by **School** (domain of application) and **Tier** (current 
 | **CowCatcher** | 🟢 | Input sanitization engine. Blocks prompt injection, path traversal, and code execution attacks. |
 | **Journal System** | 🟢 | Timestamped, phase-tagged entries. The student's learning log is the system's training data. |
 | **Multi-Model Routing** | 🟡 | Route different tasks to different models. Reflection → large model. Code → specialized model. |
-| **Plugin Architecture** | 🔴 | Users build custom tools and hooks. The Yardmaster is an IDE for building IDE capabilities. |
+| **Plugin Architecture (MCP)** | 🟢 | Full Model Context Protocol server integration. Connects Trinity to community MCP servers (GitHub, Slack, Figma), making the Yardmaster an infinitely extensible OS. |
 | **Classroom Orchestrator** | 🔴 | Professor dashboard. View all student progress, send prompts, review PEARLs. vLLM multi-user. |
 | **Corporate Presenter** | 🔴 | Export any design document as a presentation deck. Bevy-powered slide system with live AI narration. |
 
@@ -91,7 +91,7 @@ Hooks are organized by **School** (domain of application) and **Tier** (current 
 ```
 TODAY (v1.0 — Single User, Local)
 ├── One student, one machine, one AI mentor
-├── 194K LOC Rust, 264 tests, 73 API endpoints
+├── 200K+ LOC total (24K core Rust), 282 tests, 73 API endpoints
 └── Fully functional prototype, zero cloud dependencies
 
 THIS YEAR (v2.0 — Multi-User, Institutional)

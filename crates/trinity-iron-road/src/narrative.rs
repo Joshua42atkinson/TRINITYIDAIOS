@@ -17,6 +17,10 @@ pub struct NarrativeContext {
     pub xp: u64,
     pub resonance_level: u32,
     pub alias: String,
+    pub appearance: Option<String>,
+    pub backstory: Option<String>,
+    pub alignment: Option<String>,
+    pub current_quest_flavor: Option<String>,
 }
 
 /// The narrative engine that transforms quest events into LitRPG prose

@@ -1,78 +1,128 @@
-# TRINITY Maturation Map
+# Trinity Embedded Inference — Maturation Map
 
-**Goal**: Send two professors and the Purdue student licensing/IP department a link to `ldtatkinson.com` with a short professional statement.
+> *March 28, 2026 — "The Golem breathes through its own lungs now."*
+
+## Architecture (Current)
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                    TRINITY ID AI OS                             │
+│                                                                │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ Layer 1: Headless Server (Rust, Axum, :3000)            │   │
+│  │                                                         │   │
+│  │  ┌──────────────────────┐  ┌────────────────────────┐   │   │
+│  │  │ Embedded Inference   │  │ HTTP Fallback Router   │   │   │
+│  │  │ llama-cpp-2 (Vulkan) │  │ → llama-server :8080   │   │   │
+│  │  │ PRIMARY — zero HTTP  │  │ → LM Studio :1234      │   │   │
+│  │  │ Deferred loading     │  │ → Ollama :11434        │   │   │
+│  │  │ Hot-swappable model  │  │ Auto-detect + failover │   │   │
+│  │  └──────────────────────┘  └────────────────────────┘   │   │
+│  │                                                         │   │
+│  │  ┌──────────────────────┐  ┌────────────────────────┐   │   │
+│  │  │ AUDIO (ONNX Runtime) │  │ ART (HTTP Sidecars)    │   │   │
+│  │  │ Supertonic-2 TTS     │  │ ComfyUI :8188          │   │   │
+│  │  │ Whisper STT           │  │ MusicGPT :8189         │   │   │
+│  │  │ CPU/NPU — no GPU     │  │ Hunyuan3D :7860        │   │   │
+│  │  └──────────────────────┘  └────────────────────────┘   │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                │
+│  Boot Order: Server(:3000) → TTS/STT(ONNX) → ComfyUI → LLM   │
+│              ↑ instant        ↑ 2s CPU        ↑ probe  ↑ 30-60s│
+└────────────────────────────────────────────────────────────────┘
+```
+
+## Boot Sequence
+
+1. **Server starts on :3000** — instant, responds to health checks
+2. **TTS/STT ONNX models** — load on CPU, ~2 seconds
+3. **ComfyUI probe** — HTTP health check, no GPU load
+4. **(5s delay)** — settle ONNX models
+5. **Mistral 68GB loads** — background task, Vulkan GPU, 30-60s
+
+## vLLM Removal — Complete
+
+| Item | Status |
+|------|--------|
+| `BackendKind::Vllm` enum variant | ✅ Removed |
+| `BackendKind::Sglang` enum variant | ✅ Removed |
+| `VLLM_URL` env var fallback | ✅ Removed |
+| `configs/runtime/default.toml` vLLM backend | ✅ Removed |
+| `trinity-brain.service` vLLM launcher | ✅ Replaced with embedded |
+| 5 vLLM launch scripts | ✅ Archived |
+| 3 SystemD vLLM service files | ✅ Archived |
+| `test_vllm_vision.sh` | ✅ Archived |
+| `setup_vllm_distrobox.sh` | ✅ Archived |
+| All `*.rs` files — zero vLLM references | ✅ Verified |
+| Compilation | ✅ 0 errors |
+| Router tests | ✅ 9/9 pass |
+
+## PostgreSQL Removal — Complete
+
+| Item | Status |
+|------|--------|
+| `PgPool` replaced with `SqlitePool` | ✅ Complete |
+| `pgvector` dependencies removed | ✅ Complete |
+| RAG vector search moved to in-memory Rust | ✅ Complete |
+| Database initializes zero-config local file | ✅ Complete |
+| Pure SQLite table structures applied | ✅ Complete |
+| `trinity-mcp-server` compatible | ✅ Complete |
 
 ---
 
-> **CRITICAL NOMENCLATURE ANCHOR & SYSTEM DIRECTIVE FOR ALL AI AGENTS:**
-> The capitalization and spelling of the core pedagogical frameworks must NEVER drift. We use words as systems management:
-> 1. **ADDIECRAPEYE**: *Always* fully capitalized, exactly as written. It is the 12-station instructional design lifecycle. Do not use variations.
-> 2. **PEARL**: *Always* fully capitalized (Perspective, Engineering, Aesthetic, Research, Layout). It is the pedagogical focusing lens. Do not use variations.
+## Remaining Phases
+
+### 🟡 Phase 2: Model Management API + Yard UI
+
+**Why**: The user needs a load/unload/switch button in the Yardmaster UI.
+
+| Task | Description |
+|------|-------------|
+| `GET /api/model/status` | Return: loaded model, state (`loading`/`ready`/`unloaded`), GPU memory |
+| `POST /api/model/load` | Load GGUF by path into embedded_model |
+| `POST /api/model/unload` | Unload model, free GPU memory |
+| `GET /api/model/available` | List GGUF files in `~/trinity-models/gguf/` |
+| Yardmaster UI | Model management button in the Yard sidebar |
+
+### 🟡 Phase 3: HuggingFace Downloader
+
+**Why**: First-run experience — download models without leaving Trinity.
+
+| Task | Description |
+|------|-------------|
+| `POST /api/model/download` | Download GGUF from HuggingFace |
+| `GET /api/model/download/progress` | SSE stream of download progress |
+| First-run wizard | Beautiful UI when no models found |
+| Recommended models | Curated list (Mistral Small 4, etc.) |
+
+### 🟢 Phase 4: Bible & Docs Cleanup
+
+**Why**: Preparing for copywriting — remove all vLLM references from documentation.
+
+| Task | Description |
+|------|-------------|
+| `TRINITY_FANCY_BIBLE.md` | Update inference architecture sections |
+| `CONTEXT.md` | Remove vLLM references |
+| `HOOK_BOOK.md` | Clean inference references |
+| `docs/` subdirectories | Sweep remaining references |
+| Copywriting-ready summary | 2-page executive overview |
+
+### 🟢 Phase 5: AppImage Packaging
+
+**Why**: Single-download AppImage like LM Studio itself.
+
+| Task | Description |
+|------|-------------|
+| `build-appimage.sh` | Bundle trinity binary + frontend |
+| Model wizard | First-run download/locate GGUF |
+| Desktop integration | Icon, .desktop file, MIME types |
+| Clean system test | Verify on fresh install |
 
 ---
 
-## 🟢 Tiers 0, 1, 2, 3, 3.5, and 5 — ACHIEVED
+## Archived Maps
 
-The foundation is built and structurally sound. 
-- **Security Check:** Edge Guard blocks dangerous routes. Rate limiting active. 
-- **Identity Split:** Project Context isolated from Player Context.
-- **Physics Engine:** RLHF → Shadow/Steam/Friction → Vulnerability fully wired.
-- **Sidecar Automation:** Systemd safely auto-launches ComfyUI.
-- **Auto-Vaulting:** Assets generated by ComfyUI instantly create `PortfolioArtifact` entries in the user's Character Sheet.
-
----
-
-## 🟡 Immediate Focus: Finishing the "Switch" & Voice
-
-### Tier 4: Yard L3 — The Switch (Agent Routing)
-Visitors entering through the public tunnel must be safely separated from the Executive Yardmaster.
-- [ ] Mode routing (Widget → Recycler, Daydream → Narrative, Yard → Pete)
-- [ ] Daydream narrative prompt template
-- [ ] RAG query injection into Recycler system prompt
-- [ ] Story Mode → "Under Construction" banner in frontend
-
-### Tier 2: Voice Pipeline Final Testing
-The backend is mapped to vLLM, Voxtral, and native ORT Whisper. We must verify the integration.
-- [ ] End-to-end mic button test
-- [ ] STT accuracy benchmark
-- [ ] TTS latency test
-- [ ] Voxtral-4B integration test
-- [ ] WebSocket audio streaming test (telephone line)
-
----
-
-## ⚪ Deferred (Post-Graduation Roadmap)
-
-### L4: The Dispatch Board (Multi-User + Local Storage)
-- IndexedDB architecture for 20+ concurrent students maintaining their own `EyeContainer` locally.
-- Continuous batching via vLLM.
-
-### Mini Trinity (24GB standalone)
-- Pure Rust, binary-only extraction for consumer GPU hardware mapping.
-
----
-
-## 🔴 Critical Architecture Review: Flaws and Soft Spots (March 27, 2026 Audit)
-
-This section contains a brutally honest, big-picture professional review of the workspace's structural integrity, referencing specific code and architecture.
-
-### 1. The Telephone Line (WebSocket Audio Streaming) is Architecturally Flawed
-**Location:** `crates/trinity/src/telephone.rs` (Lines 144-192), `crates/trinity/src/stt.rs` (Lines 406-455)
-**Critique:** The streaming architecture makes fundamentally incorrect assumptions about real-time audio. The `telephone_handler` loop attempts to pass *every single binary WebSocket chunk* directly into `process_audio_frame`, which calls `transcribe_wav`. 
-- **Flaw A (Header Parsing):** `transcribe_wav` relies on `hound::WavReader`. A streaming WebSocket frame will not contain a RIFF header, meaning `hound` will instantly error on every frame.
-- **Flaw B (No VAD/Buffering):** Even if raw PCM were accepted, Whisper needs a complete utterance (up to 30s). Processing 100ms chunks independently will cause the system to either return silence or wildly hallucinate due to the padding logic in `compute_mel_spectrogram`. 
-- **Actionable Fix:** Introduce Voice Activity Detection (VAD) to buffer raw PCM chunks on the server until a silence threshold is met, *then* pass the complete utterance to the STT engine.
-
-### 2. Autopoiesis RAG Pollution (Fallback Hashing)
-**Location:** `crates/trinity/src/rag.rs` (Lines 232-313)
-**Critique:** While the "Code Textbook" P-ART-Y comment injection is an excellent pedagogical and administrative tool, the underlying vector ingestion pipeline has a dangerous soft spot.
-- **Flaw:** In `generate_embedding`, if the `llama-server` is down or unreachable, the system falls back to `hash_embedding(text)`. This generates deterministic, word-frequency-based pseudo-embeddings mapped onto 384 dimensions. 
-- **Consequence:** These hash embeddings are stored in `document_embeddings` alongside real semantic embeddings. Because pgvector relies on cosine similarity, mixing mathematical hash representations with LLM semantic vectors completely pollutes the HNSW index space. A query embedded by the LLM later will return complete nonsense when compared to these hashed documents.
-- **Actionable Fix:** Fail hard. If `llama-server` is down, fail the `ingest_document` task rather than corrupting the pgvector memory cortex with incompatible embeddings.
-
-### 3. Hardware Coupling against "Mini Trinity" Goals
-**Location:** `crates/trinity/src/main.rs` (Lines 344-348)
-**Critique:** The "Hotel Startup Protocol" relies strictly on hardware polling to ensure the system doesn't double-load models.
-- **Flaw:** `get_hardware_status` tightly couples GPU load reading to `/sys/class/drm/renderD128/device/gpu_busy_percent`. This is an AMD-specific `sysfs` path (ROCm/AMDGPU).
-- **Consequence:** As per the deferred "Mini Trinity" goal (pure Rust, binary-only extraction for consumer GPU hardware), running this on NVIDIA or non-Linux systems will fail silently, bypassing the Hotel Guard and potentially causing OOM crashes when the system assumes 0.0% GPU load and spawns heavy sidecars.
-- **Actionable Fix:** Abstract GPU hardware polling using cross-platform crates or gracefully degrade the Hotel Guard logic when specific `sysfs` paths are unavailable.
+Previous maturation maps archived to `archive/maturation-maps-march-2026/`:
+- `MATURATION_MAP_pre_embedded.md` — pre-embedded inference era
+- `FORGE_MATURITY_MAP.md` — Bevy/Forge game studio integration
+- `LDT_CAPSTONE_MATURITY_MAP.md` — Purdue capstone alignment

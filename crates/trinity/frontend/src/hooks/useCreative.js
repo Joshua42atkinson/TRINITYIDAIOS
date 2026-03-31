@@ -41,8 +41,14 @@ export function useCreative() {
     return () => { clearTimeout(delay); clearInterval(id); };
   }, []);
 
-  // Poll logs every 5s (lazy — skips first tick)
+  // Poll logs every 5s — but ONLY when at least one creative sidecar is running.
+  // This prevents the Beast Logger from being flooded with "Creative log file not found"
+  // entries every 5 seconds when the user has no ComfyUI/MusicGPT/Hunyuan3D active.
+  const anySidecarRunning = status.comfyui?.running || status.musicgpt?.running || status.hunyuan3d?.running;
+
   useEffect(() => {
+    if (!anySidecarRunning) return; // Skip polling entirely when no sidecars are active
+
     const poll = async () => {
       try {
         const res = await fetch('/api/creative/logs');
@@ -66,7 +72,7 @@ export function useCreative() {
     const delay = setTimeout(poll, 800);
     const id = setInterval(poll, 5000);
     return () => { clearTimeout(delay); clearInterval(id); };
-  }, []);
+  }, [anySidecarRunning]);
 
   // Fetch settings on mount
   useEffect(() => {

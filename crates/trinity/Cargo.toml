@@ -10,6 +10,9 @@ description = "Trinity ID AI OS — HTTP server with restored working implementa
 [dependencies]
 
 # Trinity ecosystem
+tauri = { version = "2.0.0", features = [] }
+tauri-plugin-shell = "2.0.0"
+
 trinity-protocol = { path = "../trinity-protocol" }
 trinity-quest = { path = "../trinity-quest" }
 
@@ -30,7 +33,7 @@ serde_json = { workspace = true }
 chrono = { version = "0.4", features = ["serde"] }
 
 # Database
-sqlx = { version = "0.7", features = ["runtime-tokio", "postgres", "json"] }
+sqlx = { version = "0.7", features = ["runtime-tokio", "sqlite", "json"] }
 
 # Error handling
 anyhow = { workspace = true }
@@ -59,7 +62,7 @@ async-openai = "0.33.1"
 trinity-iron-road = { version = "0.1.0", path = "../trinity-iron-road" }
 
 # Embedded inference — llama.cpp via Vulkan GPU
-llama-cpp-2 = { version = "0.1", features = ["vulkan", "sampler"] }
+
 encoding_rs = "0.8"
 toml = "0.8"
 
@@ -73,7 +76,11 @@ hound = "3.5"
 rand_distr = "0.4"
 unicode-normalization = "0.1"
 regex = "1.10"
+tokenizers = "0.19"
 
 [dev-dependencies]
 tokio-test = { workspace = true }
+
+[build-dependencies]
+tauri-build = { version = "2.0.0", features = [] }
 

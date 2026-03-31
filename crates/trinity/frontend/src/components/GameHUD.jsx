@@ -92,38 +92,6 @@ export default function GameHUD({ quest, bestiary, onRefetch }) {
               )}
             </div>
           )}
-
-          {quest?.party?.length > 0 && (
-            <div className="hud-party">
-              {quest.party.map((p, i) => (
-                <span
-                  key={p.id || i}
-                  className={`hud-party__member ${p.active ? 'hud-party__member--active' : ''}`}
-                  title={p.role || ''}
-                >
-                  {p.avatar || '👤'} {p.name || p.id}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-        {/* Party Members */}
-        <div className="hud-party">
-          {(quest?.party || []).map((m) => (
-            <button
-              key={m.id}
-              className={`hud-party__member ${m.active ? 'hud-party__member--active' : ''}`}
-              onClick={() => {
-                fetch('/api/quest/party', {
-                  method: 'POST', headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ member_id: m.id }),
-                }).catch(() => {});
-              }}
-              title={m.name || m.id}
-            >
-              {m.id === 'pete' ? '🎓' : m.id === 'art' ? '🎨' : '🔧'} {m.id}
-            </button>
-          ))}
         </div>
       </div>
 

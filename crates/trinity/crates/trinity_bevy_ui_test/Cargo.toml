@@ -1,0 +1,14 @@
+[package]
+name = "trinity_bevy_ui_test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = { version = "0.17", features = ["dynamic_linking"] }
+audio = "1.0.1"
+image = "0.25.4"
+onceocd = "0.1.0"
+
+[lints.clippy]
+all = "warn"
+pedantic = "warn"

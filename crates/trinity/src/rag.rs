@@ -41,28 +41,32 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 
-use sqlx::PgPool;
+use std::path::Path;
+use std::sync::OnceLock;
+use ort::{session::Session, value::Value};
+use tokenizers::Tokenizer;
+use ndarray::Array2;
+use tokio::sync::Mutex;
+
+use sqlx::SqlitePool;
 use tracing::{debug, info, warn};
+
+static ORT_SESSION: OnceLock<Mutex<Session>> = OnceLock::new();
+static RAG_TOKENIZER: OnceLock<Tokenizer> = OnceLock::new();
 
 /// Embedding dimension — matches the existing document_embeddings table schema
 const EMBEDDING_DIM: usize = 384;
 
 /// Initialize the RAG tables if they don't exist
-pub async fn ensure_tables(pool: &PgPool) -> anyhow::Result<()> {
-    // Ensure pgvector extension is available
-    sqlx::query("CREATE EXTENSION IF NOT EXISTS vector")
-        .execute(pool)
-        .await
-        .ok(); // Silently fail if pgvector not installed
-
+pub async fn ensure_tables(pool: &SqlitePool) -> anyhow::Result<()> {
     // Text document metadata
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS trinity_documents (
-            id SERIAL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
             category TEXT NOT NULL DEFAULT 'general',
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
         "#,
     )
@@ -73,40 +77,29 @@ pub async fn ensure_tables(pool: &PgPool) -> anyhow::Result<()> {
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS trinity_chunks (
-            id SERIAL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             document_id INTEGER REFERENCES trinity_documents(id),
             chunk_index INTEGER NOT NULL,
             content TEXT NOT NULL,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
         "#,
     )
     .execute(pool)
     .await?;
 
-    // Trigram index for text search
-    sqlx::query(
-        r#"
-        CREATE INDEX IF NOT EXISTS idx_chunks_content_trgm
-        ON trinity_chunks USING gin (content gin_trgm_ops)
-        "#,
-    )
-    .execute(pool)
-    .await
-    .ok(); // Silently fail if pg_trgm not installed
-
-    // Vector embeddings table (may already exist)
+    // Vector embeddings table
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS document_embeddings (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            id TEXT PRIMARY KEY,
             doc_path TEXT NOT NULL,
             chunk_index INTEGER NOT NULL,
             content TEXT NOT NULL,
-            embedding vector(384),
-            metadata JSONB DEFAULT '{}',
-            created_at TIMESTAMPTZ DEFAULT NOW(),
-            updated_at TIMESTAMPTZ DEFAULT NOW(),
+            embedding TEXT,
+            metadata TEXT DEFAULT '{}',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(doc_path, chunk_index)
         )
         "#,
@@ -114,23 +107,12 @@ pub async fn ensure_tables(pool: &PgPool) -> anyhow::Result<()> {
     .execute(pool)
     .await?;
 
-    // HNSW index for fast approximate nearest neighbor search
-    sqlx::query(
-        r#"
-        CREATE INDEX IF NOT EXISTS idx_embeddings_hnsw 
-        ON document_embeddings USING hnsw (embedding vector_cosine_ops)
-        "#,
-    )
-    .execute(pool)
-    .await
-    .ok(); // Ok if already exists
-
-    info!("✅ RAG tables ready (pgvector + text search)");
+    info!("✅ RAG tables ready (SQLite + Pure Rust Vector Search)");
     Ok(())
 }
 
 /// Search documents — tries semantic vector search first, falls back to text search
-pub async fn search_documents(pool: &PgPool, query: &str) -> anyhow::Result<Vec<String>> {
+pub async fn search_documents(pool: &SqlitePool, query: &str) -> anyhow::Result<Vec<String>> {
     // Try semantic search first
     match search_semantic(pool, query, 3).await {
         Ok(results) if !results.is_empty() => {
@@ -145,81 +127,73 @@ pub async fn search_documents(pool: &PgPool, query: &str) -> anyhow::Result<Vec<
     search_text(pool, query).await
 }
 
-/// Semantic vector search using pgvector cosine similarity
-async fn search_semantic(pool: &PgPool, query: &str, limit: i64) -> anyhow::Result<Vec<String>> {
-    let query_embedding = generate_embedding(query).await?;
-
-    // Format embedding as PostgreSQL vector literal: '[0.1,0.2,...]'
-    let embedding_str = format!(
-        "[{}]",
-        query_embedding
-            .iter()
-            .map(|v| format!("{:.6}", v))
-            .collect::<Vec<_>>()
-            .join(",")
-    );
-
-    let results: Vec<(String, f64)> = sqlx::query_as(
-        r#"
-        SELECT content, 1 - (embedding <=> $1::vector) as similarity
-        FROM document_embeddings
-        WHERE embedding IS NOT NULL
-        ORDER BY embedding <=> $1::vector
-        LIMIT $2
-        "#,
-    )
-    .bind(&embedding_str)
-    .bind(limit)
-    .fetch_all(pool)
-    .await?;
-
-    Ok(results
-        .into_iter()
-        .filter(|(_, sim)| *sim > 0.3) // Minimum similarity threshold
-        .map(|(content, sim)| {
-            debug!(
-                "[RAG] Semantic match (similarity={:.3}): {}...",
-                sim,
-                &content[..content.len().min(60)]
-            );
-            truncate_chunk(&content, 800)
-        })
-        .collect())
+fn cosine_similarity(a: &[f32], b: &[f32]) -> f64 {
+    if a.len() != b.len() || a.is_empty() {
+        return 0.0;
+    }
+    let mut dot = 0.0;
+    let mut norm_a = 0.0;
+    let mut norm_b = 0.0;
+    for (va, vb) in a.iter().zip(b.iter()) {
+        dot += va * vb;
+        norm_a += va * va;
+        norm_b += vb * vb;
+    }
+    if norm_a == 0.0 || norm_b == 0.0 {
+        return 0.0;
+    }
+    (dot / (norm_a.sqrt() * norm_b.sqrt())) as f64
 }
 
-/// Full-text search using PostgreSQL ts_rank
-async fn search_text(pool: &PgPool, query: &str) -> anyhow::Result<Vec<String>> {
-    // Try full-text search first
-    let results: Vec<(String,)> = sqlx::query_as(
+/// Semantic vector search using purely local Rust Math in memory
+async fn search_semantic(pool: &SqlitePool, query: &str, limit: i64) -> anyhow::Result<Vec<String>> {
+    let query_embedding = generate_embedding(query).await?;
+
+    let rows: Vec<(String, String)> = sqlx::query_as(
         r#"
-        SELECT content
-        FROM trinity_chunks
-        WHERE to_tsvector('english', content) @@ plainto_tsquery('english', $1)
-        ORDER BY ts_rank(to_tsvector('english', content), plainto_tsquery('english', $1)) DESC
-        LIMIT 3
-        "#,
+        SELECT content, embedding
+        FROM document_embeddings
+        WHERE embedding IS NOT NULL
+        "#
     )
-    .bind(query)
     .fetch_all(pool)
     .await?;
 
-    if !results.is_empty() {
-        return Ok(results
-            .into_iter()
-            .map(|(c,)| truncate_chunk(&c, 800))
-            .collect());
-    }
+    let mut scored: Vec<(String, f64)> = rows
+        .into_iter()
+        .filter_map(|(content, embedding_str)| {
+            if let Ok(vec) = serde_json::from_str::<Vec<f32>>(&embedding_str) {
+                let sim = cosine_similarity(&query_embedding, &vec);
+                Some((content, sim))
+            } else {
+                None
+            }
+        })
+        .collect();
 
-    // Fallback: simple ILIKE search
+    // Sort descending by similarity
+    scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+
+    let top = scored.into_iter().take(limit as usize).filter(|(_, sim)| *sim > 0.3).map(|(content, sim)| {
+        debug!("[RAG] Semantic match (similarity={:.3}): {}...", sim, &content[..content.len().min(60)]);
+        truncate_chunk(&content, 800)
+    }).collect();
+
+    Ok(top)
+}
+
+/// Full-text search using SQLite LIKE
+async fn search_text(pool: &SqlitePool, query: &str) -> anyhow::Result<Vec<String>> {
+    let wildcard_query = format!("%{}%", query);
     let results: Vec<(String,)> = sqlx::query_as(
         r#"
         SELECT content
         FROM trinity_chunks
-        WHERE content ILIKE '%' || $1 || '%'
+        WHERE content LIKE ?
         LIMIT 3
         "#,
     )
-    .bind(query)
+    .bind(wildcard_query)
     .fetch_all(pool)
     .await?;
 
@@ -229,92 +203,109 @@ async fn search_text(pool: &PgPool, query: &str) -> anyhow::Result<Vec<String>> 
         .collect())
 }
 
-/// Generate embedding for text using llama-server's /v1/embeddings endpoint
-/// Falls back to deterministic hash-based embedding if server is unavailable
-async fn generate_embedding(text: &str) -> anyhow::Result<Vec<f32>> {
-    // Try llama-server embeddings first
-    let llm_base = std::env::var("LLM_URL").unwrap_or_else(|_| "http://127.0.0.1:8080".to_string());
-    let url = format!("{}/v1/embeddings", llm_base.trim_end_matches('/'));
-
-    let client = &*crate::http::QUICK;
-
-    let body = serde_json::json!({
-        "input": text,
-        "model": "mistral"
-    });
-
-    match client.post(&url).json(&body).send().await {
-        Ok(resp) if resp.status().is_success() => {
-            if let Ok(json) = resp.json::<serde_json::Value>().await {
-                if let Some(embedding) = json["data"][0]["embedding"].as_array() {
-                    let vec: Vec<f32> = embedding
-                        .iter()
-                        .map(|v| v.as_f64().unwrap_or(0.0) as f32)
-                        .collect();
-                    // Truncate or pad to EMBEDDING_DIM
-                    let mut result = vec![0.0f32; EMBEDDING_DIM];
-                    for (i, v) in vec.iter().enumerate().take(EMBEDDING_DIM) {
-                        result[i] = *v;
-                    }
-                    return Ok(result);
-                }
-            }
-        }
-        Ok(resp) => {
-            debug!(
-                "[RAG] Embedding API returned {}, using hash fallback",
-                resp.status()
-            );
-        }
-        Err(e) => {
-            debug!(
-                "[RAG] Embedding API unreachable ({}), using hash fallback",
-                e
-            );
-        }
+/// Initialize the local ONNX embedding model (downloads if missing)
+async fn init_embeddings_engine() -> anyhow::Result<()> {
+    if ORT_SESSION.get().is_some() && RAG_TOKENIZER.get().is_some() {
+        return Ok(());
+    }
+    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("No home dir found"))?;
+    let model_dir = home.join("trinity-models/onnx/embeddings");
+    if !model_dir.exists() {
+        tokio::fs::create_dir_all(&model_dir).await?;
     }
 
-    // Fallback: deterministic hash-based embedding
-    // This provides consistent but non-semantic similarity
-    Ok(hash_embedding(text))
+    let model_path = model_dir.join("model_quantized.onnx");
+    let tokenizer_path = model_dir.join("tokenizer.json");
+
+    if !model_path.exists() || !tokenizer_path.exists() {
+        anyhow::bail!("RAG Models missing! Please manually copy all-MiniLM-L6-v2 ONNX files to ~/trinity-models/onnx/embeddings/");
+    }
+
+    if RAG_TOKENIZER.get().is_none() {
+        let tok = Tokenizer::from_file(&tokenizer_path)
+            .map_err(|e| anyhow::anyhow!("Failed to parse tokenizer: {}", e))?;
+        let _ = RAG_TOKENIZER.set(tok);
+    }
+    if ORT_SESSION.get().is_none() {
+        let session = Session::builder().map_err(|e| anyhow::anyhow!("Session build err: {}", e))?
+            .with_intra_threads(4).map_err(|e| anyhow::anyhow!("Thread err: {}", e))?
+            .commit_from_file(&model_path).map_err(|e| anyhow::anyhow!("Load err: {}", e))?;
+        let _ = ORT_SESSION.set(Mutex::new(session));
+    }
+
+    Ok(())
 }
 
-/// Deterministic hash-based embedding fallback
-/// Provides consistent embeddings based on word frequencies
-fn hash_embedding(text: &str) -> Vec<f32> {
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::{Hash, Hasher};
 
-    let mut embedding = vec![0.0f32; EMBEDDING_DIM];
-    let words: Vec<&str> = text.split_whitespace().collect();
+/// Generate embedding for text using native pure-Rust ONNX execution
+async fn generate_embedding(text: &str) -> anyhow::Result<Vec<f32>> {
+    init_embeddings_engine().await?;
+    let session_lock = ORT_SESSION.get().unwrap();
+    let tokenizer = RAG_TOKENIZER.get().unwrap();
 
-    // Hash each word and distribute across dimensions
-    for (i, word) in words.iter().enumerate() {
-        let mut hasher = DefaultHasher::new();
-        word.to_lowercase().hash(&mut hasher);
-        let hash = hasher.finish();
+    let encoding = tokenizer.encode(text, true)
+        .map_err(|e| anyhow::anyhow!("Tokenizer error: {}", e))?;
+    let ids: Vec<i64> = encoding.get_ids().iter().map(|&x| x as i64).collect();
+    let mask: Vec<i64> = encoding.get_attention_mask().iter().map(|&x| x as i64).collect();
+    let type_ids: Vec<i64> = encoding.get_type_ids().iter().map(|&x| x as i64).collect();
 
-        // Spread the hash across multiple dimensions
-        for j in 0..8 {
-            let dim = ((hash >> (j * 8)) as usize + i * 3) % EMBEDDING_DIM;
-            embedding[dim] += 1.0;
+    let seq_len = ids.len();
+    if seq_len == 0 {
+        return Ok(vec![0.0; EMBEDDING_DIM]);
+    }
+
+    let input_ids = Array2::from_shape_vec((1, seq_len), ids)?;
+    let attention_mask = Array2::from_shape_vec((1, seq_len), mask.clone())?;
+    let token_type_ids = Array2::from_shape_vec((1, seq_len), type_ids)?;
+
+    let input_ids_val = Value::from_array(input_ids)?;
+    let attention_mask_val = Value::from_array(attention_mask.clone())?;
+    let token_type_ids_val = Value::from_array(token_type_ids)?;
+
+    let inputs = ort::inputs![
+        "input_ids" => &input_ids_val,
+        "attention_mask" => &attention_mask_val,
+        "token_type_ids" => &token_type_ids_val,
+    ];
+
+    let mut session = session_lock.lock().await;
+
+    let outputs = session.run(inputs).map_err(|e| anyhow::anyhow!("Inference err: {}", e))?;
+    let extracted = outputs["last_hidden_state"].try_extract_tensor::<f32>().map_err(|e| anyhow::anyhow!("Tensor extract err: {}", e))?;
+    let val = extracted.1;
+
+    let mut pooled = vec![0.0f32; EMBEDDING_DIM];
+    let mut sum_mask = 0.0f32;
+    for (i, m) in mask.iter().enumerate() {
+        let m_f32 = *m as f32;
+        if m_f32 > 0.0 {
+            sum_mask += m_f32;
+            for j in 0..EMBEDDING_DIM {
+                pooled[j] += val[i * EMBEDDING_DIM + j] * m_f32;
+            }
         }
     }
 
-    // L2 normalize
-    let norm: f32 = embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
-    if norm > 0.0 {
-        for v in &mut embedding {
-            *v /= norm;
+    let mut norm = 0.0f32;
+    if sum_mask > 0.0 {
+        for j in 0..EMBEDDING_DIM {
+            pooled[j] /= sum_mask;
+            norm += pooled[j] * pooled[j];
+        }
+        let l2 = norm.sqrt();
+        if l2 > 0.0 {
+            for j in 0..EMBEDDING_DIM {
+                pooled[j] /= l2;
+            }
         }
     }
 
-    embedding
+    Ok(pooled)
 }
 
 /// Ingest a document by chunking and storing both text chunks AND vector embeddings
 pub async fn ingest_document(
-    pool: &PgPool,
+    pool: &SqlitePool,
     title: &str,
     content: &str,
     category: &str,
@@ -322,13 +313,14 @@ pub async fn ingest_document(
     ensure_tables(pool).await?;
 
     // Insert document metadata
-    let doc_id: (i32,) = sqlx::query_as(
-        "INSERT INTO trinity_documents (title, category) VALUES ($1, $2) RETURNING id",
+    let doc_id = sqlx::query(
+        "INSERT INTO trinity_documents (title, category) VALUES (?, ?)",
     )
     .bind(title)
     .bind(category)
-    .fetch_one(pool)
-    .await?;
+    .execute(pool)
+    .await?
+    .last_insert_rowid();
 
     // Chunk the content (~500 words per chunk, split on paragraph boundaries)
     let chunks = chunk_text(content, 500);
@@ -337,9 +329,9 @@ pub async fn ingest_document(
     for (i, chunk) in chunks.iter().enumerate() {
         // Store text chunk for full-text search
         sqlx::query(
-            "INSERT INTO trinity_chunks (document_id, chunk_index, content) VALUES ($1, $2, $3)",
+            "INSERT INTO trinity_chunks (document_id, chunk_index, content) VALUES (?, ?, ?)",
         )
-        .bind(doc_id.0)
+        .bind(doc_id)
         .bind(i as i32)
         .bind(chunk)
         .execute(pool)
@@ -348,31 +340,27 @@ pub async fn ingest_document(
         // Generate and store vector embedding
         match generate_embedding(chunk).await {
             Ok(embedding) => {
-                let embedding_str = format!(
-                    "[{}]",
-                    embedding
-                        .iter()
-                        .map(|v| format!("{:.6}", v))
-                        .collect::<Vec<_>>()
-                        .join(",")
-                );
-
+                let embedding_str = serde_json::to_string(&embedding)?;
                 let doc_path = format!("{}#{}", title, i);
+                let new_id = uuid::Uuid::new_v4().to_string();
+                let meta = serde_json::json!({ "category": category, "title": title }).to_string();
+
                 sqlx::query(
                     r#"
-                    INSERT INTO document_embeddings (doc_path, chunk_index, content, embedding, metadata)
-                    VALUES ($1, $2, $3, $4::vector, $5)
+                    INSERT INTO document_embeddings (id, doc_path, chunk_index, content, embedding, metadata)
+                    VALUES (?, ?, ?, ?, ?, ?)
                     ON CONFLICT (doc_path, chunk_index) DO UPDATE SET
-                        content = EXCLUDED.content,
-                        embedding = EXCLUDED.embedding,
-                        updated_at = NOW()
+                        content = excluded.content,
+                        embedding = excluded.embedding,
+                        updated_at = CURRENT_TIMESTAMP
                     "#,
                 )
+                .bind(new_id)
                 .bind(&doc_path)
                 .bind(i as i32)
                 .bind(chunk)
                 .bind(&embedding_str)
-                .bind(serde_json::json!({ "category": category, "title": title }))
+                .bind(&meta)
                 .execute(pool)
                 .await?;
             }
@@ -390,7 +378,7 @@ pub async fn ingest_document(
 }
 
 /// Get RAG statistics
-pub async fn rag_stats(pool: &PgPool) -> anyhow::Result<serde_json::Value> {
+pub async fn rag_stats(pool: &SqlitePool) -> anyhow::Result<serde_json::Value> {
     let text_count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM trinity_chunks")
         .fetch_one(pool)
         .await
@@ -471,7 +459,7 @@ fn chunk_text(text: &str, max_words: usize) -> Vec<String> {
 /// WHY: This establishes the human/AI harmony loop. Humans read the natural-language
 /// headers at the top of the `.rs` files. Pete and the Great Recycler read the
 /// identical vector embeddings in the Qdrant DB. 
-pub async fn auto_index_workspace(pool: &PgPool) -> anyhow::Result<()> {
+pub async fn auto_index_workspace(pool: &SqlitePool) -> anyhow::Result<()> {
     use std::path::PathBuf;
 
     // We know `env!("CARGO_MANIFEST_DIR")` is `[workspace]/crates/trinity`

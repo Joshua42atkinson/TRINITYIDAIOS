@@ -6,7 +6,9 @@ Trinity combines instructional design methodology (ADDIE), visual design princip
 
 > Built on a 128 GB AMD Strix Halo (Zen 5 + RDNA 3.5 + XDNA 2 NPU) running a single static 119B MoE language model. No cloud APIs. Everything runs locally.
 
-> 🌐 **Live Demo**: [https://LDTAtkinson.com](https://LDTAtkinson.com) · [Source Archive](https://LDTAtkinson.com/downloads/TRINITY_ID_AI_OS_v1.0_source.tar.gz)
+> 🌐 **Live Demo & Presentation Focus**: [https://LDTAtkinson.com](https://LDTAtkinson.com) · [Source Archive](https://LDTAtkinson.com/downloads/TRINITY_ID_AI_OS_v1.0_source.tar.gz)
+>
+> 📖 **The Living Code Textbook**: The Rust codebase itself is heavily commented for student inspection. It is not a black box—it is designed to be read, studied, and modified as part of the curriculum.
 
 ---
 
@@ -37,12 +39,9 @@ Trinity combines instructional design methodology (ADDIE), visual design princip
 ### Run
 
 ```bash
-# 1. Start the LLM (Option A: llama-server GGUF — current default)
+# 1. Start the LLM (llama-server GGUF — current default)
 llama-server -m ~/trinity-models/gguf/Mistral-Small-4-119B-2603-Q4_K_M-00001-of-00002.gguf \
   --host 127.0.0.1 --port 8080 -ngl 99 --ctx-size 262144 --flash-attn on --jinja
-
-# 1. Start the LLM (Option B: vLLM safetensors — higher quality, P-EAGLE speculative decoding)
-./scripts/launch/start_vllm_ms4.sh  # Serves on :8000, auto-detected by InferenceRouter
 
 # 2. Build the React frontend
 cd crates/trinity/frontend && npm install && npm run build && cd ../../..
@@ -55,7 +54,7 @@ cargo run --release
 xdg-open http://localhost:3000
 ```
 
-Trinity auto-detects running inference backends (llama-server, vLLM, Ollama, LM Studio, SGLang) and will auto-launch llama-server via the **GPU Guard** if none are found. The Guard checks: (1) port already in use, (2) process already running, (3) available memory budget — preventing double loads that crash the GPU driver.
+Trinity auto-detects running inference backends (llama-server, Ollama, LM Studio, SGLang) and will auto-launch llama-server via the **GPU Guard** if none are found. The Guard checks: (1) port already in use, (2) process already running, (3) available memory budget — preventing double loads that crash the GPU driver.
 
 ### Optional Sidecars
 
@@ -70,6 +69,20 @@ llama-server -m ~/trinity-models/gguf/Qianfan-OCR-Q4_K_M.gguf --port 8081 --ctx-
 python scripts/voice_sidecar.py  # Port 7777
 ```
 
+---
+
+## 🚀 The Deployment Roadmap
+
+### Current Iteration: Web-Hosted Demo
+For the current Purdue University presentation, Trinity is web-hosted at [LDTAtkinson.com](https://LDTAtkinson.com). This provides immediate, low-friction access for educators and peers to experience the ADDIECRAPEYE lifecycle and VAAM scaffolding without requiring specialized local hardware.
+
+### Next Week: The Single-Download AppImage
+Our immediate next objective is **Mini Trinity**: a zero-configuration, single-download AppImage. The download will contain the *entire system*—including the Voice engine (TTS/STT) and RAG architecture—minus the heavy LLM.
+- **Zero Python. Zero CLI.** No compiling, no messy dependencies.
+- Students simply download the AppImage, run it, and connect it to a single main LLM (hosted locally via LM Studio or Ollama).
+- **LLM Requirements**: The connected LLM must support exactly three things: **Dual KV Cache** (to support both Pete and the Great Recycler simultaneously), **Multimodal Vision**, and **Tool Calling**. As long as the LLM can do it, so can the student.
+- We also maintain specialized datasets to train smaller models for students operating on constrained hardware.
+
 ## Architecture
 
 ```
@@ -83,7 +96,7 @@ Pete (Mistral Small 4 119B MoE) ─── The AI personality (~68 GB Q4_K_M / 11
 Rust Axum Server (:3000) ─── ADDIECRAPEYE orchestration, 30 agentic tools
 React Frontend ──────────── Book-view UI, 6 tabs (Iron Road / ART Studio / Character / Yardmaster / Scorecard / Voice)
 PostgreSQL + pgvector ───── Sessions, RAG knowledge base
-Inference Backends ──────── llama-server (:8080) | vLLM (:8000) | Ollama | SGLang (auto-detected)
+Inference Backends ──────── llama-server (:8080) | Ollama | SGLang (auto-detected)
 ComfyUI (:8188) ─────────── SDXL Turbo image generation
 Voice (:7777) ───────────── Whisper STT + Kokoro TTS
 GPU Guard ───────────────── Hotel protocol (prevents double LLM loads)
@@ -92,7 +105,7 @@ Sidecar Monitor ─────────── Checks real sidecar health, re
 
 ## Codebase
 
-**6 workspace crates · 264 tests · 0 failures · 0 compile errors**
+**7 workspace crates · 282 tests · 0 failures · 0 compile errors**
 
 | Crate | Tests | Description |
 |-------|:-----:|-------------|

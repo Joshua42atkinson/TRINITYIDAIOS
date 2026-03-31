@@ -177,7 +177,7 @@ pub fn compile_container(game_state: &GameState) -> EyeContainer {
 
 /// Scan the workspace asset directory for generated images/audio
 fn scan_assets() -> Vec<AssetRef> {
-    let home = std::env::var("HOME").unwrap_or_else(|_| "/home/joshua".to_string());
+    let home = std::env::var("HOME").unwrap_or_else(|_| dirs::home_dir().unwrap_or_default().to_string_lossy().to_string());
     let asset_dir =
         std::path::PathBuf::from(&home).join(".local/share/trinity/workspace/assets/images");
 

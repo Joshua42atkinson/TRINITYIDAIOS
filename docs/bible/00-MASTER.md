@@ -216,7 +216,8 @@ This isomorphism means: **learn the pattern once, apply everywhere.**
 | 3.1.0 | Mar 12 | Sidecar architecture, P-ART-Y | 1,145 |
 | 3.2.0 | Mar 14 | §17 comment standard | 1,145 |
 | 3.3.0 | Mar 16 | Appendix C implementation details | 1,504 |
-| **4.0.0** | **Mar 16** | **Chunked isomorphic architecture** | **Master: ~200, Total: ~1,800** |
+| 4.0.0 | Mar 16 | Chunked isomorphic architecture | Master: ~200, Total: ~1,800 |
+| **4.1.0** | **Mar 30** | **Vitest Frontend Harness & Premium Art Studio PEARL Layering** | **Master: ~245** |
 
 ---
 

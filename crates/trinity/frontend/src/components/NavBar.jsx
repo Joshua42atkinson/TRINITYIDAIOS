@@ -57,18 +57,20 @@ export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) 
           ← Portfolio
         </a>
       )}
-      <div className="nav-brand">TRINITY</div>
-      <div className="nav-links">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            id={`nav-${t.id}`}
-            className={`nav-link ${activeTab === t.id ? 'active' : ''}`}
-            onClick={() => onTabChange(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div className="nav-left" style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-lg)' }}>
+        <div className="nav-brand">TRINITY</div>
+        <div className="nav-links">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              id={`nav-${t.id}`}
+              className={`nav-link ${activeTab === t.id ? 'active' : ''}`}
+              onClick={() => onTabChange(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="nav-status">
         {/* Help Menu */}
@@ -191,6 +193,10 @@ export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) 
         <span className="sep">|</span>
         <span className={`status-dot ${quest?.phase ? 'connected' : ''}`}></span>
         <span>{quest?.phase || 'awaiting…'}</span>
+        <span className="sep">|</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.8 }} title="Trinity Native Inference Router Active">
+          📡 NETWORK: <span style={{ color: 'var(--green)', fontSize: '10px' }}>ONLINE</span>
+        </span>
         <span className="sep">|</span>
         <span>Ch {quest?.chapter || '—'}</span>
         {quest?.subject && onNewJourney && (

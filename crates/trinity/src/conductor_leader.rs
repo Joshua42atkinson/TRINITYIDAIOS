@@ -255,7 +255,7 @@ pub struct ConductorConfig {
 
 impl Default for ConductorConfig {
     fn default() -> Self {
-        let home = std::env::var("HOME").unwrap_or_else(|_| "/home/joshua".to_string());
+        let home = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/tmp")).to_string_lossy().to_string();
         Self {
             // Mistral Small 4 119B MoE — the actual Conductor model
             model_path: PathBuf::from(home)

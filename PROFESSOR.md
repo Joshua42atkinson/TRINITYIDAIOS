@@ -335,7 +335,7 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 ### 3. Source Code Review
 - Download the source archive: [TRINITY_ID_AI_OS_v1.0_source.tar.gz](https://LDTAtkinson.com/downloads/TRINITY_ID_AI_OS_v1.0_source.tar.gz)
 - Follow [INSTALL.md](INSTALL.md) to build locally
-- Run tests: `cargo test` (264 tests across 6 crates)
+- Run tests: `cargo test` (282 tests across 7 crates)
 - Read [TRINITY_FANCY_BIBLE.md](TRINITY_FANCY_BIBLE.md) for the full architecture
 
 ### 4. Key Things to Notice
@@ -371,7 +371,7 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 
 > **Validation Date**: March 23, 2026 — 12:18 PM EDT
 > **Validated By**: Automated audit against running prototype
-> **Method**: Each claim was verified against the live Trinity server (port 3000), source code (190K+ lines Rust), and API responses.
+> **Method**: Each claim was verified against the live Trinity server (port 3000), source code (200K+ lines of code), and API responses.
 
 | # | Claim | Document Source | Verified Value | Method | Result |
 |:-:|-------|----------------|----------------|--------|:------:|
@@ -658,7 +658,7 @@ The world evolves with the student's cognitive progression:
 ```
 TODAY (v1.0 — Single User, Local)
 ├── One student, one machine, one AI mentor
-├── 194K LOC Rust, 264 tests, 73 API endpoints
+├── 200K+ LOC total (24K core Rust), 282 tests, 73 API endpoints
 └── Fully functional prototype, zero cloud dependencies
 
 THIS YEAR (v2.0 — Multi-User, Institutional)

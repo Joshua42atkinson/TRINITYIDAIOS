@@ -1,3 +1,5 @@
+
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { activityBus } from './activityBus';
 
@@ -10,9 +12,9 @@ export function useYardmaster() {
   const [messages, setMessages] = useState([
     { role: 'ai', speaker: 'YARDMASTER', content: 'Ready. Chat naturally or use the focus buttons to guide the session.' },
   ]);
-  const [forgeLines, setForgeLines] = useState([
+  const [activityLogs, setActivityLogs] = useState([
     { type: 'system', text: 'system.init()' },
-    { type: '', text: 'Forge standing by…' },
+    { type: '', text: 'Studio standing by…' },
   ]);
   const [sending, setSending] = useState(false);
   const [focus, setFocus] = useState(new Set());
@@ -20,12 +22,14 @@ export function useYardmaster() {
   const [tools, setTools] = useState([]);
   const [thinking, setThinking] = useState('');      // current reasoning chain
   const [questState, setQuestState] = useState(null); // ADDIECRAPEYE state
-  const [turnInfo, setTurnInfo] = useState({ turn: 0, maxTurns: 8, continuations: 0 });
-  const [modelInfo] = useState({
-    name: 'Mistral Small 4 119B',
-    reasoning: 'high',
-    context: '500K (2×256K)',
-    active_experts: '6.5B / 119B',
+  const [turnInfo, setTurnInfo] = useState({ turn: 0, maxTurns: 65, continuations: 0 });
+  const [taskQueue, setTaskQueue] = useState([]); // Work session task list
+  const [modelInfo, setModelInfo] = useState({
+    name: 'No Model Mounted',
+    reasoning: '—',
+    context: '—',
+    active_experts: '—',
+    status: 'unmounted',
   });
   const abortRef = useRef(null);
 
@@ -35,13 +39,15 @@ export function useYardmaster() {
       try {
         const res = await fetch('/api/hardware');
         if (res.ok) setHardware(await res.json());
-      } catch (_) {}
+      } catch (_) { }
     }, 300);
+    // Expose hardware updater for Yardmaster's ignition polling loop
+    window.__trinityHardwareUpdate = setHardware;
     const t2 = setTimeout(async () => {
       try {
         const res = await fetch('/api/tools');
         if (res.ok) setTools(await res.json());
-      } catch (_) {}
+      } catch (_) { }
     }, 500);
     // Load chat history from DB
     const t3 = setTimeout(async () => {
@@ -61,11 +67,34 @@ export function useYardmaster() {
             ]);
           }
         }
-      } catch (_) {}
+      } catch (_) { }
     }, 100);
     // Fetch quest state
     fetchQuest();
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    // Fetch model status and poll
+    const fetchModelStatus = async () => {
+      try {
+        const res = await fetch('/api/model/status');
+        if (res.ok) {
+          const data = await res.json();
+          const name = data.status === 'mounted'
+            ? (data.model_name || data.model_path?.split('/').pop()?.replace(/\.gguf.*$/, '') || data.inference_mode || 'Connected')
+            : data.status === 'loading'
+            ? 'Loading...'
+            : 'No Model Mounted';
+          setModelInfo({
+            name,
+            reasoning: data.status === 'mounted' ? 'high' : '—',
+            context: data.status === 'mounted' ? '256K' : '—',
+            active_experts: data.status === 'mounted' ? data.inference_mode || 'http' : data.inference_mode || '—',
+            status: data.status,
+          });
+        }
+      } catch (_) { }
+    };
+    fetchModelStatus();
+    const modelPoll = setInterval(fetchModelStatus, 5000);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearInterval(modelPoll); };
   }, []);
 
   const fetchQuest = async () => {
@@ -75,11 +104,11 @@ export function useYardmaster() {
         const data = await res.json();
         setQuestState(data);
       }
-    } catch (_) {}
+    } catch (_) { }
   };
 
-  const addForge = useCallback((text, type = '') => {
-    setForgeLines((prev) => [...prev, { text, type, ts: Date.now() }].slice(-200));
+  const logActivity = useCallback((text, type = '') => {
+    setActivityLogs((prev) => [...prev, { text, type, ts: Date.now() }].slice(-200));
     // Mirror to global activity bus for the persistent Yard bar
     activityBus.emit(text, type);
   }, []);
@@ -97,7 +126,7 @@ export function useYardmaster() {
     if (!text.trim() || sending) return;
     setSending(true);
     setThinking(''); // clear previous thinking
-    setTurnInfo({ turn: 0, maxTurns: 8, continuations: 0 });
+    setTurnInfo({ turn: 0, maxTurns: 65, continuations: 0 });
     activityBus.setActive(true);
 
     // Add user message
@@ -112,11 +141,11 @@ export function useYardmaster() {
       fullMsg += `\n\nProject scope: ${scopePath} — focus tools and file operations within this directory.`;
     }
 
-    addForge(`Executing: ${text.substring(0, 40)}${text.length > 40 ? '…' : ''}`, 'command');
+    logActivity(`Executing: ${text.substring(0, 40)}${text.length > 40 ? '…' : ''}`, 'command');
 
-    // Create AI response placeholder
+    // Create AI response placeholder with logs support
     const aiId = Date.now();
-    setMessages((prev) => [...prev, { role: 'ai', speaker: 'YARDMASTER', content: '', id: aiId }]);
+    setMessages((prev) => [...prev, { role: 'ai', speaker: 'YARDMASTER', content: '', logs: [], id: aiId }]);
 
     try {
       const controller = new AbortController();
@@ -127,23 +156,29 @@ export function useYardmaster() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: fullMsg,
-          max_tokens: 16384,
-          max_turns: 8,
+          max_tokens: 32768,
+          max_turns: 65,
           mode: persona || 'dev',
           scope: scopePath || null,
-          // Send conversation history for rolling context
           history: messages
-            .filter(m => m.content) // skip empty placeholders
-            .slice(-20) // last 20 messages
-            .map(m => ({ role: m.role === 'ai' ? 'assistant' : m.role, content: m.content })),
+            .filter(m => m.content)
+            .slice(-20)
+            .map(m => {
+              // Strip UI tool indicator badges from LLM context to prevent hallucination looping
+              let cleanContent = m.content
+                .split('\n')
+                .filter(line => !line.match(/^`?[🟢🟡🔴] ▶/))
+                .filter(line => line.trim() !== '`✓`' && line.trim() !== '✓')
+                .join('\n');
+              return { role: m.role === 'ai' ? 'assistant' : m.role, content: cleanContent };
+            }),
         }),
         signal: controller.signal,
       });
 
       if (!res.ok) {
-        const errText = `Server error: ${res.status}`;
-        setMessages((prev) => prev.map((m) => m.id === aiId ? { ...m, content: errText } : m));
-        addForge(errText, 'error');
+        logActivity(`Agent error: ${res.status}`, 'error');
+        setMessages((prev) => prev.map((m) => m.id === aiId ? { ...m, role: 'error', content: "🚫 THE FURNACE IS COLD! The Great Recycler cannot speak while the firebox sleeps. Ignite LM Studio on port 1234 or click [🔥 IGNITE FURNACE] to light the coal yourself!" } : m));
         setSending(false);
         return;
       }
@@ -174,20 +209,29 @@ export function useYardmaster() {
 
           const payload = line.substring(6);
           if (payload === '[DONE]') {
-            addForge('Work sequence completed.', 'success');
+            logActivity('Work sequence completed.', 'success');
             currentEvent = '';
             continue;
           }
 
           // Route based on event type
+          if (currentEvent === 'llm_offline' || currentEvent === 'error') {
+            logActivity(`Agent error: ${payload}`, 'error');
+            setMessages((prev) => prev.map((m) => m.id === aiId ? { ...m, role: 'error', content: "🚫 THE FURNACE IS COLD! The Great Recycler cannot speak while the firebox sleeps. Ignite LM Studio on port 1234 or click [🔥 IGNITE FURNACE] to light the coal yourself!" } : m));
+            setSending(false);
+            return;
+          }
+          
           if (currentEvent === 'thinking' && payload.startsWith('{')) {
             try {
               const j = JSON.parse(payload);
               if (j.thinking) {
                 setThinking(j.thinking);
-                addForge('🧠 Reasoning…', 'system');
+                const msg = '🧠 Reasoning…';
+                logActivity(msg, 'system');
+                setMessages((prev) => prev.map((m) => m.id === aiId ? { ...m, logs: [...(m.logs || []), { text: msg, type: 'system' }] } : m));
               }
-            } catch {}
+            } catch { }
             currentEvent = '';
             continue;
           }
@@ -195,11 +239,11 @@ export function useYardmaster() {
           if (currentEvent === 'resources' && payload.startsWith('{')) {
             try {
               const j = JSON.parse(payload);
-              addForge(
+              logActivity(
                 `⛏️ Coal: -${j.coal_burned?.toFixed(1)} | 💨 Steam: +${j.steam_gained?.toFixed(1)} | ⭐ XP: +${j.xp_gained}`,
                 'success'
               );
-            } catch {}
+            } catch { }
             currentEvent = '';
             continue;
           }
@@ -207,18 +251,18 @@ export function useYardmaster() {
           if (currentEvent === 'skill' && payload.startsWith('{')) {
             try {
               const j = JSON.parse(payload);
-              addForge(
+              logActivity(
                 `🎲 D20: ${j.roll} (need ${j.dc}) — ${j.success ? '✅ Pass' : '❌ Fail'}${j.critical ? ' ⚡CRIT!' : ''}${j.fumble ? ' 💀FUMBLE!' : ''}`,
                 j.success ? 'success' : 'error'
               );
-            } catch {}
+            } catch { }
             currentEvent = '';
             continue;
           }
 
           if (currentEvent === 'narrative') {
             // Narrative text events — append as separate styled message
-            addForge(`📖 ${payload.substring(0, 120)}`, 'system');
+            logActivity(`📖 ${payload.substring(0, 120)}`, 'system');
             currentEvent = '';
             continue;
           }
@@ -229,49 +273,54 @@ export function useYardmaster() {
               const j = JSON.parse(payload);
               const wordCount = j.words_detected || j.total_words || 0;
               const coal = j.coal_earned || j.total_coal || 0;
-              addForge(
+              logActivity(
                 `📚 VAAM: ${wordCount} vocabulary words detected (+${coal} coal)`,
                 'vaam'
               );
-            } catch {}
+            } catch { }
             currentEvent = '';
             continue;
           }
 
-           // ── Status events (thinking, tool execution — keeps Cloudflare alive) ──
-           if (currentEvent === 'status' && payload.startsWith('{')) {
-             try {
-               const j = JSON.parse(payload);
-               if (j.status === 'thinking' && j.turn) {
-                 setTurnInfo(prev => ({ ...prev, turn: j.turn }));
-                 addForge(`⏳ ${j.message || 'Thinking...'}`, 'system');
-               } else if (j.status === 'tool') {
-                 addForge(`🔧 ${j.message || `Running ${j.tool}...`}`, 'command');
-               } else if (j.status === 'connected') {
-                 addForge(`✅ ${j.message || 'Connected'}`, 'success');
-               }
-             } catch {}
-             currentEvent = '';
-             continue;
-           }
+          // ── Status events (thinking, tool execution — keeps Cloudflare alive) ──
+          if (currentEvent === 'status' && payload.startsWith('{')) {
+            try {
+              const j = JSON.parse(payload);
+              if (j.status === 'thinking' && j.turn) {
+                setTurnInfo(prev => ({ ...prev, turn: j.turn }));
+                const text = `⏳ ${j.message || 'Thinking...'}`;
+                logActivity(text, 'system');
+                setMessages((prev) => prev.map((m) => m.id === aiId ? { ...m, logs: [...(m.logs || []), { text, type: 'system' }] } : m));
+              } else if (j.status === 'tool') {
+                const text = `🔧 ${j.message || `Running ${j.tool}...`}`;
+                logActivity(text, 'command');
+                setMessages((prev) => prev.map((m) => m.id === aiId ? { ...m, logs: [...(m.logs || []), { text, type: 'command' }] } : m));
+              } else if (j.status === 'connected') {
+                const text = `✅ ${j.message || 'Connected'}`;
+                logActivity(text, 'success');
+                setMessages((prev) => prev.map((m) => m.id === aiId ? { ...m, logs: [...(m.logs || []), { text, type: 'success' }] } : m));
+              }
+            } catch { }
+            currentEvent = '';
+            continue;
+          }
 
-           // ── Cognitive Load events ──
+          // ── Cognitive Load events ──
           if (currentEvent === 'cognitive_load' && payload.startsWith('{')) {
             try {
               const j = JSON.parse(payload);
               const grade = j.flesch_grade?.toFixed(1) || '?';
               const complex = j.complex_words || 0;
               const level = parseFloat(grade) > 12 ? '🔴' : parseFloat(grade) > 8 ? '🟡' : '🟢';
-              addForge(
-                `${level} Cognitive Load: Grade ${grade} | ${complex} complex words`,
-                'system'
-              );
-            } catch {}
+              const text = `${level} Cognitive Load: Grade ${grade} | ${complex} complex words`;
+              logActivity(text, 'system');
+              setMessages((prev) => prev.map((m) => m.id === aiId ? { ...m, logs: [...(m.logs || []), { text, type: 'system' }] } : m));
+            } catch { }
             currentEvent = '';
             continue;
           }
 
-          // Image generation events — inline image in chat
+          // Image generation events
           if (currentEvent === 'image' && payload.startsWith('{')) {
             try {
               const imgData = JSON.parse(payload);
@@ -285,8 +334,27 @@ export function useYardmaster() {
                   content: `🖼️ Generated: ${imgData.filename}`,
                 },
               ]);
-              addForge(`🖼️ Image generated: ${imgData.filename}`, 'success');
-            } catch {}
+              logActivity(`🖼️ Image generated: ${imgData.filename}`, 'success');
+            } catch { }
+            currentEvent = '';
+            continue;
+          }
+
+          // ── Real-Time Agent ↔ WASM SSE Bridge (Project Forge) ──
+          if (currentEvent === 'forge_command' && payload.startsWith('{')) {
+            try {
+              const j = JSON.parse(payload);
+              // Broadcast to the React iframe (ArtStudio.jsx catches this)
+              window.postMessage({
+                type: 'forge_command',
+                command: j.command,
+                payload: j.payload || {},
+                requestId: `agent-${Date.now()}`
+              }, window.location.origin);
+              logActivity(`WASM Bridge Executing: ${j.command}`, 'command');
+            } catch (e) {
+              console.error("Agent ↔ WASM Bridge parse error", e);
+            }
             currentEvent = '';
             continue;
           }
@@ -310,12 +378,22 @@ export function useYardmaster() {
               }
               // Tool invocation
               if (j.tool) {
-                addForge(`Tool: ${j.tool}(${JSON.stringify(j.params || {}).substring(0, 60)})`, 'command');
+                const text = `Tool: ${j.tool}(${JSON.stringify(j.params || {}).substring(0, 60)})`;
+                logActivity(text, 'command');
+                setMessages((prev) => prev.map((m) => m.id === aiId ? { ...m, logs: [...(m.logs || []), { text, type: 'command' }] } : m));
               }
               // Tool result
               if (j.type === 'tool_result') {
                 const preview = (j.content || '').substring(0, 200);
-                addForge(`Result: ${preview}${j.content?.length > 200 ? '…' : ''}`, 'result');
+                const text = `Result: ${preview}${j.content?.length > 200 ? '…' : ''}`;
+                logActivity(text, 'result');
+                const logText = (j.content || '').substring(0, 2000) + (j.content?.length > 2000 ? '\n...[Truncated]' : '');
+                setMessages((prev) => prev.map((m) => m.id === aiId ? { ...m, logs: [...(m.logs || []), { text: logText, type: 'result' }] } : m));
+                // Parse task_queue results to update the Work Session card in real-time
+                const content = j.content || '';
+                if (content.includes('Task #') || content.includes('TASK QUEUE') || content.includes('All tasks complete')) {
+                  parseTaskQueue(content);
+                }
               }
             } catch {
               // Not valid JSON, treat as text
@@ -335,21 +413,80 @@ export function useYardmaster() {
         setMessages((prev) => prev.map((m) =>
           m.id === aiId ? { ...m, content: m.content + `\nError: ${err.message}` } : m
         ));
-        addForge(`Error: ${err.message}`, 'error');
+        logActivity(`Error: ${err.message}`, 'error');
+      } else {
+        logActivity('Agent execution manually aborted.', 'system');
       }
     }
 
-    // Refresh quest state after response completes
     fetchQuest();
-
     abortRef.current = null;
     setSending(false);
     activityBus.setActive(false);
-  }, [sending, focus, addForge, messages]);
+  }, [sending, focus, logActivity, messages]);
+
+  const cancelRequest = useCallback(() => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      logActivity('🚫 STOP signal sent. Aborting agent thread.', 'error');
+    }
+  }, [logActivity]);
+
+  // Parse task_queue markdown output into structured task items
+  const parseTaskQueue = useCallback((text) => {
+    const lines = text.split('\n');
+    const tasks = [];
+    for (const line of lines) {
+      const matchUnchecked = line.match(/^- \[ \] (\d+)\.\s*(.+)/);
+      const matchChecked = line.match(/^- \[x\] (\d+)\.\s*(.+)/);
+      if (matchUnchecked) {
+        tasks.push({ index: parseInt(matchUnchecked[1]), text: matchUnchecked[2].trim(), done: false });
+      } else if (matchChecked) {
+        tasks.push({ index: parseInt(matchChecked[1]), text: matchChecked[2].trim(), done: true });
+      }
+    }
+    if (tasks.length > 0) {
+      setTaskQueue(tasks);
+    }
+    // Handle "Task #N marked complete" — update in place
+    const completeMatch = text.match(/Task #(\d+) marked complete/);
+    if (completeMatch) {
+      const idx = parseInt(completeMatch[1]);
+      setTaskQueue(prev => prev.map(t => t.index === idx ? { ...t, done: true } : t));
+    }
+    // Handle "Task #N added: ..."
+    const addMatch = text.match(/Task #(\d+) added: (.+)/);
+    if (addMatch) {
+      const idx = parseInt(addMatch[1]);
+      const taskText = addMatch[2].trim();
+      setTaskQueue(prev => {
+        // Don't duplicate
+        if (prev.some(t => t.index === idx)) return prev;
+        return [...prev, { index: idx, text: taskText, done: false }];
+      });
+    }
+  }, []);
+
+  // Start a new work session — sets the quest subject and clears task queue
+  const startSession = useCallback(async (sessionName) => {
+    if (!sessionName?.trim()) return;
+    try {
+      await fetch('/api/quest/subject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: sessionName.trim() }),
+      });
+      setTaskQueue([]);
+      fetchQuest();
+      logActivity(`🎯 Session started: ${sessionName}`, 'success');
+    } catch (e) {
+      logActivity(`Failed to start session: ${e.message}`, 'error');
+    }
+  }, [logActivity]);
 
   return {
     messages,
-    forgeLines,
+    activityLogs,
     sending,
     focus,
     hardware,
@@ -358,7 +495,10 @@ export function useYardmaster() {
     questState,
     turnInfo,
     modelInfo,
+    taskQueue,
     toggleFocus,
     sendMessage,
+    cancelRequest,
+    startSession,
   };
 }

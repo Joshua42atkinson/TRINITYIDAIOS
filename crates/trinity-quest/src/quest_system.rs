@@ -15,7 +15,7 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 
-use sqlx::PgPool;
+use sqlx::SqlitePool;
 use tracing::info;
 
 // Import canonical types from sibling modules
@@ -446,7 +446,7 @@ fn obj(ch: u8, phase: &str, n: u8, desc: &str) -> Objective {
 // ═══════════════════════════════════════════════════════════════════
 
 /// Ensure quest state tables exist
-pub async fn ensure_quest_tables(pool: &PgPool) -> anyhow::Result<()> {
+pub async fn ensure_quest_tables(pool: &SqlitePool) -> anyhow::Result<()> {
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS quest_state (
@@ -517,7 +517,7 @@ pub async fn ensure_quest_tables(pool: &PgPool) -> anyhow::Result<()> {
 /// Save game state to PostgreSQL
 #[allow(dead_code)] // Called from /api/quest/advance when game state changes
 pub async fn save_game_state(
-    pool: &PgPool,
+    pool: &SqlitePool,
     player_id: &str,
     state: &GameState,
 ) -> anyhow::Result<()> {
@@ -562,7 +562,7 @@ pub async fn save_game_state(
 
 /// Load game state from PostgreSQL
 #[allow(clippy::type_complexity)]
-pub async fn load_game_state(pool: &PgPool, player_id: &str) -> anyhow::Result<GameState> {
+pub async fn load_game_state(pool: &SqlitePool, player_id: &str) -> anyhow::Result<GameState> {
     let row: Option<(
         i32,
         String,

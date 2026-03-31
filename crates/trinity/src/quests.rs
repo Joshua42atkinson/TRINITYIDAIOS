@@ -414,13 +414,13 @@ pub async fn advance_phase(
                 );
                 let result = tokio::process::Command::new("git")
                     .args(["add", "-A"])
-                    .current_dir("/home/joshua/Workflow/desktop_trinity/trinity-genesis")
+                    .current_dir(crate::tools::workspace_root())
                     .output()
                     .await;
                 if result.is_ok() {
                     let _ = tokio::process::Command::new("git")
                         .args(["commit", "-m", &msg, "--allow-empty"])
-                        .current_dir("/home/joshua/Workflow/desktop_trinity/trinity-genesis")
+                        .current_dir(crate::tools::workspace_root())
                         .env("GIT_TERMINAL_PROMPT", "0")
                         .env("GIT_AUTHOR_NAME", "Trinity")
                         .env("GIT_COMMITTER_NAME", "Trinity")
@@ -728,3 +728,15 @@ pub async fn refine_pearl(
         }))),
     }
 }
+
+pub async fn export_lms_analytics(
+    axum::extract::State(state): axum::extract::State<crate::AppState>,
+) -> impl axum::response::IntoResponse {
+    let game = state.project.game_state.read().await;
+    axum::Json(serde_json::json!({
+        "subject": game.quest.subject,
+        "xp_earned": game.quest.xp_earned,
+        "phase": format!("{:?}", game.quest.current_phase),
+    }))
+}
+

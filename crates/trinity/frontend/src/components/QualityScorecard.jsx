@@ -112,14 +112,24 @@ export default function QualityScorecard() {
 
   return (
     <div className="scorecard-panel">
-      <div className="scorecard-header">
-        <div className="scorecard-header__icon">📋</div>
-        <div>
-          <div className="scorecard-header__title">QUALITY SCORECARD</div>
-          <div className="scorecard-header__subtitle">
-            Pedagogical document evaluation — 5 dimensions of instructional quality
+      <div className="scorecard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="scorecard-header__icon">📋</div>
+          <div>
+            <div className="scorecard-header__title">QUALITY SCORECARD</div>
+            <div className="scorecard-header__subtitle">
+              Pedagogical document evaluation — 5 dimensions of instructional quality
+            </div>
           </div>
         </div>
+        <button
+          className="chat-send"
+          style={{ padding: '6px 14px', fontSize: '0.8rem', background: '#34d399', color: '#111827', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+          onClick={() => window.open('/api/analytics/export', '_blank')}
+          title="Download Student Progress to Canvas LMS"
+        >
+          📥 Export LMS Analytics
+        </button>
       </div>
 
       {/* Input Area */}

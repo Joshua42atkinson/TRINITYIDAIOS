@@ -31,8 +31,10 @@ use crate::ChatMessage;
 
 #[derive(Serialize)]
 struct CompletionRequest {
+    model: String,
     messages: Vec<ApiMessage>,
-    max_tokens: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    max_tokens: Option<u32>,
     temperature: f32,
     stream: bool,
     /// Mistral Small 4 reasoning effort: "high" for deep thinking, "none" for fast responses
@@ -41,15 +43,6 @@ struct CompletionRequest {
     /// OpenAI-compatible tool definitions (requires --jinja flag on llama-server)
     #[serde(skip_serializing_if = "Option::is_none")]
     tools: Option<Vec<ToolDefinition>>,
-    /// Duality KV Cache: pin request to a specific llama-server slot.
-    /// Slot 0 = Great Recycler (strategic), Slot 1 = Programmer Pete (execution).
-    /// When None, llama-server picks the least-recently-used slot (default behavior).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    id_slot: Option<i32>,
-    /// Tell llama-server to cache the prompt tokens in the KV slot.
-    /// On repeat requests to the same slot, cached tokens are reused — instant system prompt.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    cache_prompt: Option<bool>,
 }
 
 // ═══════════════════════════════════════════════════
@@ -149,10 +142,9 @@ pub async fn check_health(base_url: &str) -> bool {
 pub async fn chat_completion_stream(
     base_url: &str,
     messages: &[ChatMessage],
-    max_tokens: u32,
+    _max_tokens: u32,
     tx: tokio::sync::mpsc::Sender<String>,
     reasoning_effort: Option<&str>,
-    id_slot: Option<i32>,
 ) -> anyhow::Result<()> {
     let client = &*crate::http::LONG;
     let no_reasoning = reasoning_effort.as_ref().map(|e| *e == "none").unwrap_or(false);
@@ -184,14 +176,13 @@ pub async fn chat_completion_stream(
         .collect();
 
     let request = CompletionRequest {
+        model: "mistral".to_string(), // Default proxy name for local LLM routing
         messages: api_messages,
-        max_tokens,
+        max_tokens: None, // Let inference backend auto-calculate to prevent context length errors
         temperature: 0.7,
         stream: true,
-        reasoning_effort: reasoning_effort.map(|s| s.to_string()),
+        reasoning_effort: None, // Used internally for 'no_reasoning', but vLLM strictly validates against it
         tools: None,
-        id_slot,
-        cache_prompt: if id_slot.is_some() { Some(true) } else { None },
     };
 
     let mut response = client
@@ -264,18 +255,16 @@ pub async fn chat_completion(
     messages: &[ChatMessage],
     max_tokens: u32,
 ) -> anyhow::Result<String> {
-    chat_completion_with_effort(base_url, messages, max_tokens, None, None).await
+    chat_completion_with_effort(base_url, messages, max_tokens, None).await
 }
 
 /// Send a chat completion request with configurable reasoning effort
 /// reasoning_effort: Some("high") for deep thinking, Some("none") for fast, None for default
-/// id_slot: Pin to a specific llama-server KV cache slot (Duality system)
 pub async fn chat_completion_with_effort(
     base_url: &str,
     messages: &[ChatMessage],
-    max_tokens: u32,
-    reasoning_effort: Option<&str>,
-    id_slot: Option<i32>,
+    _max_tokens: u32,
+    _reasoning_effort: Option<&str>,
 ) -> anyhow::Result<String> {
     let client = &*crate::http::LONG;
 
@@ -306,14 +295,13 @@ pub async fn chat_completion_with_effort(
         .collect();
 
     let request = CompletionRequest {
+        model: "mistral".to_string(),
         messages: api_messages,
-        max_tokens,
+        max_tokens: None, // Let inference backend auto-calculate to prevent context length errors
         temperature: 0.7,
         stream: false,
-        reasoning_effort: reasoning_effort.map(|s| s.to_string()),
+        reasoning_effort: None, // Used internally for 'no_reasoning', but vLLM strictly validates against it
         tools: None,
-        id_slot,
-        cache_prompt: if id_slot.is_some() { Some(true) } else { None },
     };
 
     let response = client
@@ -382,6 +370,7 @@ pub fn build_tool_definitions(tools: &[crate::tools::ToolInfo]) -> Vec<ToolDefin
                     parameters: serde_json::json!({
                         "type": "object",
                         "properties": properties,
+                        "required": t.params, // Strict schema enforcement needs required field
                     }),
                 },
             }
@@ -390,14 +379,12 @@ pub fn build_tool_definitions(tools: &[crate::tools::ToolInfo]) -> Vec<ToolDefin
 }
 
 /// Send a chat completion with tool definitions — returns structured tool calls
-/// id_slot: Pin to a specific llama-server KV cache slot (Duality system)
 pub async fn chat_completion_with_tools(
     base_url: &str,
     messages: &[ChatMessage],
-    max_tokens: u32,
+    _max_tokens: u32,
     tools: &[ToolDefinition],
-    reasoning_effort: Option<&str>,
-    id_slot: Option<i32>,
+    _reasoning_effort: Option<&str>,
 ) -> anyhow::Result<ToolAwareResponse> {
     let client = &*crate::http::LONG;
 
@@ -428,18 +415,17 @@ pub async fn chat_completion_with_tools(
         .collect();
 
     let request = CompletionRequest {
+        model: "mistral".to_string(),
         messages: api_messages,
-        max_tokens,
+        max_tokens: None, // Let inference backend auto-calculate to prevent context length errors
         temperature: 0.7,
         stream: false,
-        reasoning_effort: reasoning_effort.map(|s| s.to_string()),
+        reasoning_effort: None, // Used internally for 'no_reasoning', but vLLM strictly validates against it
         tools: if tools.is_empty() {
             None
         } else {
             Some(tools.to_vec())
         },
-        id_slot,
-        cache_prompt: if id_slot.is_some() { Some(true) } else { None },
     };
 
     let response = client
@@ -479,3 +465,4 @@ pub async fn chat_completion_with_tools(
         tool_calls,
     })
 }
+

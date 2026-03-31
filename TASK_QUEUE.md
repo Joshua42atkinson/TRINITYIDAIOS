@@ -9,3 +9,4 @@ Generated: 2026-03-25 18:42
 - [ ] 5. Review and summarize The Psychological Expansion of Truth with Maturity section
 - [ ] 6. Review and summarize The Pedagogical Frameworks: Constructing a Curriculum for Truth section
 - [ ] 7. Review and summarize The Contemporary Epistemic Crisis: Truth in the Digital Age section
+- [ ] 8. Define a Bevy-compatible entity for rats in scripts/dragon_familiars.rs

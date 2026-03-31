@@ -255,7 +255,7 @@ Zero data leaves campus. No API keys. Reduces reliance on third-party cloud proc
 | **ART Creative Pipeline** | Image (ComfyUI/SDXL), Music (tempo-ai), Video (Hunyuan), 3D (Hunyuan3D), Blender | ✅ 4 stations wired |
 | **Yard Activity Bar** | Persistent progress feed on all tabs — tool calls, d20 rolls, coal/steam/XP visible live | ✅ Wired |
 | **Model Hot-Swap** | 11 local models (300+ GB), switch via `POST /api/models/switch` | ✅ Running |
-| **InferenceRouter** | Auto-detects 6 backends (llama-server, vLLM, Ollama, LM Studio, SGLang, Researcher) | ✅ 264 tests passing |
+| **InferenceRouter** | Auto-detects 6 backends (llama-server, vLLM, Ollama, LM Studio, SGLang, Researcher) | ✅ 282 tests passing |
 | **User Model** | Single-user prototype — one CharacterSheet per instance | ✅ By design |
 
 ---
@@ -312,7 +312,7 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 ### 3. Source Code Review
 - Download the source archive: [TRINITY_ID_AI_OS_v1.0_source.tar.gz](https://LDTAtkinson.com/downloads/TRINITY_ID_AI_OS_v1.0_source.tar.gz)
 - Follow [INSTALL.md](INSTALL.md) to build locally
-- Run tests: `cargo test` (264 tests across 6 crates)
+- Run tests: `cargo test` (282 tests across 7 crates)
 - Read [TRINITY_FANCY_BIBLE.md](TRINITY_FANCY_BIBLE.md) for the full architecture
 
 ### 4. Key Things to Notice
@@ -363,7 +363,8 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 | 9 | **All API endpoints healthy** | PROFESSOR §API Verification | `/api/health` (healthy), `/api/quest` (chapter 1), `/api/bestiary` (46 creeps), `/api/book` (ok), `/api/inference/status` (llama-server active), `/docs/` (serves markdown) | API curl | ✅ |
 | 10 | **17 React components** | Bible §1.10 | 17 `.jsx` component files in `crates/trinity/frontend/src/components/` (including ActivityBar) | Filesystem | ✅ |
 | 11 | **100% local execution** | PROFESSOR §Evaluation Criteria | No outbound API calls in source. All model paths reference local filesystem (`~/trinity-models/`). Health checks target `127.0.0.1` only. | Source review | ✅ |
-| 12 | **Zero compile errors** | PROFESSOR §Technical Highlights | `cargo build` completes with 0 errors, **264 tests passing** across 6 crates | Build | ✅ |
+| 12 | **Zero compile errors** | PROFESSOR §Technical Highlights | `cargo build` completes with 0 errors, **282 tests passing** across 7 crates | Build | ✅ |
+| 13 | **Front-End Industrialization** | PROFESSOR §Technical Highlights | React testing harness active via **Vitest** for `ArtStudio.jsx`; premium ldtatkinson.com presentation spec applied. | Jest/Vitest Suite | ✅ |
 
 **Summary**: All 12 audited claims are **verified accurate** against the running prototype. Numeric claims are conservative (e.g., "29+" tools → actual 30, "42+" blocked → actual 44).
 

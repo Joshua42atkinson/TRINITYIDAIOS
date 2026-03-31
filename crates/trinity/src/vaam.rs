@@ -27,7 +27,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{info, warn};
 
-use sqlx::PgPool;
+use sqlx::SqlitePool;
 use trinity_protocol::{
     Genre, TierProgress, VocabularyDatabase, VocabularyMastery, VocabularyTier, WordDetection,
 };
@@ -121,7 +121,7 @@ impl VaamState {
     }
 
     /// Load VAAM state from PostgreSQL vocabulary pack
-    pub async fn from_db_pack(pool: &PgPool, pack_id: String) -> Result<Self, sqlx::Error> {
+    pub async fn from_db_pack(pool: &SqlitePool, pack_id: String) -> Result<Self, sqlx::Error> {
         let row = sqlx::query_as::<_, (String, String, String, String, serde_json::Value)>(
             r#"
             SELECT id, genre, name, description, words
@@ -160,7 +160,7 @@ impl VaamState {
     }
 
     /// Create VAAM state and sync mastery from PostgreSQL
-    pub async fn new_with_db(genre: Genre, pool: &PgPool, project_id: &str) -> Self {
+    pub async fn new_with_db(genre: Genre, pool: &SqlitePool, project_id: &str) -> Self {
         let state = Self::new(genre).await;
 
         // Load mastery state from database
@@ -339,7 +339,7 @@ pub fn format_vaam_event(result: &VaamResult) -> String {
 
 /// Load mastery state from PostgreSQL for a project
 pub async fn load_mastery_from_db(
-    pool: &PgPool,
+    pool: &SqlitePool,
     project_id: &str,
 ) -> Result<VocabularyMastery, sqlx::Error> {
     let rows = sqlx::query_as::<_, (String, String, i32, bool, i32)>(
@@ -371,7 +371,7 @@ pub async fn load_mastery_from_db(
 
 /// Save mastery state to PostgreSQL
 pub async fn save_mastery_to_db(
-    pool: &PgPool,
+    pool: &SqlitePool,
     project_id: &str,
     mastery: &VocabularyMastery,
 ) -> Result<(), sqlx::Error> {
@@ -404,7 +404,7 @@ pub async fn save_mastery_to_db(
 
 /// Record a word detection to the audit trail
 pub async fn record_detection(
-    pool: &PgPool,
+    pool: &SqlitePool,
     project_id: &str,
     detection: &WordDetection,
     context: Option<&str>,

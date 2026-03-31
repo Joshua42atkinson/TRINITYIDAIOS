@@ -1,10 +1,20 @@
-# Default Trinity Runtime Configuration
+# ═══════════════════════════════════════════════════════════════════════════════
+# Trinity ID AI OS — Runtime Configuration
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# INFERENCE ARCHITECTURE (March 2026):
+#   Primary:  Embedded llama-cpp-2 Rust FFI → Vulkan GPU (zero HTTP overhead)
+#   Fallback: HTTP InferenceRouter → any OpenAI-compatible server
+#
+# To use embedded inference, set GGUF_MODEL_PATH env var to the model file.
+# If no GGUF_MODEL_PATH is set, the router auto-detects servers on these ports.
+# ═══════════════════════════════════════════════════════════════════════════════
 
 [node]
 type = "Auto"  # Auto-detect Brain/Body
 
 [inference]
-primary = "vllm"
+primary = "lm-studio"
 auto_detect = true
 ctx_size = 262144
 max_tokens = 16384
@@ -17,13 +27,15 @@ parallel = 2
 recycler_slot = 0
 programmer_slot = 1
 
+# ── Backends (HTTP fallback when embedded inference is not active) ──
+
 [inference.backends.llama-server]
 url = "http://127.0.0.1:8080"
 supports_tools = true
 supports_vision = true
 
-[inference.backends.vllm]
-url = "http://127.0.0.1:8000"
+[inference.backends.lm-studio]
+url = "http://127.0.0.1:1234"
 supports_tools = true
 supports_vision = true
 
@@ -32,22 +44,6 @@ url = "http://127.0.0.1:11434"
 supports_tools = true
 supports_vision = false
 
-[inference.backends.lm-studio]
-url = "http://127.0.0.1:1234"
-supports_tools = false
-supports_vision = false
-
-[inference.backends.sglang]
-url = "http://127.0.0.1:8000"
-supports_tools = true
-supports_vision = false
-
-# Qianfan-OCR Researcher sub-agent (4B vision model)
-[inference.backends.researcher]
-url = "http://127.0.0.1:8081"
-supports_tools = false
-supports_vision = true
-
 [model]
 model_dir = "~/trinity-models/gguf"
 default_model = "Mistral-Small-4-119B-2603-Q4_K_M-00001-of-00002.gguf"
@@ -55,12 +51,6 @@ n_gpu_layers = -1  # Full offload
 context_size = 262144
 batch_size = 512
 n_threads = 16
-
-[model.researcher]
-model_dir = "~/trinity-models/gguf"
-model_file = "Qianfan-OCR-Q4_K_M.gguf"
-port = 8081
-context_size = 32768
 
 [creative]
 comfyui_url = "http://127.0.0.1:8188"

@@ -1,6 +1,9 @@
 # Voice Architecture Research — Trinity ID AI OS
 ## March 18, 2026
 
+> [!WARNING]
+> **ARCHIVED (March 28, 2026)**: The vLLM experiments referenced in this document were abandoned in favor of `llama.cpp` due to UMA memory constraints on the AMD Strix Halo architecture. This document remains for historical reference.
+
 ---
 
 ## The Problem

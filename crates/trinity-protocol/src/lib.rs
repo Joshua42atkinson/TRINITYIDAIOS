@@ -64,12 +64,12 @@
 //! 2. **Compatibility**: Changes here affect the whole ecosystem. Append, don't break.
 //! 3. **Clarity**: Type names should be self-documenting (e.g., `ThinkResult`, `ActionRequest`).
 
-pub mod agents;
 pub mod artifact;
 pub mod asset_generation;
 pub mod brain;
 pub mod bridge;
 pub mod character_sheet;
+pub mod daydream_commands;
 pub mod diffusion;
 pub mod id_contract;
 pub mod memory;
@@ -91,10 +91,6 @@ pub mod vaam_profile;
 pub mod vocabulary;
 pub mod yardmaster_generator;
 
-pub use agents::{
-    AgentMemoryConfig, AgentMemoryStatus, AgentMetrics, AgentSystemConfig, AgentTask, AgentType,
-    MemoryManagementMode,
-};
 pub use artifact::{
     AgentMode, Artifact, GraphEdge, GraphNode, NodeStatus, PlanTask, StepItem, StepStatus,
 };
@@ -105,7 +101,7 @@ pub use asset_generation::{
 };
 pub use brain::BrainServiceClient;
 pub use character_sheet::{
-    BloomLevel, CharacterSheet, ConcurrencyMode, ModelAssignment, PartyConfig, PartyRole,
+    BloomLevel, CharacterSheet, ConcurrencyMode,
     SkillType, UserClass,
 };
 pub use diffusion::*;

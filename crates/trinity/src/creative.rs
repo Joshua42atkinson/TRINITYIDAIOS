@@ -501,7 +501,7 @@ pub async fn generate_image(
 
                                 // Copy to unified Desktop app storage
                                 let home = std::env::var("HOME")
-                                    .unwrap_or_else(|_| "/home/joshua".to_string());
+                                    .unwrap_or_else(|_| dirs::home_dir().unwrap_or_default().to_string_lossy().to_string());
                                 let workspace_dir = std::path::PathBuf::from(home)
                                     .join(".local/share/trinity/workspace/assets/images");
                                 let _ = std::fs::create_dir_all(&workspace_dir);
@@ -584,7 +584,7 @@ pub async fn generate_tempo(
     let _duration_str = request.duration_secs.to_string();
     
     // Output path to workspace
-    let home = std::env::var("HOME").unwrap_or_else(|_| "/home/joshua".to_string());
+    let home = std::env::var("HOME").unwrap_or_else(|_| dirs::home_dir().unwrap_or_default().to_string_lossy().to_string());
     let workspace_dir = std::path::PathBuf::from(&home).join(".local/share/trinity/workspace/assets/audio");
     let _ = std::fs::create_dir_all(&workspace_dir);
     let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
@@ -826,7 +826,7 @@ pub async fn generate_3d_mesh(
         .and_then(|v| v.as_str())
         .map(|s| {
             // Copy to Trinity workspace
-            let home = std::env::var("HOME").unwrap_or_else(|_| "/home/joshua".to_string());
+            let home = std::env::var("HOME").unwrap_or_else(|_| dirs::home_dir().unwrap_or_default().to_string_lossy().to_string());
             let workspace_dir = std::path::PathBuf::from(&home)
                 .join(".local/share/trinity/workspace/assets/meshes");
             let _ = std::fs::create_dir_all(&workspace_dir);
@@ -973,7 +973,7 @@ async fn wait_for_video(
 
                                 // Copy to unified Desktop app storage
                                 let home = std::env::var("HOME")
-                                    .unwrap_or_else(|_| "/home/joshua".to_string());
+                                    .unwrap_or_else(|_| dirs::home_dir().unwrap_or_default().to_string_lossy().to_string());
                                 let workspace_dir = std::path::PathBuf::from(home)
                                     .join(".local/share/trinity/workspace/assets/videos");
                                 let _ = std::fs::create_dir_all(&workspace_dir);
@@ -1107,7 +1107,7 @@ pub struct AssetEntry {
 
 /// Get the unified workspace assets directory
 fn get_workspace_assets_dir() -> std::path::PathBuf {
-    let home = std::env::var("HOME").unwrap_or_else(|_| "/home/joshua".to_string());
+    let home = std::env::var("HOME").unwrap_or_else(|_| dirs::home_dir().unwrap_or_default().to_string_lossy().to_string());
     std::path::PathBuf::from(home).join(".local/share/trinity/workspace/assets")
 }
 
@@ -1296,7 +1296,7 @@ async fn save_image(image_bytes: Vec<u8>) -> Result<String, std::io::Error> {
     let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
     let filename = format!("trinity_creative_{}.png", timestamp);
 
-    let home = std::env::var("HOME").unwrap_or_else(|_| "/home/joshua".to_string());
+    let home = std::env::var("HOME").unwrap_or_else(|_| dirs::home_dir().unwrap_or_default().to_string_lossy().to_string());
     let path = std::path::Path::new(&home)
         .join(".local/share/trinity/workspace/assets/images")
         .join(&filename);

@@ -97,7 +97,7 @@ fn default_max_tokens() -> u32 {
     16384
 }
 fn default_max_turns() -> u32 {
-    16
+    65
 }
 
 // ============================================================================
@@ -173,6 +173,9 @@ const AGENT_SYSTEM: &str = r#"You are the Yardmaster — an AI agent running loc
 ABSOLUTE RULE: When the user asks you to do something concrete, USE A TOOL IMMEDIATELY. Output a JSON tool call on its own line. NEVER just describe what you could do — DO IT.
 BUT: For casual conversation (greetings, questions about yourself, chitchat), just TALK. Don't use tools for "sup", "how are you", etc. Be friendly and direct. Only reach for tools when there's real work to do.
 
+THINKING PROTOCOL (MANDATORY):
+ALWAYS wrap your internal reasoning, planning, and task breakdown inside <thinking>...</thinking> tags BEFORE outputting your JSON tool call. Provide detailed step-by-step logic inside the tags so the user can see your brain working.
+
 NEVER SAY THESE PHRASES:
 - "Want me to go ahead?"
 - "Shall I proceed?"
@@ -183,7 +186,7 @@ If you catch yourself about to say any of these, STOP and use a tool instead.
 
 WORKSPACE:
 You are running inside the Trinity ID AI OS project.
-- Project root: /home/joshua/Workflow/desktop_trinity/trinity-genesis
+- Project root: (resolve via workspace_root — use list_dir or search_files to find)
 - Rust backend: crates/trinity/src/ (main.rs, agent.rs, tools.rs, persistence.rs)
 - React frontend: crates/trinity/frontend/src/ (App.jsx, components/, hooks/)
 - Documentation: CONTEXT.md, TRINITY_FANCY_BIBLE.md, IRON_ROAD_DEMO_SCRIPT.md
@@ -192,7 +195,7 @@ You are running inside the Trinity ID AI OS project.
 - Launch scripts: scripts/ (start_comfyui.sh, start_trinity.sh, vllm_serve.sh, etc.)
 - Models (GGUF): ~/trinity-models/gguf/
 - Models (safetensors): ~/trinity-models/safetensors/
-- User home: /home/joshua
+- User home: ~
 You ARE the Yardmaster tab in this UI. You already know where everything is.
 
 SIDECAR & SERVICE ROLES:
@@ -229,6 +232,7 @@ Available tools:
 - avatar_pipeline(concept, style) — Create NPC: backstory + portrait + voice + Bevy entity
 - sidecar_status() — Check available AI models
 - scaffold_bevy_game(name, title, subject, vocabulary, objectives) — Create a new Bevy game project
+- scaffold_elearning_module(name, title, lesson_plan_path) — Build a Vite+React+Rust elearning module from a lesson plan
 - project_archive(path, reason) — Archive a project to DAYDREAM
 - python_exec(code, requirements) — Execute Python code. Teachers use Python. Requirements are pip-installed first.
 - generate_lesson_plan(topic, grade_level, duration_min, standards) — Generate a Bloom's-aligned lesson plan template
@@ -300,25 +304,91 @@ pub async fn agent_chat_stream(
 ) -> Sse<impl Stream<Item = Result<sse::Event, std::convert::Infallible>>> {
     let (tx, mut rx) = tokio::sync::mpsc::channel::<String>(100);
 
-    let llm_url = match request.sidecar_url {
+    let llm_url = match request.sidecar_url.clone() {
         Some(url) => url,
         None => state.inference_router.read().await.active_url().to_string(),
     };
     let db_pool = state.db_pool.clone();
-    let max_turns = request.max_turns.min(10);
-    let max_tokens = request.max_tokens;
     let session_id = state.project.session_id.as_ref().clone();
 
     // Clone state for async task
     let game_state = state.project.game_state.clone();
     let character_sheet = state.player.character_sheet.clone();
-    let _book_updates = state.project.book_updates.clone();
 
     tokio::spawn(async move {
-        let is_ironroad = request.mode == "ironroad";
+        run_agent_loop(state, tx, request, llm_url, db_pool, session_id, game_state, character_sheet).await;
+    });
 
-        // === IRON ROAD ONLY: Combat Roll Resolution ===
-        if is_ironroad {
+    let stream = async_stream::stream! {
+        // Immediate status event so Cloudflare sees bytes within 1 second
+        yield Ok(sse::Event::default()
+            .event("status")
+            .data("{\"status\":\"connected\",\"message\":\"Pete is reading your message...\"}"));
+
+        loop {
+            tokio::select! {
+                // Real data from the agent loop
+                token = rx.recv() => {
+                    match token {
+                        Some(t) => {
+                            // Detect pre-formatted SSE events from the agent loop
+                            // Format: "event: <type>\ndata: <json>\n\n"
+                            if t.starts_with("event: ") {
+                                // Parse event type and data from pre-formatted string
+                                let parts: Vec<&str> = t.splitn(2, '\n').collect();
+                                if parts.len() >= 2 {
+                                    let event_type = parts[0].trim_start_matches("event: ").trim();
+                                    let data = parts[1].trim_start_matches("data: ").trim().trim_end_matches('\n');
+                                    yield Ok(sse::Event::default().event(event_type).data(data));
+                                } else {
+                                    yield Ok(sse::Event::default().data(t));
+                                }
+                            } else {
+                                yield Ok(sse::Event::default().data(t));
+                            }
+                        }
+                        None => break,  // channel closed — agent loop finished
+                    }
+                }
+                // Heartbeat every 15 seconds to keep Cloudflare tunnel alive
+                _ = tokio::time::sleep(std::time::Duration::from_secs(15)) => {
+                    yield Ok(sse::Event::default().comment("heartbeat"));
+                }
+            }
+        }
+        yield Ok(sse::Event::default().data("[DONE]"));
+    };
+
+    Sse::new(stream).keep_alive(
+        axum::response::sse::KeepAlive::new()
+            .interval(std::time::Duration::from_secs(15))
+            .text("ping")
+    )
+}
+
+/// Core agent loop — shared between SSE chat and background jobs.
+/// Takes a channel sender to write output to. The SSE handler reads from
+/// this channel and streams to the browser. The background job runner reads
+/// from it and writes to disk. The agent loop doesn't care which.
+pub async fn run_agent_loop(
+    state: AppState,
+    tx: tokio::sync::mpsc::Sender<String>,
+    request: AgentRequest,
+    llm_url: String,
+    db_pool: sqlx::SqlitePool,
+    session_id: String,
+    game_state: trinity_quest::SharedGameState,
+    character_sheet: std::sync::Arc<tokio::sync::RwLock<trinity_protocol::CharacterSheet>>,
+) {
+        let max_turns = request.max_turns.min(65);
+        let max_tokens = request.max_tokens;
+        let _book_updates = state.project.book_updates.clone();
+        let _active_kv_slot = persona_slot(&request.mode);
+        let track_mechanics = true;
+        let enforce_narrative = request.mode != "dev";
+
+        // === IRON ROAD: Combat Roll Resolution (Narrative Only) ===
+        if enforce_narrative {
             let is_combat_roll = request
                 .message
                 .contains("*Rolls d20 to defeat Scope Creep*");
@@ -356,26 +426,26 @@ pub async fn agent_chat_stream(
             }
         }
 
-        // === IRON ROAD ONLY: VAAM Scan + Scope Creep Detection ===
-        if is_ironroad {
+        // === IRON ROAD: VAAM Scan (Ambient) + Scope Creep (Narrative) ===
+        if track_mechanics {
             let vaam_result = state.vaam_bridge.vaam.scan_message(&request.message).await;
-            let current_phase = { game_state.read().await.quest.current_phase };
-            if let Some(creep) =
-                crate::scope_creep::detect_scope_creep(&request.message, &[], &current_phase)
-            {
-                let msg = format!("\n\n⚔️ **COMBAT ENCOUNTER!** A wild *Scope Creep* appears!\nThreat Level: {}\nPenalty: -{:.1} Steam if you yield.\n", creep.threat_level, creep.steam_penalty);
-                let json_str = serde_json::json!({ "content": msg }).to_string();
-                let _ = tx.send(format!("data: {}\n\n", json_str)).await;
+            
+            if enforce_narrative {
+                let current_phase = { game_state.read().await.quest.current_phase };
+                if let Some(creep) =
+                    crate::scope_creep::detect_scope_creep(&request.message, &[], &current_phase)
+                {
+                    let msg = format!("\n\n⚔️ **COMBAT ENCOUNTER!** A wild *Scope Creep* appears!\nThreat Level: {}\nPenalty: -{:.1} Steam if you yield.\n", creep.threat_level, creep.steam_penalty);
+                    let json_str = serde_json::json!({ "content": msg }).to_string();
+                    let _ = tx.send(format!("data: {}\n\n", json_str)).await;
 
-                // ── Soft Spot 6: Scope Creep encounter → friction rises ──
-                // Detection = extraneous cognitive load. The scope_creep_decision
-                // handler reduces friction on tame (-3) and nope (-1), completing
-                // the cycle. +8.0 matches MATURATION_MAP.md Soft Spot §6 spec.
-                let mut sheet = state.player.character_sheet.write().await;
-                sheet.track_friction = (sheet.track_friction + 8.0).min(100.0);
-                sheet.recalculate_vulnerability();
-                crate::character_sheet::save_character_sheet(&sheet).ok();
-                drop(sheet);
+                    // ── Soft Spot 6: Scope Creep encounter → friction rises ──
+                    let mut sheet = state.player.character_sheet.write().await;
+                    sheet.track_friction = (sheet.track_friction + 8.0).min(100.0);
+                    sheet.recalculate_vulnerability();
+                    crate::character_sheet::save_character_sheet(&sheet).ok();
+                    drop(sheet);
+                }
             }
 
             if vaam_result.has_detections() {
@@ -429,7 +499,10 @@ pub async fn agent_chat_stream(
         if !rag_chunks.is_empty() {
             let mut ctx = String::new();
             for chunk in &rag_chunks {
-                if ctx.len() + chunk.len() > 16000 {
+                // TRINITY MIND STANDARD: 256K minimum context allows for massive RAG loading.
+                // We expand the RAG hardcap to 150,000 chars (~40K tokens) to load
+                // entire frameworks, rubrics, and the Fancy Bible simultaneously.
+                if ctx.len() + chunk.len() > 150_000 {
                     break;
                 }
                 if !ctx.is_empty() {
@@ -451,9 +524,9 @@ pub async fn agent_chat_stream(
         }
 
         // === IRON ROAD: Inject Coal level + Sacred Circuitry focus ===
-        // The AI needs to know its own attention level to self-regulate.
+        // The AI needs to know its own attention level to self-regulate (Narrative enforcement).
         let mut _last_focus_directive = String::new();
-        if is_ironroad {
+        if enforce_narrative {
             let gs = game_state.read().await;
             let coal = gs.stats.coal_reserves;
             let phase = gs.quest.current_phase.label();
@@ -495,18 +568,20 @@ pub async fn agent_chat_stream(
         }];
 
         // ═══════════════════════════════════════════════════════════════════════
-        // RING 3: Rolling Context Summary
+        // RING 3: 256K Context History Preservation
         // ═══════════════════════════════════════════════════════════════════════
-        // Instead of hard-truncating at 20 messages, compress older messages
-        // into a deterministic summary digest when history grows beyond threshold.
-        // This preserves context through long sessions without filling the window.
+        // TRINITY MIND STANDARD: 256K Minimum Context (MLA Format)
+        // We do NOT truncate or summarize prematurely. The Great Recycler
+        // and Programmer Pete rely on massive context to maintain the PEARL.
+        // We only summarize if history genuinely threatens to breach 256K tokens.
+        // Assuming ~500 tokens per message, a 400 message window gives us ~200K tokens,
+        // leaving plenty of room for system prompts, RAG, and execution outputs.
         //
         // Strategy:
         //   - If history ≤ RECENT_WINDOW: inject all messages verbatim
         //   - If history > RECENT_WINDOW: summarize the oldest batch into a digest,
         //     then inject RECENT_WINDOW most recent messages verbatim
-        //   - Digest captures: key decisions, tool results, topics discussed
-        const RECENT_WINDOW: usize = 10;
+        const RECENT_WINDOW: usize = 400;
 
         let (context_summary, recent_history) = if request.history.len() > RECENT_WINDOW {
             let split_point = request.history.len() - RECENT_WINDOW;
@@ -614,7 +689,6 @@ pub async fn agent_chat_stream(
                     max_tokens,
                     &tool_defs,
                     Some("high"),
-                    persona_slot(&request.mode),
                 )
                 .await
                 {
@@ -644,16 +718,14 @@ pub async fn agent_chat_stream(
                             &messages,
                             max_tokens,
                             Some("high"),
-                            persona_slot(&request.mode),
                         )
                         .await
                         {
                             Ok(r) => (r, vec![]),
                             Err(e2) => {
-                                let err_json =
-                                    serde_json::json!({ "content": format!("**Error**: {}", e2) })
-                                        .to_string();
-                                let _ = tx.send(err_json).await;
+                                let err_msg = format!("LLM OFFLINE OR UNREACHABLE: {}", e2);
+                                let _ = tx.send(format!("event: llm_offline\ndata: {}\n\n", err_msg)).await;
+                                let _ = tx.send(format!("event: error\ndata: {}\n\n", err_msg)).await;
                                 break;
                             }
                         }
@@ -666,16 +738,14 @@ pub async fn agent_chat_stream(
                     &messages,
                     max_tokens,
                     Some("high"),
-                    persona_slot(&request.mode),
                 )
                 .await
                 {
                     Ok(r) => (r, vec![]),
                     Err(e) => {
-                        let err_json =
-                            serde_json::json!({ "content": format!("**Error**: {}", e) })
-                                .to_string();
-                        let _ = tx.send(err_json).await;
+                        let err_msg = format!("LLM OFFLINE OR UNREACHABLE: {}", e);
+                        let _ = tx.send(format!("event: llm_offline\ndata: {}\n\n", err_msg)).await;
+                        let _ = tx.send(format!("event: error\ndata: {}\n\n", err_msg)).await;
                         break;
                     }
                 }
@@ -721,7 +791,7 @@ pub async fn agent_chat_stream(
                     || response.contains("{\"tool\"")
                     || (turn < max_turns.saturating_sub(2) && response.trim().ends_with("..."));
 
-                if wants_continue && continuation_count < 5 {
+                if wants_continue && continuation_count < 65 {
                     continuation_count += 1;
                     info!(
                         "[Agent] Continuation {} — agent signaled more work",
@@ -749,7 +819,7 @@ pub async fn agent_chat_stream(
             // Stream the AI's thinking (text before/between tools)
             let clean_text = strip_tool_tags(&response);
             if !clean_text.trim().is_empty() {
-                if is_ironroad {
+                if track_mechanics {
                     // IRON ROAD: SSML emphasis for mastered words
                     let mastered_words =
                         { state.vaam_bridge.vaam.mastery.read().await.mastered.clone() };
@@ -779,10 +849,10 @@ pub async fn agent_chat_stream(
                 let _ = tx.send(content_json).await;
             }
 
-            // === IRON ROAD: Sacred Circuitry AI Coal Engine ===
+            // === IRON ROAD: Sacred Circuitry AI Coal Engine (Ambient Mechanics) ===
             // Scan AI response for circuit alignment against current phase.
             // On-circuit = Coal earned (focused). Off-circuit = Coal consumed (drifting).
-            if is_ironroad {
+            if track_mechanics {
                 let current_phase = { game_state.read().await.quest.current_phase.label().to_string() };
                 let alignment = trinity_protocol::scan_ai_alignment(&response, &current_phase);
 
@@ -827,7 +897,7 @@ pub async fn agent_chat_stream(
                 let _ = tx.send(format!("event: status\ndata: {}\n\n", tool_status)).await;
 
                 // IRON ROAD: Skill check gate (d20 roll to use tools)
-                if is_ironroad {
+                if track_mechanics {
                     let game_mode = if request.hardcore_mode {
                         GameMode::Hardcore
                     } else {
@@ -859,6 +929,10 @@ pub async fn agent_chat_stream(
                             steam: gs.quest.steam_generated,
                             xp: gs.stats.total_xp,
                             alias: sheet.alias.clone(),
+                            alignment: sheet.alignment.clone(),
+                            appearance: sheet.appearance.clone(),
+                            backstory: sheet.backstory.clone(),
+                            current_quest_flavor: sheet.current_quest_flavor.clone(),
                         };
                         drop(sheet);
                         let failure_text =
@@ -926,7 +1000,7 @@ pub async fn agent_chat_stream(
                 // ── Block C: Wire skills.rs XP/Coal rewards for tool execution ──
                 // In Iron Road mode, every tool use generates XP and spends Coal.
                 // Uses skills::calculate_xp() for dynamic rewards based on tool type.
-                if is_ironroad && !is_error {
+                if track_mechanics && !is_error {
                     let skill_result = crate::skills::SkillResult::auto_success();
                     let xp = crate::skills::calculate_xp(tool_name, &skill_result, false);
                     let coal_cost = match tools::tool_permission(tool_name) {
@@ -994,7 +1068,7 @@ pub async fn agent_chat_stream(
                 ));
 
                 // === IRON ROAD ONLY: Resource Generation + Narrative ===
-                if is_ironroad {
+                if track_mechanics {
                     let coal_burned = 2.0;
                     let (gs, current_phase) = {
                         let gs = game_state.read().await;
@@ -1037,6 +1111,10 @@ pub async fn agent_chat_stream(
                             steam: gs.quest.steam_generated,
                             xp: gs.stats.total_xp,
                             alias: sheet.alias.clone(),
+                            alignment: sheet.alignment.clone(),
+                            appearance: sheet.appearance.clone(),
+                            backstory: sheet.backstory.clone(),
+                            current_quest_flavor: sheet.current_quest_flavor.clone(),
                         };
                         drop(sheet);
                         let crit_text = generate_critical_narrative(&narrative_ctx);
@@ -1054,6 +1132,10 @@ pub async fn agent_chat_stream(
                             steam: gs.quest.steam_generated,
                             xp: gs.stats.total_xp,
                             alias: sheet.alias.clone(),
+                            alignment: sheet.alignment.clone(),
+                            appearance: sheet.appearance.clone(),
+                            backstory: sheet.backstory.clone(),
+                            current_quest_flavor: sheet.current_quest_flavor.clone(),
                         };
                         drop(sheet);
                         let fumble_text = generate_fumble_narrative(&narrative_ctx);
@@ -1080,55 +1162,9 @@ pub async fn agent_chat_stream(
                 timestamp: None,
                 image_base64: None,
             });
-        }
-    });
-
-    let stream = async_stream::stream! {
-        // Immediate status event so Cloudflare sees bytes within 1 second
-        yield Ok(sse::Event::default()
-            .event("status")
-            .data("{\"status\":\"connected\",\"message\":\"Pete is reading your message...\"}"));
-
-        loop {
-            tokio::select! {
-                // Real data from the agent loop
-                token = rx.recv() => {
-                    match token {
-                        Some(t) => {
-                            // Detect pre-formatted SSE events from the agent loop
-                            // Format: "event: <type>\ndata: <json>\n\n"
-                            if t.starts_with("event: ") {
-                                // Parse event type and data from pre-formatted string
-                                let parts: Vec<&str> = t.splitn(2, '\n').collect();
-                                if parts.len() >= 2 {
-                                    let event_type = parts[0].trim_start_matches("event: ").trim();
-                                    let data = parts[1].trim_start_matches("data: ").trim().trim_end_matches('\n');
-                                    yield Ok(sse::Event::default().event(event_type).data(data));
-                                } else {
-                                    yield Ok(sse::Event::default().data(t));
-                                }
-                            } else {
-                                yield Ok(sse::Event::default().data(t));
-                            }
-                        }
-                        None => break,  // channel closed — agent loop finished
-                    }
-                }
-                // Heartbeat every 15 seconds to keep Cloudflare tunnel alive
-                _ = tokio::time::sleep(std::time::Duration::from_secs(15)) => {
-                    yield Ok(sse::Event::default().comment("heartbeat"));
-                }
-            }
-        }
-        yield Ok(sse::Event::default().data("[DONE]"));
-    };
-
-    Sse::new(stream).keep_alive(
-        axum::response::sse::KeepAlive::new()
-            .interval(std::time::Duration::from_secs(15))
-            .text("ping")
-    )
+    }
 }
+
 
 // ============================================================================
 // RING 5: Rate Limiting (Token Bucket)
@@ -1276,11 +1312,12 @@ fn compress_context_digest(messages: &[HistoryMessage]) -> String {
         }
     }
 
-    // Cap lists to prevent digest bloat
-    tools_used.truncate(15);
-    key_decisions.truncate(8);
-    files_mentioned.truncate(10);
-    topics.truncate(5);
+    // TRINITY MIND STANDARD: Cap lists generously to preserve detail 
+    // for 256K context models, avoiding premature lobotomization
+    tools_used.truncate(50);
+    key_decisions.truncate(50);
+    files_mentioned.truncate(100);
+    topics.truncate(30);
 
     let mut digest = String::new();
 
@@ -1308,9 +1345,10 @@ fn compress_context_digest(messages: &[HistoryMessage]) -> String {
         digest.push('\n');
     }
 
-    // Hard cap at 2000 chars to stay within context budget
-    if digest.len() > 2000 {
-        digest.truncate(2000);
+    // Hard cap at 50,000 chars (~12K tokens) to stay within 256K context budget
+    // while preserving massive amounts of functional detail.
+    if digest.len() > 50_000 {
+        digest.truncate(50_000);
         digest.push_str("\n[digest truncated]");
     }
 

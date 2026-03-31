@@ -69,13 +69,13 @@ mod character_api;
 mod conductor_leader;
 mod cow_catcher;
 mod creative;
-mod embedded_inference;
 mod export;
 mod eye_container;
 mod health;
 pub mod http;
 mod inference;
 mod inference_router;
+mod jobs;
 mod gpu_guard;
 mod journal;
 mod music_streamer;
@@ -178,12 +178,18 @@ pub struct ProjectContext {
 pub struct AppState {
     // ── System Layer (hardware, AI, database) ──
     pub inference_router: Arc<RwLock<inference_router::InferenceRouter>>,
-    pub embedded_model: Option<Arc<embedded_inference::EmbeddedModel>>,
-    pub db_pool: sqlx::PgPool,
+    pub db_pool: sqlx::SqlitePool,
     pub cow_catcher: Arc<tokio::sync::RwLock<crate::cow_catcher::CowCatcher>>,
     pub vaam_bridge: Arc<vaam_bridge::VaamBridge>,
     pub tts_engine: Option<Arc<tokio::sync::Mutex<supertonic::SupertonicEngine>>>,
     pub stt_engine: Option<Arc<tokio::sync::Mutex<stt::WhisperEngine>>>,
+
+    // ── Ignition State Machine (server-side, survives tab switches) ──
+    /// Tracks LM Studio boot: idle | launching | daemon_up | server_starting | polling | loading_model | ready | failed
+    pub ignition_status: Arc<RwLock<String>>,
+
+    // ── Background Job Queue ──
+    pub job_queue: jobs::JobQueue,
 
     // ── Identity Contexts (Tier 3.5) ──
     /// Player-level state (identity, preferences, creatures)
@@ -249,6 +255,8 @@ pub struct SystemStatus {
     pub mem_percent: f32,
     pub gpu_load: f32,
     pub npu_load: f32,
+    /// Ignition state machine: idle | launching | daemon_up | server_starting | polling | loading_model | ready | failed
+    pub ignition_status: String,
 }
 
 fn home_dir() -> PathBuf {
@@ -370,6 +378,8 @@ async fn get_hardware_status(State(state): State<AppState>) -> Json<SystemStatus
         .map(|(name, _)| name.to_string())
         .collect();
 
+    let ignition_status = state.ignition_status.read().await.clone();
+
     Json(SystemStatus {
         server: "running".to_string(),
         inference_server: if inference_connected {
@@ -391,6 +401,7 @@ async fn get_hardware_status(State(state): State<AppState>) -> Json<SystemStatus
         mem_percent,
         gpu_load,
         npu_load,
+        ignition_status,
     })
 }
 
@@ -405,28 +416,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("║           TRINITY HEADLESS SERVER - Layer 1                 ║");
     info!("╚══════════════════════════════════════════════════════════════╝");
 
-    // Database connection
-    let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://trinity:trinity@127.0.0.1:5432/trinity".to_string());
+    let db_path = crate::tools::workspace_root().join(".trinity").join("trinity_memory.db");
+    
+    // Ensure the directory exists
+    if let Some(parent) = db_path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    
+    // Default to a local SQLite file
+    let database_url = format!("sqlite://{}?mode=rwc", db_path.display());
 
-    let db_pool = match sqlx::postgres::PgPoolOptions::new()
+    let db_pool = match sqlx::sqlite::SqlitePoolOptions::new()
         .max_connections(5)
         .acquire_timeout(std::time::Duration::from_secs(3))
         .connect(&database_url)
         .await
     {
         Ok(pool) => {
-            info!("✅ PostgreSQL connected");
+            info!("✅ SQLite connected");
             pool
         }
         Err(e) => {
             warn!(
-                "⚠️ PostgreSQL not available: {}. RAG and quest saving disabled.",
+                "⚠️ SQLite not available: {}. RAG and quest saving disabled.",
                 e
             );
             // Create a lazy pool — it won't try to connect until first query
-            // This lets the server start without a database
-            sqlx::postgres::PgPoolOptions::new()
+            sqlx::sqlite::SqlitePoolOptions::new()
                 .max_connections(1)
                 .connect_lazy(&database_url)
                 .expect("Failed to create lazy pool — this should never fail")
@@ -434,25 +450,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // ── Inference Backend Selection ──
-    // Priority: GGUF_MODEL_PATH (embedded/Vulkan) > InferenceRouter (HTTP) > auto-detect
-    let embedded_model: Option<Arc<embedded_inference::EmbeddedModel>> =
-        if let Ok(path) = std::env::var("GGUF_MODEL_PATH") {
-            info!("🧠 GGUF_MODEL_PATH set — loading embedded inference...");
-            match embedded_inference::EmbeddedModel::load(&path) {
-                Ok(model) => {
-                    info!("✅ Embedded inference ready (Vulkan GPU)");
-                    info!("   Model: {}", path);
-                    Some(Arc::new(model))
-                }
-                Err(e) => {
-                    warn!("⚠️ Failed to load GGUF model: {}. Falling back to HTTP.", e);
-                    None
-                }
-            }
-        } else {
-            None
-        };
-
     let comfyui_url =
         std::env::var("COMFYUI_URL").unwrap_or_else(|_| "http://127.0.0.1:8188".to_string());
     info!(
@@ -465,8 +462,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // selects the first healthy backend. ENV vars (LLM_URL/VLLM_URL) override.
     let mut inference_router = inference_router::InferenceRouter::from_config(None);
 
-    if embedded_model.is_none() {
-        inference_router.auto_detect().await;
+    inference_router.auto_detect().await;
 
         if !inference_router.any_healthy() {
             // ═══════════════════════════════════════════════════════════
@@ -573,19 +569,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             if !inference_router.any_healthy() {
                 warn!("⚠️ No inference backend available.");
-                warn!("   Option 1: Set GGUF_MODEL_PATH=/path/to/model.gguf (embedded Vulkan)");
-                warn!("   Option 2: Set LLM_URL=http://your-server:port (HTTP)");
-                warn!("   Option 3: Download LM Studio, Ollama, or vLLM");
+                warn!("   Option 1: Set LLM_URL=http://your-server:port (HTTP)");
+                warn!("   Option 2: Download LM Studio, Ollama, or vLLM");
                 info!("   Background health loop will auto-connect when a server appears.");
             }
         }
-    } else {
-        info!("🔧 Inference: EMBEDDED (llama.cpp + Vulkan)");
-        info!(
-            "   HTTP fallback: {} (if embedded fails)",
-            inference_router.active_url()
-        );
-    }
 
     info!(
         "🔧 Active inference backend: {} at {}",
@@ -834,12 +822,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let state = AppState {
         // System layer
         inference_router: Arc::new(RwLock::new(inference_router)),
-        embedded_model,
-        db_pool,
+        db_pool: db_pool.clone(),
         cow_catcher: std::sync::Arc::new(tokio::sync::RwLock::new(cow_catcher::CowCatcher::new())),
         vaam_bridge,
         tts_engine,
         stt_engine,
+        // Ignition state machine (starts idle)
+        ignition_status: Arc::new(RwLock::new("idle".to_string())),
+        // Background job queue
+        job_queue: jobs::load_jobs(&db_pool).await.unwrap_or_else(|e| {
+            tracing::warn!("Failed to load jobs from DB: {}, starting empty.", e);
+            jobs::new_job_queue()
+        }),
         // Identity contexts
         player,
         project,
@@ -923,12 +917,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .route("/api/character/shadow/process", post(rlhf_api::process_shadow))
         .route("/api/status", get(status))
+        .route("/api/config/setup", post(setup_config))
         .route("/api/models", get(list_models))
         .route("/api/models/active", get(active_model))
+        .route("/api/model/status", get(model_status))
         .route("/api/models/switch", post(switch_model))
         .route("/api/ingest", post(ingest_document))
         .route("/api/tools", get(tools::list_tools))
+        .route("/api/projects/community", get(api_community_templates))
         .route("/api/tools/execute", post(tools::execute_tool))
+
         .route("/api/quest", get(quests::get_game_state))
         .route("/api/quest/complete", post(quests::complete_objective))
         .route("/api/quest/advance", post(quests::advance_phase))
@@ -936,6 +934,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/quest/subject", post(quests::set_subject))
         .route("/api/quest/execute", post(orchestrate_quest))
         .route("/api/quest/compile", post(compile_game_design_document))
+        .route("/api/system/backend-start", post(backend_start))
+        .route("/api/analytics/lms", post(quests::export_lms_analytics))
         // PEARL API — per-project focusing agent
         .route(
             "/api/pearl",
@@ -1010,6 +1010,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // RAG API — stats and search
         .route("/api/rag/stats", get(rag_stats))
         .route("/api/rag/search", post(rag_search))
+        // Background Jobs API — fire-and-forget autonomous agent work
+        .route("/api/jobs", get(jobs::list_jobs).post(jobs::submit_job))
+        .route("/api/jobs/:id", get(jobs::job_status).delete(jobs::cancel_job))
         // Quality Scorecard API — document pedagogical evaluation
         .route("/api/yard/score", post(score_document_endpoint))
         // Journal API — chapter milestones, weekly reflections, portfolio
@@ -1036,6 +1039,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     "https://ldtatkinson.com".parse().unwrap(),
                     "http://localhost:3000".parse().unwrap(),
                     "http://127.0.0.1:3000".parse().unwrap(),
+                    "http://localhost:5173".parse().unwrap(),
+                    "http://tauri.localhost".parse().unwrap(),
+                    "tauri://localhost".parse().unwrap(),
                 ])
                 .allow_methods([
                     axum::http::Method::GET,
@@ -1084,7 +1090,50 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
-    axum::serve(listener, app).await?;
+    
+    // Check if we're running on a headless server (ldtatkinson.com) or native desktop
+    let is_headless = std::env::var("TRINITY_HEADLESS").unwrap_or_default() == "1"
+        || std::env::args().any(|arg| arg == "--headless");
+
+    if is_headless {
+        info!("🌩️ TRINITY_HEADLESS detected. Running headless Axum server directly on main thread...");
+        axum::serve(listener, app).await?;
+    } else {
+        // Spawn Axum server in background
+        tokio::spawn(async move {
+            if let Err(e) = axum::serve(listener, app).await {
+                tracing::error!("Axum server crashed: {}", e);
+            }
+        });
+
+        // Spawn Native Bevy DAYDREAM App as a sidecar
+        info!("🌙 Booting DAYDREAM Native Engine (art_studio) as child process...");
+        tokio::spawn(async move {
+            // Give Axum a moment to bind
+            tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
+            
+            // Launch the built binary directly to avoid touching target/ and triggering tauri dev rebuild loops
+            let current_exe = std::env::current_exe().unwrap_or_else(|_| std::path::PathBuf::from("target/debug/trinity"));
+            let mut art_studio_path = current_exe.parent().unwrap_or(&std::path::Path::new("")).join("art_studio");
+            
+            if !art_studio_path.exists() {
+                art_studio_path = current_exe.parent().unwrap_or(&std::path::Path::new("")).join("art_studio.exe");
+            }
+
+            let mut command = std::process::Command::new(&art_studio_path);
+            
+            if let Err(e) = command.env("AXUM_URL", "http://127.0.0.1:3000").spawn() {
+                tracing::error!("Failed to launch DAYDREAM native engine directly ({:?}): {}. Make sure to build it first with 'cargo build --bin art_studio --features desktop -p trinity-bevy-graphics'.", art_studio_path, e);
+            }
+        });
+
+        // Start Tauri App on the main thread
+        info!("🌟 Starting Tauri Native App...");
+        tauri::Builder::default()
+            .plugin(tauri_plugin_shell::init())
+            .run(tauri::generate_context!())
+            .expect("error while running tauri application");
+    }
 
     Ok(())
 }
@@ -1306,8 +1355,6 @@ async fn portfolio_chat_stream(
     let (tx, mut rx) = tokio::sync::mpsc::channel::<String>(100);
 
     let llm_url = state.inference_router.read().await.active_url().to_string();
-    let embedded_model = state.embedded_model.clone();
-
     tokio::spawn(async move {
         // Build messages: system prompt + conversation history + new message
         let mut messages = vec![ChatMessage {
@@ -1341,20 +1388,16 @@ async fn portfolio_chat_stream(
         });
 
         // Stream inference — no VAAM, no bestiary, no history save — pure stateless chat
-        if let Some(ref model) = embedded_model {
-            let _ = model
-                .chat_completion_stream(&messages, 2048, tx)
-                .await;
-        } else {
-            let _ = inference::chat_completion_stream(
-                &llm_url,
-                &messages,
-                2048, // shorter max tokens for portfolio chat
-                tx,
-                None,  // no reasoning mode
-                None,  // no persona slot
-            )
-            .await;
+        if let Err(e) = inference::chat_completion_stream(
+            &llm_url,
+            &messages,
+            2048, // shorter max tokens for portfolio chat
+            tx.clone(),
+            None,  // no reasoning mode
+        )
+        .await {
+            tracing::warn!("Portfolio Chat interference offline: {}", e);
+            let _ = tx.send("🔌 [SYS_ERR] The Trinity Engine is offline right now. Joshua's physical server is currently turned off or recycling. Please try again later.".to_string()).await;
         }
     });
 
@@ -1630,34 +1673,21 @@ When all objectives for {phase_label} are complete, narrate the station being cl
         image_base64: None,
     });
 
-    // Call inference — embedded (Vulkan) or HTTP fallback
-    let response = if let Some(ref model) = state.embedded_model {
-        model
-            .chat_completion(&messages, request.max_tokens)
-            .await
-            .map_err(|e| {
-                (
-                    StatusCode::SERVICE_UNAVAILABLE,
-                    format!("Embedded inference failed: {}", e),
-                )
-            })?
-    } else {
-        let url = state.inference_router.read().await.active_url().to_string();
-        inference::chat_completion_with_effort(
-            &url,
-            &messages,
-            request.max_tokens,
-            None,
-            agent::persona_slot(&request.mode),
+    // Call inference — HTTP fallback
+    let url = state.inference_router.read().await.active_url().to_string();
+    let response = inference::chat_completion_with_effort(
+        &url,
+        &messages,
+        request.max_tokens,
+        None,
+    )
+    .await
+    .map_err(|e| {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            format!("Inference failed: {}", e),
         )
-        .await
-        .map_err(|e| {
-            (
-                StatusCode::SERVICE_UNAVAILABLE,
-                format!("Inference failed: {}", e),
-            )
-        })?
-    };
+    })?;
 
     // ── VAAM Bridge: process AI output ──
     let detected_circuit = state
@@ -1697,12 +1727,7 @@ When all objectives for {phase_label} are complete, narrate the station being cl
 
     Ok(Json(ChatResponse {
         response,
-        model: if state.embedded_model.is_some() {
-            "Embedded-Vulkan"
-        } else {
-            "HTTP-LLM"
-        }
-        .to_string(),
+        model: "HTTP-LLM".to_string(),
         rag_context: rag_context.map(|c| c.into_iter().take(3).collect()),
         latency_ms: latency,
         detected_circuit,
@@ -1820,7 +1845,6 @@ async fn chat_stream(
     } else {
         state.inference_router.read().await.active_url().to_string()
     };
-    let embedded_model = state.embedded_model.clone();
     let db_pool = state.db_pool.clone();
     let history = state.project.conversation_history.clone();
     let vaam_bridge = state.vaam_bridge.clone();
@@ -2157,22 +2181,15 @@ What left those lanterns burning, and why do they seem to pulse in time with you
             let _ = token_rx.send(full_response).await;
         });
 
-        if let Some(ref model) = embedded_model {
-            let _ = model
-                .chat_completion_stream(&messages, request.max_tokens, collect_tx)
-                .await;
-        } else {
-            let _ = inference::chat_completion_stream(
-                &llm_url,
-                &messages,
-                request.max_tokens,
-                collect_tx,
-                // Zen mode: disable reasoning (Crow 9B is reasoning-distilled, leaks CoT)
-                if request.mode == "zen" { Some("none") } else { None },
-                agent::persona_slot(&request.mode),
-            )
-            .await;
-        }
+        let _ = inference::chat_completion_stream(
+            &llm_url,
+            &messages,
+            request.max_tokens,
+            collect_tx,
+            // Zen mode: disable reasoning (Crow 9B is reasoning-distilled, leaks CoT)
+            if request.mode == "zen" { Some("none") } else { None },
+        )
+        .await;
 
         // Wait for collector to finish
         let _ = collector_handle.await;
@@ -2272,8 +2289,19 @@ What left those lanterns burning, and why do they seem to pulse in time with you
 
     // Convert channel to SSE stream
     let stream = async_stream::stream! {
-        while let Some(token) = rx.recv().await {
-            yield Ok(sse::Event::default().data(token));
+        while let Some(t) = rx.recv().await {
+            if t.starts_with("event: ") {
+                let parts: Vec<&str> = t.splitn(2, '\n').collect();
+                if parts.len() >= 2 {
+                    let event_type = parts[0].trim_start_matches("event: ").trim();
+                    let data = parts[1].trim_start_matches("data: ").trim().trim_end_matches('\n');
+                    yield Ok(sse::Event::default().event(event_type).data(data));
+                } else {
+                    yield Ok(sse::Event::default().data(t));
+                }
+            } else {
+                yield Ok(sse::Event::default().data(t));
+            }
         }
         yield Ok(sse::Event::default().data("[DONE]"));
     };
@@ -2291,6 +2319,318 @@ What left those lanterns burning, and why do they seem to pulse in time with you
 //   3. SSE events: "interpretation" (JSON) and "narration" (tokens)
 //
 // ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+// LMS LAUNCH PROTOCOL — Industrial-Grade Ignition State Machine
+//
+// The ignition state machine lives in AppState.ignition_status (Arc<RwLock>)
+// so the frontend can query it from ANY tab without losing progress.
+//
+// States: idle → launching → daemon_up → server_starting → polling
+//       → loading_model → ready
+//       (any step can → failed)
+// ═══════════════════════════════════════════════════════════════════════════════
+#[derive(serde::Deserialize)]
+pub struct BackendStartRequest {
+    backend: String,
+}
+
+/// Resolve the `lms` CLI binary path — it lives at ~/.lmstudio/bin/lms
+fn resolve_lms_path() -> std::path::PathBuf {
+    let home_lms = home_dir().join(".lmstudio/bin/lms");
+    if home_lms.exists() {
+        home_lms
+    } else {
+        std::path::PathBuf::from("lms")
+    }
+}
+
+/// Find the LM Studio AppImage on disk
+fn find_lm_studio_appimage() -> Option<std::path::PathBuf> {
+    // Check common locations
+    let candidates = vec![
+        home_dir().join("Downloads/LM-Studio-0.4.8-1-x64.AppImage"),
+        home_dir().join("Applications/LM-Studio.AppImage"),
+        home_dir().join(".local/bin/LM-Studio.AppImage"),
+    ];
+    for c in &candidates {
+        if c.exists() {
+            return Some(c.clone());
+        }
+    }
+    // Glob search ~/Downloads for any LM-Studio*.AppImage
+    if let Ok(entries) = std::fs::read_dir(home_dir().join("Downloads")) {
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with("LM-Studio") && name.ends_with(".AppImage") {
+                return Some(entry.path());
+            }
+        }
+    }
+    None
+}
+
+/// Helper: set ignition status atomically
+async fn set_ignition(status: &Arc<RwLock<String>>, value: &str) {
+    *status.write().await = value.to_string();
+    info!("🔥 Ignition State → {}", value);
+}
+
+async fn backend_start(
+    State(state): State<AppState>,
+    Json(payload): Json<BackendStartRequest>,
+) -> impl axum::response::IntoResponse {
+    let backend_name = payload.backend.clone();
+    let ignition = state.ignition_status.clone();
+
+    // Prevent double-ignition
+    {
+        let current = ignition.read().await;
+        if *current != "idle" && *current != "failed" && *current != "ready" {
+            return Json(serde_json::json!({
+                "status": "already_running",
+                "ignition_status": *current,
+                "message": format!("Ignition already in progress: {}", *current)
+            }));
+        }
+    }
+
+    match payload.backend.as_str() {
+        "lm_studio" => {
+            set_ignition(&ignition, "launching").await;
+            let lms = resolve_lms_path();
+            let ignition_bg = ignition.clone();
+            let inference_router = state.inference_router.clone();
+
+            // Entire ignition runs in a background task
+            tokio::spawn(async move {
+                let client = reqwest::Client::new();
+                
+                // ═══ Phase 1: Fast-path check: Is the API server already healthy? ═══
+                let mut server_already_up = false;
+                match client.get("http://127.0.0.1:1234/v1/models")
+                    .timeout(std::time::Duration::from_secs(2))
+                    .send().await
+                {
+                    Ok(resp) if resp.status().is_success() => {
+                        info!("🔥 Fast-path: LM Studio API server is already running on :1234");
+                        server_already_up = true;
+                    }
+                    _ => {}
+                }
+
+                if !server_already_up {
+                    // ═══ Phase 2: Check if LM Studio GUI is running at all ═══
+                    // Use `lms status` (not `lms daemon status`) because the
+                    // GUI app uses IPC, not the daemon protocol.
+                    let lms_alive = match tokio::process::Command::new(&lms)
+                        .arg("status")
+                        .output().await
+                    {
+                        Ok(out) => {
+                            let stdout = String::from_utf8_lossy(&out.stdout);
+                            !stdout.contains("not running")
+                        }
+                        Err(_) => false,
+                    };
+
+                    if !lms_alive {
+                        info!("🔥 LM Studio not running — launching AppImage in foreground...");
+
+                        // Clean up any orphaned FUSE mounts that prevent relaunching
+                        let _ = tokio::process::Command::new("bash")
+                            .arg("-c")
+                            .arg("for d in /tmp/.mount_LM-St*; do fusermount -uz \"$d\" 2>/dev/null; done")
+                            .output().await;
+
+                        if let Some(appimage) = find_lm_studio_appimage() {
+                            info!("🔥 Found AppImage at: {}", appimage.display());
+                            // CRITICAL: Do NOT use Stdio::null() — Electron needs
+                            // functional file descriptors or it crashes silently.
+                            // Use Stdio::piped() so the child process survives in the graphical session.
+                            match tokio::process::Command::new(&appimage)
+                                .env("DISPLAY", std::env::var("DISPLAY").unwrap_or_else(|_| ":0".to_string()))
+                                .stdout(std::process::Stdio::inherit())
+                                .stderr(std::process::Stdio::inherit())
+                                .spawn()
+                            {
+                                Ok(mut child) => {
+                                    info!("🔥 AppImage launched natively! keeping process handle alive in background...");
+                                    // Spawn a background task to keep the child handle alive so the Electron process isn't killed or orphaned.
+                                    tokio::spawn(async move {
+                                        let _ = child.wait().await;
+                                    });
+                                },
+                                Err(e) => {
+                                    warn!("❌ Failed to launch AppImage: {}", e);
+                                    set_ignition(&ignition_bg, "failed").await;
+                                    return;
+                                }
+                            }
+                        } else {
+                            warn!("❌ No AppImage found in standard directories.");
+                            set_ignition(&ignition_bg, "failed").await;
+                            return;
+                        }
+
+                        // The FUSE AppImage takes 10-15s to mount and start the internal IPC daemon.
+                        // We will continuously retry `lms server start` until it succeeds.
+                        let mut server_started = false;
+                        set_ignition(&ignition_bg, "daemon_up").await;
+                        info!("🔥 Polling lms server start command (waiting for AppImage daemon)...");
+                        for attempt in 1..=45 {
+                            // Give it a breather between FUSE and daemon attempts
+                            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                            
+                            match tokio::process::Command::new(&lms)
+                                .arg("server").arg("start")
+                                .arg("--port").arg("1234")
+                                .arg("--cors")
+                                .output().await
+                            {
+                                Ok(out) => {
+                                    let stderr = String::from_utf8_lossy(&out.stderr);
+                                    if out.status.success() || stderr.contains("Server is already running") {
+                                        info!("🔥 lms server started successfully on attempt {}!", attempt);
+                                        server_started = true;
+                                        break;
+                                    }
+                                }
+                                Err(_) => {} // command execution failed entirely, keep waiting
+                            }
+                        }
+                        
+                        if !server_started {
+                            warn!("❌ `lms server start` failed to connect to daemon after 90 seconds.");
+                            set_ignition(&ignition_bg, "failed").await;
+                            return;
+                        }
+                    } else {
+                        // The AppImage is ALREADY alive. We just need to start the server.
+                        set_ignition(&ignition_bg, "server_starting").await;
+                        let _ = tokio::process::Command::new(&lms)
+                            .arg("server").arg("start")
+                            .arg("--port").arg("1234")
+                            .arg("--cors")
+                            .output().await;
+                    }
+
+                    // `server start` logic is handled above now.
+
+                    // ═══ Phase 4: Poll :1234 until the server is healthy (up to 60s) ═══
+                    set_ignition(&ignition_bg, "polling").await;
+                    let mut server_ready = false;
+                    for attempt in 1..=60 {
+                        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                        match client.get("http://127.0.0.1:1234/v1/models")
+                            .timeout(std::time::Duration::from_secs(2))
+                            .send().await
+                        {
+                            Ok(resp) if resp.status().is_success() => {
+                                info!("🔥 LM Studio API server ready after {}s", attempt);
+                                server_ready = true;
+                                break;
+                            }
+                            _ => {
+                                if attempt % 10 == 0 {
+                                    info!("🔥 Waiting for LM Studio API... ({}s)", attempt);
+                                }
+                            }
+                        }
+                    }
+                    if !server_ready {
+                        warn!("❌ LM Studio API server did not respond after 60s");
+                        set_ignition(&ignition_bg, "failed").await;
+                        return;
+                    }
+                }
+
+                // ═══ Phase 4: Load Mistral model ═══
+                set_ignition(&ignition_bg, "loading_model").await;
+                match tokio::process::Command::new(&lms)
+                    .arg("load").arg("mistral")
+                    .output().await
+                {
+                    Ok(out) => {
+                        let stdout = String::from_utf8_lossy(&out.stdout);
+                        let stderr = String::from_utf8_lossy(&out.stderr);
+                        info!("🔥 lms load mistral: {} {}", stdout.trim(), stderr.trim());
+                    }
+                    Err(e) => {
+                        warn!("❌ lms load mistral failed: {}", e);
+                        set_ignition(&ignition_bg, "failed").await;
+                        return;
+                    }
+                }
+
+                // ═══ Phase 5: Verify the model actually loaded ═══
+                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                let model_loaded = match client.get("http://127.0.0.1:1234/v1/models")
+                    .timeout(std::time::Duration::from_secs(5))
+                    .send().await
+                {
+                    Ok(resp) => {
+                        if let Ok(body) = resp.json::<serde_json::Value>().await {
+                            if let Some(data) = body.get("data").and_then(|d| d.as_array()) {
+                                !data.is_empty()
+                            } else { false }
+                        } else { false }
+                    }
+                    Err(_) => false,
+                };
+
+                if model_loaded {
+                    set_ignition(&ignition_bg, "ready").await;
+                    // Refresh the inference router to detect the newly healthy backend
+                    let mut router = inference_router.write().await;
+                    router.auto_detect().await;
+                    info!("🔥 ═══ IGNITION COMPLETE — LM Studio is ONLINE ═══");
+                } else {
+                    warn!("❌ Model did not appear in /v1/models after loading");
+                    set_ignition(&ignition_bg, "failed").await;
+                }
+            });
+        },
+        "ollama" => {
+            set_ignition(&ignition, "launching").await;
+            info!("🔥 Ignition: Starting Ollama server");
+            let ignition_bg = ignition.clone();
+            let inference_router = state.inference_router.clone();
+            tokio::spawn(async move {
+                let _ = tokio::process::Command::new("ollama").arg("serve").spawn();
+                // Wait for Ollama to respond
+                let client = reqwest::Client::new();
+                for attempt in 1..=30 {
+                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                    if let Ok(resp) = client.get("http://127.0.0.1:11434/api/tags")
+                        .timeout(std::time::Duration::from_secs(2))
+                        .send().await
+                    {
+                        if resp.status().is_success() {
+                            set_ignition(&ignition_bg, "ready").await;
+                            let mut router = inference_router.write().await;
+                            router.auto_detect().await;
+                            return;
+                        }
+                    }
+                    if attempt % 10 == 0 {
+                        info!("🔥 Waiting for Ollama... ({}s)", attempt);
+                    }
+                }
+                set_ignition(&ignition_bg, "failed").await;
+            });
+        },
+        _ => {
+            info!("🔥 Ignition: Custom backend '{}' — no auto-start", backend_name);
+        }
+    }
+
+    Json(serde_json::json!({
+        "status": "ignition_started",
+        "ignition_status": "launching",
+        "message": format!("Ignition Sequence for {} started.", backend_name)
+    }))
+}
+
 async fn zen_chat_stream(
     State(state): State<AppState>,
     Json(request): Json<ChatRequest>,
@@ -2460,7 +2800,7 @@ Return this JSON (use null for unknowns):
         let interpretation = match tokio::time::timeout(
             std::time::Duration::from_secs(8),
             inference::chat_completion_with_effort(
-                &director_url, &director_messages, 200, Some("none"), Some(0),
+                &director_url, &director_messages, 200, Some("none"),
             )
         ).await {
             Ok(Ok(text)) => {
@@ -2690,7 +3030,6 @@ Use state as flavor, not as a list. If coal is high, describe warmth and light. 
             dynamic_max_tokens,
             narration_tx,
             Some("none"),
-            None,
         ).await;
 
         let full_narration = narration_collector.await.unwrap_or_default();
@@ -2843,6 +3182,7 @@ async fn status(State(state): State<AppState>) -> Json<SystemStatus> {
         mem_percent: 0.0,
         gpu_load: 0.0,
         npu_load: 0.0,
+        ignition_status: "idle".to_string(),
     })
 }
 
@@ -2878,6 +3218,26 @@ async fn active_model(State(state): State<AppState>) -> Json<serde_json::Value> 
         "healthy": healthy,
         "supports_tools": supports_tools,
         "supports_vision": supports_vision,
+    }))
+}
+
+/// Model status endpoint — polled by Yardmaster model bar every 5s
+/// Returns mounted/unmounted status plus model name from the inference router.
+async fn model_status(State(state): State<AppState>) -> Json<serde_json::Value> {
+    let router = state.inference_router.read().await;
+    let healthy = router.is_healthy();
+    let backend = router.active_backend();
+    let model_name = backend.and_then(|b| b.model_name.clone());
+    let inference_mode = router.active_name().to_string();
+    let base_url = router.active_url().to_string();
+    drop(router);
+
+    Json(serde_json::json!({
+        "status": if healthy { "mounted" } else { "unmounted" },
+        "inference_mode": inference_mode,
+        "model_name": model_name,
+        "model_path": model_name,
+        "base_url": base_url,
     }))
 }
 
@@ -3679,6 +4039,10 @@ async fn generate_narrative_endpoint(State(state): State<AppState>) -> Json<serd
         steam: gs.quest.steam_generated,
         xp: gs.stats.total_xp,
         alias: sheet.alias.clone(),
+        alignment: Some("neutral".to_string()),
+        appearance: Some("standard".to_string()),
+        backstory: Some("unknown".to_string()),
+        current_quest_flavor: Some("journey".to_string()),
     };
 
     let llm_url = state.inference_router.read().await.active_url().to_string();
@@ -4127,7 +4491,7 @@ async fn perspective_feedback(Json(body): Json<serde_json::Value>) -> StatusCode
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /// Ingest Trinity bible and active docs into RAG on startup
-async fn auto_ingest_docs(pool: &sqlx::PgPool) {
+async fn auto_ingest_docs(pool: &sqlx::SqlitePool) {
     let workspace = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .and_then(|p| p.parent())
@@ -4251,3 +4615,48 @@ async fn stt_status(
     }))
 }
 
+
+async fn api_community_templates(
+    State(state): State<AppState>,
+) -> impl axum::response::IntoResponse {
+    match crate::persistence::list_community_templates(&state.db_pool).await {
+        Ok(templates) => Json(serde_json::json!(templates)),
+        Err(_) => Json(serde_json::json!([])),
+    }
+}
+
+#[derive(serde::Deserialize)]
+struct SetupConfig {
+    backend: String,
+    custom_url: Option<String>,
+}
+
+async fn setup_config(
+    State(state): State<AppState>,
+    Json(config): Json<SetupConfig>,
+) -> impl axum::response::IntoResponse {
+    let url = match config.backend.as_str() {
+        "lm_studio" => "http://127.0.0.1:1234/v1/chat/completions",
+        "ollama" => "http://127.0.0.1:11434/v1/chat/completions",
+        _ => config.custom_url.as_deref().unwrap_or("http://127.0.0.1:11434/v1/chat/completions"),
+    };
+
+    // Test the connection BEFORE acknowledging setup is complete
+    let test_url = url.replace("/chat/completions", "/models");
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(3))
+        .build()
+        .unwrap_or_default();
+
+    if client.get(&test_url).send().await.is_err() {
+        tracing::error!("Setup failed: LLM Backend offline at {}", test_url);
+        return axum::http::StatusCode::SERVICE_UNAVAILABLE;
+    }
+
+    let mut router = state.inference_router.write().await;
+    router.set_active_url(url.to_string());
+    // Immediately run auto-detect to sync the healthy status and models list
+    router.auto_detect().await;
+    
+    axum::http::StatusCode::OK
+}

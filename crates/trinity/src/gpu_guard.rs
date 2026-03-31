@@ -166,21 +166,15 @@ pub fn cleanup_pid_file() {
 
 /// Find the llama-server binary from known locations
 pub fn find_llama_server_binary() -> Option<PathBuf> {
-    let paths = [
-        "/home/joshua/Workflow/desktop_trinity/trinity-genesis/llama.cpp/build-vulkan/bin/llama-server",
-        "/home/joshua/Workflow/desktop_trinity/bin/llama-server",
-        "/usr/local/bin/llama-server",
-        "/usr/bin/llama-server",
-    ];
-    paths
-        .iter()
-        .map(PathBuf::from)
-        .find(|p| p.exists())
+    // Disabled intentionally to prevent fighting with vLLM over port 8080.
+    None
 }
 
 /// Find the first suitable GGUF model
 pub fn find_gguf_model() -> Option<PathBuf> {
-    let model_dirs = ["/home/joshua/trinity-models/gguf"];
+    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"));
+    let model_dir = home.join("trinity-models/gguf");
+    let model_dirs = [model_dir];
 
     model_dirs.iter().find_map(|dir| {
         let dir_path = Path::new(dir);

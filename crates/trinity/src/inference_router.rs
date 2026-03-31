@@ -7,14 +7,16 @@
 //              and manage multiple LLM inference servers
 //
 // ARCHITECTURE:
-//   • Backend-agnostic: llama-server, vLLM, Ollama, LM Studio, SGLang, custom
+//   • Primary: Embedded llama-cpp-2 (Vulkan GPU) — zero HTTP overhead
+//   • Fallback: llama-server, LM Studio, Ollama, or any OpenAI-compatible server
 //   • Auto-detection probes known ports on startup
 //   • Health monitoring with automatic failover
 //   • Config-file driven (configs/runtime/default.toml) + env var override
 //   • All callers use router.active_url() instead of raw strings
 //
 // CHANGES:
-//   2026-03-22  Phase 3  Initial implementation — multi-backend inference router
+//   2026-03-28  Embedded  Removed vLLM/SGLang — embedded llama-cpp-2 is primary
+//   2026-03-22  Phase 3   Initial implementation — multi-backend inference router
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -30,10 +32,8 @@ use tracing::{info, warn};
 #[serde(rename_all = "kebab-case")]
 pub enum BackendKind {
     LlamaServer,
-    Vllm,
     Ollama,
     LmStudio,
-    Sglang,
     Custom,
 }
 
@@ -42,10 +42,8 @@ impl BackendKind {
     pub fn default_port(&self) -> u16 {
         match self {
             BackendKind::LlamaServer => 8080,
-            BackendKind::Vllm => 8000,
             BackendKind::Ollama => 11434,
             BackendKind::LmStudio => 1234,
-            BackendKind::Sglang => 8000,
             BackendKind::Custom => 8080,
         }
     }
@@ -54,10 +52,8 @@ impl BackendKind {
     pub fn display_name(&self) -> &str {
         match self {
             BackendKind::LlamaServer => "llama-server",
-            BackendKind::Vllm => "vLLM",
             BackendKind::Ollama => "Ollama",
             BackendKind::LmStudio => "LM Studio",
-            BackendKind::Sglang => "SGLang",
             BackendKind::Custom => "Custom",
         }
     }
@@ -66,6 +62,7 @@ impl BackendKind {
     pub fn health_path(&self) -> &str {
         match self {
             BackendKind::Ollama => "/api/tags", // Ollama uses /api/tags as health-ish
+            BackendKind::LmStudio => "/v1/models", // LM Studio uses /v1/models
             _ => "/health",                     // OpenAI-compatible servers use /health
         }
     }
@@ -134,7 +131,7 @@ pub struct BackendConfig {
 }
 
 fn default_primary() -> String {
-    "llama-server".to_string()
+    "lm-studio".to_string()
 }
 fn default_true() -> bool {
     true
@@ -203,8 +200,8 @@ impl InferenceRouter {
         let config = Self::load_config(config_path);
         let mut backends = Self::build_backend_list(&config);
 
-        // ENV override: LLM_URL or VLLM_URL takes highest priority
-        if let Ok(env_url) = std::env::var("LLM_URL").or_else(|_| std::env::var("VLLM_URL")) {
+        // ENV override: LLM_URL takes highest priority
+        if let Ok(env_url) = std::env::var("LLM_URL") {
             // Check if any existing backend already uses this URL
             let already_exists = backends.iter().any(|b| b.base_url == env_url);
             if !already_exists {
@@ -282,10 +279,8 @@ impl InferenceRouter {
             .map(|(name, bc)| {
                 let kind = match name.as_str() {
                     "llama-server" => BackendKind::LlamaServer,
-                    "vllm" => BackendKind::Vllm,
                     "ollama" => BackendKind::Ollama,
                     "lm-studio" => BackendKind::LmStudio,
-                    "sglang" => BackendKind::Sglang,
                     _ => BackendKind::Custom,
                 };
                 InferenceBackend {
@@ -319,18 +314,8 @@ impl InferenceRouter {
                 name: "lm-studio".to_string(),
                 kind: BackendKind::LmStudio,
                 base_url: "http://127.0.0.1:1234".to_string(),
-                supports_tools: false,
-                supports_vision: false,
-                model_name: None,
-                healthy: false,
-                last_checked: 0,
-            },
-            InferenceBackend {
-                name: "vllm".to_string(),
-                kind: BackendKind::Vllm,
-                base_url: "http://127.0.0.1:8000".to_string(),
                 supports_tools: true,
-                supports_vision: false,
+                supports_vision: true,
                 model_name: None,
                 healthy: false,
                 last_checked: 0,
@@ -574,11 +559,6 @@ supports_vision = true
 url = "http://127.0.0.1:11434"
 supports_tools = true
 supports_vision = false
-
-[inference.backends.vllm]
-url = "http://localhost:8000"
-supports_tools = true
-supports_vision = false
 "#;
         let root: TomlRoot = toml::from_str(toml_content).unwrap();
         let config = root.inference.unwrap();
@@ -586,7 +566,7 @@ supports_vision = false
         assert_eq!(config.primary, "ollama");
         assert_eq!(config.ctx_size, 131072);
         assert_eq!(config.max_tokens, 8192);
-        assert_eq!(config.backends.len(), 3);
+        assert_eq!(config.backends.len(), 2);
         assert!(config.backends.contains_key("llama-server"));
         assert!(config.backends.contains_key("ollama"));
         assert!(config.backends["llama-server"].supports_tools);
@@ -598,14 +578,14 @@ supports_vision = false
     fn test_primary_backend_selection() {
         let toml_content = r#"
 [inference]
-primary = "vllm"
+primary = "lm-studio"
 
 [inference.backends.llama-server]
 url = "http://127.0.0.1:8080"
 supports_tools = true
 
-[inference.backends.vllm]
-url = "http://127.0.0.1:8000"
+[inference.backends.lm-studio]
+url = "http://127.0.0.1:1234"
 supports_tools = true
 "#;
         // Write to temp file
@@ -613,8 +593,8 @@ supports_tools = true
         std::fs::write(&tmp, toml_content).unwrap();
 
         let router = InferenceRouter::from_config(Some(tmp.to_str().unwrap()));
-        assert_eq!(router.active_name(), "vllm");
-        assert_eq!(router.active_url(), "http://127.0.0.1:8000");
+        assert_eq!(router.active_name(), "lm-studio");
+        assert_eq!(router.active_url(), "http://127.0.0.1:1234");
 
         std::fs::remove_file(tmp).ok();
     }
@@ -696,7 +676,6 @@ supports_vision = false
         assert_eq!(BackendKind::LlamaServer.default_port(), 8080);
         assert_eq!(BackendKind::Ollama.default_port(), 11434);
         assert_eq!(BackendKind::LmStudio.default_port(), 1234);
-        assert_eq!(BackendKind::Vllm.default_port(), 8000);
 
         assert_eq!(BackendKind::Ollama.health_path(), "/api/tags");
         assert_eq!(BackendKind::LlamaServer.health_path(), "/health");

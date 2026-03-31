@@ -1,37 +1,31 @@
 [Unit]
-Description=Trinity AI Brain - vLLM Mistral Small 4 Inference Server (P-EAGLE)
+Description=Trinity AI Brain - Embedded llama.cpp Inference (Vulkan GPU)
 After=network.target
-Wants=network-online.target
 
 [Service]
 Type=simple
 User=joshua
 WorkingDirectory=/home/joshua/Workflow/desktop_trinity/trinity-genesis
 
-# Environment for AMD Strix Halo / RDNA 3.5
-Environment="HSA_OVERRIDE_GFX_VERSION=11.0.0"
-Environment="ROCBLAS_USE_HIPBLASLT=1"
-Environment="HIP_VISIBLE_DEVICES=0"
-Environment="AMD_LOG_LEVEL=0"
-# Bind vLLM to 8080 so the Rust backend connects natively without codebase refactoring
-Environment="VLLM_PORT=8080"  
+# Inference architecture: Embedded llama-cpp-2 → Vulkan GPU
+# No separate server process — Trinity loads the GGUF directly
+Environment="GGUF_MODEL_PATH=/home/joshua/trinity-models/gguf/Mistral-Small-4-119B-2603-Q4_K_M-00001-of-00002.gguf"
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# vLLM MS4 + P-EAGLE Launcher
-# ═══════════════════════════════════════════════════════════════════════════════
+# Strix Halo Vulkan fix (>64GB models)
+Environment="RADV_PERFMODE=nogttspill"
 
-# Start the vLLM Brain
-ExecStart=/home/joshua/Workflow/desktop_trinity/trinity-genesis/scripts/launch/start_vllm_ms4.sh
+# Start Trinity (which loads the model via embedded inference)
+ExecStart=/home/joshua/Workflow/desktop_trinity/trinity-genesis/target/release/trinity
 
 # Restart policy for stability
-Restart=always
-RestartSec=10
+Restart=on-failure
+RestartSec=15
 
 # Memory limits (Strix Halo UMA ceiling)
 MemoryMax=110G
 
-# Graceful shutdown timeout (allows vLLM to flush queues)
-TimeoutStopSec=60
+# Graceful shutdown timeout
+TimeoutStopSec=30
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

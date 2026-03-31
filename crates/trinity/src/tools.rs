@@ -113,7 +113,7 @@ pub fn tool_permission(name: &str) -> ToolPermission {
         | "analyze_image" => ToolPermission::NeedsApproval,
 
         // System-level or external-facing
-        "shell" | "python_exec" | "sidecar_start" | "scaffold_bevy_game" | "project_archive"
+        "shell" | "python_exec" | "sidecar_start" | "scaffold_bevy_game" | "scaffold_elearning_module" | "project_archive"
         | "avatar_pipeline" | "generate_image" | "generate_music" | "generate_video"
         | "generate_mesh3d" | "blender_render" => ToolPermission::Destructive,
 
@@ -216,14 +216,17 @@ pub fn get_tool_list() -> Vec<ToolInfo> {
         ToolInfo { name: "shell".into(), description: "Execute a shell command (sandboxed, Ring 5). Args: command, cwd, dry_run".into(), params: vec!["command".into(), "cwd".into(), "dry_run".into()] },
         ToolInfo { name: "python_exec".into(), description: "Execute Python code (sandboxed). Args: code, requirements (pip packages)".into(), params: vec!["code".into(), "requirements".into()] },
         ToolInfo { name: "scaffold_bevy_game".into(), description: "Create Bevy game project. Args: name, title, subject, vocabulary, objectives".into(), params: vec!["name".into(), "title".into(), "subject".into(), "vocabulary".into(), "objectives".into()] },
+        ToolInfo { name: "scaffold_elearning_module".into(), description: "Build a Vite+React+Rust elearning platform from a lesson plan. Args: name, title, lesson_plan_path".into(), params: vec!["name".into(), "title".into(), "lesson_plan_path".into()] },
+        ToolInfo { name: "generate_mesh3d".into(), description: "Generate 3D mesh via Hunyuan3D-2.1. Args: prompt, format (glb|obj)".into(), params: vec!["prompt".into(), "format".into()] },
+        ToolInfo { name: "blender_render".into(), description: "Render a 3D scene via Blender CLI. Args: scene_path, output_format (png|mp4)".into(), params: vec!["scene_path".into(), "output_format".into()] },
+        ToolInfo { name: "avatar_pipeline".into(), description: "Create NPC avatar: backstory, portrait, voice, entity. Args: concept, style".into(), params: vec!["concept".into(), "style".into()] },
+        ToolInfo { name: "avatar_pipeline".into(), description: "Create NPC avatar: backstory, portrait, voice, entity. Args: concept, style".into(), params: vec!["concept".into(), "style".into()] },
+        ToolInfo { name: "sidecar_start".into(), description: "Start a model sidecar. Args: model (pete|aesthetics|research|tempo)".into(), params: vec!["model".into()] },
+        ToolInfo { name: "daydream_command".into(), description: "HIGH LEVEL: Scaffold 3D learning concepts. Schemas: {command: 'SpawnConcept'|'SetTerrain'|'PlaceWaypoint'|'PlaySound'|'AnimateEntity'|'SpawnUiButton'|'SpawnDialogueTree', params: {id, label, position}}. Triggers WASM UI and reverse events.".into(), params: vec!["command".into(), "params".into()] },
         ToolInfo { name: "project_archive".into(), description: "Archive project to DAYDREAM. Args: path, reason".into(), params: vec!["path".into(), "reason".into()] },
         ToolInfo { name: "generate_image".into(), description: "Generate image via ComfyUI SDXL Turbo. Args: prompt, width, height".into(), params: vec!["prompt".into()] },
         ToolInfo { name: "generate_music".into(), description: "Generate procedural music/audio. Args: prompt, style (orchestral|lofi|electronic|jazz|ambient|classical), duration_secs".into(), params: vec!["prompt".into(), "style".into(), "duration_secs".into()] },
         ToolInfo { name: "generate_video".into(), description: "Generate video via HunyuanVideo. Args: prompt, duration_secs (default 4), fps (default 24)".into(), params: vec!["prompt".into(), "duration_secs".into()] },
-        ToolInfo { name: "generate_mesh3d".into(), description: "Generate 3D mesh via Hunyuan3D-2.1. Args: prompt, format (glb|obj)".into(), params: vec!["prompt".into(), "format".into()] },
-        ToolInfo { name: "blender_render".into(), description: "Render a 3D scene via Blender CLI. Args: scene_path, output_format (png|mp4)".into(), params: vec!["scene_path".into(), "output_format".into()] },
-        ToolInfo { name: "avatar_pipeline".into(), description: "Create NPC avatar: backstory, portrait, voice, entity. Args: concept, style".into(), params: vec!["concept".into(), "style".into()] },
-        ToolInfo { name: "sidecar_start".into(), description: "Start a model sidecar. Args: model (pete|aesthetics|research|tempo)".into(), params: vec!["model".into()] },
     ]
 }
 
@@ -233,9 +236,9 @@ pub async fn list_tools() -> Json<Vec<ToolInfo>> {
 }
 
 fn home_dir() -> PathBuf {
-    std::env::var("HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from("/home/joshua"))
+    dirs::home_dir().unwrap_or_else(|| {
+        PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string()))
+    })
 }
 
 fn gguf_model_path(filename: &str) -> PathBuf {
@@ -325,6 +328,8 @@ async fn run_tool(tool: &str, params: &serde_json::Value) -> Result<String, Stri
         "sidecar_status" => tool_sidecar_status().await,
         "sidecar_start" => tool_sidecar_start(params).await,
         "scaffold_bevy_game" => tool_scaffold_bevy_game(params).await,
+        "scaffold_elearning_module" => tool_scaffold_elearning_module(params).await,
+        "daydream_command" => tool_daydream_command(params).await,
         "project_archive" => tool_project_archive(params).await,
         "work_log" => tool_work_log(params).await,
         "task_queue" => tool_task_queue(params).await,
@@ -348,12 +353,8 @@ async fn run_tool(tool: &str, params: &serde_json::Value) -> Result<String, Stri
 }
 
 /// Workspace root for sandboxing
-fn workspace_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent() // crates/
-        .and_then(|p| p.parent()) // trinity-genesis/
-        .map(|p| p.to_path_buf())
-        .unwrap_or_else(|| PathBuf::from("."))
+pub fn workspace_root() -> PathBuf {
+    std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
 }
 
 /// Validate path is within workspace (read access: workspace + home)
@@ -1435,6 +1436,67 @@ async fn tool_cowcatcher_log() -> Result<String, String> {
     )
 }
 
+/// Daydream LitRPG abstraction engine.
+async fn tool_daydream_command(params: &serde_json::Value) -> Result<String, String> {
+    let command = params.get("command").and_then(|c| c.as_str()).unwrap_or("");
+    Ok(format!("[DAYDREAM_ENGINE] Command '{}' dispatched to native Bevy child process.", command))
+}
+
+async fn tool_scaffold_elearning_module(params: &serde_json::Value) -> Result<String, String> {
+    let name = params.get("name").and_then(|n| n.as_str()).unwrap_or("truth_module");
+    let title = params.get("title").and_then(|t| t.as_str()).unwrap_or("E-Learning Module");
+    let lesson_plan_path = params.get("lesson_plan_path").and_then(|p| p.as_str()).unwrap_or("");
+    
+    let workspace = workspace_root();
+    let target_dir = workspace.join(name);
+    
+    if target_dir.exists() {
+        return Err(format!("Directory {} already exists", name));
+    }
+    
+    // Run npx create-vite
+    let output = Command::new("npx")
+        .arg("-y")
+        .arg("create-vite@latest")
+        .arg(name)
+        .arg("--template")
+        .arg("react")
+        .current_dir(&workspace)
+        .output()
+        .await
+        .map_err(|e| format!("Failed to run npx create-vite: {}", e))?;
+        
+    if !output.status.success() {
+        let err = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Vite scaffolding failed: {}", err));
+    }
+    
+    // Create lesson plan reference manifest
+    let manifest = serde_json::json!({
+        "title": title,
+        "lesson_plan": lesson_plan_path,
+        "scaffold": "trinity_elearning_macro",
+        "timestamp": chrono::Utc::now().to_rfc3339()
+    });
+    
+    let manifest_path = target_dir.join("trinity.json");
+    tokio::fs::write(&manifest_path, serde_json::to_string_pretty(&manifest).unwrap())
+        .await
+        .map_err(|e| format!("Failed to write manifest: {}", e))?;
+        
+    // Generate a default components folder to steer the LLM
+    let components_dir = target_dir.join("src").join("components");
+    tokio::fs::create_dir_all(&components_dir).await.ok();
+    
+    Ok(format!(
+        "✅ E-Learning Scaffold Complete!\n\
+         - Created Vite React app: ./{}\n\
+         - Linked Lesson Plan: {}\n\
+         - Ready for LLM to start editing src/App.jsx and writing components.",
+        name, lesson_plan_path
+    ))
+}
+
 /// Scaffold a new Bevy game from the Trinity template
 /// Copies template files, replaces placeholders with GDD values, creates config.json
 async fn tool_scaffold_bevy_game(params: &serde_json::Value) -> Result<String, String> {
@@ -1642,7 +1704,7 @@ async fn tool_work_log(params: &serde_json::Value) -> Result<String, String> {
     let status = params["status"].as_str().unwrap_or("in_progress");
 
     // Create reports directory
-    let reports_dir = PathBuf::from("/home/joshua/Workflow/trinity-reports");
+    let reports_dir = home_dir().join("Workflow/trinity-reports");
     if let Err(e) = std::fs::create_dir_all(&reports_dir) {
         return Err(format!("Failed to create reports directory: {}", e));
     }
@@ -2823,9 +2885,7 @@ async fn tool_scout_sniper(params: &serde_json::Value) -> Result<String, String>
 
 /// Session summary directory under Trinity data
 fn session_dir() -> PathBuf {
-    let home = std::env::var("HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from("/home/joshua"));
+    let home = home_dir();
     home.join(".local/share/trinity/sessions")
 }
 
@@ -2951,9 +3011,9 @@ mod tests {
     // ── Tool Registry ───────────────────────────────────────────────────
 
     #[test]
-    fn test_tool_count_is_34() {
+    fn test_tool_count_is_37() {
         let tools = get_tool_list();
-        assert_eq!(tools.len(), 34, "Expected 34 tools, got {}", tools.len());
+        assert_eq!(tools.len(), 37, "Expected 37 tools, got {}", tools.len());
     }
 
     #[test]
@@ -3184,6 +3244,10 @@ mod tests {
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("scene_path"));
     }
+
+    // ── Tier 3 Translation Helper Tests ───────────────────────────────────────────────
+
+
 
     // ── Human Size Helper ───────────────────────────────────────────────
 

@@ -46,6 +46,14 @@ pub struct NarrativeContext {
     pub xp: u32,
     /// Player alias
     pub alias: String,
+    /// Player's visual appearance
+    pub appearance: Option<String>,
+    /// Player's origin story
+    pub backstory: Option<String>,
+    /// Player's narrative alignment
+    pub alignment: Option<String>,
+    /// Current narrative personal goal
+    pub current_quest_flavor: Option<String>,
 }
 
 impl Default for NarrativeContext {
@@ -59,6 +67,10 @@ impl Default for NarrativeContext {
             steam: 0.0,
             xp: 0,
             alias: "Architect".to_string(),
+            appearance: None,
+            backstory: None,
+            alignment: None,
+            current_quest_flavor: None,
         }
     }
 }
@@ -158,8 +170,7 @@ pub fn build_narrative_system_prompt(context: &NarrativeContext) -> String {
     let style = genre_style_guide(context.genre);
     let station = station_description(context.hero_stage);
 
-    format!(
-        r#"You are the Great Recycler, narrator of the Iron Road LitRPG.
+    format!("You are the Great Recycler, narrator of the Iron Road LitRPG.
 
 GENRE: {:?}
 {}
@@ -167,19 +178,33 @@ GENRE: {:?}
 CURRENT LOCATION:
 {}
 
-PLAYER STATE:
+PLAYER CHARACTER SHEET:
 - Name: {}
+{}
 - Coal (energy reserves): {:.1}
 - Steam (momentum): {:.1}  
 - XP earned: {}
 
 Write ONE paragraph (2-4 sentences) of LitRPG prose describing the current moment.
 Match the genre's sensory aesthetic exactly.
-Include the player's name and reference their resources naturally.
+Integrate the player's backstory, appearance, and alignment naturally if provided.
 End with a hook or question that prompts the next action.
 
-STYLE: Evocative, immersive, second-person perspective. The player IS the Architect."#,
-        context.genre, style, station, context.alias, context.coal, context.steam, context.xp,
+STYLE: Evocative, immersive, second-person perspective. The player IS the Architect.",
+        context.genre,
+        style,
+        station,
+        context.alias,
+        format!(
+            "{}{}{}{}",
+            context.appearance.as_ref().map(|a| format!("- Appearance: {}\n", a)).unwrap_or_default(),
+            context.backstory.as_ref().map(|b| format!("- Backstory: {}\n", b)).unwrap_or_default(),
+            context.alignment.as_ref().map(|a| format!("- Alignment: {}\n", a)).unwrap_or_default(),
+            context.current_quest_flavor.as_ref().map(|f| format!("- Goal: {}\n", f)).unwrap_or_default()
+        ),
+        context.coal,
+        context.steam,
+        context.xp,
     )
 }
 
@@ -332,6 +357,25 @@ mod tests {
         assert!(prompt.contains("Steampunk"));
         assert!(prompt.contains("TestArchitect"));
         assert!(prompt.contains("50.0"));
+    }
+
+    #[test]
+    fn test_build_system_prompt_with_lore() {
+        let context = NarrativeContext {
+            alias: "LoreMaster".to_string(),
+            appearance: Some("A weathered train conductor in a neon coat".to_string()),
+            backstory: Some("A veteran returning to the Iron Road".to_string()),
+            alignment: Some("Chaotic Constructivist".to_string()),
+            current_quest_flavor: Some("Build the pedagogical engine".to_string()),
+            ..Default::default()
+        };
+
+        let prompt = build_narrative_system_prompt(&context);
+        assert!(prompt.contains("LoreMaster"));
+        assert!(prompt.contains("A weathered train conductor in a neon coat"));
+        assert!(prompt.contains("A veteran returning to the Iron Road"));
+        assert!(prompt.contains("Chaotic Constructivist"));
+        assert!(prompt.contains("Build the pedagogical engine"));
     }
 
     #[test]
