@@ -86,6 +86,41 @@
       {"id": "1", "description": "Did the AI interaction increase or decrease student confidence? Evidence?"},
       {"id": "2", "description": "What was the most unexpected AI output — and what does it teach you about your design?"},
       {"id": "3", "description": "Update your PEARL Vision: has the Call changed what success looks like?"}
+    ],
+    "Contrast": [
+      {"id": "1", "description": "Compare your AI-enhanced lesson to the original non-AI version — what fundamentally changed?"},
+      {"id": "2", "description": "Find one thing AI does worse than a human teacher for this lesson — name it honestly"},
+      {"id": "3", "description": "Define your Contrast principle: where does AI amplify, and where must the human lead?"}
+    ],
+    "Repetition": [
+      {"id": "1", "description": "Identify the core AI interaction pattern learners will repeat throughout the experience"},
+      {"id": "2", "description": "Design 3 variations of the AI prompt that spiral in complexity (Remember → Apply → Create)"},
+      {"id": "3", "description": "Ensure each variation reinforces the same learning objective from a different angle"}
+    ],
+    "Alignment": [
+      {"id": "1", "description": "Check: does the AI prompt directly serve your measurable learning objective?"},
+      {"id": "2", "description": "Check: does the AI response format match how you'll assess understanding?"},
+      {"id": "3", "description": "Check: is the AI interaction necessary, or could a simpler method achieve the same goal?"}
+    ],
+    "Proximity": [
+      {"id": "1", "description": "Group your AI interactions by complexity — which comes first, second, third?"},
+      {"id": "2", "description": "Place the AI 'call to adventure' moment within the first 3 minutes of the experience"},
+      {"id": "3", "description": "Ensure scaffolding (instructions, examples) appears immediately before the AI interaction"}
+    ],
+    "Envision": [
+      {"id": "1", "description": "Envision the learner's face when the AI responds to their first real question — describe it"},
+      {"id": "2", "description": "Describe the moment a skeptical teacher sees this working — what converts them?"},
+      {"id": "3", "description": "Write the one-line pitch: 'This changes learning because...'"}
+    ],
+    "Yoke": [
+      {"id": "1", "description": "Connect the AI interaction to a skill students will use in their career, not just the classroom"},
+      {"id": "2", "description": "Name one real-world professional who uses this exact AI workflow today"},
+      {"id": "3", "description": "Yoke the 'Call to Adventure' to a story: 'Once, a teacher discovered that AI could...'"}
+    ],
+    "Evolve": [
+      {"id": "1", "description": "How has your understanding of AI in education evolved since Ch 1?"},
+      {"id": "2", "description": "Write your Ch 2 LitRPG paragraph: 'The Call came when the teacher realized...'"},
+      {"id": "3", "description": "Commit Ch 2 to your Book — the locomotive gains speed"}
     ]
   },
   "RefusalOfTheCall": {
@@ -113,6 +148,41 @@
       {"id": "1", "description": "Did the minimum viable lesson produce the learning outcome? Yes/No — why?"},
       {"id": "2", "description": "Review your Creep log — which ones were actually worthwhile?"},
       {"id": "3", "description": "Apply the Heavilon Algorithm to one failure: 'one brick higher' — what's the next iteration?"}
+    ],
+    "Contrast": [
+      {"id": "1", "description": "Compare your full dream design to your minimum viable lesson — what did you lose? What remained?"},
+      {"id": "2", "description": "Name the one feature you refused that hurt the most to cut"},
+      {"id": "3", "description": "Ask: is the thing you cut a Creep, or a genuine requirement? How do you tell the difference?"}
+    ],
+    "Repetition": [
+      {"id": "1", "description": "Identify which simplification you'll revisit in a future chapter (planned repetition)"},
+      {"id": "2", "description": "Design a 'breadcrumb trail': 3 micro-moments in the MVP that foreshadow deeper content later"},
+      {"id": "3", "description": "Repeat the core concept in the MVP using two different modalities (visual + verbal, or kinesthetic + written)"}
+    ],
+    "Alignment": [
+      {"id": "1", "description": "Check: does the MVP still align with the Bloom's verb in your original objective?"},
+      {"id": "2", "description": "Check: did cutting features accidentally remove the assessment mechanism?"},
+      {"id": "3", "description": "Check: is the feedback loop still intact in the simplified version?"}
+    ],
+    "Proximity": [
+      {"id": "1", "description": "In your MVP, is the instruction physically close to the practice? (Don't make learners scroll/hunt)"},
+      {"id": "2", "description": "Group the essential content into one screen or one page — no navigation required"},
+      {"id": "3", "description": "Place the 'aha moment' within 5 minutes of the learner starting — proximity to engagement"}
+    ],
+    "Envision": [
+      {"id": "1", "description": "Envision your MVP working perfectly — what does the learner say when they finish?"},
+      {"id": "2", "description": "Describe the worst case: what happens if the MVP fails? Is that survivable?"},
+      {"id": "3", "description": "Write a 'Refusal Overcome' statement: 'I was afraid of X, but I built Y anyway because...'"}
+    ],
+    "Yoke": [
+      {"id": "1", "description": "Connect your fear to a universal teaching fear — name it ('I'm not technical enough', 'students won't engage')"},
+      {"id": "2", "description": "Yoke the Refusal to a student experience: 'My students refuse to try X because...' — how is that similar?"},
+      {"id": "3", "description": "Name one colleague who shares this fear — how would you coach them through it?"}
+    ],
+    "Evolve": [
+      {"id": "1", "description": "How has your relationship with scope changed since Ch 1? Are you better at saying no?"},
+      {"id": "2", "description": "Write your Ch 3 LitRPG paragraph: 'The Yardmaster hesitated at the junction, but...'"},
+      {"id": "3", "description": "Commit Ch 3 to your Book — the Refusal is behind you"}
     ]
   },
   "MeetingTheMentor": {
@@ -140,6 +210,41 @@
       {"id": "1", "description": "Did the AI mentor produce the 'I never thought of it that way' moment?"},
       {"id": "2", "description": "What would a mentor who OVER-explains look like? How is yours different?"},
       {"id": "3", "description": "Update PEARL: does the mentor's guidance align with the original Vision?"}
+    ],
+    "Contrast": [
+      {"id": "1", "description": "Compare Pete-as-mentor to a traditional textbook explanation of the same concept"},
+      {"id": "2", "description": "Compare Pete-as-mentor to a YouTube tutorial — what does Socratic dialogue add?"},
+      {"id": "3", "description": "Define the Contrast: 'A mentor asks, a teacher tells, Pete does...'"}
+    ],
+    "Repetition": [
+      {"id": "1", "description": "Identify 3 moments in the experience where the mentor's core question should resurface"},
+      {"id": "2", "description": "Design the question spiral: same question, deeper context each time"},
+      {"id": "3", "description": "Ensure the mentor's metaphor/framework appears in at least 2 different activities"}
+    ],
+    "Alignment": [
+      {"id": "1", "description": "Check: does the mentor's guidance lead directly to the next learning objective?"},
+      {"id": "2", "description": "Check: does the Socratic question match the Bloom's level of the current phase?"},
+      {"id": "3", "description": "Check: can the learner proceed without the mentor? (Good mentoring makes itself unnecessary)"}
+    ],
+    "Proximity": [
+      {"id": "1", "description": "Place the mentor's key insight immediately before the learner's hardest challenge"},
+      {"id": "2", "description": "Ensure the 'Mentor's Tool' is accessible during (not just before) the practice activity"},
+      {"id": "3", "description": "Group mentor guidance with worked examples — no orphaned advice"}
+    ],
+    "Envision": [
+      {"id": "1", "description": "Envision a learner who has fully internalized the mentor's lesson — how do they teach it to someone else?"},
+      {"id": "2", "description": "Describe the moment Pete's question unlocks genuine understanding — what does that look like?"},
+      {"id": "3", "description": "Write: 'The mentor's gift was not an answer, but the question...'"}
+    ],
+    "Yoke": [
+      {"id": "1", "description": "Connect the mentor's lesson to a mentor from your own life — what did they teach you by asking?"},
+      {"id": "2", "description": "Yoke the learning framework to a physical metaphor learners can hold onto (map, compass, mirror)"},
+      {"id": "3", "description": "Name the real-world skill this mentoring pattern prepares the learner for"}
+    ],
+    "Evolve": [
+      {"id": "1", "description": "How has your understanding of Socratic teaching evolved since Ch 1?"},
+      {"id": "2", "description": "Write your Ch 4 LitRPG paragraph: 'The Mentor appeared at the crossroads and asked...'"},
+      {"id": "3", "description": "Commit Ch 4 to your Book — the Mentor's gift is yours to carry"}
     ]
   },
   "CrossingTheThreshold": {
@@ -167,6 +272,41 @@
       {"id": "1", "description": "Did learners cross the threshold with confidence or confusion?"},
       {"id": "2", "description": "Compare observed behavior to your 3 personas — which persona struggled most?"},
       {"id": "3", "description": "Revise the threshold for the struggling persona — what one change helps them most?"}
+    ],
+    "Contrast": [
+      {"id": "1", "description": "Compare your onboarding to a popular app's onboarding (Duolingo, Khan Academy) — what do they do differently?"},
+      {"id": "2", "description": "Compare the experience of your strongest persona vs your weakest — where does the gap appear?"},
+      {"id": "3", "description": "Define your threshold Contrast: 'Before this moment, the learner believed X. After, they know Y.'"}
+    ],
+    "Repetition": [
+      {"id": "1", "description": "Identify the core mechanic learners will repeat 10+ times throughout the full experience"},
+      {"id": "2", "description": "Introduce that mechanic in its simplest form during onboarding — no penalties, just practice"},
+      {"id": "3", "description": "Design 3 escalating versions of the mechanic that appear in later chapters"}
+    ],
+    "Alignment": [
+      {"id": "1", "description": "Check: does the onboarding teach skills the learner will actually use in later phases?"},
+      {"id": "2", "description": "Check: does the early win connect to the final assessment (not just fun for fun's sake)?"},
+      {"id": "3", "description": "Check: do all 3 personas have a viable path through the threshold?"}
+    ],
+    "Proximity": [
+      {"id": "1", "description": "Place the 'point of no return' exactly at the moment of highest engagement"},
+      {"id": "2", "description": "Ensure instructions and the first interactive element are on the same screen"},
+      {"id": "3", "description": "Group prerequisite knowledge check immediately before the threshold — not 3 screens earlier"}
+    ],
+    "Envision": [
+      {"id": "1", "description": "Envision 100 learners crossing this threshold simultaneously — does it scale?"},
+      {"id": "2", "description": "Describe the emotion you want a learner to feel 30 seconds after crossing: curiosity? determination? play?"},
+      {"id": "3", "description": "Write: 'The threshold is not a door — it is a mirror that shows the learner they are ready'"}
+    ],
+    "Yoke": [
+      {"id": "1", "description": "Connect the threshold to the learner's daily life: 'You already crossed a threshold today when you...'"},
+      {"id": "2", "description": "Yoke the onboarding to game design wisdom: 'World 1-1 teaches you to jump by making you need to jump'"},
+      {"id": "3", "description": "Name the real-world threshold this prepares learners for (first job, first presentation, first code deploy)"}
+    ],
+    "Evolve": [
+      {"id": "1", "description": "How has your understanding of onboarding evolved since Ch 1?"},
+      {"id": "2", "description": "Write your Ch 5 LitRPG paragraph: 'The Yardmaster crossed the threshold and the tracks stretched into...'"},
+      {"id": "3", "description": "Commit Ch 5 to your Book — the adventure has truly begun"}
     ]
   },
   "TestsAlliesEnemies": {
@@ -194,6 +334,41 @@
       {"id": "1", "description": "Did the escalating challenges create flow (challenge matched ability)?"},
       {"id": "2", "description": "Did the misconception get corrected permanently or temporarily?"},
       {"id": "3", "description": "Rate your AI party: who was an ally, who was still an enemy to the design?"}
+    ],
+    "Contrast": [
+      {"id": "1", "description": "Compare your hardest challenge to your easiest — is the difficulty curve smooth or jarring?"},
+      {"id": "2", "description": "Compare the misconception encounter to a traditional 'wrong answer' feedback — what makes yours stick?"},
+      {"id": "3", "description": "Contrast the AI ally's response to a human tutor's — where does each excel?"}
+    ],
+    "Repetition": [
+      {"id": "1", "description": "Ensure the misconception is encountered at least twice — once to fail, once to correct"},
+      {"id": "2", "description": "Design a callback: the hardest concept from Ch 3 reappears in a new context here"},
+      {"id": "3", "description": "Repeat the core skill 3 times with increasing autonomy (guided → supported → independent)"}
+    ],
+    "Alignment": [
+      {"id": "1", "description": "Check: does each challenge explicitly map to a learning objective?"},
+      {"id": "2", "description": "Check: is the misconception a real student error, or something you invented?"},
+      {"id": "3", "description": "Check: do the AI ally responses scaffold without giving away the answer?"}
+    ],
+    "Proximity": [
+      {"id": "1", "description": "Place each AI ally's help adjacent to the challenge it supports — not behind a menu"},
+      {"id": "2", "description": "Group related challenges on the same screen or in the same scene"},
+      {"id": "3", "description": "Ensure the misconception correction appears immediately after the learner encounters the error"}
+    ],
+    "Envision": [
+      {"id": "1", "description": "Envision a learner who defeats the misconception — how do they explain it to a friend?"},
+      {"id": "2", "description": "Describe the 'ally moment': when does the AI genuinely help, not just display information?"},
+      {"id": "3", "description": "Write: 'The test was not about getting it right — it was about understanding why it was wrong'"}
+    ],
+    "Yoke": [
+      {"id": "1", "description": "Connect the misconception to a real-world mistake professionals make in this field"},
+      {"id": "2", "description": "Yoke the ally system to collaboration: 'In your career, you will need to ask for help from...'"},
+      {"id": "3", "description": "Name the test your learner will face outside of school that this prepares them for"}
+    ],
+    "Evolve": [
+      {"id": "1", "description": "How has your understanding of challenge design evolved since Ch 1?"},
+      {"id": "2", "description": "Write your Ch 6 LitRPG paragraph: 'The first real test came when...'"},
+      {"id": "3", "description": "Commit Ch 6 to your Book — allies gathered, enemies identified"}
     ]
   },
   "ApproachToInmostCave": {
@@ -221,6 +396,41 @@
       {"id": "1", "description": "Was the hardest moment hard enough? (Too easy = no growth, too hard = abandonment)"},
       {"id": "2", "description": "Did the scaffold fade appropriately as learners gained confidence?"},
       {"id": "3", "description": "Update PEARL: does the cave depth match the Vision you set in Ch 1?"}
+    ],
+    "Contrast": [
+      {"id": "1", "description": "Compare your hardest activity to the easiest one — is the distance intentional?"},
+      {"id": "2", "description": "Compare your scaffold to hand-holding: where is the line between support and crutch?"},
+      {"id": "3", "description": "Contrast a learner who took the recovery path with one who didn't need it — what's different?"}
+    ],
+    "Repetition": [
+      {"id": "1", "description": "Ensure the scaffold introduces concepts the learner has already seen in simpler form"},
+      {"id": "2", "description": "Design the 'cave echo': the hardest concept reappears in Ch 9 (The Reward) in a triumphant context"},
+      {"id": "3", "description": "Repeat the core skill under pressure — can the learner perform it with a time constraint or added complexity?"}
+    ],
+    "Alignment": [
+      {"id": "1", "description": "Check: does the hardest activity directly assess the highest Bloom's level in your PEARL?"},
+      {"id": "2", "description": "Check: does the recovery path lead back to the same learning objective (not a shortcut around it)?"},
+      {"id": "3", "description": "Check: does the rubric match what the activity actually produces?"}
+    ],
+    "Proximity": [
+      {"id": "1", "description": "Place the scaffold immediately before the cave entrance — not 3 lessons earlier"},
+      {"id": "2", "description": "Ensure the recovery path is visible (learners must know it exists before they fail)"},
+      {"id": "3", "description": "Group all hints and worked examples in a collapsible 'helper' panel next to the challenge"}
+    ],
+    "Envision": [
+      {"id": "1", "description": "Envision a learner emerging from the cave — what has changed about them?"},
+      {"id": "2", "description": "Describe the moment of deepest struggle: is it productive struggle or destructive frustration?"},
+      {"id": "3", "description": "Write: 'The cave teaches what the sunlight cannot — that you are stronger than you believed'"}
+    ],
+    "Yoke": [
+      {"id": "1", "description": "Connect the cave challenge to the hardest real-world application of this knowledge"},
+      {"id": "2", "description": "Yoke the recovery path to resilience: 'In every career, you will fail at the hardest thing first'"},
+      {"id": "3", "description": "Name the professional scenario where this exact struggle pattern appears"}
+    ],
+    "Evolve": [
+      {"id": "1", "description": "How has your understanding of productive struggle evolved since Ch 1?"},
+      {"id": "2", "description": "Write your Ch 7 LitRPG paragraph: 'The cave entrance loomed, and the teacher thought...'"},
+      {"id": "3", "description": "Commit Ch 7 to your Book — the deepest challenge awaits"}
     ]
   },
   "TheOrdeal": {
@@ -248,6 +458,41 @@
       {"id": "1", "description": "Did the Ordeal (hardest game moment) produce the intended learning?"},
       {"id": "2", "description": "Which mechanic created the most Bloom's-level thinking (Create/Evaluate)?"},
       {"id": "3", "description": "Is this a game that teaches, or content disguised as a game? Be honest."}
+    ],
+    "Contrast": [
+      {"id": "1", "description": "Compare your game to a worksheet covering the same content — what does the game add?"},
+      {"id": "2", "description": "Compare your win/loss conditions to a standard quiz pass/fail — is yours more meaningful?"},
+      {"id": "3", "description": "Contrast a learner playing your game vs reading about your subject — which produces deeper understanding?"}
+    ],
+    "Repetition": [
+      {"id": "1", "description": "Ensure the core learning mechanic repeats at least 5 times with increasing stakes"},
+      {"id": "2", "description": "Design a 'death and retry' loop where each failure teaches something the next attempt uses"},
+      {"id": "3", "description": "Revisit the mentor's lesson from Ch 4 — does the game embody what Pete taught?"}
+    ],
+    "Alignment": [
+      {"id": "1", "description": "Check: does every game mechanic serve a learning objective (remove any that are just 'fun filler')?"},
+      {"id": "2", "description": "Check: does the adaptive element respond to understanding, not just performance?"},
+      {"id": "3", "description": "Check: can you assess learning from gameplay data alone, without a separate test?"}
+    ],
+    "Proximity": [
+      {"id": "1", "description": "Place learning feedback within the game world — not in a popup that breaks immersion"},
+      {"id": "2", "description": "Ensure the 'Ordeal moment' occurs in the middle of the experience, not at the end"},
+      {"id": "3", "description": "Group related game mechanics spatially — things that work together should be near each other"}
+    ],
+    "Envision": [
+      {"id": "1", "description": "Envision a learner who beats the game — do they understand the subject, or just the game?"},
+      {"id": "2", "description": "Describe the Ordeal moment from the learner's perspective — is it thrilling or frustrating?"},
+      {"id": "3", "description": "Write: 'The Ordeal strips away pretense and asks: do you truly understand, or were you just following instructions?'"}
+    ],
+    "Yoke": [
+      {"id": "1", "description": "Connect the game's core mechanic to a real-world application of the subject"},
+      {"id": "2", "description": "Yoke the Ordeal to a career moment: 'The first time you do this for real, it will feel like...'"},
+      {"id": "3", "description": "Name the transfer: what skill from the game directly applies to life outside it?"}
+    ],
+    "Evolve": [
+      {"id": "1", "description": "How has your understanding of 'game-based learning' evolved since Ch 1?"},
+      {"id": "2", "description": "Write your Ch 8 LitRPG paragraph: 'The Ordeal demanded everything, and the Yardmaster gave...'"},
+      {"id": "3", "description": "Commit Ch 8 to your Book — you survived the Ordeal"}
     ]
   },
   "TheReward": {
@@ -275,6 +520,41 @@
       {"id": "1", "description": "Did the Reward feel earned, or just appear? What's the difference you designed?"},
       {"id": "2", "description": "Does the learner leave with a tangible artifact they can use in the real world?"},
       {"id": "3", "description": "Measure transfer: one week later, can the learner apply the skill?"}
+    ],
+    "Contrast": [
+      {"id": "1", "description": "Compare your Reward to a generic 'Congratulations!' screen — what makes yours meaningful?"},
+      {"id": "2", "description": "Contrast the learner at the start vs the learner at the Reward — name 3 specific changes"},
+      {"id": "3", "description": "Compare your reflection prompt to a standard course evaluation — which produces genuine insight?"}
+    ],
+    "Repetition": [
+      {"id": "1", "description": "Does the Reward reference the same core concept from Ch 1, now fully mastered?"},
+      {"id": "2", "description": "Design a callback: show the learner their first attempt next to their final attempt"},
+      {"id": "3", "description": "Repeat the mentor's question from Ch 4 — can the learner now answer it themselves?"}
+    ],
+    "Alignment": [
+      {"id": "1", "description": "Check: does the Reward directly celebrate achieving the measurable learning objective?"},
+      {"id": "2", "description": "Check: does the reflection artifact demonstrate Bloom's Create or Evaluate level thinking?"},
+      {"id": "3", "description": "Check: can a third party verify learning from the artifact alone?"}
+    ],
+    "Proximity": [
+      {"id": "1", "description": "Place the Reward immediately after the final challenge — no gap between effort and recognition"},
+      {"id": "2", "description": "Ensure the reflection prompt appears while the experience is fresh (same session)"},
+      {"id": "3", "description": "Group the celebration, reflection, and share mechanisms on one page or one flow"}
+    ],
+    "Envision": [
+      {"id": "1", "description": "Envision 1000 learners completing this — what does that portfolio of artifacts look like?"},
+      {"id": "2", "description": "Describe the learner showing their Reward to someone who matters to them — a parent, a boss, a student"},
+      {"id": "3", "description": "Write: 'The Reward is not the certificate — it is the person who earned it'"}
+    ],
+    "Yoke": [
+      {"id": "1", "description": "Connect the artifact to a real portfolio the learner can use (job application, teaching demo, publication)"},
+      {"id": "2", "description": "Yoke the Reward to professional credentialing: 'This artifact proves you can...'"},
+      {"id": "3", "description": "Name one door this Reward opens that was closed before the learner started"}
+    ],
+    "Evolve": [
+      {"id": "1", "description": "How has your definition of 'reward' in education evolved since Ch 1?"},
+      {"id": "2", "description": "Write your Ch 9 LitRPG paragraph: 'The Reward gleamed in the furnace — not gold, but proof of...'"},
+      {"id": "3", "description": "Commit Ch 9 to your Book — the treasure is real"}
     ]
   },
   "TheRoadBack": {
@@ -302,6 +582,41 @@
       {"id": "1", "description": "Compare V1 to V2 with data: what changed and by how much?"},
       {"id": "2", "description": "Did the iteration improve learning, or just improve satisfaction?"},
       {"id": "3", "description": "Is this experience ready to publish — or does it need Ch 11's polish?"}
+    ],
+    "Contrast": [
+      {"id": "1", "description": "Compare V1 and V2 side by side — name the single most impactful change"},
+      {"id": "2", "description": "Compare your iteration process to 'just shipping it' — what would you have missed?"},
+      {"id": "3", "description": "Contrast pilot feedback from a learner who loved it vs one who struggled — who taught you more?"}
+    ],
+    "Repetition": [
+      {"id": "1", "description": "Identify which core concept was still misunderstood after V1 — add one more encounter in V2"},
+      {"id": "2", "description": "Design a spaced repetition check: does the learner retain the concept 48 hours later?"},
+      {"id": "3", "description": "Revisit the onboarding from Ch 5 — does the V2 experience still honor that first impression?"}
+    ],
+    "Alignment": [
+      {"id": "1", "description": "Check: did the revision maintain alignment with the original learning objective?"},
+      {"id": "2", "description": "Check: did the A/B test measure learning, not just preference?"},
+      {"id": "3", "description": "Check: does the revised experience still match the PEARL Vision from Ch 1?"}
+    ],
+    "Proximity": [
+      {"id": "1", "description": "In the revised version, place help closer to the point of confusion (not in a FAQ)"},
+      {"id": "2", "description": "Group iteration notes with the specific screen or moment they apply to"},
+      {"id": "3", "description": "Ensure feedback collection happens during the experience, not only after"}
+    ],
+    "Envision": [
+      {"id": "1", "description": "Envision V3 — if you had unlimited time, what would the perfect version look like?"},
+      {"id": "2", "description": "Describe the Road Back as a teacher: 'Iteration is not failure, it is...'"},
+      {"id": "3", "description": "Write: 'The Road Back teaches that every version is a draft — even the 'final' one'"}
+    ],
+    "Yoke": [
+      {"id": "1", "description": "Connect the iteration process to professional development: 'Every lesson plan you'll ever write will be revised'"},
+      {"id": "2", "description": "Yoke A/B testing to the scientific method — your classroom is your laboratory"},
+      {"id": "3", "description": "Name an industry outside education that iterates this way (software, medicine, engineering)"}
+    ],
+    "Evolve": [
+      {"id": "1", "description": "How has your tolerance for imperfection evolved since Ch 1?"},
+      {"id": "2", "description": "Write your Ch 10 LitRPG paragraph: 'The Road Back was not a retreat — it was a return with sharper eyes...'"},
+      {"id": "3", "description": "Commit Ch 10 to your Book — the iteration strengthens the rail"}
     ]
   },
   "TheResurrection": {
@@ -329,6 +644,41 @@
       {"id": "1", "description": "Did accessibility improvements break anything for non-assistive-tech users?"},
       {"id": "2", "description": "Quality Matters score: how many standards are fully met? Set a ship threshold (≥ 85%)"},
       {"id": "3", "description": "Is this experience ready to represent your teaching practice publicly?"}
+    ],
+    "Contrast": [
+      {"id": "1", "description": "Compare the accessible version to the original — did accessibility improve the design for everyone?"},
+      {"id": "2", "description": "Compare your educator dashboard to a standard LMS gradebook — what insights does yours add?"},
+      {"id": "3", "description": "Contrast 'accessible' vs 'universal design': which are you building, and does it matter?"}
+    ],
+    "Repetition": [
+      {"id": "1", "description": "Verify that all repeated interactions (buttons, forms, navigation) are consistent across the entire experience"},
+      {"id": "2", "description": "Ensure the teacher implementation guide references the same vocabulary used in the learner experience"},
+      {"id": "3", "description": "Check: does the final experience still repeat the core concept at the frequency you designed in Ch 1?"}
+    ],
+    "Alignment": [
+      {"id": "1", "description": "Check: does the educator dashboard data map directly to the learning objectives?"},
+      {"id": "2", "description": "Check: do WCAG improvements align with your learner personas' needs?"},
+      {"id": "3", "description": "Check: does the teacher guide explain WHY each design choice serves the pedagogy?"}
+    ],
+    "Proximity": [
+      {"id": "1", "description": "Place ARIA labels on the interactive elements themselves, not in a separate accessibility section"},
+      {"id": "2", "description": "Ensure the educator dashboard shows data in context — next to the activity it measures"},
+      {"id": "3", "description": "Group the implementation guide by lesson flow, not by technical feature"}
+    ],
+    "Envision": [
+      {"id": "1", "description": "Envision a learner with a disability completing your experience independently — what does that mean?"},
+      {"id": "2", "description": "Describe a teacher who has never used your tool opening it for the first time — can they figure it out?"},
+      {"id": "3", "description": "Write: 'The Resurrection proves the experience can survive any context — any device, any learner, any teacher'"}
+    ],
+    "Yoke": [
+      {"id": "1", "description": "Connect accessibility to equity: 'Every learner who can't access this is a learner we failed'"},
+      {"id": "2", "description": "Yoke Quality Matters to professional credibility: this is the standard your peers will judge you by"},
+      {"id": "3", "description": "Name the regulation or policy that requires this level of accessibility in your context"}
+    ],
+    "Evolve": [
+      {"id": "1", "description": "How has your understanding of 'quality' evolved since Ch 1? Is it just 'works' or something deeper?"},
+      {"id": "2", "description": "Write your Ch 11 LitRPG paragraph: 'The Resurrection tested not the idea, but the Yardmaster who built it...'"},
+      {"id": "3", "description": "Commit Ch 11 to your Book — the final polish reveals the gem"}
     ]
   },
   "ReturnWithElixir": {
@@ -356,6 +706,41 @@
       {"id": "1", "description": "Could another educator reproduce this experience from your documentation alone?"},
       {"id": "2", "description": "Look at your original PEARL from Ch 1 — did you build what you envisioned?"},
       {"id": "3", "description": "Close the circle: what is YOUR aha moment from building this? Write it as the Elixir."}
+    ],
+    "Contrast": [
+      {"id": "1", "description": "Compare your final product to your Ch 1 Ordinary World description — how far have you come?"},
+      {"id": "2", "description": "Compare your elixir to a standard lesson plan template — what does yours offer that templates don't?"},
+      {"id": "3", "description": "Contrast who you were as a designer in Ch 1 vs who you are now — name the growth"}
+    ],
+    "Repetition": [
+      {"id": "1", "description": "Revisit every PEARL Vision statement from Ch 1-11 — did the thread hold across all chapters?"},
+      {"id": "2", "description": "Identify the one lesson you learned that repeated in every chapter (your meta-insight)"},
+      {"id": "3", "description": "Design: how will learners who complete your experience repeat this process for their own teaching?"}
+    ],
+    "Alignment": [
+      {"id": "1", "description": "Final alignment check: does the published experience match every measurable objective from Ch 1?"},
+      {"id": "2", "description": "Check: does the replication package include assessment evidence, not just activities?"},
+      {"id": "3", "description": "Check: would Quality Matters certify this as meeting all applicable standards?"}
+    ],
+    "Proximity": [
+      {"id": "1", "description": "In the replication package, place the 'quick start' guide on page 1 (not buried after theory)"},
+      {"id": "2", "description": "Ensure the demo video shows the same experience the documentation describes"},
+      {"id": "3", "description": "Group the Elixir (your reusable insight) with concrete examples of how to apply it"}
+    ],
+    "Envision": [
+      {"id": "1", "description": "Envision this experience being used 5 years from now — what would need to change?"},
+      {"id": "2", "description": "Describe the next Yardmaster who picks up your Elixir — what do they build with it?"},
+      {"id": "3", "description": "Write: 'The Elixir is not the experience I built — it is the understanding I gained by building it'"}
+    ],
+    "Yoke": [
+      {"id": "1", "description": "Connect your Elixir to the broader field: how does this contribute to education, not just your classroom?"},
+      {"id": "2", "description": "Yoke the Return to professional identity: 'I am not just a teacher — I am a designer of learning'"},
+      {"id": "3", "description": "Name the one thing you will do differently in your next design because of this journey"}
+    ],
+    "Evolve": [
+      {"id": "1", "description": "Stand at the end of the Iron Road and look back — what did the journey teach you about yourself?"},
+      {"id": "2", "description": "Write your final LitRPG paragraph: 'The Yardmaster returned with the Elixir — not a potion, but a promise...'"},
+      {"id": "3", "description": "Commit Ch 12 to your Book — close the circle. The Iron Road is complete."}
     ]
   }
 }
