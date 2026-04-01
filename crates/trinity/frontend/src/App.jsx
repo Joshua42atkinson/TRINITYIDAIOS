@@ -18,6 +18,7 @@ import { useQuest } from './hooks/useQuest';
 import { useBestiary } from './hooks/useBestiary';
 import { useSSE } from './hooks/useSSE';
 import { usePearl } from './hooks/usePearl';
+import GlobalDeckOverlay from './components/GlobalDeckOverlay';
 
 const SUBJECTS = [
   'Ecosystems', 'Physics', 'US History', 'Algebra',
@@ -323,6 +324,7 @@ export default function App() {
                 quest={quest}
                 bestiary={bestiary}
                 onRefetch={refetch}
+                sseEvents={events}
               />
             </>
           )}
@@ -360,7 +362,7 @@ export default function App() {
         {/* Right: Actionable OS Modes (Proximity: clickable buttons isolated) */}
         <div className="footer-group footer-right">
           <div className="mode-toggle">
-            {[['iron_road', '🚂', 'Iron Road (Guided Journey)'], ['express', '⚡', 'Express Mode (Auto-generate)'], ['yardmaster', '🔧', 'Yardmaster (System Tools)']].map(([m, icon, title]) => (
+            {[['iron_road', '🚂', 'Iron Road', 'Iron Road (Guided Journey)'], ['express', '⚡', 'Express', 'Express Mode (Auto-generate)'], ['yardmaster', '🔧', 'Workshop', 'Yardmaster (System Tools)']].map(([m, icon, label, title]) => (
               <button
                 key={m}
                 title={title}
@@ -378,13 +380,14 @@ export default function App() {
                   }).catch(() => {});
                 }}
               >
-                {icon}
+                {icon} <span className="mode-toggle__label">{label}</span>
               </button>
             ))}
           </div>
         </div>
       </footer>
       <OnboardingTour />
+      <GlobalDeckOverlay />
     </div>
   );
 }

@@ -41,7 +41,6 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 
-use std::path::Path;
 use std::sync::OnceLock;
 use ort::{session::Session, value::Value};
 use tokenizers::Tokenizer;

@@ -39,18 +39,23 @@ struct CachedDocument {
     embedding_hash: u64,
 }
 
-/// MCP request/response types
 #[derive(Debug, Deserialize)]
 pub struct McpRequest {
-    pub id: String,
+    pub jsonrpc: Option<String>,
+    pub id: Option<serde_json::Value>,
     pub method: String,
+    #[serde(default)]
     pub params: serde_json::Value,
 }
 
 #[derive(Debug, Serialize)]
 pub struct McpResponse {
-    pub id: String,
+    pub jsonrpc: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub result: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<McpError>,
 }
 
@@ -92,8 +97,13 @@ impl TrinityMcpServer {
     pub async fn new(database_url: &str) -> Result<Self> {
         info!("Initializing Trinity MCP Server...");
 
-        // Connect to database
-        let db_pool = SqlitePool::connect(database_url).await?;
+        use sqlx::sqlite::SqliteConnectOptions;
+        use std::str::FromStr;
+
+        let options = SqliteConnectOptions::from_str(database_url)?
+            .create_if_missing(true);
+            
+        let db_pool = SqlitePool::connect_with(options).await?;
 
         // Initialize database schema
         Self::init_schema(&db_pool).await?;
@@ -119,14 +129,14 @@ impl TrinityMcpServer {
         sqlx::query(
             r#"
             CREATE TABLE IF NOT EXISTS document_embeddings (
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
                 doc_path TEXT NOT NULL,
                 chunk_index INTEGER NOT NULL,
                 content TEXT NOT NULL,
-                embedding vector(384),
-                metadata JSONB DEFAULT '{}',
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                embedding TEXT,
+                metadata TEXT DEFAULT '{}',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(doc_path, chunk_index)
             )
         "#,
@@ -139,13 +149,13 @@ impl TrinityMcpServer {
         // Create implementation status table
         sqlx::query(r#"
             CREATE TABLE IF NOT EXISTS implementation_status (
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
                 feature_name TEXT UNIQUE NOT NULL,
                 status TEXT NOT NULL CHECK (status IN ('pending', 'in_progress', 'completed', 'blocked')),
                 description TEXT,
-                last_checked TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                evidence JSONB DEFAULT '{}',
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                last_checked DATETIME DEFAULT CURRENT_TIMESTAMP,
+                evidence TEXT DEFAULT '{}',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         "#)
         .execute(db_pool)
@@ -271,11 +281,11 @@ impl TrinityMcpServer {
                 doc_path,
                 chunk_index,
                 content,
-                1 - (embedding <=> $1) as similarity,
+                1.0 as similarity,
                 metadata
             FROM document_embeddings
-            WHERE embedding <=> $1 < 0.5
-            ORDER BY embedding <=> $1
+            WHERE content LIKE '%' || $1 || '%'
+            LIMIT 10
             LIMIT $2
         "#,
         )
@@ -508,10 +518,44 @@ pub trait McpHandler: Send + Sync {
 impl McpHandler for TrinityMcpServer {
     async fn handle_request(&self, request: McpRequest) -> Result<McpResponse> {
         let result = match request.method.as_str() {
-            "tools/list" => serde_json::to_value(self.get_available_tools())?,
-            "tools/call" => self.handle_tool_call(&request.params).await?,
+            "initialize" => serde_json::json!({
+                "protocolVersion": "2024-11-05",
+                "capabilities": {
+                    "tools": {}
+                },
+                "serverInfo": {
+                    "name": "trinity-mcp",
+                    "version": "0.1.0"
+                }
+            }),
+            "notifications/initialized" => {
+                return Ok(McpResponse {
+                    jsonrpc: "2.0".to_string(),
+                    id: None,
+                    result: None,
+                    error: None,
+                });
+            },
+            "tools/list" => {
+                serde_json::json!({
+                    "tools": self.get_available_tools()
+                })
+            },
+            "tools/call" => {
+                let call_result = self.handle_tool_call(&request.params).await?;
+                // Wrap in expected MCP 2024-11-05 format for tools/call
+                serde_json::json!({
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": serde_json::to_string(&call_result).unwrap_or_default()
+                        }
+                    ]
+                })
+            },
             _ => {
                 return Ok(McpResponse {
+                    jsonrpc: "2.0".to_string(),
                     id: request.id,
                     result: None,
                     error: Some(McpError {
@@ -523,6 +567,7 @@ impl McpHandler for TrinityMcpServer {
         };
 
         Ok(McpResponse {
+            jsonrpc: "2.0".to_string(),
             id: request.id,
             result: Some(result),
             error: None,

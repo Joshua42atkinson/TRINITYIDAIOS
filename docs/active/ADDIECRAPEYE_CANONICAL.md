@@ -39,7 +39,7 @@ E - Evolve         ← NOT "Execution"
 |---|-------|---------------|-----------|----------|-------------|
 | 1 | **Analyze** | The Ordinary World | 👀 Eyes / Sensory Organs | The Junkyard Peak | Ask Pete & The Evaluator |
 | 2 | **Design** | The Call to Adventure | 🧠 The Brain | Blueprint Mesa | The Artist & The Evaluator |
-| 3 | **Develop** | Refusal of the Call | 🦴 The Skeleton | The Code Forges | The Engineer (Sword & Shield) |
+| 3 | **Develop** | Refusal of the Call | 🦴 The Skeleton | The DAYDREAM Workshop | The Engineer (Sword & Shield) |
 
 ### ACT II: THE INITIATION (IECRAP) — Fleshing out the World
 

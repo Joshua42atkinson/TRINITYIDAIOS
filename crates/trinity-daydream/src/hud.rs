@@ -47,8 +47,8 @@ pub fn render_hud(
     let frame = egui::Frame {
         fill: BG_COLOR,
         stroke: egui::Stroke::new(1.0, BORDER_COLOR),
-        inner_margin: egui::Margin::same(12.0),
-        rounding: egui::Rounding::same(4.0),
+        inner_margin: egui::Margin::same(12),
+        corner_radius: egui::CornerRadius::same(4),
         ..Default::default()
     };
 

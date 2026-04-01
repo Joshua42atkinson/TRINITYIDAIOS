@@ -414,7 +414,35 @@ export default function Yardmaster() {
         </div>
 
         {/* CENTER: Chat + Forge */}
-        <div className="ym-chat-col">
+        <div 
+          className="ym-chat-col"
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.currentTarget.style.boxShadow = 'inset 0 0 40px rgba(52, 211, 153, 0.1)';
+          }}
+          onDragLeave={(e) => {
+            e.currentTarget.style.boxShadow = 'none';
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.currentTarget.style.boxShadow = 'none';
+            const hookStr = e.dataTransfer.getData('text/plain');
+            if (hookStr && hookStr.startsWith('CastHook:')) {
+              const hookId = hookStr.split(':')[1];
+              const prompts = {
+                'Pearl': '🔮 I am casting the PEARL hook. Please review the current codebase against the 5 PEARL dimensions (Purpose, Evidence, Alignment, Rigor, Learner-centricity) and provide a scorecard.',
+                'Coal': '🪨 I am casting the COAL hook. Please generate the raw boilerplate and scaffolding for the next feature, focusing on getting it working before we refine it.',
+                'Steam': '💨 I am casting the STEAM hook. Please review the current implementation and optimize it for performance and cognitive load reduction.',
+                'Hook': '🪝 I am casting the HOOK hook. Let’s integrate a new interactive system or API here to increase engagement.',
+                'Mirror': '🪞 I am casting the MIRROR hook. Adopt your Socratic persona and ask me 3 deep questions about why I am designing this feature this way.',
+                'Compass': '🧭 I am casting the COMPASS hook. Please analyze my current trajectory and provide a roadmap for the next 3 steps in the ADDIECRAPEYE framework.'
+              };
+              const msg = prompts[hookId] || `I am casting the ${hookId} hook. Please assist me.`;
+              sendMessage(msg, 'programmer', activeScope.path);
+            }
+          }}
+          style={{ transition: 'box-shadow 0.2s' }}
+        >
           {/* Scope + Focus Buttons */}
           <div className="ym-focus-bar">
             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>

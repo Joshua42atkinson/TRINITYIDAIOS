@@ -7,16 +7,13 @@ import '../styles/art_studio_premium.css';
 const VISUAL_STYLES = ['steampunk', 'cyberpunk', 'fantasy', 'minimalist', 'retro', 'noir'];
 const MUSIC_STYLES = ['orchestral', 'lofi', 'electronic', 'jazz', 'ambient', 'classical'];
 
-/* ─── Forge command categories for quick-access ─── */
+/* ─── Hook Deck commands for TCG game dev ─── */
 const FORGE_QUICK_COMMANDS = [
-  { icon: '🧊', label: 'Cube',       cmd: 'spawn_entity', payload: { entityType: 'cube', name: 'Cube' } },
-  { icon: '🔵', label: 'Sphere',     cmd: 'spawn_entity', payload: { entityType: 'sphere', name: 'Sphere' } },
-  { icon: '🟢', label: 'Cylinder',   cmd: 'spawn_entity', payload: { entityType: 'cylinder', name: 'Cylinder' } },
-  { icon: '🔺', label: 'Cone',       cmd: 'spawn_entity', payload: { entityType: 'cone', name: 'Cone' } },
-  { icon: '💡', label: 'Point Light', cmd: 'spawn_entity', payload: { entityType: 'point_light', name: 'Light' } },
-  { icon: '☀️', label: 'Sun',        cmd: 'spawn_entity', payload: { entityType: 'directional_light', name: 'Sun' } },
-  { icon: '▶️', label: 'Play',       cmd: 'play',         payload: {} },
-  { icon: '⏹️', label: 'Stop',       cmd: 'stop',         payload: {} },
+  { icon: '🔮', label: 'Float (Transform.y)', cmd: 'SpawnConcept', params: { id: 'test_float', label: 'Float Module', position: [0.0, 0.5, -5.0], python_script: 'transform.y += 1.0 * delta_time' } },
+  { icon: '💨', label: 'Bounce (Velocity.y)', cmd: 'SpawnConcept', params: { id: 'test_bounce', label: 'Bounce Pad', position: [2.0, 0.5, -5.0], python_script: 'velocity.y += 15.0 * delta_time' } },
+  { icon: '🪨', label: 'Spin (Transform.rot_y)', cmd: 'SpawnConcept', params: { id: 'test_spin', label: 'Spin Module', position: [-2.0, 0.5, -5.0], python_script: 'transform.rot_y += 3.14 * delta_time' } },
+  { icon: '▶️', label: 'Play',        cmd: 'play',     params: {} },
+  { icon: '⏹️', label: 'Stop',        cmd: 'stop',     params: {} },
 ];
 
 function fmtTime(ts) {
@@ -219,16 +216,14 @@ function ForgeViewport({ onLog, forgeRef }) {
     if (forgeRef) {
       forgeRef.current = {
         sendCommand: (command, payload, requestId = null) => {
-          if (iframeRef.current?.contentWindow) {
-            iframeRef.current.contentWindow.postMessage({
-              type: 'forge_command',
-              command,
-              payload,
-              requestId: requestId || `cmd-${Date.now()}`,
-            }, '*');
-            if (!requestId?.startsWith('sync-')) {
-              onLog?.({ tag: 'FORGE', message: `→ ${command}` });
-            }
+          fetch('/api/daydream/command', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ command, params: payload || {} })
+          }).catch(console.error);
+
+          if (!requestId?.startsWith('sync-')) {
+            onLog?.({ tag: 'DAYDREAM', message: `→ ${command}` });
           }
         },
         getState: () => forgeState,
@@ -248,7 +243,7 @@ function ForgeViewport({ onLog, forgeRef }) {
     <div className="premium-forge-container" id="forge-viewport">
       <div className="forge-viewport__header" style={{ position: 'absolute', top: 10, left: 10, zIndex: 5, color: '#fff' }}>
         <span className="forge-viewport__title">
-          ⚒️ FORGE STUDIO
+          🔮 DAYDREAM STUDIO
           {engineVariant && <span className="forge-viewport__variant"> {engineVariant.toUpperCase()}</span>}
         </span>
         <span className={`forge-viewport__status forge-viewport__status--${forgeState}`}>
@@ -283,10 +278,52 @@ function ForgeViewport({ onLog, forgeRef }) {
         </div>
       )}
       {forgeState === 'ready' && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#fff', background: '#020617' }}>
+        <div 
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.currentTarget.style.boxShadow = 'inset 0 0 40px rgba(52, 211, 153, 0.4)';
+          }}
+          onDragLeave={(e) => {
+             e.currentTarget.style.boxShadow = 'none';
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.currentTarget.style.boxShadow = 'none';
+            try {
+              // Try text payload first for simple commands
+              const hookStr = e.dataTransfer.getData('text/plain');
+              if (hookStr && hookStr.startsWith('CastHook:')) {
+                const hookId = hookStr.split(':')[1];
+                const prompts = {
+                  'Pearl': '🔮 I am casting the PEARL hook. Please generate a Bevy mechanic or visual representing the ultimate goal of our lesson plan.',
+                  'Coal': '🪨 I am casting the COAL hook. Build a physical constraint or rigid-body obstacle in the 3D space that the learner must overcome.',
+                  'Steam': '💨 I am casting the STEAM hook. Create an engaging physical momentum-builder (like a jump pad or speed boost) to accelerate the learner.',
+                  'Hook': '🪝 I am casting the HOOK hook. Create a highly interactive gravity point or grappling anchor here.',
+                  'Mirror': '🪞 I am casting the MIRROR hook. Please build an interactive puzzle or assessment collider that challenges the user.',
+                  'Compass': '🧭 I am casting the COMPASS hook. Generate a navigational cue or pathfinding laser to guide the learner.'
+                };
+                const msg = prompts[hookId] || `I am casting the ${hookId} hook into the Art Studio.`;
+                setActiveTool('chat'); // Switch to Pete chat tab
+                setMessage(msg);
+                setTimeout(() => document.getElementById('chat-input')?.focus(), 50);
+                return;
+              }
+              // Try JSON payload if not found
+              const jsonStr = e.dataTransfer.getData('application/json');
+              if (jsonStr) {
+                const payload = JSON.parse(jsonStr);
+                forgeRef.current?.sendCommand(payload.command, payload.params);
+              }
+            } catch (err) {
+               console.error("Drop failed in Daydream:", err);
+            }
+          }}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#fff', background: '#020617', transition: 'box-shadow 0.2s' }}>
            <div style={{ fontSize: '64px', marginBottom: '16px', opacity: 0.8 }}>🎮</div>
-           <h2 style={{ color: '#34d399' }}>Daydream is Running</h2>
-           <p style={{ opacity: 0.5 }}>Check your taskbar for the native Bevy window.</p>
+           <h2 style={{ marginBottom: '8px' }}>Active DAYDREAM Environment</h2>
+           <p style={{ opacity: 0.6, maxWidth: '400px', textAlign: 'center' }}>
+             The native 3D Engine is rendering directly to the desktop window. Drag and drop your Socratic Hook Cards here to physically cast them into the simulation.
+           </p>
         </div>
       )}
     </div>
@@ -299,8 +336,8 @@ function ForgeViewport({ onLog, forgeRef }) {
 function ForgeToolbar({ forgeRef }) {
   const [customCmd, setCustomCmd] = useState('');
 
-  const sendQuick = (cmd, payload) => {
-    forgeRef.current?.sendCommand(cmd, payload);
+  const sendQuick = (cmd, params) => {
+    forgeRef.current?.sendCommand(cmd, params);
   };
 
   const handleCustomSubmit = (e) => {
@@ -308,7 +345,7 @@ function ForgeToolbar({ forgeRef }) {
     if (!customCmd.trim()) return;
     try {
       const parsed = JSON.parse(customCmd);
-      forgeRef.current?.sendCommand(parsed.command, parsed.payload || {});
+      forgeRef.current?.sendCommand(parsed.command, parsed.params || {});
       setCustomCmd('');
     } catch {
       forgeRef.current?.sendCommand(customCmd.trim(), {});
@@ -318,7 +355,7 @@ function ForgeToolbar({ forgeRef }) {
 
   return (
     <div className="forge-toolbar card" style={{ padding: '16px', color: '#fff' }}>
-      <div className="card-header" style={{ marginBottom: '16px' }}>⚒️ FORGE TOOLS</div>
+      <div className="card-header" style={{ marginBottom: '16px' }}>🐍 PYO3 ENGINE SCRIPTING</div>
       <div className="forge-toolbar__sim-controls" style={{ display: 'flex', gap: '8px', marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.05)'}}>
         <button className="forge-toolbar__btn" onClick={() => sendQuick('play_scene')} title="play_scene" style={{ flex: 1, color: '#34d399', background: 'transparent', border: '1px solid #34d399', borderRadius: '4px', padding: '4px' }}>
           ▶ PLAY
@@ -335,7 +372,7 @@ function ForgeToolbar({ forgeRef }) {
           <button
             key={q.label}
             className="forge-toolbar__btn"
-            onClick={() => sendQuick(q.cmd, q.payload)}
+            onClick={() => sendQuick(q.cmd, q.params)}
             title={`${q.cmd}: ${q.label}`}
             style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '6px', padding: '6px', borderRadius: '4px', cursor: 'pointer' }}
           >
@@ -347,7 +384,7 @@ function ForgeToolbar({ forgeRef }) {
       <form className="forge-toolbar__custom" onSubmit={handleCustomSubmit} style={{ display: 'flex', gap: '8px' }}>
         <input
           className="art-input"
-          placeholder='{"command":"spawn_entity","payload":{"entityType":"torus"}}'
+          placeholder='{"command":"CastHook","params":{"hook":"Pearl"}}'
           value={customCmd}
           onChange={(e) => setCustomCmd(e.target.value)}
           style={{ flex: 1, background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', padding: '6px', borderRadius: '4px' }}
@@ -514,7 +551,7 @@ export default function ArtStudio() {
       <div className="premium-status-bar">
         <div className="premium-status-bar__title">✦ ART · Window to the Imagination</div>
         <div className="premium-status-badges">
-          <StatusBadge label="Forge" icon="⚒️" active={forgeRef.current?.getState?.() === 'ready'} />
+          <StatusBadge label="Daydream" icon="🔮" active={forgeRef.current?.getState?.() === 'ready'} />
           <StatusBadge label="ComfyUI" icon="🖼️" sidecar={status.comfyui} />
           <StatusBadge label="MusicGPT" icon="🎵" sidecar={status.musicgpt} />
         </div>
@@ -528,7 +565,7 @@ export default function ArtStudio() {
           <div className="premium-tabs">
             <button className={`premium-tab ${activeTool === 'chat' ? 'premium-tab--active' : ''}`} onClick={() => setActiveTool('chat')}>💬 Chat</button>
             <button className={`premium-tab ${activeTool === 'gallery' ? 'premium-tab--active' : ''}`} onClick={() => setActiveTool('gallery')}>📁 Gallery ({assets.length})</button>
-            <button className={`premium-tab ${activeTool === 'forgeTools' ? 'premium-tab--active' : ''}`} onClick={() => setActiveTool('forgeTools')}>⚒️ Tools</button>
+            <button className={`premium-tab ${activeTool === 'forgeTools' ? 'premium-tab--active' : ''}`} onClick={() => setActiveTool('forgeTools')}>🐍 PyO3 Sandbox</button>
           </div>
 
           {activeTool === 'chat' && (

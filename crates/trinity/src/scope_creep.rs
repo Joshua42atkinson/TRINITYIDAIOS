@@ -58,20 +58,43 @@ pub fn detect_scope_creep(
     _current_objectives: &[String],
     phase: &Phase,
 ) -> Option<ScopeCreep> {
-    let triggers = [
-        "also",
-        "add",
-        "what if",
-        "let's do",
-        "can we",
-        "include",
+    let prompt_lower = prompt.to_lowercase();
+    let word_count = prompt.split_whitespace().count();
+
+    // Don't trigger on extremely short messages (< 5 words)
+    if word_count < 5 {
+        return None;
+    }
+
+    // Strong phrase-level triggers (high confidence scope creep)
+    let strong_triggers = [
         "new feature",
         "while we're at it",
+        "we should also",
+        "let's also add",
+        "can we also",
+        "what if we added",
+        "wouldn't it be cool if",
+        "one more thing",
+        "before we move on, let's add",
     ];
-    let prompt_lower = prompt.to_lowercase();
-    let contains_trigger = triggers.iter().any(|t| prompt_lower.contains(t));
-    if contains_trigger {
+
+    let has_strong = strong_triggers.iter().any(|t| prompt_lower.contains(t));
+    if has_strong {
         return Some(ScopeCreep::new(prompt, phase));
     }
+
+    // Weak triggers need at least 1 present + message > 7 words
+    let weak_triggers = ["also", "add", "include", "what if", "let's do", "can we", "how about"];
+    let weak_count = weak_triggers
+        .iter()
+        .filter(|t| prompt_lower.contains(**t))
+        .count();
+        
+    if weak_count >= 1 && word_count >= 7 {
+        return Some(ScopeCreep::new(prompt, phase));
+    }
+
     None
 }
+

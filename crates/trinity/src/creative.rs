@@ -521,7 +521,8 @@ pub async fn generate_image(
                                     let artifact = trinity_protocol::character_sheet::PortfolioArtifact {
                                         artifact_id: uuid::Uuid::new_v4(),
                                         title: request.prompt.clone(),
-                                        addiecrapeye_phase: "Develop".to_string(),
+                                        hooks_cast: Vec::new(),
+            addiecrapeye_phase: "Develop".to_string(),
                                         artifact_type: "Generated Image".to_string(),
                                         reflection_journal: format!("ArtStudio generation: {}", request.prompt),
                                         aligned_supra_badge: "Design & Development".to_string(),
@@ -617,7 +618,8 @@ pub async fn generate_tempo(
                 let artifact = trinity_protocol::character_sheet::PortfolioArtifact {
                     artifact_id: uuid::Uuid::new_v4(),
                     title: request.prompt.clone(),
-                    addiecrapeye_phase: "Develop".to_string(),
+                    hooks_cast: Vec::new(),
+            addiecrapeye_phase: "Develop".to_string(),
                     artifact_type: "Procedural Audio".to_string(),
                     reflection_journal: format!("ArtStudio tempo: {}", request.prompt),
                     aligned_supra_badge: "Design & Development".to_string(),
@@ -727,6 +729,7 @@ pub async fn generate_video(
         let artifact = trinity_protocol::character_sheet::PortfolioArtifact {
             artifact_id: uuid::Uuid::new_v4(),
             title: request.prompt.clone(),
+            hooks_cast: Vec::new(),
             addiecrapeye_phase: "Develop".to_string(),
             artifact_type: "Generated Video".to_string(),
             reflection_journal: format!("ArtStudio video: {}", request.prompt),
@@ -844,6 +847,7 @@ pub async fn generate_3d_mesh(
         let artifact = trinity_protocol::character_sheet::PortfolioArtifact {
             artifact_id: uuid::Uuid::new_v4(),
             title: request.prompt.clone(),
+            hooks_cast: Vec::new(),
             addiecrapeye_phase: "Develop".to_string(),
             artifact_type: "Generated 3D Mesh".to_string(),
             reflection_journal: format!("ArtStudio 3D Mesh: {}", request.prompt),

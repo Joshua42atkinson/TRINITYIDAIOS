@@ -513,6 +513,27 @@ This Field Manual is one of four root documents that define Trinity:
 | 🎓 **Professor Programming** | [PROFESSOR.md](PROFESSOR.md) | Stakeholders — standards & institutional evaluation |
 | 🎮 **Player's Handbook** | [PLAYERS_HANDBOOK.md](PLAYERS_HANDBOOK.md) | Players — philosophy, identity & conscious learning |
 
+---
+
+### Trinity System Integration Note
+
+> *For institutional evaluators and developers. This note maps the Field Manual's philosophical protocols to their code implementations.*
+
+The Field Manual is **not a design metaphor** — it is the operational specification for Trinity's AI behavior engine. Every protocol described above has a direct implementation in the Rust backend:
+
+| Field Manual Concept | Code Implementation | File |
+|---------------------|---------------------|------|
+| Ghost Train (§3.4) — Four States | `ShadowStatus` enum: `Clear`, `Stirring`, `Active`, `Processed` | `character_sheet.rs` |
+| Vulnerability Recalibration | `recalculate_vulnerability()` — compound of Shadow + Friction | `character_sheet.rs` |
+| The Governor / Calibration | `LocomotiveProfile` enum — pacing archetype (4 variants) | `character_sheet.rs` |
+| Memorial Steps Climbed | `memorial_steps_climbed: u32` (max 17 — one per life lost) | `character_sheet.rs` |
+| Heavilon Protocol | `heavilon_events_survived: u32` — catastrophic failures rebuilt | `character_sheet.rs` |
+| Coal / Steam / XP Economy | `current_coal`, `current_steam`, `total_xp` — CLT-mapped vitals | `character_sheet.rs` |
+| Cargo Slots (§4.3) | `cargo_slots: u8` — Miller's Law (7 ± 2) working memory limit | `character_sheet.rs` |
+| Spiral Detection → Maintenance Mode | RLHF API: 3+ negatives → `ShadowStatus::Active` → task prompts cease | `rlhf_api.rs` |
+
+When a student triggers `ShadowStatus::Active` (the Ghost Train is on the main line), the conductor system prompt **automatically shifts Pete into maintenance mode** — reflection only, no task generation. This is the Armstrong Maneuver (§2.2) implemented as code: the system cuts the main engines and engages the backup physical controls.
+
 *(End of Manual)*
 
 [image1]: /images/steam_locomotive_anatomy.png

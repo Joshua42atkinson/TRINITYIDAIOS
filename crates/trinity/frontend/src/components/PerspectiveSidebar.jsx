@@ -23,29 +23,33 @@ export default function PerspectiveSidebar({ sseEvents, onDismissEvent }) {
   const [feedback, setFeedback] = useState({}); // { lensId: 'up' | 'down' }
   const sidebarRef = useRef(null);
 
+  const processPerspectiveEvent = useCallback((ev) => {
+    if (ev.type !== 'perspective' || !ev.perspectives) return;
+    setPerspectiveSets(prev => {
+      const next = [...prev, {
+        id: ev.id,
+        perspectives: ev.perspectives,
+        totalLatency: ev.total_latency_ms,
+        timestamp: Date.now(),
+      }];
+      return next.slice(-5);
+    });
+    if (onDismissEvent && ev.id) onDismissEvent(ev.id);
+  }, [onDismissEvent]);
+
   // Collect perspective events from SSE
   useEffect(() => {
     if (!sseEvents?.length) return;
-
     const perspectiveEvents = sseEvents.filter(ev => ev.type === 'perspective');
-    if (perspectiveEvents.length === 0) return;
+    perspectiveEvents.forEach(processPerspectiveEvent);
+  }, [sseEvents, processPerspectiveEvent]);
 
-    perspectiveEvents.forEach(ev => {
-      if (ev.perspectives) {
-        setPerspectiveSets(prev => {
-          // Keep only the last 5 perspective sets
-          const next = [...prev, {
-            id: ev.id,
-            perspectives: ev.perspectives,
-            totalLatency: ev.total_latency_ms,
-            timestamp: Date.now(),
-          }];
-          return next.slice(-5);
-        });
-      }
-      if (onDismissEvent) onDismissEvent(ev.id);
-    });
-  }, [sseEvents, onDismissEvent]);
+  // Collect perspective events from Iron Road chat stream dispatch
+  useEffect(() => {
+    const fn = (e) => processPerspectiveEvent(e.detail);
+    window.addEventListener('trinity-stream-event', fn);
+    return () => window.removeEventListener('trinity-stream-event', fn);
+  }, [processPerspectiveEvent]);
 
   // Auto-expand when new perspectives arrive
   useEffect(() => {

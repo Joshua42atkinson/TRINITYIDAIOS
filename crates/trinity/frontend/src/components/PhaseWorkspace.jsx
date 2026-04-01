@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import PerspectiveSidebar from './PerspectiveSidebar';
 import JournalViewer from './JournalViewer';
 import MicButton from './MicButton';
@@ -106,7 +106,20 @@ function PhaseTransition({ fromPhase, toPhase, xp, onDone }) {
 // ─── Scope Creep Modal (Hope / Nope) ──────────────────────────────────────────
 function ScopeCreepModal({ creep, onHope, onNope }) {
   const [visible, setVisible] = useState(false);
-  useEffect(() => { requestAnimationFrame(() => setVisible(true)); }, []);
+  const [deck, setDeck] = useState([]);
+  const [selectedHook, setSelectedHook] = useState('');
+
+  useEffect(() => {
+    requestAnimationFrame(() => setVisible(true));
+    fetch('/api/character')
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.ldt_portfolio && data.ldt_portfolio.hook_deck) {
+          setDeck(Object.values(data.ldt_portfolio.hook_deck));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const dismiss = (action) => {
     setVisible(false);
@@ -149,16 +162,43 @@ function ScopeCreepModal({ creep, onHope, onNope }) {
           ))}
         </div>
         <div className="scope-modal__desc">
-          This word has emerged from your vocabulary matrix. Tame it to grow your Bestiary — or let it go wild.
+          This feature has emerged from the chaos. Tame it to gain project maturity — or let it go wild.
         </div>
-        <div className="scope-modal__actions">
-          <button className="scope-btn nope" id="scope-nope-btn" onClick={() => dismiss(onNope)}>
-            ✗ SCOPE NOPE
-          </button>
-          <button className="scope-btn hope" id="scope-hope-btn" onClick={() => dismiss(onHope)}
-            style={{ borderColor: col, color: col }}>
-            ✓ SCOPE HOPE
-          </button>
+        <div className="scope-modal__actions" style={{ flexDirection: 'column' }}>
+          {deck.length > 0 && (
+            <select 
+               className="scope-modal__hook-select"
+               value={selectedHook}
+               onChange={(e) => setSelectedHook(e.target.value)}
+               style={{ 
+                 width: '100%', marginBottom: '12px', padding: '8px', 
+                 background: 'rgba(0,0,0,0.4)', color: '#cfb991', 
+                 border: `1px solid ${col}aa`, borderRadius: '4px',
+                 fontFamily: '"Crimson Text", serif', fontSize: '1.1rem'
+               }}
+            >
+              <option value="">-- Select a spell to tame this anomaly --</option>
+              {deck.map(h => <option key={h.id} value={h.id}>Lv{h.level} {h.title} ({h.school})</option>)}
+            </select>
+          )}
+          <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+            <button className="scope-btn nope" id="scope-nope-btn" onClick={() => dismiss(() => onNope())}>
+              ✗ LEAVE WILD
+            </button>
+            <button 
+              className="scope-btn hope" 
+              id="scope-hope-btn" 
+              onClick={() => dismiss(() => onHope(selectedHook))}
+              disabled={!selectedHook && deck.length > 0}
+              style={{ 
+                borderColor: col, color: col, 
+                opacity: (!selectedHook && deck.length > 0) ? 0.3 : 1,
+                cursor: (!selectedHook && deck.length > 0) ? 'not-allowed' : 'pointer'
+              }}
+            >
+              ✓ CAST HOOK & TAME
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -300,64 +340,91 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
     if (quest?.coal >= 20) setLowCoalWarned(false);
   }, [quest?.coal]);
 
-  // Handle SSE events — scope creep, objective completion, phase advance, VAAM emotional
+  const onRefetchRef = useRef(onRefetch);
+  useEffect(() => { onRefetchRef.current = onRefetch; }, [onRefetch]);
+
+  // Extracted event handler for both SSE and chat stream
+  const handleStreamEvent = useCallback((data) => {
+    if (!data) return;
+    let needsRefetch = false;
+    
+    if (data.type === 'objective_completed' || data.type === 'quest_sync') {
+      needsRefetch = true;
+      setNarrative(n => [...n, {
+        role: 'narrator',
+        content: `「 ▸ QUEST ◂ Objective sealed. +${data.xp || 10} XP flows through the rails. The track ahead grows clearer. 」`,
+      }]);
+    }
+    
+    if (data.type === 'phase_advanced') {
+      needsRefetch = true;
+      setNarrative(n => [...n, {
+        role: 'narrator',
+        content: `「 ▸ STATION ◂ The whistle screams. The locomotive lurches forward into ${data.new_phase || 'the next station'} — new tracks, new questions, new light. 」`,
+      }]);
+    }
+    
+    if (data.type === 'creep_tameable') {
+      setCreepModal({
+        word: data.word || data.name || 'Unknown', 
+        element: data.element || '⚪',
+        logos: data.logos || Math.floor(Math.random() * 10) + 1, 
+        pathos: data.pathos || Math.floor(Math.random() * 10) + 1, 
+        ethos: data.ethos || Math.floor(Math.random() * 10) + 1,
+      });
+    }
+
+    if (data.type === 'vaam' && data.detections?.length > 0) {
+      const words = data.detections.map(d => d.word).join(', ');
+      const coal = data.total_coal || 0;
+      const mastered = data.detections.filter(d => d.mastered).length;
+      const messages = [
+        `「 ▸ VAAM ◂ The rails hum with recognition — **${words}**. +${coal} coal feeds the furnace. 」`,
+        `「 ▸ VAAM ◂ Words of power shimmer on the track — **${words}**. The vocabulary matrix grows stronger. 」`,
+        `「 ▸ VAAM ◂ The Great Recycler senses domain mastery — **${words}** etched into the rails. +${coal} coal. 」`,
+      ];
+      setNarrative(n => [...n, {
+        role: 'narrator',
+        content: mastered > 0
+          ? `「 ▸ MASTERY ◂ **${words}** — fully tamed. The word-creatures bow. The Bestiary grows. 」`
+          : messages[Math.floor(Math.random() * messages.length)],
+      }]);
+    }
+
+    if (data.type === 'cognitive_load' && data.friction !== undefined) {
+      if (data.friction > 50) {
+        setNarrative(n => [...n, {
+          role: 'narrator',
+          content: '「 ▸ FRICTION ◂ The tracks groan under weight. The Gilbreth Protocol suggests — simplify. Reduce scope. Breathe. 」',
+        }]);
+      }
+    }
+
+    if (data.type === 'resources') {
+      needsRefetch = true;
+    }
+
+    if (needsRefetch && onRefetchRef.current) onRefetchRef.current();
+  }, []);
+
+  // Handle SSE events from global hook
   useEffect(() => {
     if (!sseEvents?.length) return;
-    let needsRefetch = false;
     sseEvents.forEach(ev => {
       try {
         const data = typeof ev === 'string' ? JSON.parse(ev) : ev;
-        if (data.type === 'objective_completed' || data.type === 'quest_sync') {
-          needsRefetch = true;
-          setNarrative(n => [...n, {
-            role: 'narrator',
-            content: `「 ▸ QUEST ◂ Objective sealed. +${data.xp || 10} XP flows through the rails. The track ahead grows clearer. 」`,
-          }]);
-        }
-        if (data.type === 'phase_advanced') {
-          needsRefetch = true;
-          setNarrative(n => [...n, {
-            role: 'narrator',
-            content: `「 ▸ STATION ◂ The whistle screams. The locomotive lurches forward into ${data.new_phase || 'the next station'} — new tracks, new questions, new light. 」`,
-          }]);
-        }
-        if (data.type === 'creep_tameable' && data.word) {
-          setCreepModal({
-            word: data.word, element: data.element || '⚪',
-            logos: data.logos, pathos: data.pathos, ethos: data.ethos,
-          });
-        }
-        // VAAM vocabulary detection → emotional narrator response
-        if (data.type === 'vaam' && data.detections?.length > 0) {
-          const words = data.detections.map(d => d.word).join(', ');
-          const coal = data.total_coal || 0;
-          const mastered = data.detections.filter(d => d.mastered).length;
-          const messages = [
-            `「 ▸ VAAM ◂ The rails hum with recognition — **${words}**. +${coal} coal feeds the furnace. 」`,
-            `「 ▸ VAAM ◂ Words of power shimmer on the track — **${words}**. The vocabulary matrix grows stronger. 」`,
-            `「 ▸ VAAM ◂ The Great Recycler senses domain mastery — **${words}** etched into the rails. +${coal} coal. 」`,
-          ];
-          setNarrative(n => [...n, {
-            role: 'narrator',
-            content: mastered > 0
-              ? `「 ▸ MASTERY ◂ **${words}** — fully tamed. The word-creatures bow. The Bestiary grows. 」`
-              : messages[Math.floor(Math.random() * messages.length)],
-          }]);
-        }
-        // Cognitive load / friction feedback
-        if (data.type === 'cognitive_load' && data.friction !== undefined) {
-          if (data.friction > 50) {
-            setNarrative(n => [...n, {
-              role: 'narrator',
-              content: '「 ▸ FRICTION ◂ The tracks groan under weight. The Gilbreth Protocol suggests — simplify. Reduce scope. Breathe. 」',
-            }]);
-          }
-        }
+        handleStreamEvent(data);
       } catch { /* silent */ }
     });
-    if (needsRefetch && onRefetch) onRefetch();
-    if (onDismissEvent) sseEvents.forEach(ev => onDismissEvent(ev));
-  }, [sseEvents, onRefetch, onDismissEvent]);
+    if (onDismissEvent) sseEvents.forEach(ev => onDismissEvent(ev.id || ev));
+  }, [sseEvents, onDismissEvent, handleStreamEvent]);
+
+  // Handle SSE events from local chat stream dispatch
+  useEffect(() => {
+    const fn = (e) => handleStreamEvent(e.detail);
+    window.addEventListener('trinity-stream-event', fn);
+    return () => window.removeEventListener('trinity-stream-event', fn);
+  }, [handleStreamEvent]);
 
   // ── Actions ──
 
@@ -387,17 +454,17 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
     }
   };
 
-  const handleScopeHope = async () => {
+  const handleScopeHope = async (hookId) => {
     if (!creepModal?.word) return setCreepModal(null);
     try {
       await fetch('/api/bestiary/tame', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ word: creepModal.word, decision: 'hope' }),
+        body: JSON.stringify({ word: creepModal.word, decision: 'hope', hook_id: hookId }),
       });
       setNarrative(n => [...n, {
         role: 'narrator',
-        content: `「 ▸ TAMED ◂ "${creepModal.word}" bows its head. The word-creature joins your Bestiary — a new tool forged from chaos. +15 XP 」`,
+        content: `「 ▸ COMPONENT TAMED ◂ "${creepModal.word}" has been integrated systemically. A Hook was cast, Project Maturity advances. +15 XP 」`,
       }]);
       if (onRefetch) onRefetch();
     } catch {}
@@ -506,6 +573,8 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
       let fullText = '';
       let sentenceBuffer = '';
 
+      let currentEvent = null;
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -516,10 +585,27 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
           const line = buffer.substring(0, idx);
           buffer = buffer.substring(idx + 1);
 
-          if (!line || line.startsWith('event:') || line.startsWith(':')) continue;
+          if (!line || line.startsWith(':')) continue;
+
+          if (line.startsWith('event:')) {
+            currentEvent = line.substring(6).trim();
+            continue;
+          }
+
           if (line.startsWith('data: ')) {
             const payload = line.substring(6);
             if (payload === '[DONE]') continue;
+
+            if (currentEvent) {
+              try {
+                const data = JSON.parse(payload);
+                const evObj = { type: currentEvent, ...data, id: Date.now() };
+                // Dispatch globally for PerspectiveSidebar, GameHUD, etc.
+                window.dispatchEvent(new CustomEvent('trinity-stream-event', { detail: evObj }));
+              } catch (e) { }
+              currentEvent = null;
+              continue; // Don't parse this data as chat tokens
+            }
 
             let token = '';
             if (payload.startsWith('{')) {
@@ -908,8 +994,39 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
             onDismissEvent={onDismissEvent}
           />
 
-          {/* ── Journal Prompt ── */}
-          <div className="journal-input">
+          {/* ── Journal Prompt Drop Zone ── */}
+          <div 
+            className="journal-input"
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.currentTarget.style.boxShadow = '0 0 15px rgba(207, 185, 145, 0.3)';
+            }}
+            onDragLeave={(e) => {
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.currentTarget.style.boxShadow = 'none';
+              const hookStr = e.dataTransfer.getData('text/plain');
+              if (hookStr && hookStr.startsWith('CastHook:')) {
+                const hookId = hookStr.split(':')[1];
+                const prompts = {
+                  'Pearl': '🔮 I am casting the PEARL hook. Please review my current Phase progress against the 5 PEARL evaluation dimensions (Purpose, Evidence, Alignment, Rigor, Learner-centricity).',
+                  'Coal': '🪨 I am casting the COAL hook. I am feeling stuck. Please generate some raw, unfiltered ideas to help me complete my current objective.',
+                  'Steam': '💨 I am casting the STEAM hook. I have momentum! What is the fastest micro-step I can take right now to accelerate my progress?',
+                  'Hook': '🪝 I am casting the HOOK hook. How can I make this specific lesson phase more engaging or interactive for the learner?',
+                  'Mirror': '🪞 I am casting the MIRROR hook. Please ask me a deep Socratic reflection question about the design choices I have made so far.',
+                  'Compass': '🧭 I am casting the COMPASS hook. Please re-orient me. Where exactly am I in the ADDIECRAPEYE lifecycle, and what is my overarching goal?'
+                };
+                const msg = prompts[hookId] || `I am casting the ${hookId} hook. Please guide me.`;
+                setMessage(msg);
+                setTimeout(() => {
+                   document.getElementById('chat-input')?.focus();
+                }, 50);
+              }
+            }}
+            style={{ transition: 'box-shadow 0.2s' }}
+          >
             <input
               id="chat-input"
               className="chat-input"

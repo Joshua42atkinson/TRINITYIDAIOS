@@ -202,35 +202,11 @@ impl Default for GameState {
     }
 }
 
-/// Generate objectives specific to each Hero's Journey chapter + ADDIE phase
+/// Generate objectives specific to each Hero's Journey chapter + ADDIE phase.
+/// Delegates to the full 144-cell matrix in quest_system.rs which provides
+/// 3 specific, actionable objectives per phase per chapter.
 pub fn objectives_for_chapter(stage: HeroStage, phase: Phase) -> Vec<Objective> {
-    let ch = stage.chapter();
-    let p = match phase {
-        Phase::Analysis => "a",
-        Phase::Design => "d",
-        Phase::Development => "v",
-        Phase::Implementation => "i",
-        Phase::Evaluation => "e",
-        Phase::Contrast => "c",
-        Phase::Repetition => "r",
-        Phase::Alignment => "al",
-        Phase::Proximity => "p",
-        Phase::Envision => "en",
-        Phase::Yoke => "y",
-        Phase::Evolve => "ev",
-    };
-    // Agentic Quests: Instead of a static hardcoded array, the Great Recycler 
-    // dynamically generates Socratic objectives based on the user's answers.
-    // We only seed the initial conversational prompt.
-    vec![obj(ch, p, 1, "Speak with the Great Recycler about this station's focus")]
-}
-
-fn obj(ch: u8, phase: &str, n: u8, desc: &str) -> Objective {
-    Objective {
-        id: format!("ch{}_{}{}", ch, phase, n),
-        description: desc.to_string(),
-        completed: false,
-    }
+    crate::quest_system::objectives_for_chapter(stage, phase)
 }
 
 /// Complete an objective, returns true if phase advanced

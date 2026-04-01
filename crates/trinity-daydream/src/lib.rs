@@ -35,6 +35,9 @@ pub mod creative_bridge;
 pub mod daydream;
 
 #[cfg(feature = "desktop")]
+pub mod python_bridge;
+
+#[cfg(feature = "desktop")]
 pub mod hud;
 
 

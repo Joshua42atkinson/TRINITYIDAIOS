@@ -439,6 +439,15 @@ pub async fn run_agent_loop(
                     let json_str = serde_json::json!({ "content": msg }).to_string();
                     let _ = tx.send(format!("data: {}\n\n", json_str)).await;
 
+                    // R2: Emit SSE event for ScopeCreepModal
+                    let creep_json = serde_json::json!({
+                        "name": creep.name,
+                        "threat_level": creep.threat_level,
+                        "steam_penalty": creep.steam_penalty,
+                        "description": creep.description,
+                    });
+                    let _ = tx.send(format!("event: creep_tameable\ndata: {}\n\n", creep_json)).await;
+
                     // ── Soft Spot 6: Scope Creep encounter → friction rises ──
                     let mut sheet = state.player.character_sheet.write().await;
                     sheet.track_friction = (sheet.track_friction + 8.0).min(100.0);
@@ -475,6 +484,42 @@ pub async fn run_agent_loop(
                 );
                 let mut gs = game_state.write().await;
                 gs.stats.coal_reserves = (gs.stats.coal_reserves + coal_from_vaam).min(100.0);
+            }
+        }
+
+        // === R5: Shadow Status — detect negative sentiment in user messages ===
+        if enforce_narrative {
+            let msg_lower = request.message.to_lowercase();
+            let negative_indicators = ["frustrated", "confused", "stuck", "don't understand",
+                "this doesn't work", "hate", "annoyed", "lost", "wrong", "broken",
+                "give up", "can't do this", "waste of time", "pointless"];
+            let negative_count = negative_indicators.iter()
+                .filter(|ind| msg_lower.contains(**ind))
+                .count();
+
+            if negative_count >= 1 {
+                let mut sheet = state.player.character_sheet.write().await;
+                sheet.consecutive_negatives = sheet.consecutive_negatives.saturating_add(1);
+
+                if sheet.consecutive_negatives >= 3 {
+                    sheet.shadow_status = trinity_protocol::character_sheet::ShadowStatus::Active;
+                    info!("🌑 Shadow activated — negative sentiment detected");
+                } else if sheet.shadow_status == trinity_protocol::character_sheet::ShadowStatus::Clear {
+                    sheet.shadow_status = trinity_protocol::character_sheet::ShadowStatus::Stirring;
+                    info!("🌘 Shadow stirring — frustration detected");
+                }
+                sheet.recalculate_vulnerability();
+                crate::character_sheet::save_character_sheet(&sheet).ok();
+                drop(sheet);
+            } else {
+                // Positive/neutral message gradually resets consecutive negatives
+                let mut sheet = state.player.character_sheet.write().await;
+                if sheet.consecutive_negatives > 0 {
+                    sheet.consecutive_negatives = sheet.consecutive_negatives.saturating_sub(1);
+                    sheet.recalculate_vulnerability();
+                    crate::character_sheet::save_character_sheet(&sheet).ok();
+                }
+                drop(sheet);
             }
         }
 
@@ -649,6 +694,9 @@ pub async fn run_agent_loop(
                 messages.pop();
             }
         }
+
+        // Clone user message for R5/R7 mechanics (before request.message is moved)
+        let user_message_text = request.message.clone();
 
         // Current user message
         messages.push(ChatMessage {
@@ -883,12 +931,95 @@ pub async fn run_agent_loop(
                         alignment.detected_circuit, alignment.expected_circuits, alignment.coal_delta
                     );
                 }
+
+                // === R3: Track Friction — off-circuit responses increase friction ===
+                if enforce_narrative {
+                    let mut sheet = state.player.character_sheet.write().await;
+                    if alignment.on_circuit {
+                        // On-circuit: friction slowly reduces (productive focus)
+                        sheet.track_friction = (sheet.track_friction - 1.0).max(0.0);
+                    } else {
+                        // Off-circuit drift: friction builds
+                        sheet.track_friction = (sheet.track_friction + 3.0).min(100.0);
+                    }
+                    sheet.recalculate_vulnerability();
+                    crate::character_sheet::save_character_sheet(&sheet).ok();
+                    drop(sheet);
+                }
+
+                // === R4: Emit character sheet updates for TrainStatus engine diagnostics ===
+                if enforce_narrative {
+                    let sheet = state.player.character_sheet.read().await;
+                    let char_event = serde_json::json!({
+                        "track_friction": sheet.track_friction,
+                        "vulnerability": sheet.vulnerability,
+                        "shadow_status": format!("{:?}", sheet.shadow_status),
+                        "consecutive_negatives": sheet.consecutive_negatives,
+                        "current_steam": sheet.current_steam,
+                    });
+                    drop(sheet);
+                    let _ = tx.send(format!("event: character_update\ndata: {}\n\n", char_event)).await;
+                }
+            }
+
+            // === R1: Coal/Steam Economy — every Iron Road conversation costs/generates resources ===
+            if enforce_narrative && tool_calls.is_empty() {
+                let coal_cost = 2.0_f32;
+                let steam_gain = 5.0_f32;
+                let mut gs = game_state.write().await;
+                gs.stats.coal_reserves = (gs.stats.coal_reserves - coal_cost).max(0.0);
+                gs.quest.coal_used += coal_cost;
+                gs.quest.steam_generated += steam_gain;
+                let _ = trinity_quest::save_game_state(&db_pool, "default", &gs).await;
+                drop(gs);
+
+                let econ_event = serde_json::json!({
+                    "coal_burned": coal_cost,
+                    "steam_gained": steam_gain,
+                    "source": "conversation"
+                });
+                let _ = tx.send(format!("event: resources\ndata: {}\n\n", econ_event)).await;
+            }
+
+            // === R7: Perspective Engine — evaluate AI response through pedagogical lenses ===
+            if enforce_narrative && !clean_text.trim().is_empty() {
+                let msg_type = crate::perspective::classify_message(&user_message_text, false);
+                // Only fire on substantive exchanges (skip greetings/brief replies)
+                if msg_type == crate::perspective::MessageType::Substantive {
+                    let sheet = state.player.character_sheet.read().await;
+                    let experience = sheet.experience.as_ref().filter(|e| !e.is_empty()).cloned();
+                    let audience = sheet.audience.as_ref().filter(|a| !a.is_empty()).cloned();
+                    drop(sheet);
+                    let gs = game_state.read().await;
+                    let phase_label = gs.quest.current_phase.label().to_string();
+                    let blooms = gs.quest.current_phase.blooms().to_string();
+                    drop(gs);
+
+                    let lenses = crate::perspective::select_lenses(
+                        &phase_label, &blooms, &msg_type,
+                        experience.as_deref(), audience.as_deref(),
+                    );
+
+                    if !lenses.is_empty() {
+                        let llm = llm_url.clone();
+                        let response_clone = clean_text.clone();
+                        let tx_clone = tx.clone();
+                        // Fire perspectives in background — don't block the main response
+                        tokio::spawn(async move {
+                            let perspective_set = crate::perspective::evaluate(&llm, &response_clone, &lenses).await;
+                            if !perspective_set.perspectives.is_empty() {
+                                let json = serde_json::to_string(&perspective_set).unwrap_or_default();
+                                let _ = tx_clone.send(format!("event: perspective\ndata: {}\n\n", json)).await;
+                            }
+                        });
+                    }
+                }
             }
 
             // Execute each tool call
             let mut tool_results = String::new();
             for (tool_name, tool_params) in &tool_calls {
-                // Emit tool status so the Forge shows what's happening (and keeps SSE alive)
+                // Emit tool status so the DAYDREAM shows what's happening (and keeps SSE alive)
                 let tool_status = serde_json::json!({
                     "status": "tool",
                     "tool": tool_name,

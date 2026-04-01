@@ -119,7 +119,9 @@ impl Plugin for DaydreamPlugin {
             .add_systems(Update, (
                 animate_world_mood,
                 pulse_waypoints,
-            ));
+            ))
+            // Add Python interpreter plugin
+            .add_plugins(crate::python_bridge::PythonPlugin);
     }
 }
 
@@ -357,7 +359,7 @@ fn process_commands(
             }
 
             // ── CONCEPT ENTITIES ─────────────────────────────────
-            DaydreamCommand::SpawnConcept { id, label, position, mesh_type, station } => {
+            DaydreamCommand::SpawnConcept { id, label, position, mesh_type, station, python_script } => {
                 let mesh = match mesh_type {
                     MeshType::Cube => meshes.add(Cuboid::new(1.0, 1.0, 1.0)),
                     MeshType::Sphere => meshes.add(Sphere::new(0.5)),
@@ -378,15 +380,24 @@ fn process_commands(
                     ..default()
                 });
 
-                commands.spawn((
+                let mut spawn_cmd = commands.spawn((
                     Mesh3d(mesh),
                     MeshMaterial3d(material),
                     Transform::from_xyz(position[0], position[1], position[2]),
                     DaydreamEntity { id: id.clone(), station },
                     RigidBody::Dynamic,
+                    LinearVelocity::default(),
                     Collider::cuboid(1.0, 1.0, 1.0),
                     Name::new(label.clone()),
                 ));
+
+                // If Pete generated a Python script for this entity, attach the interpreter bridge
+                if let Some(script_code) = python_script {
+                    spawn_cmd.insert(crate::python_bridge::PythonScript {
+                        source: script_code,
+                    });
+                    info!("🐍 DAYDREAM: Python script attached to '{}'", label);
+                }
 
                 world_state.concept_count += 1;
                 info!("🌙 DAYDREAM: Concept '{}' spawned (total: {})", label, world_state.concept_count);
@@ -521,7 +532,7 @@ fn process_commands(
                 });
 
                 commands.spawn((
-                    Mesh3d(meshes.add(Cylinder::new(0.3, 4.0))),
+                    Mesh3d(meshes.add(Cylinder::new(0.2, 4.0))),
                     MeshMaterial3d(material),
                     Transform::from_xyz(position[0], position[1] + 2.0, position[2]),
                     DaydreamEntity { id, station: None },
@@ -575,6 +586,11 @@ fn process_commands(
             }
             DaydreamCommand::SpawnDialogueTree { id, npc_id, nodes } => {
                 info!("🌙 DAYDREAM: SpawnDialogueTree requested: {:?} on {:?} with {} nodes", id, npc_id, nodes.len());
+            }
+            // ── TCG HOOK DECK ────────────────────────────────────
+            // Removed CastHook: Pete now completely generates Bevy mechanics rather than relying on hardcoded logic.
+            DaydreamCommand::LogMessage { msg } => {
+                info!("🌙 DAYDREAM Pete: {}", msg);
             }
         }
     }

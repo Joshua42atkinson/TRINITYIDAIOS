@@ -729,6 +729,33 @@ pub async fn refine_pearl(
     }
 }
 
+/// Request to update economy
+#[derive(Debug, Deserialize)]
+pub struct EconomyRequest {
+    pub coal_delta: f32,
+    pub steam_delta: f32,
+}
+
+/// Update Coal and Steam (HTTP endpoint)
+pub async fn update_economy(
+    State(state): State<AppState>,
+    Json(req): Json<EconomyRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let mut game = state.project.game_state.write().await;
+
+    // A negative coal delta means we consume coal (coal_used increases)
+    game.quest.coal_used = (game.quest.coal_used - req.coal_delta).clamp(0.0, 100.0);
+    game.quest.steam_generated = (game.quest.steam_generated + req.steam_delta).max(0.0);
+
+    let _ = trinity_quest::save_game_state(&state.db_pool, "default", &game).await;
+
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "coal_remaining": 100.0 - game.quest.coal_used,
+        "steam": game.quest.steam_generated,
+    })))
+}
+
 pub async fn export_lms_analytics(
     axum::extract::State(state): axum::extract::State<crate::AppState>,
 ) -> impl axum::response::IntoResponse {
@@ -740,3 +767,53 @@ pub async fn export_lms_analytics(
     }))
 }
 
+#[derive(Debug, Deserialize)]
+pub struct TameCreepRequest {
+    pub creep_word: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TameCreepResponse {
+    pub success: bool,
+    pub leveled_hook: Option<String>,
+    pub xp_earned: u32,
+}
+
+/// Grant xp and level up a Hook when a scope creep is tamed (HOPE)
+pub async fn tame_creep(
+    State(state): State<AppState>,
+    Json(_req): Json<TameCreepRequest>,
+) -> Result<Json<TameCreepResponse>, StatusCode> {
+    let mut sheet = state.player.character_sheet.write().await;
+    
+    // Pick a random hook to level up
+    let hooks = ["Pearl", "Coal", "Steam", "Hook", "Mirror", "Compass"];
+    let selected = hooks[rand::random::<usize>() % hooks.len()];
+    
+    let mut leveled_up = false;
+    let xp_earned = 50; 
+    
+    sheet.total_xp += xp_earned as u64;
+
+    if let Some(card) = sheet.ldt_portfolio.hook_deck.get_mut(selected) {
+        card.creeps_tamed += 1;
+        card.xp += 25; 
+        
+        // Level up threshold: 100 XP per level
+        if card.xp >= (card.level as u32 * 100) {
+            card.level += 1;
+            card.xp = 0;
+            leveled_up = true;
+        }
+    }
+
+    if let Err(e) = crate::character_sheet::save_character_sheet(&sheet) {
+        tracing::error!("Failed to save character sheet after taming creep: {}", e);
+    }
+
+    Ok(Json(TameCreepResponse {
+        success: true,
+        leveled_hook: if leveled_up { Some(selected.to_string()) } else { None },
+        xp_earned,
+    }))
+}

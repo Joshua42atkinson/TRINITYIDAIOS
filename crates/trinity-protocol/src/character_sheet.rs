@@ -849,6 +849,11 @@ pub struct LdtPortfolio {
     /// The Ledger of Created Work (subconscious inventory).
     pub artifact_vault: Vec<PortfolioArtifact>,
 
+    /// The user's acquired Spells (Tools/Hooks) functioning as Trading Cards.
+    /// This allows Hooks to level up (Maturity) as they tame Scope Creep.
+    #[serde(default)]
+    pub hook_deck: HashMap<String, HookCard>,
+
     /// Declarative competency scores (0.0–100.0 each).
     /// IBSTPI — Instructional Design Competencies.
     pub ibstpi_score: f32,
@@ -868,18 +873,80 @@ pub struct LdtPortfolio {
     pub memorial_steps_climbed: u32,
 }
 
+/// A dynamic Trading Card representing a Hook Book capability.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HookCard {
+    pub id: String,
+    pub title: String,
+    pub school: String,
+    pub level: u8,
+    pub xp: u32,
+    pub creeps_tamed: u32,
+}
+
 impl Default for LdtPortfolio {
     fn default() -> Self {
+        let mut default_deck = HashMap::new();
+        default_deck.insert("Pearl".to_string(), HookCard {
+            id: "Pearl".to_string(),
+            title: "The Pearl".to_string(),
+            school: "School of Identity".to_string(),
+            level: 1,
+            xp: 0,
+            creeps_tamed: 0,
+        });
+        default_deck.insert("Coal".to_string(), HookCard {
+            id: "Coal".to_string(),
+            title: "The Coal".to_string(),
+            school: "School of Friction".to_string(),
+            level: 1,
+            xp: 0,
+            creeps_tamed: 0,
+        });
+        default_deck.insert("Steam".to_string(), HookCard {
+            id: "Steam".to_string(),
+            title: "The Steam".to_string(),
+            school: "School of Momentum".to_string(),
+            level: 1,
+            xp: 0,
+            creeps_tamed: 0,
+        });
+        default_deck.insert("Hook".to_string(), HookCard {
+            id: "Hook".to_string(),
+            title: "The Hook".to_string(),
+            school: "School of Engagement".to_string(),
+            level: 1,
+            xp: 0,
+            creeps_tamed: 0,
+        });
+        default_deck.insert("Mirror".to_string(), HookCard {
+            id: "Mirror".to_string(),
+            title: "The Mirror".to_string(),
+            school: "School of Reflection".to_string(),
+            level: 1,
+            xp: 0,
+            creeps_tamed: 0,
+        });
+        default_deck.insert("Compass".to_string(), HookCard {
+            id: "Compass".to_string(),
+            title: "The Compass".to_string(),
+            school: "School of Scaffolding".to_string(),
+            level: 1,
+            xp: 0,
+            creeps_tamed: 0,
+        });
+
         Self {
             completed_challenges: 0,
             gate_review_status: "Locked".to_string(),
-            artifact_vault: Vec::new(),
-            ibstpi_score: 0.0,
-            atd_score: 0.0,
-            aect_score: 0.0,
             qm_alignment_score: 0.0,
+            ibstpi_score: 10.0,
+            atd_score: 10.0,
+            aect_score: 10.0,
+            artifact_vault: Vec::new(),
             heavilon_events_survived: 0,
             memorial_steps_climbed: 0,
+            hook_deck: default_deck,
         }
     }
 }
@@ -932,6 +999,9 @@ pub struct PortfolioArtifact {
     /// Whether the AECT ethics standard was validated.
     /// (Privacy Moat: was PII protected during creation?)
     pub aect_ethics_cleared: bool,
+    /// The Hook Book spells used to forge this artifact (e.g. "Socratic Interview", "Express Wizard").
+    #[serde(default)]
+    pub hooks_cast: Vec<String>,
 }
 
 impl PortfolioArtifact {
@@ -950,6 +1020,7 @@ impl PortfolioArtifact {
             aligned_supra_badge: supra_badge.into(),
             qm_score: 0.0,
             aect_ethics_cleared: false,
+            hooks_cast: Vec::new(),
         }
     }
 

@@ -1,5 +1,5 @@
 # Trinity ID AI OS — Research Bible & Session Context
-## March 28, 2026 — Embedded Inference v18.0.0 (llama-cpp-2 Vulkan + Hot-Swap Models)
+## March 31, 2026 — Agnostic HTTP Inference v19.0.0 (LM Studio + BYOP Architecture)
 
 ---
 
@@ -25,7 +25,7 @@ Trinity ID AI OS is a gamified instructional design system that helps K-12 teach
 **THE THREE UX SYSTEMS:**
 - **AUDIO** — Telephone line / Voice interfaces.
 - **WEB** — React frontend (Iron Road / ART page / About).
-- **BEVY** — **THE FORGE** (The immersive 3D WASM Game Engine embedded perfectly into the ART studio pipeline, allowing students to watch their lesson plans manifest dynamically into playable geometry via Agentic commands).
+- **BEVY** — **DAYDREAM** (The immersive 3D native Bevy engine, spawned as an OS sidecar process. Pure Rust. No JavaScript in the DAYDREAM engine).
 
 **The P-ART-Y Framework (Who operates Trinity):**
 - **P = Pete** — The ONLY AI personality (Mistral Small 4 119B)
@@ -49,39 +49,42 @@ User Message → VAAM Bridge → Pete Orchestration → Quest Objective Complete
 
 ---
 
-## 3. RUNTIME ARCHITECTURE (Embedded Inference)
+## 3. RUNTIME ARCHITECTURE (Agnostic HTTP Inference)
 
-> **ARCHITECTURE CHANGE (March 28, 2026):** Trinity now uses embedded llama-cpp-2 (Vulkan GPU)
-> as the PRIMARY inference engine. No separate server process. No HTTP overhead. Single binary.
-> HTTP backends (llama-server, LM Studio, Ollama) serve as auto-detected fallbacks only.
+> **ARCHITECTURE CHANGE (March 30–31, 2026):** Trinity now uses an agnostic HTTP InferenceRouter
+> that dispatches to any OpenAI-compatible backend. LM Studio is the primary backend.
+> Embedded `llama-cpp-2` has been fully archived. The system is a lightweight Rust binary
+> that connects to whichever backend the user launches on their machine.
 
-- **Embedded llama-cpp-2 (PRIMARY)** (~68GB model):
-  - Mistral Small 4 119B GGUF Q4_K_M (default).
-  - Direct Vulkan GPU via `llama-cpp-2` Rust FFI crate.
-  - Hot-swappable: models can be loaded/unloaded at runtime.
-  - Deferred loading: loads AFTER server starts on :3000.
+- **LM Studio (PRIMARY, :1234)**:
+  - Mistral Small 4 119B Q4_K_M.
+  - 2M+ token dual context window, Q8_0 KV cache quantization.
+  - System-prompt persona differentiation (no `id_slot` required).
+  - Flash Attention enabled.
 - **HTTP Fallback (AUTO-DETECT)**:
-  - llama-server (:8080), LM Studio (:1234), Ollama (:11434).
-  - Auto-detected by InferenceRouter when embedded model is not loaded.
+  - llama-server (:8080), Ollama (:11434), any OpenAI-compat (configurable).
+  - Auto-detected by InferenceRouter when primary is offline.
 - **Voice (Embedded ORT)**: Supertonic-2 TTS (~280MB) & Whisper Base STT (~278MB).
+- **Native RAG (Embedded ORT)**: all-MiniLM-L6-v2 embeddings via `ort` crate, cosine similarity in Rust.
 - **ComfyUI SDXL Turbo (:8188)**: Image generation (HTTP sidecar).
+- **MCP Server**: `trinity-mcp-server` stdio bridge for IDE integration (Zed, Cursor).
+- **Background Jobs**: SQLite-persisted async task queue for overnight autonomous generation.
 
-**Boot Order (prevents dual-loading crashes):**
+**Boot Order:**
 1. Server starts on :3000 (instant)
 2. TTS/STT ONNX models load on CPU (~2s)
 3. ComfyUI probed (HTTP, separate process)
-4. 5s delay for ONNX settling
-5. Mistral 68GB loads via Vulkan GPU (30-60s, background task)
+4. InferenceRouter checks LM Studio → llama-server → Ollama (auto-detect)
 
 ---
 
 ## 4. CURRENT SYSTEM STATE (Purdue Presentation Ready)
-- **Embedded Inference**: LIVE. The 68GB Mistral Small 4 loads directly via Vulkan GPU — zero HTTP overhead, single process.
-- **Model Hot-Swap**: LIVE. `Arc<RwLock<Option<Arc<EmbeddedModel>>>>` allows runtime model loading/unloading.
+- **Agnostic HTTP Inference**: LIVE. LM Studio serves Mistral Small 4 119B via HTTP; Trinity dispatches via InferenceRouter.
+- **BYOP Architecture**: LIVE. Users can "Bring Your Own Pipeline" — any OpenAI-compatible backend works.
 - **Startup Connection Handshake**: LIVE. `/api/config/setup` actively pings external LLMs (LM Studio/Ollama) with a 3-second timeout to prevent UI load on dead connections.
-- **The Forge 3D WASM Studio**: LIVE.
+- **The Forge 3D WASM Studio**: `Archived` — replaced by DAYDREAM (native Bevy sidecar, no WASM).
 - **Code Textbook Autopoiesis (Phase 8)**: LIVE.
-- **UI Deliverables Triad**: LIVE. Work (Yardmaster IDE), Fun (Art Studio/Forge), Learning (Iron Road).
+- **UI Deliverables Triad**: LIVE. Work (Yardmaster IDE), Fun (Art Studio/DAYDREAM), Learning (Iron Road).
 - **Art Studio (Conversational Media)**: LIVE. Developer telemetry stripped in favor of a purely conversational interface with a dynamic Virtual File System (VAAM) for navigating assets.
 - **Yardmaster (Root Dev Zone)**: LIVE. The Beast Logger has been transformed into a massive, centralized telemetry terminal, chronologically merging ComfyUI, System, and Forge Agent traces.
 - **Portfolio & Character Sheet Unification**: LIVE.
@@ -96,22 +99,27 @@ User Message → VAAM Bridge → Pete Orchestration → Quest Objective Complete
 ## 5. DEFERRED TASKS (Future Action Queue)
 
 ### Priority Tasks (Next Session Focus)
-- [ ] **Perfect the "Ignition Box" Orchestration**: `lms server start` and `lms load mistral` currently race each other inside the `backend_start` endpoint. We must refactor `/api/system/backend-start` to run `server start` as a daemon, strictly poll `http://localhost:1234` until it replies `200 OK`, and *then* fire `load mistral`. Consider upgrading the button to stream an SSE progress block (`Server Booting...` -> `Loading Mistral...` -> `Ready`).
+- [ ] **Live Playthrough Test**: Walk a real PEARL through Ch1 Analysis→Design→Development, verify all 28 SSE events manifest in UI
+- [ ] **CRAPEYE Objective Gaps**: `objectives.json` only has ADDIE-specific objectives for Ch2-12; CRAPEYE phases fall back to Socratic generation — fill in bespoke objectives
+- [ ] **Hook Book TCG Bridge**: Complete GlobalDeckOverlay ↔ Bevy Daydream communication for drag-and-drop Hook Card casting
+- [ ] **Perfect the "Ignition Box" Orchestration**: `lms server start` and `lms load mistral` currently race each other inside the `backend_start` endpoint. Consider upgrading the button to stream an SSE progress block (`Server Booting...` -> `Loading Mistral...` -> `Ready`).
 
 ### Quick Wins (< 30 min each)
-- [ ] **Express Mode Button Labels**: Add text labels/tooltips to the three icon buttons at the bottom of Iron Road screen.
-- [ ] **Bible vLLM Cleanup**: Remove all vLLM references from TRINITY_FANCY_BIBLE.md.
-- [ ] **HOOK_BOOK vLLM Cleanup**: Remove vLLM references from HOOK_BOOK.md.
-- [ ] **PROFESSOR.md Cleanup**: Remove vLLM references.
+- [x] **Express Mode Button Labels**: 🚂 ⚡ 🔧 buttons now show text labels (Iron Road, Express, Workshop).
+- [x] **Bible vLLM Cleanup**: Remove all vLLM references from TRINITY_FANCY_BIBLE.md.
+- [x] **HOOK_BOOK vLLM Cleanup**: Remove vLLM references from HOOK_BOOK.md.
+- [x] **PROFESSOR.md Cleanup**: Remove vLLM references.
 - [ ] **docs/ Sweep**: Clean remaining vLLM references in docs/ subdirectories.
 - [ ] **Copywriting Summary**: Create a 2-page executive overview distilled from the Bible.
-- [ ] **inference.rs Comments**: Update file header comments to reflect embedded architecture.
-- [ ] **LDTAtkinson vLLM References**: Clean vLLM mentions from portfolio site source.
+- [ ] **inference.rs Comments**: Update file header comments to reflect agnostic architecture.
+- [x] **LDTAtkinson vLLM References**: Clean vLLM mentions from portfolio site source.
+- [x] **All 28 Game Mechanics Wired**: R1-R7 (Coal/Steam, Scope Creep, Friction, Vulnerability, Shadow, Per-Phase Objectives, Perspective) fully connected in agent.rs pipeline.
 
 ### Medium Tasks (1-2 hours)
 - [ ] **AppImage Packaging**: Update build-appimage.sh to bundle trinity binary + frontend, add first-run model wizard.
 - [ ] **HuggingFace Downloader**: POST /api/model/download + SSE progress stream + first-run UI.
 - [ ] **Recommended Models List**: Curated list of GGUF models with hardware requirements.
+- [ ] **Purdue Student IP Office Submission**: Package documentation, source, and demo for formal submission.
 
 ### Archive Reference
 - vLLM scripts → `archive/vllm-scripts/`
@@ -124,7 +132,8 @@ User Message → VAAM Bridge → Pete Orchestration → Quest Objective Complete
 
 All vLLM code, configuration, and service files have been removed from active source.
 - Zero vLLM references in any `*.rs` file
-- Config updated: `primary = "llama-server"` (HTTP fallback only)
+- Config updated: InferenceRouter auto-detects LM Studio (:1234) → llama-server (:8080) → Ollama (:11434)
+- `embedded_inference.rs` archived, `llama-cpp-2` build dependency stripped
 - 13 vLLM files archived to `archive/vllm-scripts/`
 - 9/9 inference_router tests passing
 

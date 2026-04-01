@@ -196,6 +196,10 @@ pub struct AppState {
     pub player: PlayerContext,
     /// Project-level state (active PEARL, quest, chat, narrative)
     pub project: ProjectContext,
+    
+    // ── Daydream Sidecar Pipeline ──
+    /// Channel to send JSON commands to the native Bevy sidecar's STDIN
+    pub daydream_tx: Option<tokio::sync::mpsc::Sender<String>>,
 }
 
 /// Chat message
@@ -819,6 +823,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         session_id: session_id_arc.clone(),
     };
 
+    let (daydream_tx_sender, mut daydream_rx_receiver) = tokio::sync::mpsc::channel::<String>(100);
+
     let state = AppState {
         // System layer
         inference_router: Arc::new(RwLock::new(inference_router)),
@@ -827,6 +833,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         vaam_bridge,
         tts_engine,
         stt_engine,
+        daydream_tx: Some(daydream_tx_sender),
         // Ignition state machine (starts idle)
         ignition_status: Arc::new(RwLock::new("idle".to_string())),
         // Background job queue
@@ -926,12 +933,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/tools", get(tools::list_tools))
         .route("/api/projects/community", get(api_community_templates))
         .route("/api/tools/execute", post(tools::execute_tool))
+        .route("/api/daydream/command", post(post_daydream_command))
 
         .route("/api/quest", get(quests::get_game_state))
         .route("/api/quest/complete", post(quests::complete_objective))
         .route("/api/quest/advance", post(quests::advance_phase))
         .route("/api/quest/party", post(quests::toggle_party_member))
         .route("/api/quest/subject", post(quests::set_subject))
+        .route("/api/quest/tame_creep", post(quests::tame_creep))
+        .route("/api/quest/economy", post(quests::update_economy))
         .route("/api/quest/execute", post(orchestrate_quest))
         .route("/api/quest/compile", post(compile_game_design_document))
         .route("/api/system/backend-start", post(backend_start))
@@ -1120,10 +1130,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 art_studio_path = current_exe.parent().unwrap_or(&std::path::Path::new("")).join("art_studio.exe");
             }
 
-            let mut command = std::process::Command::new(&art_studio_path);
+            let mut command = tokio::process::Command::new(&art_studio_path);
             
-            if let Err(e) = command.env("AXUM_URL", "http://127.0.0.1:3000").spawn() {
-                tracing::error!("Failed to launch DAYDREAM native engine directly ({:?}): {}. Make sure to build it first with 'cargo build --bin art_studio --features desktop -p trinity-bevy-graphics'.", art_studio_path, e);
+            match command.env("AXUM_URL", "http://127.0.0.1:3000")
+                .stdin(std::process::Stdio::piped())
+                .spawn() {
+                Ok(mut child) => {
+                    info!("🔗 Successfully bound STDIN to Daydream Engine!");
+                    use tokio::io::AsyncWriteExt;
+                    if let Some(mut stdin) = child.stdin.take() {
+                        tokio::spawn(async move {
+                            while let Some(msg) = daydream_rx_receiver.recv().await {
+                                let lined_msg = format!("{}\n", msg);
+                                if let Err(e) = stdin.write_all(lined_msg.as_bytes()).await {
+                                    tracing::error!("Failed to write to DAYDREAM stdin: {}", e);
+                                    break;
+                                }
+                            }
+                        });
+                    }
+                }
+                Err(e) => {
+                    tracing::error!("Failed to launch DAYDREAM native engine directly ({:?}): {}. Make sure to build it first with 'cargo build --bin art_studio --features desktop -p trinity-bevy-graphics'.", art_studio_path, e);
+                }
             }
         });
 
@@ -1136,6 +1165,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
+}
+
+/// HTTP Endpoint for React frontend to send Daydream Command Payloads to the `art_studio` sidecar
+#[derive(Debug, Deserialize)]
+pub struct DaydreamCommandRequest {
+    pub command: String,
+    pub params: serde_json::Value,
+}
+
+async fn post_daydream_command(
+    State(state): State<AppState>,
+    Json(payload): Json<DaydreamCommandRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    if let Some(tx) = &state.daydream_tx {
+        let msg = serde_json::json!({
+            "command": payload.command,
+            "payload": payload.params
+        }).to_string();
+        
+        if tx.send(msg).await.is_ok() {
+            return Ok(Json(serde_json::json!({"success": true})));
+        }
+    }
+    tracing::error!("Daydream TX channel is disconnected or missing.");
+    Err(StatusCode::SERVICE_UNAVAILABLE)
 }
 
 /// Serve the Five Chariots + Hook Book — root documentation as raw markdown
@@ -1217,6 +1271,12 @@ async fn update_character_sheet(
         if !vis.is_empty() {
             sheet.success_vision = Some(vis.to_string());
         }
+    }
+    
+    // Player Identity / Description 
+    if let Some(backstory) = request.get("backstory").and_then(|v| v.as_str()) {
+        // We allow it to be empty if they want to clear it
+        sheet.backstory = Some(backstory.to_string());
     }
 
     if let Err(e) = character_sheet::save_character_sheet(&sheet) {
@@ -2106,6 +2166,44 @@ What left those lanterns burning, and why do they seem to pulse in time with you
                         else { format!("\nThe traveler's vision: \"{}\"", pearl_vision) },
                     creep_cards = creep_cards,
                     bestiary_summary = bestiary_summary,
+                )
+            }
+            "creative-studio" => {
+                let objectives_text = {
+                    let game = game_state.read().await;
+                    let objs: Vec<String> = game.quest.phase_objectives.iter()
+                        .enumerate()
+                        .map(|(i, o)| format!("{}. [{}] {}", i + 1,
+                            if o.completed { "✓ DONE" } else { "○ TODO" },
+                            o.description))
+                        .collect();
+                    if objs.is_empty() {
+                        "No objectives set yet — help the user define their first steps.".to_string()
+                    } else {
+                        objs.join("\n")
+                    }
+                };
+
+                format!(
+                    r#"You are Pete — the Socratic game development partner in the Daydream Engine (powered by native Bevy 0.18.1 & Rust). You help the user build an educational LitRPG.
+
+## YOUR CONTEXT
+The user is working in the Daydream Studio UI. They have a physical "Hook Deck" (Trading Card Game mechanics) mapped to Bevy functionality:
+1. 🔮 The Pearl: Defines the Win Condition / Goal Entity.
+2. 🪨 The Coal: Adds friction — spawns obstacles, colliders, or timer constraints.
+3. 💨 The Steam: Adds momentum — boosts player Velocity, reduces friction.
+4. 🪝 The Hook: Adds engagement — spawns attractors, grappling hooks, or enemies.
+5. 🪞 The Mirror: Assessment — spawns reflection puzzles, duplicates, or scoreboards.
+6. 🧭 The Compass: Navigation — spawns waypoints, draws paths tracking.
+
+## THE SCRIPT
+You do NOT execute these hooks yourself. The user has graphical cards in Daydream to cast them!
+When a user asks to add friction, collision, speed, or tracking, guide them to *cast the appropriate Hook from their deck*. If they ask how a hook works internally, explain the Bevy equivalent mechanics (e.g., "The Coal spawns a Rapier Collider"), but encourage them to cast the spell graphically.
+For generic Bevy queries unrelated to the Hooks, you may provide Rust architecture advice, but always tie it back to the active objectives.
+
+CURRENT OBJECTIVES:
+{objectives_text}"#,
+                    objectives_text = objectives_text
                 )
             }
             _ =>
@@ -3920,6 +4018,8 @@ struct ScopeDecisionRequest {
     pub word: String,
     /// "hope" (tame it) or "nope" (leave it wild)
     pub decision: String,
+    /// The optional Hook ID used to tame this creep
+    pub hook_id: Option<String>,
 }
 
 async fn scope_creep_decision(
@@ -3944,6 +4044,21 @@ async fn scope_creep_decision(
                 sheet.current_steam = (sheet.current_steam + 5.0).min(100.0);
                 sheet.track_friction = (sheet.track_friction - 3.0).max(0.0);
                 sheet.consecutive_negatives = 0;
+                
+                // If a Hook was used to tame this creep, level up the Hook!
+                if let Some(h_id) = request.hook_id {
+                    let mut hook_deck = sheet.ldt_portfolio.hook_deck.clone();
+                    if let Some(hook) = hook_deck.get_mut(&h_id) {
+                        hook.xp += 50;
+                        hook.creeps_tamed += 1;
+                        if hook.xp >= (hook.level as u32 * 100) {
+                            hook.level += 1;
+                            hook.xp = 0;
+                        }
+                    }
+                    sheet.ldt_portfolio.hook_deck = hook_deck;
+                }
+                
                 sheet.recalculate_vulnerability();
                 let steam = sheet.current_steam;
                 let friction = sheet.track_friction;

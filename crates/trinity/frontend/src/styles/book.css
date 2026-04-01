@@ -1877,6 +1877,46 @@
 .train-stat { color: var(--text-dim); }
 .train-stat__value { color: var(--gold); font-family: var(--font-mono); }
 
+/* ── Engine Diagnostics — Progressive Disclosure ── */
+.train-advanced-toggle {
+  width: 100%;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border-glass);
+  margin-top: 6px;
+  padding: 5px 0 2px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.2s;
+}
+.train-advanced-toggle:hover { color: var(--gold); }
+
+.train-advanced-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  display: inline-block;
+  margin-left: auto;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.train-advanced {
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* ── HUD Stat Row ── */
 .hud-stat-row { display: flex; justify-content: space-between; font-size: 11px; }
 
@@ -1948,6 +1988,25 @@
 
 .circuitry-cell__icon { font-size: var(--type-md); }
 .circuitry-cell__label { opacity: 0.7; margin-top: 2px; }
+.circuitry-cell__count {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  opacity: 0.6;
+  margin-top: 1px;
+}
+.circuitry-cell__bar {
+  width: 100%;
+  height: 3px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px;
+  margin-top: 3px;
+  overflow: hidden;
+}
+.circuitry-cell__fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
 
 /* ═══════════════════════════════════════════════
    STATION OVERVIEW — Chapter Title Pages
@@ -3717,6 +3776,65 @@ select.art-input option {
   opacity: 1;
   background: rgba(207,185,145,0.15);
   box-shadow: 0 0 10px rgba(207,185,145,0.1);
+}
+
+.mode-toggle__label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: inherit;
+  vertical-align: middle;
+}
+
+/* ═══════════════════════════════════════════════
+   BOOK SECTION — Narrative Chapter Cards (GameHUD)
+   ═══════════════════════════════════════════════ */
+
+.book-write-btn {
+  float: right;
+  background: none;
+  border: 1px solid rgba(207,185,145,0.2);
+  border-radius: 4px;
+  color: #CFB991;
+  cursor: pointer;
+  padding: 1px 6px;
+  font-size: 9px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.book-write-btn:hover {
+  background: rgba(207,185,145,0.08);
+  border-color: rgba(207,185,145,0.4);
+}
+
+.book-write-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.book-narrative {
+  font-size: 11px;
+  color: #94a3b8;
+  font-style: italic;
+  font-family: 'Crimson Text', serif;
+  padding: 6px 0;
+  max-height: 120px;
+  overflow: auto;
+  line-height: 1.5;
+}
+
+.book-chapter {
+  font-size: 10px;
+  color: #6B7280;
+  border-top: 1px solid rgba(207,185,145,0.06);
+  padding: 4px 0;
+}
+
+.book-empty-hint {
+  font-size: 10px;
+  color: #4B5563;
+  font-style: italic;
+  padding: 8px 0;
 }
 
 /* ═══════════════════════════════════════════════

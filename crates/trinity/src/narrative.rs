@@ -123,7 +123,7 @@ pub fn station_description(stage: HeroStage) -> &'static str {
              The Iron Road awaits its first traveler."
         }
         HeroStage::RefusalOfTheCall => {
-            "Station 3: Refusal of the Call — Doubt creeps in at the Code Forges. \
+            "Station 3: Refusal of the Call — Doubt creeps in at the DAYDREAM Workshop. \
              Scope Creeps whisper tempting distractions."
         }
         HeroStage::MeetingTheMentor => {

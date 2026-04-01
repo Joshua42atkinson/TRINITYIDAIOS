@@ -19,6 +19,8 @@ Hooks are organized by **School** (domain of application) and **Tier** (current 
 ---
 
 ## 🏫 School of Pedagogy — *The Teacher's Arsenal*
+> **Purdue Alignment:** EDCI 51300 (Foundations) & EDCI 53100 (Learning Theories)
+> *Cognitivism, Constructivism, and the ADDIECRAPEYE framework.*
 
 | Hook | Tier | What It Does |
 |------|:----:|-------------|
@@ -38,6 +40,8 @@ Hooks are organized by **School** (domain of application) and **Tier** (current 
 ---
 
 ## 🎨 School of Creation — *The ART Studio*
+> **Purdue Alignment:** EDCI 57200 (Learning Systems Design) & EDCI 56900 (Intro to E-Learning)
+> *Mayer's Principles of Multimedia Learning (Coherence, Spatial Contiguity) via AI Generative tools.*
 
 | Hook | Tier | What It Does |
 |------|:----:|-------------|
@@ -54,6 +58,8 @@ Hooks are organized by **School** (domain of application) and **Tier** (current 
 ---
 
 ## ⚙️ School of Systems — *The Yardmaster's Workshop*
+> **Purdue Alignment:** EDCI 52800 (Human Performance Technology - HPT)
+> *Systemic Needs Analysis, Agentic Organization, and Environmental Engineering.*
 
 | Hook | Tier | What It Does |
 |------|:----:|-------------|
@@ -73,6 +79,8 @@ Hooks are organized by **School** (domain of application) and **Tier** (current 
 ---
 
 ## 🎭 School of Identity — *The Character Sheet*
+> **Purdue Alignment:** EDCI 57700 (Strategic Assessment) & AECT Standards
+> *Portfolios as proof of Competency over typical written assessment.*
 
 | Hook | Tier | What It Does |
 |------|:----:|-------------|

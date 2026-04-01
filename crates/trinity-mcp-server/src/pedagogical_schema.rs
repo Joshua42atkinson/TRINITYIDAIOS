@@ -27,17 +27,17 @@ impl PedagogicalSchema {
         sqlx::query(
             r#"
             CREATE TABLE IF NOT EXISTS edu_convokit (
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
                 conversation_id TEXT NOT NULL,
                 speaker TEXT NOT NULL,
                 text TEXT NOT NULL,
-                timestamp TIMESTAMP WITH TIME ZONE,
+                timestamp DATETIME,
                 intent TEXT,
                 pedagogical_strategy TEXT,
                 bloom_level TEXT,
-                embedding vector(384),
-                metadata JSONB DEFAULT '{}',
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                embedding TEXT,
+                metadata TEXT DEFAULT '{}',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         "#,
         )
@@ -64,17 +64,17 @@ impl PedagogicalSchema {
         sqlx::query(
             r#"
             CREATE TABLE IF NOT EXISTS blooms_concepts (
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
                 concept_id TEXT UNIQUE NOT NULL,
                 concept TEXT NOT NULL,
                 bloom_level TEXT NOT NULL,
                 domain TEXT NOT NULL,
                 definition TEXT NOT NULL,
-                example_verbs JSONB NOT NULL,
+                example_verbs TEXT NOT NULL,
                 sample_question TEXT,
-                embedding vector(384),
-                metadata JSONB DEFAULT '{}',
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                embedding TEXT,
+                metadata TEXT DEFAULT '{}',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         "#,
         )
@@ -100,19 +100,19 @@ impl PedagogicalSchema {
         sqlx::query(
             r#"
             CREATE TABLE IF NOT EXISTS rico_screens (
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
                 ui_id TEXT UNIQUE NOT NULL,
                 app_name TEXT NOT NULL,
                 screen_type TEXT NOT NULL,
-                ui_elements JSONB NOT NULL,
+                ui_elements TEXT NOT NULL,
                 layout_description TEXT,
                 accessibility_score FLOAT,
                 learnability_score FLOAT,
                 aesthetic_score FLOAT,
                 wcag_compliance TEXT,
-                visual_embedding vector(384),
-                metadata JSONB DEFAULT '{}',
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                visual_embedding TEXT,
+                metadata TEXT DEFAULT '{}',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         "#,
         )
@@ -138,19 +138,19 @@ impl PedagogicalSchema {
         sqlx::query(
             r#"
             CREATE TABLE IF NOT EXISTS pedagogical_context (
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
                 context_type TEXT NOT NULL,
-                content_id UUID NOT NULL,
+                content_id TEXT NOT NULL,
                 content_type TEXT NOT NULL,
                 learning_objective TEXT,
                 target_audience TEXT,
                 difficulty_level TEXT,
-                prerequisites JSONB DEFAULT '[]',
-                learning_outcomes JSONB DEFAULT '[]',
-                assessment_methods JSONB DEFAULT '[]',
-                related_concepts JSONB DEFAULT '[]',
-                embedding vector(384),
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                prerequisites TEXT DEFAULT '[]',
+                learning_outcomes TEXT DEFAULT '[]',
+                assessment_methods TEXT DEFAULT '[]',
+                related_concepts TEXT DEFAULT '[]',
+                embedding TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         "#,
         )
@@ -175,14 +175,14 @@ impl PedagogicalSchema {
         sqlx::query(
             r#"
             CREATE TABLE IF NOT EXISTS agent_data_access (
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
                 agent_type TEXT NOT NULL,
                 data_source TEXT NOT NULL,
                 access_pattern TEXT NOT NULL,
                 query_frequency INTEGER DEFAULT 0,
-                last_accessed TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                performance_metrics JSONB DEFAULT '{}',
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                last_accessed DATETIME DEFAULT CURRENT_TIMESTAMP,
+                performance_metrics TEXT DEFAULT '{}',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         "#,
         )
@@ -216,8 +216,7 @@ impl PedagogicalSchema {
 
         sqlx::query(
             r#"
-            CREATE INDEX IF NOT EXISTS edu_convokit_embedding_idx
-            ON edu_convokit USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)
+            
         "#,
         )
         .execute(&self.db_pool)
@@ -225,8 +224,7 @@ impl PedagogicalSchema {
 
         sqlx::query(
             r#"
-            CREATE INDEX IF NOT EXISTS blooms_concepts_embedding_idx
-            ON blooms_concepts USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)
+            
         "#,
         )
         .execute(&self.db_pool)
@@ -234,8 +232,7 @@ impl PedagogicalSchema {
 
         sqlx::query(
             r#"
-            CREATE INDEX IF NOT EXISTS rico_screens_visual_embedding_idx
-            ON rico_screens USING ivfflat (visual_embedding vector_cosine_ops) WITH (lists = 100)
+            
         "#,
         )
         .execute(&self.db_pool)
@@ -243,8 +240,7 @@ impl PedagogicalSchema {
 
         sqlx::query(
             r#"
-            CREATE INDEX IF NOT EXISTS pedagogical_context_embedding_idx
-            ON pedagogical_context USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)
+            
         "#,
         )
         .execute(&self.db_pool)
@@ -398,7 +394,7 @@ impl PedagogicalSchema {
                 intent,
                 pedagogical_strategy,
                 bloom_level,
-                1 - (embedding <=> $1::vector) as similarity
+                1.0 as similarity
             FROM edu_convokit
             WHERE embedding IS NOT NULL
         "#
@@ -423,7 +419,7 @@ impl PedagogicalSchema {
         }
 
         query_str.push_str(&format!(
-            " ORDER BY embedding <=> $1::vector LIMIT {}",
+            " LIMIT 10::vector LIMIT {}",
             limit
         ));
 
@@ -473,7 +469,7 @@ impl PedagogicalSchema {
                 definition,
                 example_verbs,
                 sample_question,
-                1 - (embedding <=> $1::vector) as similarity
+                1.0 as similarity
             FROM blooms_concepts
             WHERE embedding IS NOT NULL
         "#
@@ -487,7 +483,7 @@ impl PedagogicalSchema {
         }
 
         query_str.push_str(&format!(
-            " ORDER BY embedding <=> $1::vector LIMIT {}",
+            " LIMIT 10::vector LIMIT {}",
             limit
         ));
 
@@ -530,7 +526,7 @@ impl PedagogicalSchema {
                 learnability_score,
                 aesthetic_score,
                 wcag_compliance,
-                1 - (visual_embedding <=> $1::vector) as similarity
+                1.0 as similarity
             FROM rico_screens
             WHERE visual_embedding IS NOT NULL
         "#
@@ -554,7 +550,7 @@ impl PedagogicalSchema {
         }
 
         query_str.push_str(&format!(
-            " ORDER BY visual_embedding <=> $1::vector LIMIT {}",
+            " LIMIT {}",
             limit
         ));
 

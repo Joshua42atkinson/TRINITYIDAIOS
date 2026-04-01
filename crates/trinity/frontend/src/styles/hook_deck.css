@@ -1,0 +1,66 @@
+.global-deck-wrapper {
+  position: fixed;
+  bottom: 80px; /* Above the footer */
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  gap: 12px;
+  pointer-events: none; /* Only cards capture pointer */
+}
+
+.hook-card {
+  pointer-events: auto;
+  width: 90px;
+  height: 120px;
+  background: rgba(30, 30, 35, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  cursor: grab;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  color: #fff;
+  user-select: none;
+}
+
+.hook-card:active {
+  cursor: grabbing;
+  transform: scale(0.95);
+}
+
+.hook-card:hover {
+  transform: translateY(-8px) scale(1.05);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.6);
+}
+
+.hook-card__icon {
+  font-size: 2.2rem;
+  margin-bottom: 6px;
+  text-shadow: 0 0 10px rgba(255,255,255,0.2);
+}
+
+.hook-card__title {
+  font-size: 0.65rem;
+  font-weight: bold;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: auto;
+}
+
+.hook-card__level {
+  font-size: 0.65rem;
+  color: #34d399;
+  font-weight: bold;
+}
+
+.hook-card__xp {
+  font-size: 0.5rem;
+  opacity: 0.6;
+}

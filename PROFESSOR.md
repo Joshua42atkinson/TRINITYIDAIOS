@@ -4,7 +4,7 @@
 
 > *"I know what success looks like."* — The Stakeholder's Tagline
 
-**Version 1.0** — March 2026
+**Version 1.1** — March 31, 2026
 
 > 🌐 **Live Demo**: [https://LDTAtkinson.com](https://LDTAtkinson.com) · [Trinity App](https://LDTAtkinson.com/trinity/) · [Source Archive](https://LDTAtkinson.com/downloads/TRINITY_ID_AI_OS_v1.0_source.tar.gz)
 
@@ -87,10 +87,10 @@ Trinity is explicitly designed around two core psychological frameworks:
 
 ### The AI Mentors — Inhale / Exhale
 
-Trinity uses **two AI personas** sharing one brain (Mistral Small 4 119B) with separate KV cache memory:
+Trinity uses **two AI personas** sharing one brain (Mistral Small 4 119B via LM Studio or any OpenAI-compatible backend) with system-prompt-differentiated memory:
 
-- **Great Recycler 🔮** (Inhale — Slot 0): The Socratic mentor. Asks WHY, challenges assumptions, guides reflection. Never produces deliverables directly. Makes the user *think*.
-- **Programmer Pete ⚙️** (Exhale — Slot 1): The executor. Builds lesson plans, rubrics, code, artifacts. Acts first, explains after. Produces *things* for the user.
+- **Great Recycler 🔮** (Inhale): The Socratic mentor. Asks WHY, challenges assumptions, guides reflection. Never produces deliverables directly. Makes the user *think*.
+- **Programmer Pete ⚙️** (Exhale): The executor. Builds lesson plans, rubrics, code, artifacts. Acts first, explains after. Produces *things* for the user.
 
 The Recycler breathes IN (questioning, metacognition). Pete breathes OUT (deliverables, execution). Together they form an instructional cycle: **reflect before you build, then build what you reflected on.**
 
@@ -103,6 +103,8 @@ Both personas:
 
 - **100% local execution** — no data ever leaves the machine
 - **No API keys required** — all AI models run on local hardware
+- **EdgeGuard security middleware** — route-by-route access control with Red Hat-tier security posture
+- **CowCatcher input sanitization** — blocks prompt injection, path traversal, and code execution attacks
 - **44 blocked command patterns** — prevents destructive system operations
 - **Path sandboxing** — AI can only read/write within approved directories
 - **Three-tier tool permissions** — Safe, NeedsApproval, Destructive
@@ -194,7 +196,7 @@ Trinity is designed for AMD Strix Halo (Ryzen AI Max+ 395) but can scale down:
 | **Recommended** | RDNA 3+ GPU | 24GB+ | Full Socratic interaction | ~25 tok/s (24B model) |
 | **Optimal** | AMD Strix Halo (Ryzen AI Max+ 395) | 128GB unified | All AI models concurrent | **40+ tok/s (119B MoE)** |
 
-The development system (AMD Strix Halo) runs **Mistral Small 4 119B** (68GB Q4_K_M) at **40+ tokens/second** with a **500K+ context window** — entirely offline. This includes:
+The development system (AMD Strix Halo) runs **Mistral Small 4 119B** (68GB Q4_K_M) via **LM Studio** at **40+ tokens/second** with a **2M+ token context window** — entirely offline. Inference is backend-agnostic: the user can "Bring Your Own Pipeline" (LM Studio, Ollama, llama-server, or any OpenAI-compatible API). This includes:
 
 - **CPU**: Zen 5, 16 cores / 32 threads
 - **GPU**: RDNA 3.5 integrated, 40 CUs
@@ -209,39 +211,48 @@ Trinity is designed to scale from a single laptop (one user, one GPU) to institu
 
 ### KV Cache Architecture
 
-Every LLM conversation requires a **KV (Key-Value) cache** — the model's working memory of the current conversation. Trinity uses **dual KV cache slots** on a single model instance:
+Every LLM conversation requires a **KV (Key-Value) cache** — the model's working memory of the current conversation. Trinity's agnostic inference router supports any backend's KV cache strategy:
 
-| Slot | Persona | Context | Purpose |
-|------|---------|---------|---------|
-| **Slot 0** | Great Recycler 🔮 | 256K tokens | Strategic thinking, curriculum design, WHY questions |
-| **Slot 1** | Programmer Pete ⚙️ | 256K tokens | Execution, tool use, HOW questions |
+| Backend | Persona Differentiation | Context | Purpose |
+|---------|---------|---------|---------|
+| **LM Studio** (recommended) | System prompt differentiation | 1M+ tokens per slot | Deep session history with mmap-deferred VRAM allocation |
+| **llama-server** (`--parallel 2`) | Dual KV cache slots (0/1) | 256K per slot | Hardware-pinned persona switching |
+| **Ollama / Custom** | System prompt differentiation | Backend-dependent | Maximum flexibility |
 
-This means one model instance provides **500K+ tokens** of context (enough to hold entire textbooks) with **instant persona switching** — no re-tokenizing system prompts.
+On the development hardware (128GB unified), LM Studio's aggressive mmap and context shifting enables **2M+ tokens** of effective context — enough to hold entire textbooks — with persona switching managed via system prompt differentiation rather than hardware KV slot pinning.
 
 ### Software Process Stack
 
-Trinity's inference is process-isolated and backend-agnostic:
+Trinity's inference is process-isolated and backend-agnostic. The `InferenceRouter` auto-detects available backends at startup:
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  Trinity Server (Axum, port 3000)                       │
-│  InferenceRouter: auto-detects and routes to backends   │
-├─────────────────┬───────────────────────────────────────┤
-│  llama-server   │  vLLM / TGI (institutional)          │
-│  (single user)  │  (multi-user batched inference)       │
-│  Port 8080      │  Port 8080                            │
-│  1 KV cache     │  PagedAttention: shared KV pages      │
-│  1 user         │  100+ concurrent users per instance   │
-├─────────────────┴───────────────────────────────────────┤
-│  Sidecars (optional, independent processes)             │
-│  • ComfyUI (SDXL Turbo) — port 8188, ~6 GB VRAM        │
-│  • Qianfan-OCR — port 8081, ~4 GB VRAM                 │
-│  • Kokoro TTS — port 7777, ~2 GB VRAM                  │
-│  • Whisper STT — shared with voice sidecar              │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 0: Tauri Desktop Shell (native window, optional)     │
+│  ─ OR ─ Headless daemon (TRINITY_HEADLESS=1)                │
+├─────────────────────────────────────────────────────────────┤
+│  Layer 1: Trinity Server (Axum, port 3000)                  │
+│  InferenceRouter: auto-detects and routes to ANY backend    │
+│  EdgeGuard: route-level security middleware                 │
+│  MCP Server: Model Context Protocol for IDE integration     │
+│  Background Jobs: SQLite-persisted async task runner         │
+├─────────────┬──────────────┬────────────────────────────────┤
+│  LM Studio  │ llama-server │  Ollama / Any OpenAI-compat    │
+│  Port 1234  │  Port 8080   │  Configurable                  │
+│  (primary)  │  (fallback)  │  (fallback)                    │
+│  Q8 KV, 2M+ │ Dual KV slot │  Backend-dependent             │
+├─────────────┴──────────────┴────────────────────────────────┤
+│  Native Rust Services (no HTTP, embedded in binary)         │
+│  • Supertonic TTS (ONNX, ~280MB) — 10 voices, real-time     │
+│  • Whisper STT (ONNX, ~278MB) — speech-to-text              │
+│  • RAG Memory (ONNX, all-MiniLM-L6-v2) — vector similarity  │
+├─────────────────────────────────────────────────────────────┤
+│  Sidecars (optional, independent processes)                 │
+│  • ComfyUI (SDXL Turbo) — port 8188, ~6 GB VRAM            │
+│  • MusicGPT — music generation                              │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-The key scaling insight: **vLLM's PagedAttention** shares KV cache pages across users who see the same system prompt. Since every Trinity user shares the same Pete/Recycler preambles, the system prompt KV pages are allocated *once* and shared — only the per-user conversation history is unique.
+The key architectural insight: **"Bring Your Own Pipeline" (BYOP)**. Trinity ships as a lightweight Rust binary that dispatches to whatever inference backend the user has running. Students on consumer hardware use Ollama with small models; the development system runs Mistral 119B via LM Studio; institutional deployments can use batched inference servers. The same Trinity binary works with all of them.
 
 ### Realistic Deployment: 1,000 Users on Gautschi
 
@@ -249,10 +260,10 @@ Purdue's Gautschi supercomputer (March 2025) has **160 NVIDIA H100 SXMs** (80 GB
 
 | Component | H100s | Serves |
 |-----------|:-----:|--------|
-| **vLLM pool** (119B MoE, continuous batching) | 20 (10 instances × 2 GPUs) | ~200–300 concurrent Socratic sessions |
+| **Batched inference pool** (119B MoE, continuous batching via TGI/vLLM) | 20 (10 instances × 2 GPUs) | ~200–300 concurrent Socratic sessions |
 | **SDXL Turbo** (image generation queue) | 4 | ~50 concurrent image requests |
-| **Kokoro TTS + Whisper STT** | 2 | Voice pipeline for accessibility |
-| **Embeddings + RAG** (pgvector) | 2 | Semantic search across all user artifacts |
+| **TTS + STT** (native ONNX or GPU-accelerated) | 2 | Voice pipeline for accessibility |
+| **Embeddings + RAG** (native ONNX MiniLM) | 2 | Semantic search across all user artifacts |
 | **Total** | **~28 of 160** | **1,000 registered users** (200–300 concurrent peak) |
 
 **Cost comparison:**
@@ -271,15 +282,19 @@ Zero data leaves campus. No API keys. Reduces reliance on third-party cloud proc
 
 | Component | Technology | Status |
 |-----------|-----------|:------:|
-| **LLM Brain** | llama.cpp + Mistral Small 4 119B GGUF (Q4_K_M, 68 GB) | ✅ Running |
-| **Inference** | Dual KV cache slots, 500K+ context, 40+ tok/s | ✅ Verified |
+| **LLM Brain** | Agnostic HTTP Inference Router → LM Studio (primary), llama-server / Ollama (fallback). Mistral Small 4 119B GGUF (Q4_K_M, 68 GB) | ✅ Running |
+| **Inference** | System-prompt persona differentiation, 2M+ token context via LM Studio, 40+ tok/s | ✅ Verified |
 | **Image Generation** | ComfyUI + SDXL Turbo (4-step, ~2s/image) | ✅ Running |
-| **Voice** | Kokoro TTS synthesis | ✅ Running |
-| **Socratic Protocol** | 11 phase-specific instruction sets in conductor | ✅ 12/12 claims verified |
+| **Voice** | Supertonic-2 TTS (native ONNX, 10 voices) + Whisper STT (native ONNX) | ✅ Running |
+| **Socratic Protocol** | 12 phase-specific instruction sets in conductor | ✅ 12/12 claims verified |
 | **QM Scoring** | Automated Bloom's + ADDIE + engagement analysis | ✅ Returns real scores |
 | **VAAM** | Vocabulary Acquisition Autonomy Mastery — word scanning + Coal | ✅ Scanning works |
 | **30 Agentic Tools** | File I/O, quest, shell, image gen, lesson plans, rubrics | ✅ All 30 dispatched |
-| **Security** | 44 blocked command patterns, 3-tier tool permissions, path sandboxing | ✅ Verified |
+| **Security** | EdgeGuard middleware + CowCatcher + 44 blocked patterns, 3-tier tool permissions, path sandboxing | ✅ Verified |
+| **MCP Server** | Model Context Protocol for IDE integration (Zed, Cursor, Antigravity) | ✅ Running |
+| **Background Jobs** | SQLite-persisted async task runner for overnight autonomous work | ✅ Running |
+| **Native RAG** | Pure Rust ONNX (all-MiniLM-L6-v2) vector memory, cosine similarity search | ✅ Running |
+| **Tauri Desktop** | Native desktop app with headless daemon mode for web hosting | ✅ Running |
 | **User Model** | Single-user prototype — one CharacterSheet per instance | ✅ By design |
 
 ---
@@ -289,7 +304,7 @@ Zero data leaves campus. No API keys. Reduces reliance on third-party cloud proc
 | Enhancement | Technology | Effort | Impact |
 |-------------|-----------|:------:|--------|
 | **Multi-user sessions** | PostgreSQL per-user isolation, session tokens | 2–3 weeks | Each student gets their own CharacterSheet & quest state |
-| **Batched inference** | vLLM (PagedAttention) replacing llama.cpp | 1 week | 100+ concurrent users per model instance |
+| **Batched inference** | TGI or vLLM (PagedAttention) behind InferenceRouter | 1 week | 100+ concurrent users per model instance |
 | **Full creative pipeline** | MING 2.1 replacing ComfyUI sidecar stack | 1 week | Unified image/video/3D from a single model, no sidecar management |
 | **Speculative decoding** | EAGLE draft model (GGUF) on NPU | 1–2 weeks | 2–3× token throughput on consumer hardware |
 | **NPU offload** | XDNA 2 (AMD, 50 TOPS) for embeddings + STT | 2 weeks | Frees GPU for LLM-only, voice becomes "free" |
@@ -383,7 +398,7 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 | 6 | **VAAM vocabulary scanning** | Bible §4.2 | `scan_text()` at `game_loop.rs:L61` scans 4+ character words, tracks cross-phase usage, awards Coal | Source review | ✅ |
 | 7 | **3-tier tool permissions** | Bible §5.2 Ring 1 | `ToolPermission` enum (Safe/NeedsApproval/Destructive) at `tools.rs:L61-66`, mapping at `tools.rs:L70-106`, unknown defaults to Destructive | Source review | ✅ |
 | 8 | **Dual KV cache (500K+ context)** | Bible §1.4, §12.2 | Dual slot architecture in `agent.rs:L132-145`, `persona_slot()` maps persona → cache slot 0/1 | Source review | ✅ |
-| 9 | **All API endpoints healthy** | PROFESSOR §API Verification | `/api/health` (healthy), `/api/quest` (chapter 1), `/api/bestiary` (46 creeps), `/api/book` (ok), `/api/inference/status` (llama-server active), `/docs/` (serves markdown) | API curl | ✅ |
+| 9 | **All API endpoints healthy** | PROFESSOR §API Verification | `/api/health` (healthy), `/api/quest` (chapter 1), `/api/bestiary` (46 creeps), `/api/book` (ok), `/api/inference/status` (InferenceRouter active), `/docs/` (serves markdown) | API curl | ✅ |
 | 10 | **18 React components** | Bible §1.10 | 18 `.jsx` component files in `crates/trinity/frontend/src/components/` | Filesystem | ✅ |
 | 11 | **100% local execution** | PROFESSOR §Evaluation Criteria | No outbound API calls in source. All model paths reference local filesystem (`~/trinity-models/`). Health checks target `127.0.0.1` only. | Source review | ✅ |
 | 12 | **Zero compile errors** | PROFESSOR §Technical Highlights | `cargo build` completes with 0 errors (1 future-compat warning from upstream `sqlx-postgres`) | Build | ✅ |
@@ -409,7 +424,7 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 | **User-facing coverage** | **47/73 (64%)** | Remaining 26 are internal/plumbing |
 | React components | 18 | `ls components/*.jsx` |
 | React hooks | 6 | `ls hooks/*.js` |
-| Backend Rust modules | 37 | `ls src/*.rs` |
+| Backend Rust modules | 39 | `ls src/*.rs` |
 | Bible verified features | 23 | Feature Status table |
 
 ### Functional Coverage by Domain
@@ -449,7 +464,7 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 | Project archive/restore | Low | Post-demo | Backend exists, UI not wired |
 | Achievement system | Medium | v1.1 | Phase completion only, no badges/unlocks |
 | Ambient music toggle | Low | v1.1 | `music_streamer.rs` exists, needs frontend button |
-| Multi-user sessions | Medium | v2.0 | Needs vLLM PagedAttention for concurrent users |
+| Multi-user sessions | Medium | v2.0 | Needs batched inference backend (TGI/vLLM behind InferenceRouter) |
 
 ### References
 
@@ -598,15 +613,22 @@ Hooks are organized by **School** (domain of application) and **Tier** (current 
 | **Music Composition** | 🟢 | MusicGPT. Text → original music for learning modules, game soundtracks, presentations. |
 | **Video Generation** | 🟡 | Hunyuan Video. Text/image → short-form video for instructional content. |
 | **3D Asset Generation** | 🟡 | Hunyuan3D. Text → 3D models for VR/XR educational environments. |
-| **Voice Narration** | 🟢 | Supertonic-2 TTS, native ONNX. 10 voices. Real-time narration of Pete's responses. |
+| **Voice Narration** | 🟢 | Supertonic-2 TTS, native Rust ONNX. 10 voices. Real-time narration of Pete's responses. No Python dependencies. |
 | **Asset Pipeline** | 🟢 | All creative outputs stored in the local asset library. Reusable across projects. |
-| **Bevy Game Scaffold** | 🟡 | Generate a working Bevy game project from instructional design data. DAYDREAM engine provides 3D LitNovel world that Pete constructs via PEARL-driven blueprints. Course → game. |
+| **Bevy Game Scaffold** | 🟡 | Generate a working Bevy game project from instructional design data. DAYDREAM engine (pure Rust, native Bevy 0.18.1 sidecar — no JavaScript) provides 3D LitNovel world that Pete constructs via PEARL-driven blueprints. Course → game. |
 | **VR/XR Scene Builder** | 🔴 | Generate immersive VR/XR educational environments from design documents. The endgame. |
 | **Interactive Simulation** | 🔴 | Bevy-powered simulations that teach through play. Physics, chemistry, history — any domain. |
 
-#### DAYDREAM — The Pedagogical 3D LitNovel
+#### DAYDREAM — The Pedagogical 3D Sandbox (Rust + Python)
 
-DAYDREAM is not a separate product — it is the **visual manifestation of the user's PEARL** in 3D space. Where the Book-View UI (ZenMode) renders the student's learning journey as flowing prose, DAYDREAM renders that **same pedagogical story as an explorable 3D world**.
+DAYDREAM is not a separate product — it is the **visual manifestation of the user's PEARL** in 3D space. Where the Book-View UI (ZenMode) renders the student's learning journey as flowing prose, DAYDREAM renders that **same pedagogical story as an explorable 3D sandbox**.
+
+**Architecture:** DAYDREAM is a **pure Rust** native Bevy 0.18.1 process spawned as an OS sidecar, enhanced by a **native Python (PyO3) sandbox**. It contains zero JavaScript — all rendering, Rapier/Avian physics, and ECS logic run natively on GPU hardware. To allow teachers and students flexibility without sacrificing safety, Daydream employs a hybrid execution model:
+
+1. **Layer 1 (Tauri + React)**: ADDIECRAPEYE state, LLM chat, Yardmaster UI
+2. **Layer 2 (trinity-protocol)**: Shared Rust structs defining `DaydreamBlueprint`, ECS commands, and state
+3. **Layer 3 (DAYDREAM)**: Native Bevy 0.18.1 engine providing immutable physical laws and hardware-accelerated 3D
+4. **Layer 4 (PyO3 Sandbox)**: An embedded Python runtime allowing Mistral (Pete) to generate on-the-fly Python scripts that safely manipulate Bevy `Velocity` and `Transform` components in real-time. XR-ready (6-DoF).
 
 The key insight: **quest waypoints in 3D space ARE ADDIECRAPEYE objectives.** Completing a waypoint is the same as completing an instructional design task — it burns Coal, generates Steam, and advances the quest. The student doesn't choose between "doing homework" and "playing a game" — they are the same action.
 
@@ -634,7 +656,7 @@ The world evolves with the student's cognitive progression:
 | **Journal System** | 🟢 | Timestamped, phase-tagged entries. The student's learning log is the system's training data. |
 | **Multi-Model Routing** | 🟡 | Route different tasks to different models. Reflection → large model. Code → specialized model. |
 | **Plugin Architecture** | 🔴 | Users build custom tools and hooks. The Yardmaster is an IDE for building IDE capabilities. |
-| **Classroom Orchestrator** | 🔴 | Professor dashboard. View all student progress, send prompts, review PEARLs. vLLM multi-user. |
+| **Classroom Orchestrator** | 🔴 | Professor dashboard. View all student progress, send prompts, review PEARLs. Batched inference multi-user. |
 | **Corporate Presenter** | 🔴 | Export any design document as a presentation deck. Bevy-powered slide system with live AI narration. |
 
 ---
@@ -656,13 +678,15 @@ The world evolves with the student's cognitive progression:
 ### 🚀 The Endgame — What Trinity Scales To
 
 ```
-TODAY (v1.0 — Single User, Local)
+TODAY (v1.1 — Single User, Local)
 ├── One student, one machine, one AI mentor
-├── 200K+ LOC total (24K core Rust), 282 tests, 73 API endpoints
+├── 200K+ LOC total, 39 backend modules, 73 API endpoints
+├── Agnostic inference (LM Studio / Ollama / llama-server / custom)
+├── MCP Server ∙ Background Jobs ∙ Native RAG ∙ Tauri Desktop
 └── Fully functional prototype, zero cloud dependencies
 
 THIS YEAR (v2.0 — Multi-User, Institutional)
-├── vLLM backend → multiple students, one server
+├── Batched inference backend → multiple students, one server
 ├── Professor dashboard → classroom orchestration
 ├── Competency mapping → institutional accreditation support
 └── Peer review → multiplayer pedagogy

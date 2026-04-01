@@ -158,7 +158,7 @@ impl Phase {
         match self {
             Phase::Analyze => "The Junkyard Peak",
             Phase::Design => "Blueprint Mesa",
-            Phase::Develop => "The Code Forges",
+            Phase::Develop => "The DAYDREAM Workshop",
             Phase::Implement => "The Proving Grounds",
             Phase::Evaluate => "The Friction Wastes",
             Phase::Contrast => "The Neon Chasm",

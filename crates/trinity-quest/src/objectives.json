@@ -1,0 +1,361 @@
+{
+  "OrdinaryWorld": {
+    "Analysis": [
+      {"id": "1", "description": "Describe yourself: What do you teach? Who are your students?"},
+      {"id": "2", "description": "Identify a lesson that could be more engaging"},
+      {"id": "3", "description": "List 3 things your students struggle with"}
+    ],
+    "Design": [
+      {"id": "1", "description": "Sketch the learning journey in 3 moments: hook — practice — aha"},
+      {"id": "2", "description": "Write one measurable objective using a Bloom's verb (e.g. 'students will identify...')"},
+      {"id": "3", "description": "Choose your delivery format: game, storyboard, simulation, or lesson plan"}
+    ],
+    "Development": [
+      {"id": "1", "description": "Draft the opening 60 seconds of your experience (the hook)"},
+      {"id": "2", "description": "Build one practice activity that lets learners attempt the skill"},
+      {"id": "3", "description": "Write the feedback loop: what does the learner see when they fail? When they succeed?"}
+    ],
+    "Implementation": [
+      {"id": "1", "description": "Run through your draft experience yourself — time it"},
+      {"id": "2", "description": "Identify one moment of friction (confusing, slow, unclear)"},
+      {"id": "3", "description": "Fix the friction and implement the corrected version"}
+    ],
+    "Evaluation": [
+      {"id": "1", "description": "Define success: what metric proves this experience worked?"},
+      {"id": "2", "description": "Compare your original 'Ordinary World' description to what you built"},
+      {"id": "3", "description": "Write one sentence: 'I know this works when I see a learner...'"}
+    ],
+    "Contrast": [
+      {"id": "1", "description": "Find a bad example of teaching your subject — name exactly what makes it forgettable"},
+      {"id": "2", "description": "Find a great example — name the one thing that makes it stick"},
+      {"id": "3", "description": "List how your design differs from both: what is your Contrast principle?"}
+    ],
+    "Repetition": [
+      {"id": "1", "description": "Identify the ONE core concept that must be encountered multiple times"},
+      {"id": "2", "description": "Design 3 different contexts where learners meet that concept (Pythagorean breadth)"},
+      {"id": "3", "description": "Assign each encounter to a different sense or modality (see / do / explain)"}
+    ],
+    "Alignment": [
+      {"id": "1", "description": "Check: does your hook connect directly to your measurable objective?"},
+      {"id": "2", "description": "Check: does your practice activity match the verb in your objective (identify, build, compare...)?"},
+      {"id": "3", "description": "Check: does your success metric match what the activity actually produces?"}
+    ],
+    "Proximity": [
+      {"id": "1", "description": "Cluster related content together — what belongs in Act 1 vs Act 2 vs Act 3?"},
+      {"id": "2", "description": "Remove one thing that doesn't belong in Ch 1's scope"},
+      {"id": "3", "description": "Draw (or describe) the spatial layout of your experience: where does the learner look first?"}
+    ],
+    "Envision": [
+      {"id": "1", "description": "Write your PEARL Vision statement: 'When this works, the learner will feel...'"},
+      {"id": "2", "description": "Describe the emotional arc: bored/confused → engaged → capable → proud"},
+      {"id": "3", "description": "Ask Pete: 'Does my experience create this arc?' — log Pete's Socratic response"}
+    ],
+    "Yoke": [
+      {"id": "1", "description": "Connect your learning objective to a real-world moment the student will face"},
+      {"id": "2", "description": "Name the stakeholder who benefits most when the student masters this (parent, employer, community)"},
+      {"id": "3", "description": "Yoke the abstract concept to a concrete, memorable metaphor — write it in one sentence"}
+    ],
+    "Evolve": [
+      {"id": "1", "description": "Compare Ch 1's PEARL to what you imagined when you started — what changed?"},
+      {"id": "2", "description": "Write the opening paragraph of your LitRPG chapter: 'In the Ordinary World, the teacher saw...'"},
+      {"id": "3", "description": "Commit the Ch 1 design to your Book — the Iron Road continues to Ch 2"}
+    ]
+  },
+  "CallToAdventure": {
+    "Analysis": [
+      {"id": "1", "description": "Research how AI could transform this learning experience"},
+      {"id": "2", "description": "List 3 'impossible' things AI now makes possible for your subject"},
+      {"id": "3", "description": "Draft your Call: 'What if learning could be...?'"}
+    ],
+    "Design": [
+      {"id": "1", "description": "Design how the AI party member serves this lesson (Pete? The Visionary? The Engineer?)"},
+      {"id": "2", "description": "Write 3 prompts you would ask the AI to unlock this learning"},
+      {"id": "3", "description": "Prototype the AI interaction loop: student input → AI response → student action"}
+    ],
+    "Development": [
+      {"id": "1", "description": "Build the AI prompt template for this lesson's core activity"},
+      {"id": "2", "description": "Test the prompt with 3 different student starting points"},
+      {"id": "3", "description": "Refine the prompt based on the worst response you received"}
+    ],
+    "Implementation": [
+      {"id": "1", "description": "Integrate the AI interaction into your Ch 1 prototype"},
+      {"id": "2", "description": "Record one full student-AI exchange — what surprised you?"},
+      {"id": "3", "description": "Identify where learners trusted the AI vs where they pushed back"}
+    ],
+    "Evaluation": [
+      {"id": "1", "description": "Did the AI interaction increase or decrease student confidence? Evidence?"},
+      {"id": "2", "description": "What was the most unexpected AI output — and what does it teach you about your design?"},
+      {"id": "3", "description": "Update your PEARL Vision: has the Call changed what success looks like?"}
+    ]
+  },
+  "RefusalOfTheCall": {
+    "Analysis": [
+      {"id": "1", "description": "List your fears: 'I can't because...' (be honest, no filter)"},
+      {"id": "2", "description": "Identify your first Creep — what did you add that wasn't in the PEARL?"},
+      {"id": "3", "description": "Apply the Coal-Steam principle: pick ONE 20-minute win that builds momentum"}
+    ],
+    "Design": [
+      {"id": "1", "description": "Design a 'minimum viable lesson' — what is the simplest version that still works?"},
+      {"id": "2", "description": "Cut any feature that requires more than 20 minutes of new learning to implement"},
+      {"id": "3", "description": "Document what you're NOT building — the Nope List"}
+    ],
+    "Development": [
+      {"id": "1", "description": "Build only the minimum viable lesson you designed"},
+      {"id": "2", "description": "Time the development — track coal burned vs steam generated"},
+      {"id": "3", "description": "Note every moment you wanted to add something extra — log them as future Creeps"}
+    ],
+    "Implementation": [
+      {"id": "1", "description": "Deploy the minimum viable lesson to one real learner"},
+      {"id": "2", "description": "Observe without explaining — watch where they get stuck"},
+      {"id": "3", "description": "Record the timestamp of their first 'aha' moment"}
+    ],
+    "Evaluation": [
+      {"id": "1", "description": "Did the minimum viable lesson produce the learning outcome? Yes/No — why?"},
+      {"id": "2", "description": "Review your Creep log — which ones were actually worthwhile?"},
+      {"id": "3", "description": "Apply the Heavilon Algorithm to one failure: 'one brick higher' — what's the next iteration?"}
+    ]
+  },
+  "MeetingTheMentor": {
+    "Analysis": [
+      {"id": "1", "description": "Read the ADDIE framework documentation — note 3 things that surprise you"},
+      {"id": "2", "description": "Map your current problem to all 5 ADDIE phases — where are you now?"},
+      {"id": "3", "description": "Choose your AI Party roles: Conductor, Engineer, Artist, Evaluator"}
+    ],
+    "Design": [
+      {"id": "1", "description": "Design the learning relationship: how will Pete guide without telling?"},
+      {"id": "2", "description": "Write 3 Socratic questions Pete should ask at this phase"},
+      {"id": "3", "description": "Map which AI party member leads each ADDIECRAPEYE station"}
+    ],
+    "Development": [
+      {"id": "1", "description": "Build the first Pete interaction in your experience (the mentor moment)"},
+      {"id": "2", "description": "Write the mentor's opening question — it must reframe the learner's current belief"},
+      {"id": "3", "description": "Create the 'Mentor's Tool' the learner receives: a framework, a checklist, a metaphor"}
+    ],
+    "Implementation": [
+      {"id": "1", "description": "Test the mentor interaction with a learner — did they feel guided or lectured?"},
+      {"id": "2", "description": "Log the exact moment the learner shifted from passive to active"},
+      {"id": "3", "description": "Refine Pete's question based on what actually caused the shift"}
+    ],
+    "Evaluation": [
+      {"id": "1", "description": "Did the AI mentor produce the 'I never thought of it that way' moment?"},
+      {"id": "2", "description": "What would a mentor who OVER-explains look like? How is yours different?"},
+      {"id": "3", "description": "Update PEARL: does the mentor's guidance align with the original Vision?"}
+    ]
+  },
+  "CrossingTheThreshold": {
+    "Analysis": [
+      {"id": "1", "description": "Write 3 learner personas: who will encounter this experience in the real world?"},
+      {"id": "2", "description": "Define the entry prerequisite: what must learners already know to start?"},
+      {"id": "3", "description": "Set your 'coal budget' — realistic time per week you can commit to this build"}
+    ],
+    "Design": [
+      {"id": "1", "description": "Design the onboarding: how does a learner cross the threshold in your experience?"},
+      {"id": "2", "description": "Write the 'point of no return' moment — when the learner is committed to the journey"},
+      {"id": "3", "description": "Design the early win: what can a learner succeed at in the first 5 minutes?"}
+    ],
+    "Development": [
+      {"id": "1", "description": "Build the onboarding sequence (first 5 minutes of the experience)"},
+      {"id": "2", "description": "Implement the early win — make it achievable but not trivial"},
+      {"id": "3", "description": "Test: does the early win teach the concept or just feel good?"}
+    ],
+    "Implementation": [
+      {"id": "1", "description": "Deploy the onboarding to a first-time learner — observe without coaching"},
+      {"id": "2", "description": "Measure time-to-first-success — if > 7 minutes, redesign"},
+      {"id": "3", "description": "Log the exact words learners use to describe the experience after onboarding"}
+    ],
+    "Evaluation": [
+      {"id": "1", "description": "Did learners cross the threshold with confidence or confusion?"},
+      {"id": "2", "description": "Compare observed behavior to your 3 personas — which persona struggled most?"},
+      {"id": "3", "description": "Revise the threshold for the struggling persona — what one change helps them most?"}
+    ]
+  },
+  "TestsAlliesEnemies": {
+    "Analysis": [
+      {"id": "1", "description": "Activate each AI party member (Pete, Visionary, Engineer, Brakeman) for their specialty"},
+      {"id": "2", "description": "Complete your first micro-learning prototype in 20 minutes exactly"},
+      {"id": "3", "description": "Defeat a Creep by applying the Heavilon Algorithm: name it, contain it, use it"}
+    ],
+    "Design": [
+      {"id": "1", "description": "Design the 'test' sequence: 3 escalating challenges that build on each other"},
+      {"id": "2", "description": "Assign an AI ally to each challenge: who coaches what?"},
+      {"id": "3", "description": "Write the 'enemy' for this lesson: the misconception learners must defeat"}
+    ],
+    "Development": [
+      {"id": "1", "description": "Build the 3-challenge sequence with escalating difficulty"},
+      {"id": "2", "description": "Build the misconception encounter — make the wrong answer attractive, not obvious"},
+      {"id": "3", "description": "Wire the AI ally response for each challenge outcome"}
+    ],
+    "Implementation": [
+      {"id": "1", "description": "Run 3 learners through the challenge sequence — log failure points"},
+      {"id": "2", "description": "Which enemy (misconception) survived? Did learners defeat it or carry it forward?"},
+      {"id": "3", "description": "Identify which AI ally was most effective — and why"}
+    ],
+    "Evaluation": [
+      {"id": "1", "description": "Did the escalating challenges create flow (challenge matched ability)?"},
+      {"id": "2", "description": "Did the misconception get corrected permanently or temporarily?"},
+      {"id": "3", "description": "Rate your AI party: who was an ally, who was still an enemy to the design?"}
+    ]
+  },
+  "ApproachToInmostCave": {
+    "Analysis": [
+      {"id": "1", "description": "Map learning objectives to Bloom's taxonomy: are you reaching Create?"},
+      {"id": "2", "description": "Design the assessment rubric using Quality Matters standards"},
+      {"id": "3", "description": "Create a learner journey map through the complete experience"}
+    ],
+    "Design": [
+      {"id": "1", "description": "Design the 'cave entrance' — the hardest concept in your lesson"},
+      {"id": "2", "description": "Write the scaffold: what preparation did the learner receive to attempt this?"},
+      {"id": "3", "description": "Design the 'backup path': what does a learner who fails do next?"}
+    ],
+    "Development": [
+      {"id": "1", "description": "Build the hardest activity in the experience"},
+      {"id": "2", "description": "Build the scaffold (hints, partial examples, worked models)"},
+      {"id": "3", "description": "Build the recovery path — failure is data, not a wall"}
+    ],
+    "Implementation": [
+      {"id": "1", "description": "Observe 3 learners attempting the hardest activity — do NOT help"},
+      {"id": "2", "description": "Log every scaffold used — which ones were invisible (best kind)?"},
+      {"id": "3", "description": "Track how many learners took the recovery path and whether it worked"}
+    ],
+    "Evaluation": [
+      {"id": "1", "description": "Was the hardest moment hard enough? (Too easy = no growth, too hard = abandonment)"},
+      {"id": "2", "description": "Did the scaffold fade appropriately as learners gained confidence?"},
+      {"id": "3", "description": "Update PEARL: does the cave depth match the Vision you set in Ch 1?"}
+    ]
+  },
+  "TheOrdeal": {
+    "Analysis": [
+      {"id": "1", "description": "Generate the Bevy project scaffold with the Engineer party member"},
+      {"id": "2", "description": "Build the core game loop (ECS systems: update → render → input)"},
+      {"id": "3", "description": "Create at least one interactive learning activity inside the game"}
+    ],
+    "Design": [
+      {"id": "1", "description": "Design the game's win condition — how does the learner 'complete' the lesson?"},
+      {"id": "2", "description": "Design the loss condition — what does failure look like, and what does it teach?"},
+      {"id": "3", "description": "Map each game mechanic to a learning objective (no mechanic without pedagogy)"}
+    ],
+    "Development": [
+      {"id": "1", "description": "Implement the win state with a clear success message that references the learning"},
+      {"id": "2", "description": "Implement the loss state with a redirect (not a punishment)"},
+      {"id": "3", "description": "Implement one adaptive element: the game responds to player behavior"}
+    ],
+    "Implementation": [
+      {"id": "1", "description": "Run a 30-minute live playtest with a real learner — record it if possible"},
+      {"id": "2", "description": "Track completion rate and average time to win condition"},
+      {"id": "3", "description": "Find the one mechanic learners ignored — why did they skip it?"}
+    ],
+    "Evaluation": [
+      {"id": "1", "description": "Did the Ordeal (hardest game moment) produce the intended learning?"},
+      {"id": "2", "description": "Which mechanic created the most Bloom's-level thinking (Create/Evaluate)?"},
+      {"id": "3", "description": "Is this a game that teaches, or content disguised as a game? Be honest."}
+    ]
+  },
+  "TheReward": {
+    "Analysis": [
+      {"id": "1", "description": "Compile and run your complete experience from start to finish"},
+      {"id": "2", "description": "Play through the entire experience yourself — no skipping"},
+      {"id": "3", "description": "Document what you built: title, audience, objective, delivery format, time to complete"}
+    ],
+    "Design": [
+      {"id": "1", "description": "Design the celebration moment — how does the learner know they've earned the Reward?"},
+      {"id": "2", "description": "Design the reflection prompt: 'What did you build? What does it prove about you?'"},
+      {"id": "3", "description": "Design the 'call to teach' — how will this learner share what they learned?"}
+    ],
+    "Development": [
+      {"id": "1", "description": "Build the celebration/completion experience (badge, certificate, narrative climax)"},
+      {"id": "2", "description": "Build the reflection journal page or summary artifact"},
+      {"id": "3", "description": "Build the share mechanism: export, publish, or print"}
+    ],
+    "Implementation": [
+      {"id": "1", "description": "Let a learner experience the full end-to-end journey for the first time"},
+      {"id": "2", "description": "Capture their exact words when they reach the Reward — quote them"},
+      {"id": "3", "description": "Share the experience with one other educator — get their reaction"}
+    ],
+    "Evaluation": [
+      {"id": "1", "description": "Did the Reward feel earned, or just appear? What's the difference you designed?"},
+      {"id": "2", "description": "Does the learner leave with a tangible artifact they can use in the real world?"},
+      {"id": "3", "description": "Measure transfer: one week later, can the learner apply the skill?"}
+    ]
+  },
+  "TheRoadBack": {
+    "Analysis": [
+      {"id": "1", "description": "Conduct a pilot test with 3 real learners (not colleagues — real target audience)"},
+      {"id": "2", "description": "Collect feedback using the Quality Matters rubric dimensions"},
+      {"id": "3", "description": "Identify the top 3 improvements needed — rank by learner impact"}
+    ],
+    "Design": [
+      {"id": "1", "description": "Redesign the one moment with the lowest completion rate"},
+      {"id": "2", "description": "Design an A/B test: original vs. revised version of that moment"},
+      {"id": "3", "description": "Write the iteration brief: what hypothesis are you testing?"}
+    ],
+    "Development": [
+      {"id": "1", "description": "Build the revised version based on pilot feedback"},
+      {"id": "2", "description": "Document every change made and why (your personal changelog)"},
+      {"id": "3", "description": "Run the A/B version with 2 learners — one sees each version"}
+    ],
+    "Implementation": [
+      {"id": "1", "description": "Deploy the iteration to a broader group (5-10 learners if available)"},
+      {"id": "2", "description": "Track the delta: did completion rate improve? Did the aha moments move earlier?"},
+      {"id": "3", "description": "Identify the next iteration — the Road Back never truly ends"}
+    ],
+    "Evaluation": [
+      {"id": "1", "description": "Compare V1 to V2 with data: what changed and by how much?"},
+      {"id": "2", "description": "Did the iteration improve learning, or just improve satisfaction?"},
+      {"id": "3", "description": "Is this experience ready to publish — or does it need Ch 11's polish?"}
+    ]
+  },
+  "TheResurrection": {
+    "Analysis": [
+      {"id": "1", "description": "Apply WCAG 2.1 AA accessibility standards — run an automated check"},
+      {"id": "2", "description": "Pass the Quality Matters rubric review (8 standards, 41 specific review standards)"},
+      {"id": "3", "description": "Write the game's documentation and teacher implementation guide"}
+    ],
+    "Design": [
+      {"id": "1", "description": "Design the mobile/tablet experience — does it work without a mouse?"},
+      {"id": "2", "description": "Design for low-bandwidth: can a learner access this on a 3G connection?"},
+      {"id": "3", "description": "Design the educator version: what does a teacher see that learners don't?"}
+    ],
+    "Development": [
+      {"id": "1", "description": "Implement keyboard navigation for all interactive elements"},
+      {"id": "2", "description": "Add alt text / ARIA labels to all non-text content"},
+      {"id": "3", "description": "Build the educator dashboard: learner progress, time-on-task, completion status"}
+    ],
+    "Implementation": [
+      {"id": "1", "description": "Test with one learner who uses assistive technology (screen reader, voice control)"},
+      {"id": "2", "description": "Test the educator dashboard with one teacher — ask them to find a specific learner's data"},
+      {"id": "3", "description": "Run the complete Quality Matters self-review — score each standard honestly"}
+    ],
+    "Evaluation": [
+      {"id": "1", "description": "Did accessibility improvements break anything for non-assistive-tech users?"},
+      {"id": "2", "description": "Quality Matters score: how many standards are fully met? Set a ship threshold (≥ 85%)"},
+      {"id": "3", "description": "Is this experience ready to represent your teaching practice publicly?"}
+    ]
+  },
+  "ReturnWithElixir": {
+    "Analysis": [
+      {"id": "1", "description": "Package the experience as a distributable file (zip, crate, SCORM, or web link)"},
+      {"id": "2", "description": "Upload to consciousframework.com or your chosen platform"},
+      {"id": "3", "description": "Write your LitRPG dev novel chapter for greatrecycler.com — the story of this build"}
+    ],
+    "Design": [
+      {"id": "1", "description": "Design the 'elixir': what reusable template, framework, or insight does this produce?"},
+      {"id": "2", "description": "Design the handoff: what does the next educator need to run this without you?"},
+      {"id": "3", "description": "Write the 1-page summary: problem → solution → evidence → replication instructions"}
+    ],
+    "Development": [
+      {"id": "1", "description": "Build the replication package (all assets, source, data, and documentation)"},
+      {"id": "2", "description": "Record a 5-minute demo walkthrough video for the next Yardmaster"},
+      {"id": "3", "description": "Write the metadata: subject, audience, duration, prerequisites, Bloom's level"}
+    ],
+    "Implementation": [
+      {"id": "1", "description": "Publish to at least one channel outside your own context (LMS, GitHub, community)"},
+      {"id": "2", "description": "Present the experience to one peer — watch them use your handoff documentation"},
+      {"id": "3", "description": "Submit to one external review: a colleague, a journal, a conference, or a community"}
+    ],
+    "Evaluation": [
+      {"id": "1", "description": "Could another educator reproduce this experience from your documentation alone?"},
+      {"id": "2", "description": "Look at your original PEARL from Ch 1 — did you build what you envisioned?"},
+      {"id": "3", "description": "Close the circle: what is YOUR aha moment from building this? Write it as the Elixir."}
+    ]
+  }
+}

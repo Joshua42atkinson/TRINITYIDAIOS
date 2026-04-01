@@ -99,7 +99,7 @@ export default function SetupWizard({ onComplete }) {
                 />
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <span style={{ fontWeight: 'bold' }}>Custom Endpoint</span>
-                  <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>vLLM, pure llama.cpp, or remote</span>
+                  <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>llama-server, any OpenAI-compatible, or remote</span>
                 </div>
               </label>
             </div>

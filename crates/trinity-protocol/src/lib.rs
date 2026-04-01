@@ -4,7 +4,7 @@
 //! ║ ADDIECRAPEYE Phase Alignment:                                                ║
 //! ║ 1. Analysis:   Socratic extraction (Ask Pete)            — The Eyes          ║
 //! ║ 2. Design:     Bloom's Taxonomy & VAAM Definition         — The Brain         ║
-//! ║ 3. Develop:    GPU Code Generation (The Forge)            — The Skeleton      ║
+//! ║ 3. Develop:    DAYDREAM Workshop (Code Generation)         — The Skeleton      ║
 //! ║ 4. Implement:  Layer 3 Spatial Sandbox (The Iron Road)    — The Muscles       ║
 //! ║ 5. Evaluate:   Quality Matters (QM) Alignment Check       — Nervous System    ║
 //! ║ 6. Contrast:   Visual hierarchy & boundary design (CRAP)  — The Skin          ║

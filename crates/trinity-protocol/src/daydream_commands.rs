@@ -168,6 +168,9 @@ pub enum DaydreamCommand {
         /// Which ADDIECRAPEYE station this concept belongs to
         #[serde(default)]
         station: Option<u8>,
+        /// Optional PyO3 script for complex interaction logic
+        #[serde(default)]
+        python_script: Option<String>,
     },
 
     /// Remove an entity from the world.
@@ -272,6 +275,12 @@ pub enum DaydreamCommand {
         npc_id: DaydreamEntityId,
         nodes: Vec<DialogueNode>,
     },
+
+    // ── Interaction ──────────────────────────────────
+    /// Log a message back to the developer console
+    LogMessage {
+        msg: String,
+    },
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -361,6 +370,8 @@ pub struct DialogueChoice {
     pub text: String,
     pub event_trigger: String,
 }
+
+
 
 // ── Default helpers ──────────────────────────────────────────────────────────
 

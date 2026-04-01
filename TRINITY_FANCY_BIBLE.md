@@ -19,29 +19,31 @@
 
 | Feature | Status | Evidence |
 |---------|--------|----------|
-| **Inference Router & Dual KV Cache** | `Verified` | `inference_router.rs`, `agent.rs:L132-145` |
+| **Inference Router (Agnostic HTTP)** | `Verified` | `inference_router.rs` — LM Studio / Ollama / llama-server auto-detect |
 | **Quality Scorecard** | `Verified` | `quality_scorecard.rs`, unit tests pass |
 | **Socratic Protocol & Agent Tools** | `Verified` | `conductor_leader.rs`, `tools.rs`, 30 available tools |
 | **LDT Portfolio HUD** | `Verified` | `CharacterSheet.jsx`, `character_api.rs` |
-| **App Modes (Iron Road, Express, Yardmaster)** | `Verified` | `AppMode` enum in `main.rs`, React UI |
+| **App Modes (Iron Road, Express, Yardmaster, Demo)** | `Verified` | `AppMode` enum in `main.rs`, React UI |
 | **Creative Pipeline (Images, Music, Video, 3D)** | `Verified` | `creative.rs`, `useCreative.js` — ComfyUI/MusicGPT/Hunyuan |
 | **Voice Pipeline (Supertonic-2 TTS)** | `Verified` | `supertonic.rs`, native ONNX — browser fallback auto-detect |
-| **DAYDREAM Codex** | `Verified` | `DAYDREAM Bevy Window` — Full immersive lit-novel RPG, 32px narrator text |
+| **DAYDREAM (Native Bevy Sidecar)** | `Verified` | `trinity-daydream` crate — Pure Rust Bevy 0.18.1 3D LitRPG, no JS |
 | **ADDIECRAPEYE Phase Navigation** | `Verified` | Vertical 12-tab sidebar, phase-aware input & badge |
-| **EYE Export** | `Verified` | `/api/eye/export` → download button in DAYDREAM |
-| **Safety Badges (CowCatcher/EdgeGuard)** | `Verified` | `GameHUD.jsx` — visible safety indicators |
+| **EYE Export** | `Verified` | `/api/eye/export` → download button |
+| **Safety Badges (CowCatcher/EdgeGuard)** | `Verified` | `GameHUD.jsx` — visible safety indicators, `edge_guard.rs` |
 | **Phase-Aware Messaging** | `Verified` | `activePhase` sent with every `/api/chat/zen` call |
-| **RLHF Feedback (Thumbs Up/Down)** | `Verified` | `DAYDREAM` — 👍/👎 buttons on narrator messages → `/api/rlhf/resonance` |
+| **RLHF Feedback (Thumbs Up/Down)** | `Verified` | 👍/👎 buttons on narrator messages → `/api/rlhf/resonance` |
 | **Scout Sniper + RLHF Economy** | `Verified` | Hope/Nope → coal/steam/XP payout via `scope_creep_decision` |
 | **Model Switcher** | `Verified` | `Yardmaster.jsx` — lists `/api/models`, switches via `/api/models/switch` |
-| **RAG Knowledge Search** | `Verified` | `Yardmaster.jsx` — search input → `/api/rag/search`, doc count from `/api/rag/stats` |
+| **Native RAG (ONNX Embeddings)** | `Verified` | `rag.rs` — pure Rust `ort` + `all-MiniLM-L6-v2`, no Python |
 | **Journal & Reflections** | `Verified` | `JournalViewer.jsx` — timeline, weekly reflections, bookmarks, export |
 | **Book Narrative** | `Verified` | `GameHUD.jsx` — chapters from `/api/book`, generate via `/api/narrative/generate` |
-| **Portfolio Artifact Upload** | `Verified` | `DAYDREAM` settings — file picker → `/api/character/portfolio/artifact` |
-| **Project Save/Preview** | `Verified` | `ExpressWizard.jsx` — save via `/api/projects`, preview via `/api/eye/preview` |
-| **Party Toggle** | `Verified` | `GameHUD.jsx` — click party member → `/api/quest/party` |
+| **Setup Wizard (BYOM)** | `Verified` | `SetupWizard.jsx` — API health gate, dynamic backend selection |
+| **Tauri v2 Desktop App** | `Verified` | Dual-headed binary: Tauri main thread + Axum background thread |
+| **Background Job Runner** | `Verified` | `jobs.rs` — SQLite-persisted task queue, headless multi-turn agent |
+| **MCP Server** | `Verified` | `trinity-mcp-server` crate — Model Context Protocol for agentic extensibility |
 | **Shadow Process** | `Verified` | `CharacterSheet.jsx` — Ghost Train stop button → `/api/character/shadow/process` |
-| **Multi-user Sessions** | `Roadmap` | Planned llama.cpp continuous batching deployment |
+| **TCG HookDeck Spells** | `Verified` | `character_sheet.rs`, `CharacterSheet.jsx` — physical TCG spell cards to tame creatures |
+| **Multi-user Sessions** | `Roadmap` | Planned vLLM PagedAttention deployment |
 
 ---
 
@@ -56,7 +58,7 @@
 - [Car 3: DEVELOP — The ADDIECRAPEYE Framework](#-car-3-develop--the-addiecrapeye-framework)
   - [3.1 12 Stations](#31-the-12-stations) · [3.2 Bloom's Integration](#32-blooms-taxonomy-integration) · [3.3 Sacred Circuitry](#33-sacred-circuitry--the-15-word-cognitive-scaffolding) · [3.4 Circuit↔Station Map](#34-the-circuit--station-isomorphism) · [3.5 Hotel Pattern](#35-the-hotel-management-pattern) · [3.6 Socratic Prompts](#36-phase-implementation-socratic-prompts)
 - [Car 4: IMPLEMENT — Iron Road Game Mechanics](#-car-4-implement--the-iron-road-game-mechanics)
-  - [4.1 Core Loop](#41-the-iron-road-core-loop) · [4.2 VAAM](#42-vaam--vocabulary-as-a-mechanism) · [4.3 SemanticCreep](#43-semanticcreep--vocabulary-creatures) · [4.4 Bestiary](#44-the-bestiary) · [4.5 MadLibs](#45-lesson-madlibs) · [4.6 Events](#46-the-game-loop-events) · [4.7 Book](#47-the-book-of-the-bible) · [4.8 Tests](#48-test-coverage)
+  - [4.1 Core Loop](#41-the-iron-road-core-loop) · [4.2 VAAM](#42-vaam--vocabulary-as-a-mechanism) · [4.3 SemanticCreep](#43-semanticcreep--vocabulary-creatures) · [4.4 Bestiary](#44-the-bestiary) · [4.5 MadLibs](#45-lesson-madlibs) · [4.6 Events](#46-the-game-loop-events) · [4.7 Book](#47-the-book-of-the-bible) · [4.8 Tests](#48-test-coverage) · [4.9 Pythagorean PPPPP](#49-the-pythagorean-ppppp) · [4.10 TCG HookDeck](#410-the-tcg-hookdeck)
 - [Car 5: EVALUATE — Quality Systems & Security Rings](#-car-5-evaluate--quality-systems--security-rings)
   - [5.1 Ring System](#51-the-ring-system) · [5.2 Tool Permissions](#52-ring-1-tool-permissions) · [5.3 Persona Gates](#53-ring-2-persona-based-access-control) · [5.4 Sandboxing](#54-ring-5-command-sandboxing) · [5.5 Perspective Engine](#55-ring-6-the-perspective-engine) · [5.6 QM Rubric](#56-quality-matters-rubric--automated-evaluation) · [5.7 Scorecard](#57-quality-scorecard--document-evaluation) · [5.8 Cow Catcher](#58-the-cow-catcher--error-classification)
 
@@ -100,16 +102,16 @@ All code lives under `crates/` in the workspace. Eight active crates:
 
 | Crate | Role | Key Modules |
 |-------|------|-------------|
-| `trinity` | Headless HTTP server (Layer 1) | 33 modules, 4000+ line `main.rs` |
-| `trinity-protocol` | Shared types & language | 26 public modules, 146-line `lib.rs` |
+| `trinity` | Headless HTTP server + Tauri host (Layer 1) | 37+ modules, `main.rs` entry point |
+| `trinity-protocol` | Shared types & language | 26 public modules, `lib.rs` |
 | `trinity-quest` | Quest engine & game state | Hero stages, XP/Coal/Steam |
 | `trinity-iron-road` | Book writing & VAAM | Narrative, vocabulary, SemanticCreep |
 | `trinity-voice` | Voice pipeline | Supertonic-2 TTS (ONNX native), 10 voices |
-| `trinity-sidecar` | Creative sidecar manager | ComfyUI, Hunyuan, process lifecycle |
-| `trinity-bevy-graphics` | Bevy 3D Yard + DAYDREAM | PEARL-driven 3D LitRPG world, command protocol, Rapier physics |
-| (archive) | Legacy crates | Preserved, excluded from workspace |
+| `trinity-daydream` | Bevy 3D DAYDREAM (Layer 3) | Pure Rust sidecar — PEARL-driven 3D LitRPG world, Avian3D physics |
+| `trinity-mcp-server` | Model Context Protocol | Standardized agentic extensibility protocol |
+| (archive) | Legacy crates | `trinity-sidecar`, `trinity-bevy-graphics` — preserved, excluded from workspace |
 
-> 📍 `Cargo.toml:L1-26` — Workspace members with inline role comments
+> 📍 `Cargo.toml:L1-27` — Workspace members with inline role comments
 
 ---
 
@@ -193,50 +195,55 @@ Trinity is not a chatbot wrapper. It is a three-layer operating system:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Layer 3: Spatial Sandbox                               │
-│  Bevy 3D "Yard" — the blank canvas where users build    │
-│  📍 crates/trinity-bevy-graphics/                       │
+│  Layer 3: DAYDREAM (Spatial Sandbox)                     │
+│  Bevy 0.18.1 — pure Rust 3D LitRPG sidecar process      │
+│  📍 crates/trinity-daydream/                            │
 ├─────────────────────────────────────────────────────────┤
 │  Layer 2: Protocol (The Language)                        │
 │  Shared types, ADDIECRAPEYE enums, CharacterSheet        │
 │  📍 crates/trinity-protocol/ (26 public modules)        │
 ├─────────────────────────────────────────────────────────┤
-│  Layer 1: Headless Server                               │
+│  Layer 1: Headless Server + Tauri Host                   │
 │  Axum HTTP API on port 3000 — the "engine room"         │
-│  📍 crates/trinity/src/main.rs:L338-347 (startup)       │
+│  Tauri v2 wraps Layer 1 for native desktop delivery      │
+│  📍 crates/trinity/src/main.rs (startup)                │
 └─────────────────────────────────────────────────────────┘
 ```
 
-**Layer 1** (Headless Server) is the foundation. It runs without a screen. Everything else — the React UI, the Bevy 3D yard, mobile clients — connects via HTTP API. This means Trinity can serve a classroom from a single laptop.
+**Layer 1** (Headless Server) is the foundation. It runs without a screen. The Axum HTTP server spawns on a background `tokio::spawn` thread, while `tauri::Builder` owns the main thread for native UI rendering (`npx tauri dev`). Passing `--headless` or `TRINITY_HEADLESS=1` bypasses Tauri entirely, allowing the same binary to serve as a headless daemon on `LDTAtkinson.com` via Cloudflared EdgeGuard on port 3000.
 
-> 📍 `main.rs:L345-347` — Startup banner: `"TRINITY HEADLESS SERVER - Layer 1"`
-> 📍 `main.rs:L881` — `let addr = "0.0.0.0:3000"` — binds to all interfaces
+**Layer 3** (DAYDREAM) runs as a **separate native process** — not embedded in the Tauri WebView. Due to Linux/Wayland `winit` constraints (both Tauri and Bevy demand the main thread), the Bevy `daydream` binary is spawned as an OS child process, cleanly isolating the 3D render pipeline from the web UI.
+
+> 📍 `main.rs:L415-417` — Startup banner: `"TRINITY HEADLESS SERVER - Layer 1"`
+> 📍 `main.rs` — `let addr = "0.0.0.0:3000"` — binds to all interfaces
 
 ### 1.6 The Application State
 
-Every route in Trinity shares a single `AppState` struct — the server's complete runtime context:
+Every route in Trinity shares a single `AppState` struct, now organized into **three semantic layers** — System, Player, and Project:
 
 ```rust
 pub struct AppState {
-    pub inference_router:    Arc<RwLock<InferenceRouter>>,     // Multi-backend LLM routing
-    pub embedded_model:      Option<Arc<EmbeddedModel>>,       // Agnostic Proxy (LM Studio)
-    pub db_pool:             sqlx::SqlitePool,                 // SQLite + In-Memory V-RAG
-    pub conversation_history: Arc<RwLock<Vec<ChatMessage>>>,   // Current session
-    pub game_state:          trinity_quest::SharedGameState,   // Quest engine
-    pub book_updates:        broadcast::Sender<String>,        // SSE broadcast
-    pub character_sheet:     Arc<RwLock<CharacterSheet>>,      // User identity
-    pub cow_catcher:         Arc<RwLock<CowCatcher>>,          // Error handling
-    pub vaam_bridge:         Arc<VaamBridge>,                  // Vocabulary mining
-    pub bestiary:            Arc<RwLock<CreepBestiary>>,       // Word creatures
-    pub book:                Arc<RwLock<BookOfTheBible>>,      // Narrative ledger
-    pub session_id:          Arc<String>,                      // Persistence key
-    pub app_mode:            Arc<RwLock<AppMode>>,             // Current mode
+    // ── System Layer (hardware, AI, database) ──
+    pub inference_router: Arc<RwLock<InferenceRouter>>,          // Multi-backend LLM routing
+    pub db_pool:          sqlx::SqlitePool,                      // SQLite + In-Memory V-RAG
+    pub cow_catcher:      Arc<RwLock<CowCatcher>>,               // Error handling
+    pub vaam_bridge:      Arc<VaamBridge>,                       // Vocabulary mining
+    pub tts_engine:       Option<Arc<Mutex<SupertonicEngine>>>,  // Native ONNX TTS
+    pub stt_engine:       Option<Arc<Mutex<WhisperEngine>>>,     // Native ONNX STT
+    pub ignition_status:  Arc<RwLock<String>>,                   // LM Studio boot state machine
+    pub job_queue:        JobQueue,                              // Background task runner
+
+    // ── Player Context (identity — persists across projects) ──
+    pub player: PlayerContext, // { character_sheet, bestiary, app_mode }
+
+    // ── Project Context (the active PEARL — one per game) ──
+    pub project: ProjectContext, // { game_state, conversation_history, book, book_updates, session_id }
 }
 ```
 
-> 📍 `main.rs:L106-134` — `AppState` with 13 fields, each with inline `WHY:` comments
+> 📍 `main.rs:L147-199` — `AppState` with `PlayerContext` + `ProjectContext` + System Layer
 
-Notice the inline documentation style: every field explains *why* it exists, not just *what* it is. This is the Pythagorean approach — Arithmos (the count of fields) and Harmonia (their structure) serve Logos (the meaning).
+The **Identity Split** (Tier 3.5 Maturation) separates *who the educator is* (PlayerContext) from *what they're building* (ProjectContext). This enables future multi-project support — a single educator can switch between PEARLs while preserving their identity, bestiary, and vocabulary profile.
 
 ### 1.7 The API Surface
 
@@ -264,18 +271,18 @@ Trinity exposes **~85 HTTP endpoints** organized into 15 functional groups:
 
 ### 1.8 The Server Module Map
 
-The main server binary declares **31 internal modules**:
+The main server binary declares **37+ internal modules**:
 
 ```
 crates/trinity/src/
-├── main.rs              — Entry point, routes, state (3018 lines)
+├── main.rs              — Entry point, routes, state, Tauri host
 ├── agent.rs             — Multi-turn agentic chat loop
 ├── character_api.rs     — Portfolio artifact vaulting
 ├── character_sheet.rs   — CharacterSheet persistence (~/.trinity/)
 ├── conductor_leader.rs  — ADDIECRAPEYE phase orchestrator
 ├── cow_catcher.rs       — Error handling, obstacle classification
-├── creative.rs          — ComfyUI/MusicGPT/Hunyuan3D client (1156 lines)
-├── embedded_inference.rs — HTTP Dispatcher for Agnostic Inference (LM Studio)
+├── creative.rs          — ComfyUI/MusicGPT/Hunyuan3D client
+├── edge_guard.rs        — Route-level security middleware
 ├── export.rs            — EYE Container → HTML5 export
 ├── eye_container.rs     — Bundle quest data into exportable artifact
 ├── gpu_guard.rs         — Hardware-safe GPU resource guard
@@ -283,6 +290,7 @@ crates/trinity/src/
 ├── http.rs              — Shared HTTP clients (3 timeout profiles)
 ├── inference.rs         — OpenAI-compatible LLM client
 ├── inference_router.rs  — Multi-backend auto-detect & failover
+├── jobs.rs              — Background job runner (SQLite-persisted task queue)
 ├── journal.rs           — Chapter milestones, weekly reflections
 ├── music_streamer.rs    — Background music from CharacterSheet genre
 ├── narrative.rs         — Great Recycler LitRPG prose generation
@@ -290,12 +298,14 @@ crates/trinity/src/
 ├── perspective.rs       — Ring 6: multi-perspective AI evaluation
 ├── quality_scorecard.rs — Pedagogical document scoring (5 dimensions)
 ├── quests.rs            — HTTP API for quest engine
-├── rag.rs               — SQLite in-memory semantic + full-text search
+├── rag.rs               — Native ONNX semantic + full-text search (ort + all-MiniLM-L6-v2)
 ├── rlhf_api.rs          — RLHF resonance feedback endpoint
-├── rlhf_ui.rs           — Resonance rating types
 ├── scope_creep.rs       — Scope creep creature generation
 ├── sidecar_monitor.rs   — External service health monitoring
 ├── skills.rs            — Skill system integration
+├── stt.rs               — Whisper STT engine (native ONNX)
+├── supertonic.rs        — Supertonic-2 TTS engine (native ONNX)
+├── telephone.rs         — Real-time audio-to-audio voice pipeline
 ├── tools.rs             — Agentic tools with permission gates
 ├── trinity_api.rs       — V1 Trinity chat endpoint
 ├── vaam.rs              — Vocabulary scanning
@@ -304,7 +314,7 @@ crates/trinity/src/
 └── voice_loop.rs        — Hands-free voice loop
 ```
 
-> 📍 `main.rs:L43-73` — Module declarations
+> 📍 `main.rs:L50-101` — Module declarations
 
 ### 1.9 The Hardware Platform
 
@@ -313,17 +323,18 @@ Trinity is designed for a specific class of hardware: **AMD Strix Halo** with un
 | Component | Specification | Trinity Uses For |
 |-----------|--------------|-----------------|
 | **CPU** | Ryzen AI Max+ 395 (16C/32T Zen 5) | Server, I/O, orchestration |
-| **GPU** | Radeon 8060S (40 CUs RDNA 3.5) | Image generation (ComfyUI) & LM Studio backend inference |
+| **GPU** | Radeon 8060S (40 CUs RDNA 3.5) | LM Studio inference backend (Vulkan) |
 | **NPU** | XDNA 2 (50 TOPS) | Planned: speculative decoding, embeddings, voice |
 | **Memory** | 128 GB unified LPDDR5x-8000 | Shared across CPU+GPU+NPU — no copy overhead |
 
 **Why this matters**: The 128 GB unified memory means a 68 GB model (Mistral Small 4 119B MoE) can load without any GPU VRAM carving. The CPU, GPU, and NPU all see the same memory space. This eliminates the #1 bottleneck in local AI inference.
 
-**Dual KV Cache**: Mistral Small 4 runs with two KV caches at 256K tokens each, providing **500K+ total context** — enough to hold entire curricula, textbooks, and project histories simultaneously. This happens entirely locally, with zero cloud dependency.
+**Agnostic Inference Architecture**: Trinity no longer embeds llama.cpp directly. Instead, it acts as a lightweight HTTP dispatcher via the `InferenceRouter`, connecting to whichever OpenAI-compatible backend the user prefers — LM Studio (port 1234), Ollama (port 11434), llama-server (port 8080), or any custom endpoint. This "Bring Your Own Pipeline" (BYOP) approach dropped build times from minutes to seconds and decoupled Trinity from any single inference engine.
 
-> 📍 `main.rs:L285-296` — Real GPU/NPU load from sysfs (`/sys/class/drm/renderD128/device/gpu_busy_percent`, `/sys/class/accel/accel0/`)
-> 📍 `main.rs:L224-225` — Primary model: `"Mistral-Small-4-119B-2603-Q4_K_M"` (68 GB split GGUF)
-> 📍 `embedded_inference.rs:L1-16` — Architectural proxy for agnostic inference backends (LM Studio)
+**Dual KV Cache**: Mistral Small 4 runs with two KV caches at up to 1M tokens each via LM Studio's `--parallel 2`, providing **2M+ total context** — enough to hold entire curricula, textbooks, and project histories simultaneously. This happens entirely locally, with zero cloud dependency.
+
+> 📍 `main.rs:L287-335` — `installed_model_inventory()`: all models with sizes and paths
+> 📍 `inference_router.rs` — Multi-backend auto-detect and failover logic
 
 ### 1.10 The Frontend
 
@@ -347,12 +358,12 @@ Trinity's web UI is built with **16 React components** served from the Axum back
 | `ScopeCard.jsx` | Scope creep creature encounter card |
 | `SetupWizard.jsx` | Bring Your Own Mind — dynamic backend selection wizard |
 | `TrainStatus.jsx` | Iron Road train progress animation |
-| `Yardmaster.jsx` | IDE/Agent mode — agentic chat with Forge terminal via `useYardmaster` hook |
-| `DAYDREAM` | The Bevy Window — Full lit-novel edutainment RPG ecosystem. Replaces legacy ZenMode/StoryMode. |
+| `Yardmaster.jsx` | IDE/Agent mode — agentic chat with DAYDREAM terminal via `useYardmaster` hook |
+| `DAYDREAM` | The native Bevy sidecar — Pure Rust 3D LitRPG world. No JavaScript. Spawned as OS child process. |
 
 
 > 📍 `crates/trinity/frontend/src/components/` — 18 files
-> 📍 `main.rs:L756-766` — Static file serving: React `frontend/dist/` with SPA fallback
+> 📍 `main.rs` — Static file serving: React `frontend/dist/` with SPA fallback
 
 ### 1.11 Field Manual Cross-Reference
 
@@ -464,8 +475,8 @@ Grouped by responsibility:
 **AI & Inference** (5 modules):
 - `agent.rs` — Multi-turn agentic chat with tool-calling loop
 - `inference.rs` — OpenAI-compatible HTTP client for any LLM
-- `inference_router.rs` — Multi-backend auto-detect and failover
-- `embedded_inference.rs` — Direct GGUF inference via llama.cpp FFI
+- `inference_router.rs` — Multi-backend auto-detect and failover (LM Studio → llama-server → Ollama)
+- `rag.rs` — Native ONNX semantic + full-text search (ort + all-MiniLM-L6-v2)
 - `perspective.rs` — Ring 6 multi-perspective evaluation
 
 **Game Mechanics** (5 modules):
@@ -788,6 +799,44 @@ pub struct CreepBestiary {
 > 📍 `game_loop.rs:L130-132` — `usable_creeps()`: only Tamed or Evolved words are usable
 > 📍 `game_loop.rs:L150-163` — `summary()` method for UI display
 
+### 4.9 The Pythagorean PPPPP
+
+To ensure absolute adherence to the **Doctrine of Systems Isomorphism**, every active Rust data structure in Trinity maps to the **Pythagorean PPPPP** (The 5Ps). This guarantees the LitRPG game layer isn't a superficial skin; it is mathematically identical to the Instructional Design engine.
+
+- **Psychology (The Human Element)**: Code managing cognitive friction limiters.
+  - `ShadowStatus`: Prevents complete systemic collapse by invoking the Heavilon Protocol when user resilience (imposter syndrome) drops.
+  - `vulnerability`: Tracks structured willingness to fail directly measuring pedagogical courage.
+- **Philosophy (The Intent)**: Code driving behavioral depth and metrics.
+  - `IntentPosture`: Efficiency (speed over retention) vs Mastery (productive struggle scaffolding).
+  - `ResonanceLevel`: The lifetime metric of domain mastery, stored in the `CharacterSheet`.
+- **Pedagogy (The Method)**: Code providing the scaffolding.
+  - `HookDeck` & `HookCard`: 37 Instructional Design spells cast to combat structural anomalies.
+  - `LdtPortfolio` & `VaamBridge`: Vaulting competencies inside academic standards.
+- **Programming (The Infrastructure)**: Code managing literal, physical hardware.
+  - `mana_pool_vram` & `stamina_ram`: GPU metrics dictating maximum LLM context batching limits.
+- **Production (The Execution)**: Code managing the actual workflow events.
+  - `Coal` (attention) and `Steam` (momentum): Explicit currency modifiers affecting AI generation depth.
+  - `TrackFriction`: Context-dependent penalties mapped directly to Extraneous Cognitive Load.
+
+> 📍 `context.md` — Detailed breakdown and implementation tracking.
+> 📍 `TRINITY_MECHANICS_MAP.md` — Mermaid flowchart visualization of the isomorphic architecture.
+
+### 4.10 The TCG HookDeck
+
+The **Hook Book** has been fully industrialized into a Trading Card Game (TCG) mechanic, where "Hooks" are physical cards used to interact with the LLM API and combat Semantic Creeps.
+
+When a word is detected as out-of-bounds (a Scope Creep), a `ScopeCreepModal` invokes the `POST /api/bestiary/tame` API. Instead of simply rejecting the request, the user selects a *Hook Card* from their active `hook_deck` (e.g., 'Socratic Interview', 'Quality Scorecard') to tame the specific anomaly. 
+
+Each `HookCard` tracks its own specific:
+- `level` (Current competency inside the system)
+- `xp` (Earned from repeated, successful tames)
+- `creeps_tamed` (Total number of anomalies corrected by this specific design mechanism)
+
+The starter deck contains four Level 1 cards representing the 4 Schools of Magic (Pedagogy, Creation, Systems, Identity). 
+
+> 📍 `trinity-protocol/src/character_sheet.rs` — Definition of `HookCard`.
+> 📍 `HOOK_BOOK.md` — Detailed expansion of the 37 unreleased cards and schools.
+
 ### 4.4.1 Scout Sniper — Dual-Mode Scope Management
 
 > *"The Scout sees hope. The Sniper sees nope. Both serve the Iron Road."*
@@ -938,16 +987,15 @@ Unknown tools default to **Destructive** — the most restrictive level.
 
 Trinity uses **dual persona preambles** — the same AI brain operates in two distinct modes, each with different cognitive patterns:
 
-| Persona | Mode | Thinking Style | KV Cache Slot |
-|---------|------|---------------|---------------|
-| **Great Recycler** 🔮 | Strategic | Expansive, connective, asks WHY before HOW | Slot 0 (inhale) |
-| **Programmer Pete** ⚙️ | Execution | Focused, pragmatic, ACT FIRST | Slot 1 (exhale) |
+| Persona | Mode | Thinking Style |
+|---------|------|---------------|
+| **Great Recycler** 🔮 | Strategic | Expansive, connective, asks WHY before HOW |
+| **Programmer Pete** ⚙️ | Execution | Focused, pragmatic, ACT FIRST |
 
-The KV cache slot system enables **instant persona switching** without re-tokenizing system prompts:
+Persona selection is achieved via **system prompt differentiation** — the active persona's preamble is prepended to each inference request. The historical `id_slot` / `persona_slot()` KV cache routing mechanism has been archived; the system now relies on LM Studio's `--parallel 2` slots at the infrastructure level, with persona selection handled purely at the prompt layer.
 
-> 📍 `agent.rs:L92-108` — `GREAT_RECYCLER_PREAMBLE`: "chronicler of ideas, architect of systems"
-> 📍 `agent.rs:L110-126` — `PROGRAMMER_PETE_PREAMBLE`: "the builder, the debugger, the one who ships"
-> 📍 `agent.rs:L132-145` — `persona_slot()`: maps persona to llama-server KV cache slot (0 or 1)
+> 📍 `agent.rs` — `GREAT_RECYCLER_PREAMBLE`: "chronicler of ideas, architect of systems"
+> 📍 `agent.rs` — `PROGRAMMER_PETE_PREAMBLE`: "the builder, the debugger, the one who ships"
 
 ### 5.4 Ring 5: Command Sandboxing
 
@@ -1573,7 +1621,19 @@ Each completed artifact is stored in the **Subconscious Inventory**:
 > **Sacred Circuit**: Connect (circuit #14)
 > **Body Metaphor**: The Connective Tissue — coupling all subsystems
 
-### 11.1 The ART Creative Pipeline
+### 11.1 DAYDREAM — The Native Gaming System
+
+**DAYDREAM** is Trinity's native 3D gaming system, built entirely in **pure Rust** with Bevy 0.18.1. There is **no JavaScript** in the DAYDREAM engine — it is a standalone binary (`daydream`) spawned as an OS child process, communicating with the main Trinity server via HTTP.
+
+This architectural decision was made for three reasons:
+1. **Process isolation** — Bevy and Tauri both demand the main thread on Linux/Wayland. Running them as separate processes eliminates `winit` conflicts and hot-reload panics.
+2. **Performance** — Native Rust ECS with Avian3D physics runs at full speed without WebView overhead.
+3. **Philosophical alignment** — DAYDREAM is the user's blank canvas. It should not be constrained by browser limitations. If a user wants to extend DAYDREAM, they do so in Rust (or in Python for ML inference pipelines via sidecar integration).
+
+> 📍 `crates/trinity-daydream/Cargo.toml` — `[[bin]] name = "daydream"` with `desktop` feature gate
+> 📍 `crates/trinity-daydream/src/daydream.rs` — Main DAYDREAM module: 3D world, ADDIECRAPEYE integration
+
+### 11.2 The ART Creative Pipeline
 
 **ART** = Aesthetics, Research, Tempo — Trinity's creative subsystem that generates multi-modal content:
 
@@ -1676,13 +1736,13 @@ The **unified memory** architecture is the key enabler — GPU, CPU, and NPU sha
 
 ### 12.2 The Dual KV Cache Architecture
 
-Trinity's **dual KV cache** enables 500K+ effective context:
+Trinity's inference architecture is **agnostic** — it dispatches to whichever OpenAI-compatible backend the user prefers via the `InferenceRouter`. The recommended configuration uses LM Studio with Mistral Small 4 119B MoE:
 
-- **Slot 0** (256K tokens): Great Recycler persona — strategic, planning
-- **Slot 1** (256K tokens): Programmer Pete persona — execution, building
-- **Combined**: 512K tokens of persistent context across personas
+- **Dual slots** via LM Studio's `--parallel 2` — two simultaneous conversations
+- **Up to 1M tokens per slot** — enabled by MLA (Multi-head Latent Attention)
+- **Combined**: 2M+ tokens of persistent context across personas
 
-This is achieved through LM Studio/llama-server's `--parallel 2` (2 parallel slots) with Q4 KV cache quantization, enabling per-slot system prompt persistence without re-tokenization.
+Persona differentiation (Great Recycler vs. Programmer Pete) is handled at the system prompt layer, not via hardcoded KV cache slot routing. This makes the system backend-agnostic — any OpenAI-compatible API works.
 
 > [!NOTE] 
 > **ADDENDUM: Author's Preferred AI LLM: MS4 (Mistral Small 4 119B)**
@@ -1709,11 +1769,18 @@ This is achieved through LM Studio/llama-server's `--parallel 2` (2 parallel slo
 ### 12.3 Server Architecture
 
 ```
+Layer 0: Tauri v2 Desktop Shell (optional)
+  ├── Native window management
+  ├── React WebView (Iron Road / ART / Yardmaster)
+  └── --headless mode bypasses for daemon deployment (LDTAtkinson.com)
+
 Layer 1: Headless Server (trinity crate)
   ├── Axum HTTP/SSE server on :3000
   ├── 85+ API endpoints across 15 groups
   ├── SQLx database (SQLite)
-  ├── InferenceRouter (model health + failover)
+  ├── InferenceRouter (agnostic HTTP → LM Studio / Ollama / llama-server)
+  ├── Background Job Runner (SQLite-persisted task queue)
+  ├── Native ONNX (Supertonic-2 TTS + Whisper STT + all-MiniLM-L6-v2 RAG)
   └── Tool dispatch (30 tools, 3 permission tiers)
 
 Layer 2: Protocol (trinity-protocol crate)
@@ -1721,10 +1788,16 @@ Layer 2: Protocol (trinity-protocol crate)
   ├── Shared types: CharacterSheet, Pearl, Circuit, Quest
   └── Zero dependencies on Layer 1
 
-Layer 3: Spatial Sandbox (trinity-bevy-graphics crate)
-  ├── Bevy 0.18.1 ECS
-  ├── 3D Yard environment
+Layer 3: DAYDREAM (trinity-daydream crate)
+  ├── Bevy 0.18.1 ECS (pure Rust, no JS)
+  ├── 3D Yard environment with Avian3D physics
+  ├── Spawned as OS child process (sidecar)
   └── Connects to Layer 1 via HTTP
+
+Layer 4: MCP Server (trinity-mcp-server crate)
+  ├── Model Context Protocol for external agentic tools
+  ├── SQLite memory access via stdio transport
+  └── Enables IDE integration (Zed, Cursor)
 ```
 
 ### 12.4 The Trinity Lexicon
@@ -1737,37 +1810,52 @@ Key terms defined in code, collected for reference:
 | **Coal** | Attention reserve (intrinsic cognitive load) | `character_sheet.rs:L111` |
 | **Steam** | Productive momentum (germane load) | `character_sheet.rs:L190-191` |
 | **Track Friction** | Extraneous cognitive load penalty | `character_sheet.rs:L196-197` |
-| **Cargo Slots** | Working memory capacity (Miller's 7±2) | `character_sheet.rs:L200-202` |
+| **Cargo Slots** | Working memory capacity (Miller's 7±2) | `character_sheet.rs` |
 | **SemanticCreep** | Vocabulary creature with elemental stats | `semantic_creep.rs` |
-| **PEARL** | Per-project alignment (subject/medium/vision) — the user's contract | `pearl.rs:L254-281` |
+| **PEARL** | Per-project alignment (subject/medium/vision) — the user's contract | `pearl.rs` |
 | **PEARL Contract** | The PEARL as the quest board contract — user-defined success criteria shaped by Pete's Socratic interview | `CharacterSheet.jsx` |
 | **Maturation Map** | 6-dimension auto-scored progress visualization (Content, Production, Pedagogy, Design, Reflection, Portfolio) | `CharacterSheet.jsx` |
 | **Finish Line** | The 5 deliverables the user walks away with (GDD, HTML5, Lesson Plans, Design System, Portfolio Artifact) | `CharacterSheet.jsx` |
-| **DAYDREAM** | The Bevy game system inside the ART page — full lit-novel edutainment experience with music, pictures, and emotionally specific voice. A future economy for playing others' projects. | Bevy Render Window |
+| **DAYDREAM** | Pure Rust Bevy 3D sidecar — spawned as OS child process, NO JavaScript. Full lit-novel edutainment with music, pictures, and emotionally specific voice. | `trinity-daydream` crate |
 | **Hook Book** | Catalog of 30 system capabilities organized by framework layer (7 Foundations, 13 Experience, 10 Infrastructure) | `HOOK_BOOK.md` |
-| **Scope Hope** | User tames a word (accepts into vocabulary) | `game_loop.rs:L112-120` |
-| **Scope Nope** | User rejects a word (leaves wild) | `game_loop.rs:L123-127` |
-| **Heavilon Event** | Catastrophic failure rebuilt stronger | `character_sheet.rs:L1051` |
-| **Sacred Circuitry** | 15-word attention scaffolding system | `sacred_circuitry.rs:L56-76` |
+| **Scope Hope** | User tames a word (accepts into vocabulary) | `game_loop.rs` |
+| **Scope Nope** | User rejects a word (leaves wild) | `game_loop.rs` |
+| **Heavilon Event** | Catastrophic failure rebuilt stronger | `character_sheet.rs` |
+| **Sacred Circuitry** | 15-word attention scaffolding system | `sacred_circuitry.rs` |
 | **VAAM** | Vocabulary Acquisition Autonomy Mastery | `trinity-iron-road/src/vaam/` |
-| **The Awakening** | Character creation (class + hardware scan) | `character_sheet.rs:L104-121` |
-| **Lone Wolf** | Single-model mode (< 24GB VRAM) | `character_sheet.rs:L381` |
-| **Hotel Management** | Model hot-swap protocol | `conductor_leader.rs:L466-503` |
+| **The Awakening** | Character creation (class + hardware scan) | `character_sheet.rs` |
+| **Lone Wolf** | Single-model mode (< 24GB VRAM) | `character_sheet.rs` |
+| **Hotel Management** | Model hot-swap protocol | `conductor_leader.rs` |
 | **Book of the Bible** | Append-only narrative ledger | `trinity-iron-road/src/book.rs` |
 | **Great Recycler** | Narrative AI that writes Book chapters | `trinity-iron-road/src/great_recycler.rs` |
 | **Cow Catcher** | Runtime error classification system | `cow_catcher.rs` |
+| **MCP Server** | Model Context Protocol — standardized agentic extensibility for IDE integration | `trinity-mcp-server` crate |
+| **Background Jobs** | SQLite-persisted task queue for autonomous multi-turn agent execution | `jobs.rs` |
+| **Setup Wizard (BYOM)** | "Bring Your Own Mind" — first-run wizard to select inference backend | `SetupWizard.jsx` |
+| **EdgeGuard** | Route-level security — Demo mode restriction for public Cloudflared access | `edge_guard.rs` |
+| **Ignition** | LM Studio boot state machine: idle → launching → daemon_up → ready | `main.rs` |
+| **InferenceRouter** | Agnostic HTTP dispatcher — auto-detects LM Studio / Ollama / llama-server | `inference_router.rs` |
 
 ### 12.5 What's Next
 
-Trinity is in **late prototype** stage. The Golem has its skeleton, muscles, and voice. What remains:
+Trinity is in **late prototype** stage. The Golem has its skeleton, muscles, and voice.
 
+**Completed (March 2026):**
+- ✅ **LDTAtkinson.com** — Portfolio website live, hosted from the same Strix Halo (Caddy reverse proxy + auto-HTTPS)
+- ✅ **Agnostic Inference** — HTTP router supports LM Studio, Ollama, llama-server, or any OpenAI-compatible API
+- ✅ **Background Job Runner** — SQLite-persisted task queue for autonomous agent execution
+- ✅ **MCP Server** — Model Context Protocol for IDE integration (Zed, Cursor)
+- ✅ **Setup Wizard (BYOM)** — "Bring Your Own Mind" first-run backend selection
+- ✅ **EdgeGuard** — Route-level security for public Cloudflared access (Demo mode)
+- ✅ **Native ONNX Voice** — Supertonic-2 TTS + Whisper STT without Python sidecar
+- ✅ **DAYDREAM Sidecar** — Pure Rust Bevy 3D engine as OS child process
+
+**Roadmap:**
 - **NPU Integration** — Move Whisper/Piper to XDNA 2 for zero-GPU voice
 - **Multi-Model Party** — Enable simultaneous REAP + Crow + Pete via Guild mode
-- **Bevy 3D Yard** — The spatial sandbox where SemanticCreeps roam
-- **ONNX Runtime** — NPU-accelerated embedding and speculative decoding
+- **Native RAG (ONNX)** — NPU-accelerated `all-MiniLM-L6-v2` embeddings
 - **Gate Review API** — Formal instructor review workflow for LDT Portfolio
 - **Purdue Pilot** — First classroom deployment with LDT students
-- **LDTAtkinson.com** — Portfolio website live at [LDTAtkinson.com](https://LDTAtkinson.com), hosted from the same Strix Halo (Caddy reverse proxy + auto-HTTPS)
 - **VAAM as Edge Intelligence** — Vocabulary-based attention management is MORE valuable on constrained devices (7B-32B models, 4-8K context). VAAM's 500-char prompt budget and Sacred Circuitry's Coal scanner reduce prompt engineering burden and manage drift where brute-force context is unavailable. No other system provides cognitive load management for edge AI.
 - **Mobile Trinity** — The VAAM profile (< 2KB JSON) + Sacred Circuitry (15 words) + Coal economy can run as a PWA or React Native shell on a phone, pointing to any local model or remote llama.cpp server. The cognitive scaffolding layer is device-independent.
 - **Car-Based Crate Chunking** — Organize the Cargo workspace into deployment-target "train cars": Phone Car (VAAM profile + circuitry scanner), Edge Car (+ quest engine), Desktop Car (+ creative pipeline + voice), Server Car (+ multi-user llama.cpp). A Yardmaster couples the cars for each deployment target.

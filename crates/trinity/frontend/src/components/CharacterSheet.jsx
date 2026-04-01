@@ -1,4 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { marked } from 'marked';
+
+marked.setOptions({
+  gfm: true,
+  breaks: false,
+});
 
 /**
  * THE ADDIECRAPEYE AGREEMENT — Character Sheet
@@ -64,6 +70,10 @@ export default function CharacterSheet() {
   const [pearl, setPearl] = useState(null);
   const [error, setError] = useState(null);
   const [vaultOpen, setVaultOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('contract'); // 'contract', 'hookbook', 'identity'
+  const [hookBookHtml, setHookBookHtml] = useState('');
+  const [backstoryText, setBackstoryText] = useState('');
+  const [savingBackstory, setSavingBackstory] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -74,6 +84,7 @@ export default function CharacterSheet() {
       .then(([charData, questData, pearlData]) => {
         setSheet(charData);
         setQuest(questData);
+        setBackstoryText(charData.backstory || '');
         if (pearlData && !pearlData.error) setPearl(pearlData);
       })
       .catch(err => {
@@ -81,6 +92,33 @@ export default function CharacterSheet() {
         setError(String(err));
       });
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'hookbook' && !hookBookHtml) {
+      fetch('/docs/HOOK_BOOK.md')
+        .then(r => r.ok ? r.text() : Promise.reject('Not found'))
+        .then(md => setHookBookHtml(marked.parse(md)))
+        .catch(() => setHookBookHtml('<p style="color:#ef4444">Failed to load HOOK_BOOK.md. Perhaps the Great Recycler is still writing it.</p>'));
+    }
+  }, [activeTab]);
+
+  const saveBackstory = async () => {
+    setSavingBackstory(true);
+    try {
+      const resp = await fetch('/api/character', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ backstory: backstoryText })
+      });
+      if (!resp.ok) throw new Error('Failed to save');
+      const updatedSheet = await resp.json();
+      setSheet(updatedSheet);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingBackstory(false);
+    }
+  };
 
   if (error) return (
     <div style={s.loading}>
@@ -148,62 +186,7 @@ export default function CharacterSheet() {
     <div style={s.container}>
       <div style={s.glassCard}>
 
-        {/* ═══ HOOK BOOK — THE PEARL OF THE CHARACTER SHEET ═══ */}
-        <a
-          href="#chariot:PROFESSOR.md"
-          style={{
-            display: 'block', textDecoration: 'none', marginBottom: '28px',
-            padding: '24px 28px', borderRadius: '16px',
-            background: 'linear-gradient(135deg, rgba(167,139,250,0.14) 0%, rgba(34,211,238,0.06) 50%, rgba(167,139,250,0.08) 100%)',
-            border: '2px solid rgba(167,139,250,0.3)',
-            position: 'relative', overflow: 'hidden',
-            transition: 'all 0.3s ease',
-            boxShadow: '0 4px 24px rgba(167,139,250,0.08)',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(167,139,250,0.6)';
-            e.currentTarget.style.boxShadow = '0 0 32px rgba(167,139,250,0.2), 0 8px 32px rgba(0,0,0,0.3)';
-            e.currentTarget.style.transform = 'translateY(-3px)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(167,139,250,0.3)';
-            e.currentTarget.style.boxShadow = '0 4px 24px rgba(167,139,250,0.08)';
-            e.currentTarget.style.transform = 'translateY(0)';
-          }}
-        >
-          {/* Top accent line */}
-          <div style={{
-            position: 'absolute', top: 0, left: 0, right: 0, height: '3px',
-            background: 'linear-gradient(90deg, transparent, rgba(167,139,250,0.5), rgba(34,211,238,0.3), transparent)',
-          }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{
-                fontSize: '9px', fontFamily: "'JetBrains Mono', monospace",
-                color: '#a78bfa', letterSpacing: '3px', textTransform: 'uppercase',
-                marginBottom: '6px', opacity: 0.8,
-              }}>
-                YOUR SPELL BOOK
-              </div>
-              <div style={{
-                fontSize: '20px', fontWeight: 800, color: '#E2E8F0',
-                fontFamily: "'Cinzel', serif", letterSpacing: '2px',
-                marginBottom: '6px',
-              }}>
-                📖 The Hook Book
-              </div>
-              <div style={{
-                fontSize: '13px', color: '#9CA3AF', lineHeight: 1.5,
-              }}>
-                "What can Trinity do?" — <span style={{ color: '#a78bfa', fontWeight: 600 }}>37 Hooks</span> · <span style={{ color: '#22d3ee', fontWeight: 600 }}>4 Schools</span> · Instant access to every workflow
-              </div>
-            </div>
-            <div style={{
-              fontSize: '28px', color: '#a78bfa', opacity: 0.4,
-              transition: 'opacity 0.2s',
-            }}>→</div>
-          </div>
-        </a>
+
 
         {/* ═══ HEADER ═══ */}
         <header style={s.header}>
@@ -232,6 +215,24 @@ export default function CharacterSheet() {
           </div>
         </header>
 
+        {/* ═══ TAB NAVIGATION ═══ */}
+        <div style={s.tabNav}>
+          {['contract', 'hookbook', 'identity'].map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                ...s.tabButton,
+                ...(activeTab === tab ? s.tabActive : s.tabInactive)
+              }}
+            >
+              {tab === 'contract' ? '📜 The Contract' : tab === 'hookbook' ? '📖 Hook Book' : '👤 Player Identity'}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'contract' && (
+          <>
         {/* ═══ YOUR PEARL — The User's Contract ═══ */}
         {pearl && (
           <div style={s.pearlSection}>
@@ -566,9 +567,18 @@ export default function CharacterSheet() {
                     <h4 style={{ fontWeight: 'bold', color: '#E2E8F0', fontSize: '15px', margin: '0 0 6px 0' }}>
                       {artifact.title}
                     </h4>
-                    <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
                       <span style={s.typeBadge}>{artifact.artifact_type}</span>
                       <span style={s.supraBadge}>{artifact.aligned_supra_badge}</span>
+                      {artifact.hooks_cast && artifact.hooks_cast.map(hook => (
+                        <span key={hook} style={{
+                          fontSize: '8px', background: 'rgba(167,139,250,0.1)', color: '#a78bfa',
+                          padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase',
+                          letterSpacing: '1px', border: '1px solid rgba(167,139,250,0.3)',
+                        }}>
+                          📖 {hook}
+                        </span>
+                      ))}
                     </div>
                     <p style={s.reflection}>"{artifact.reflection_journal}"</p>
                     <div style={s.artifactFooter}>
@@ -584,6 +594,131 @@ export default function CharacterSheet() {
           )}
         </div>
 
+
+      {/* End of Contract Tab */}
+          </>
+        )}
+
+        {/* ═══ THE HOOK BOOK TAB ═══ */}
+        {activeTab === 'hookbook' && (
+          <div className="chariot-content" style={{ marginTop: '24px', padding: '16px', borderRadius: '12px', background: 'rgba(15,13,10,0.6)', border: '1px solid rgba(207,185,145,0.1)' }}>
+            
+            {/* Purdue LDT Alignment Badges */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '24px', paddingBottom: '24px', borderBottom: '1px solid rgba(207,185,145,0.1)' }}>
+              {[
+                { school: '🏫 Pedagogy', purdue: 'EDCI 51300 / 53100', color: '#f59e0b', desc: 'Learning Theory' },
+                { school: '🎨 Creation', purdue: 'EDCI 57200 / 56900', color: '#a78bfa', desc: 'Multimedia Design' },
+                { school: '⚙️ Systems', purdue: 'EDCI 52800', color: '#34d399', desc: 'Human Performance' },
+                { school: '🎭 Identity', purdue: 'EDCI 57700 / AECT', color: '#22d3ee', desc: 'Assessment & Ethics' }
+              ].map(badge => (
+                <div key={badge.school} style={{ background: 'rgba(24, 22, 18, 0.5)', padding: '12px', borderRadius: '8px', border: `1px solid ${badge.color}30` }}>
+                  <div style={{ fontSize: '11px', fontFamily: "'Cinzel', serif", color: '#E2E8F0', marginBottom: '4px' }}>{badge.school}</div>
+                  <div style={{ fontSize: '9px', fontFamily: "'JetBrains Mono', monospace", color: badge.color, fontWeight: 'bold' }}>{badge.purdue}</div>
+                  <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>{badge.desc}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* The User's Deck */}
+            <div style={{ marginBottom: '40px' }}>
+              <div style={{ fontSize: '20px', fontFamily: "'Cinzel', serif", color: '#a78bfa', marginBottom: '16px', borderBottom: '1px solid rgba(167,139,250,0.3)', paddingBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <span>Your Active Deck</span>
+                <span style={{ fontSize: '12px', color: '#94a3b8', fontFamily: "'JetBrains Mono', monospace" }}>{Object.keys(ldt?.hook_deck || {}).length} Spells Acquired</span>
+              </div>
+              
+              {Object.keys(ldt?.hook_deck || {}).length === 0 ? (
+                <div style={{ color: '#6B7280', fontSize: '14px', padding: '20px', fontStyle: 'italic', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                  No Hooks acquired yet. Speak to the Great Recycler to discover tools.
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
+                  {Object.values(ldt.hook_deck).map(hook => (
+                    <div key={hook.id} style={{
+                      background: 'linear-gradient(135deg, rgba(24,22,30,0.9), rgba(15,13,20,0.9))',
+                      border: '1px solid rgba(167,139,250,0.4)', borderRadius: '8px', padding: '16px',
+                      boxShadow: '0 8px 16px rgba(0,0,0,0.6)', 
+                      transition: 'transform 0.2s', cursor: 'default'
+                    }} className="hook-card-hover">
+                      <div style={{ fontSize: '11px', color: '#a78bfa', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '1px' }}>{hook.school}</div>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#E2E8F0', fontFamily: "'Cinzel', serif" }}>{hook.title}</div>
+                      
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#94a3b8', marginTop: '16px', marginBottom: '6px', fontFamily: "'JetBrains Mono', monospace" }}>
+                        <span>Lvl {hook.level}</span>
+                        <span>{hook.xp} / {hook.level * 100} XP</span>
+                      </div>
+                      
+                      <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{ 
+                          width: `${Math.min((hook.xp / (hook.level * 100)) * 100, 100)}%`, 
+                          height: '100%', background: 'linear-gradient(90deg, #8b5cf6, #d946ef)' 
+                        }} />
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#64748b', marginTop: '12px' }}>
+                        <span>ID: {hook.id}</span>
+                        <span>🐾 {hook.creeps_tamed} Creeps Tamed</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div style={{ fontSize: '20px', fontFamily: "'Cinzel', serif", color: '#E2E8F0', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px' }}>
+              The Great Tome
+            </div>
+
+            {!hookBookHtml ? (
+              <div style={{ color: '#6B7280', fontSize: '14px', textAlign: 'center', padding: '40px' }}>Loading Hook Book...</div>
+            ) : (
+              <article className="chariot-article" dangerouslySetInnerHTML={{ __html: hookBookHtml }} />
+            )}
+            
+            {/* The Trading Card System Tip */}
+            <div style={{ marginTop: '32px', padding: '16px', borderRadius: '8px', background: 'rgba(34,211,238,0.05)', borderLeft: '4px solid #22d3ee' }}>
+              <div style={{ fontFamily: "'Cinzel', serif", color: '#22d3ee', fontSize: '14px', marginBottom: '8px' }}>💡 Iron Road Trading Cards</div>
+              <div style={{ fontSize: '12px', color: '#94a3b8', lineHeight: 1.5 }}>
+                Did you know? The Iron Road treats these Hooks like cards in a deck. As you encounter Scope Creeps, the AI tags their strengths and weaknesses against specific Hooks!
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ PLAYER IDENTITY TAB ═══ */}
+        {activeTab === 'identity' && (
+          <div style={{ marginTop: '24px' }}>
+            <h2 style={{ fontFamily: "'Cinzel', serif", color: '#CFB991', letterSpacing: '2px', borderBottom: '1px solid rgba(207,185,145,0.2)', paddingBottom: '8px', marginBottom: '16px' }}>Your Character Backstory</h2>
+            <p style={{ fontSize: '13px', color: '#cbd5e1', marginBottom: '16px', lineHeight: 1.5 }}>
+              Describe your "player" persona as if you were jumping into a DnD campaign for teachers. Who are you? What drives your instructional design? The Great Recycler reads this to tailor its guidance.
+            </p>
+            <textarea
+              style={{
+                width: '100%', minHeight: '300px', background: 'rgba(24, 22, 18, 0.72)',
+                border: '1px solid rgba(207,185,145,0.3)', borderRadius: '8px',
+                padding: '16px', color: '#E2E8F0', fontFamily: "'Inter', sans-serif",
+                fontSize: '14px', lineHeight: 1.6, resize: 'vertical', outline: 'none'
+              }}
+              value={backstoryText}
+              onChange={(e) => setBackstoryText(e.target.value)}
+              placeholder="E.g., A battle-hardened curriculum developer from the Midwest who specializes in turning boring compliance training into sweeping high-fantasy narrative adventures..."
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+              <button
+                onClick={saveBackstory}
+                disabled={savingBackstory}
+                style={{
+                  background: savingBackstory ? '#4B5563' : '#CFB991',
+                  color: '#1A1A1A', padding: '10px 24px', borderRadius: '6px',
+                  fontFamily: "'JetBrains Mono', monospace", fontWeight: 'bold',
+                  border: 'none', cursor: savingBackstory ? 'not-allowed' : 'pointer',
+                  transition: 'background 0.2s'
+                }}
+              >
+                {savingBackstory ? 'Carving into Stone...' : 'Save Backstory'}
+              </button>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
@@ -888,4 +1023,23 @@ const s = {
     borderTop: '1px solid rgba(207,185,145,0.08)',
     paddingTop: '8px', marginTop: '10px',
   },
+  // Tab Navigation
+  tabNav: {
+    display: 'flex', gap: '8px', marginBottom: '24px',
+    borderBottom: '1px solid rgba(207,185,145,0.1)', paddingBottom: '8px',
+  },
+  tabButton: {
+    padding: '10px 20px', borderRadius: '8px', border: '1px solid transparent',
+    background: 'transparent', color: '#94a3b8', cursor: 'pointer',
+    fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', letterSpacing: '1px',
+    transition: 'all 0.2s', textTransform: 'uppercase',
+  },
+  tabActive: {
+    background: 'rgba(207,185,145,0.08)', color: '#CFB991',
+    borderColor: 'rgba(207,185,145,0.3)', fontWeight: 'bold',
+  },
+  tabInactive: {
+    opacity: 0.7,
+  },
 };
+
