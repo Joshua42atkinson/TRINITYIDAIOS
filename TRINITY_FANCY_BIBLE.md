@@ -43,7 +43,7 @@
 | **MCP Server** | `Verified` | `trinity-mcp-server` crate — Model Context Protocol for agentic extensibility |
 | **Shadow Process** | `Verified` | `CharacterSheet.jsx` — Ghost Train stop button → `/api/character/shadow/process` |
 | **TCG HookDeck Spells** | `Verified` | `character_sheet.rs`, `CharacterSheet.jsx` — physical TCG spell cards to tame creatures |
-| **Multi-user Sessions** | `Roadmap` | Planned vLLM PagedAttention deployment |
+| **Multi-user Sessions** | `Roadmap` | Planned batched inference via TGI or compatible backend |
 
 ---
 

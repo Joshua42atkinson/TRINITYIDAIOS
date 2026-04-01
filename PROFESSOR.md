@@ -4,7 +4,7 @@
 
 > *"I know what success looks like."* — The Stakeholder's Tagline
 
-**Version 1.1** — March 31, 2026
+**Version 1.2** — April 1, 2026
 
 > 🌐 **Live Demo**: [https://LDTAtkinson.com](https://LDTAtkinson.com) · [Trinity App](https://LDTAtkinson.com/trinity/) · [Source Archive](https://LDTAtkinson.com/downloads/TRINITY_ID_AI_OS_v1.0_source.tar.gz)
 
@@ -260,7 +260,7 @@ Purdue's Gautschi supercomputer (March 2025) has **160 NVIDIA H100 SXMs** (80 GB
 
 | Component | H100s | Serves |
 |-----------|:-----:|--------|
-| **Batched inference pool** (119B MoE, continuous batching via TGI/vLLM) | 20 (10 instances × 2 GPUs) | ~200–300 concurrent Socratic sessions |
+| **Batched inference pool** (119B MoE, continuous batching via TGI or compatible backend) | 20 (10 instances × 2 GPUs) | ~200–300 concurrent Socratic sessions |
 | **SDXL Turbo** (image generation queue) | 4 | ~50 concurrent image requests |
 | **TTS + STT** (native ONNX or GPU-accelerated) | 2 | Voice pipeline for accessibility |
 | **Embeddings + RAG** (native ONNX MiniLM) | 2 | Semantic search across all user artifacts |
@@ -287,6 +287,8 @@ Zero data leaves campus. No API keys. Reduces reliance on third-party cloud proc
 | **Image Generation** | ComfyUI + SDXL Turbo (4-step, ~2s/image) | ✅ Running |
 | **Voice** | Supertonic-2 TTS (native ONNX, 10 voices) + Whisper STT (native ONNX) | ✅ Running |
 | **Socratic Protocol** | 12 phase-specific instruction sets in conductor | ✅ 12/12 claims verified |
+| **28 Game Mechanics** | All wired backend↔frontend via SSE events (Coal, Steam, Scope Creep, Friction, Vulnerability, Shadow, Objectives, Perspective) | ✅ 28/28 verified April 1, 2026 |
+| **432 Bespoke Objectives** | `objectives.json` — 12 chapters × 12 ADDIECRAPEYE phases × 3 objectives each | ✅ Zero generic fallbacks |
 | **QM Scoring** | Automated Bloom's + ADDIE + engagement analysis | ✅ Returns real scores |
 | **VAAM** | Vocabulary Acquisition Autonomy Mastery — word scanning + Coal | ✅ Scanning works |
 | **30 Agentic Tools** | File I/O, quest, shell, image gen, lesson plans, rubrics | ✅ All 30 dispatched |
@@ -304,7 +306,7 @@ Zero data leaves campus. No API keys. Reduces reliance on third-party cloud proc
 | Enhancement | Technology | Effort | Impact |
 |-------------|-----------|:------:|--------|
 | **Multi-user sessions** | PostgreSQL per-user isolation, session tokens | 2–3 weeks | Each student gets their own CharacterSheet & quest state |
-| **Batched inference** | TGI or vLLM (PagedAttention) behind InferenceRouter | 1 week | 100+ concurrent users per model instance |
+| **Batched inference** | TGI or batched OpenAI-compatible backend behind InferenceRouter | 1 week | 100+ concurrent users per model instance |
 | **Full creative pipeline** | MING 2.1 replacing ComfyUI sidecar stack | 1 week | Unified image/video/3D from a single model, no sidecar management |
 | **Speculative decoding** | EAGLE draft model (GGUF) on NPU | 1–2 weeks | 2–3× token throughput on consumer hardware |
 | **NPU offload** | XDNA 2 (AMD, 50 TOPS) for embeddings + STT | 2 weeks | Frees GPU for LLM-only, voice becomes "free" |
@@ -411,7 +413,7 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 
 ## Appendix B: Product Maturation Map
 
-> Generated: 2026-03-24 14:55 ET | Revised final audit — all user-facing features verified
+> Generated: 2026-04-01 19:56 ET | Revised — full maturity audit, 28/28 game mechanics verified, 432 bespoke objectives complete
 
 ### System Metrics (Machine-Verified)
 
@@ -460,11 +462,14 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 
 | Gap | Impact | Priority | Notes |
 |-----|--------|----------|-------|
+| ~~Game mechanics wiring~~ | ~~High~~ | ~~DONE~~ | All 28 mechanics fully wired as of April 1, 2026 |
+| ~~CRAPEYE objective gaps~~ | ~~Medium~~ | ~~DONE~~ | 432 bespoke objectives across all 12 chapters × 12 phases |
+| Hook Book TCG bridge | Medium | v1.3 | GlobalDeckOverlay ↔ Daydream drag-and-drop Hook Card casting |
 | Voice conversation loop | Low | Post-demo | Requires real-time audio hardware integration |
 | Project archive/restore | Low | Post-demo | Backend exists, UI not wired |
-| Achievement system | Medium | v1.1 | Phase completion only, no badges/unlocks |
-| Ambient music toggle | Low | v1.1 | `music_streamer.rs` exists, needs frontend button |
-| Multi-user sessions | Medium | v2.0 | Needs batched inference backend (TGI/vLLM behind InferenceRouter) |
+| Achievement system | Medium | v1.3 | Phase completion only, no badges/unlocks |
+| Ambient music toggle | Low | v1.3 | `music_streamer.rs` exists, needs frontend button |
+| Multi-user sessions | Medium | v2.0 | Needs batched inference backend (TGI behind InferenceRouter) |
 
 ### References
 
