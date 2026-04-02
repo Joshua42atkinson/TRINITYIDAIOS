@@ -760,7 +760,7 @@ The Coal/Steam/Friction economy is CLT (Sweller, 1988) implemented as game mecha
 
 No other AI framework applies cognitive load theory to the AI's own attention management. Agent frameworks (LangChain, CrewAI, AutoGen) provide memory and tools but no cognitive scaffolding. LMS systems (Canvas, Moodle) manage courses but not cognitive load. Intelligent Tutoring Systems (ANDES, Carnegie Mellon Cognitive Tutors) tracked student knowledge states but used pre-authored rule systems, not live LLMs.
 
-**The structural claim:** Trinity is the first system that applies Cognitive Load Theory to both the human AND the AI simultaneously, using vocabulary as the shared measurement unit, structured by a game engine that makes pedagogical rigor feel like play.
+**The structural claim:** To our knowledge, Trinity is the first system to apply Cognitive Load Theory to both the human AND the AI simultaneously, using vocabulary as the shared measurement unit, structured by a game engine that makes pedagogical rigor feel like play.
 
 ### 4.3 SemanticCreep — Vocabulary Creatures
 

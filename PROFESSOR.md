@@ -23,6 +23,8 @@ This is one of **four root documents** — the "Four Chariots" of Trinity's iden
 
 Each document serves a different reader. This one is for **administrators, department chairs, and evaluators** who need to understand *what Trinity does, why it works, and how it maps to existing standards*.
 
+> **Nomenclature Note**: Trinity uses metaphorical frameworks drawn from multiple cultural and intellectual traditions — Pythagorean mathematics ("Sacred Circuitry," "5Ps"), Kabbalistic mythology ("Golem" as a construction metaphor), Sanskrit philosophy ("Ākāśa," "Dharma," "Karma" as structural analogies), and Jungian psychology ("Shadow" integration). These references are academic in nature, grounded in published scholarship, and serve as structural analogies for instructional design concepts. They do not represent religious endorsement, spiritual practice, or theological instruction.
+
 ---
 
 ## For the Evaluator: What Does Trinity Actually Do?
@@ -140,6 +142,8 @@ Deep reflection after burnout is tracked as "Memorial Steps Climbed" — named a
 ### Theoretical Grounding: The Shadow Mechanic
 
 Trinity's `ShadowStatus` system (Clear → Stirring → Active → Processed) is not a metaphor. It is a direct operationalization of established therapeutic and psychological frameworks into game mechanics.
+
+> ⚠️ **Institutional Disclaimer**: The Shadow mechanic is an *instructional design scaffold* inspired by published psychological research (Stutz, Jung, Brown). It is not a clinical tool and does not diagnose, treat, or replace professional mental health services. It tracks behavioral engagement patterns (hesitation, avoidance, frustration) to adjust pedagogical scaffolding — not to provide therapy. Users experiencing genuine psychological distress should be directed to their institution's counseling center or the 988 Suicide & Crisis Lifeline.
 
 **1. Phil Stutz's "The Tools" — Reversal of Desire & Part X**
 
