@@ -14,7 +14,6 @@
 | **Disk** | 20 GB (source + build) | 100 GB (with LLM model) |
 | **Rust** | 1.80+ | Latest stable |
 | **Node.js** | 18+ | 20 LTS |
-| **PostgreSQL** | 15+ with pgvector | 16+ |
 
 ---
 
@@ -35,23 +34,21 @@ source ~/.bashrc
 nvm install 20
 ```
 
-### PostgreSQL + pgvector
+### LLM Backend (pick one)
+
+**Option A: LM Studio (recommended)**
+1. Download from [lmstudio.ai](https://lmstudio.ai)
+2. Load a model (e.g., Mistral Small 4 119B, Llama 3.1 8B, or Qwen 2.5 7B)
+3. Start the server on port 1234 (LM Studio's default)
+
+**Option B: Ollama**
 ```bash
-# Ubuntu/Debian
-sudo apt update
-sudo apt install postgresql postgresql-contrib
-sudo apt install postgresql-16-pgvector  # or your version
-
-# Start PostgreSQL
-sudo systemctl start postgresql
-sudo systemctl enable postgresql
-
-# Create database
-sudo -u postgres createdb trinity
-sudo -u postgres psql -c "CREATE EXTENSION IF NOT EXISTS vector;" trinity
+curl -fsSL https://ollama.com/install.sh | sh
+ollama serve  # starts on port 11434
+ollama pull mistral-small  # or any model
 ```
 
-### llama.cpp (for LLM inference)
+**Option C: llama-server (manual)**
 ```bash
 git clone https://github.com/ggml-org/llama.cpp.git
 cd llama.cpp
@@ -100,20 +97,20 @@ For systems with less RAM, smaller models work too:
 
 ## Step 4: Start Services
 
-### Option A: Let Trinity auto-launch (recommended)
+### Option A: Let Trinity auto-detect (recommended)
 ```bash
-# Just start Trinity — the GPU Guard will detect and launch llama-server automatically
-cargo run --release
+# Just start Trinity — the InferenceRouter will find your LLM backend
+TRINITY_HEADLESS=1 cargo run -p trinity --release
 ```
 
 ### Option B: Manual LLM start
 ```bash
-# Terminal 1: Start the LLM
+# Terminal 1: Start the LLM (if using llama-server)
 llama-server -m ~/trinity-models/gguf/YOUR_MODEL.gguf \
   --host 127.0.0.1 --port 8080 -ngl 99 --ctx-size 262144 --flash-attn on --jinja
 
 # Terminal 2: Start Trinity
-cargo run --release
+TRINITY_HEADLESS=1 cargo run -p trinity --release
 ```
 
 ---
@@ -163,8 +160,7 @@ python scripts/voice_sidecar.py  # Port 7777
 |---------|----------|
 | `cargo build` fails | Ensure Rust 1.80+: `rustup update stable` |
 | Frontend won't build | Ensure Node 18+: `node --version` |
-| Database connection error | Check PostgreSQL is running: `sudo systemctl status postgresql` |
-| LLM not detected | Check llama-server is running: `curl http://localhost:8080/health` |
+| LLM not detected | Check your backend is running: `curl http://localhost:1234/v1/models` (LM Studio) or `curl http://localhost:11434/api/tags` (Ollama) |
 | Out of memory | Use a smaller model or reduce `--ctx-size` |
 
 ---

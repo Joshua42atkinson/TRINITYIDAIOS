@@ -1,23 +1,65 @@
-# Trinity ID AI OS - Clean Repository for GitHub
-# Ready for public demonstration and institutional sharing
+# Trinity ID AI OS — .gitignore
+# Clean repository for GitHub and institutional sharing
 
-# Dependencies
+# ═══════════════════════════════════════════
+# Build Artifacts
+# ═══════════════════════════════════════════
 /target/
 **/target/
 **/*.rs.bk
 Cargo.lock
+/build/
+/dist/
+*.so
+*.dylib
+*.dll
 
-# Data files (parquets, vocab — generated or downloaded at runtime)
+# ═══════════════════════════════════════════
+# AI Model Files (too large for GitHub)
+# ═══════════════════════════════════════════
+*.gguf
+*.onnx
+*.safetensors
+models/
+
+# ═══════════════════════════════════════════
+# Data (generated or downloaded at runtime)
+# ═══════════════════════════════════════════
 data/
+/generated_assets/
+/temp_assets/
 
-# IDE and Editor files
+# ═══════════════════════════════════════════
+# Local Configuration & Secrets
+# ═══════════════════════════════════════════
+.local/
+.env
+.env.local
+*.local
+secrets/
+config/local_*
+trinity_key
+trinity_key.pub
+*.pem
+*.key
+id_rsa
+id_ed25519
+
+# ═══════════════════════════════════════════
+# IDE & Editor Files
+# ═══════════════════════════════════════════
 .vscode/
 .idea/
+.windsurf/
+.cursorrules
+windsurf-config.json
 *.swp
 *.swo
 *~
 
-# OS generated files
+# ═══════════════════════════════════════════
+# OS Generated Files
+# ═══════════════════════════════════════════
 .DS_Store
 .DS_Store?
 ._*
@@ -28,91 +70,55 @@ Thumbs.db
 nohup.out
 *.pid
 
-# Local development artifacts
+# ═══════════════════════════════════════════
+# Local Development Artifacts
+# ═══════════════════════════════════════════
 *.log
 *.tmp
 *.bak
 *.old
 *.orig
 *.rej
-
-# Model files (too large for GitHub)
-*.gguf
-*.onnx
-*.safetensors
-models/
-
-# Generated assets and temporary files
-/generated_assets/
-/temp_assets/
-
-# Local configuration and secrets
-.local/
-.env.local
-*.local
-.env
-secrets/
-config/local_*
-
-# Backup directories (keep development history local)
-backup_old*/
-old_*/
-archive/
-
-# Verification logs and test outputs
-verification_logs/
 *.dump
+*.prof
+*.perf
+verification_logs/
 test_output/
-
-# Local scripts that shouldn't be committed
 scripts/local_*
+tools/local_*
 
-# Development databases
+# ═══════════════════════════════════════════
+# Development Databases
+# ═══════════════════════════════════════════
 *.db
 *.sqlite
 *.sqlite3
 
-# Temporary build artifacts
-/build/
-/dist/
-*.so
-*.dylib
-*.dll
-
-# Documentation build
-docs/build/
-docs/_build/
-
-# Local cache
-.cache/
-.cache-*/
-
-# Python environments
-**/.venv/
-**/venv/
-phi4_env/
-trinity_ai_env/
-
-# Scope-creep local sandboxes (experimental branches)
-FastFlowLM/
-Phi-4-mini-reasoning-onnx-ryzenai-hybrid/
-xdna-driver/
-windsurf-conductor-mcp/
-
-# Performance profiling
-*.prof
-*.perf
-
-# Local development tools
-tools/local_*
-
-# Node.js (if any web components)
+# ═══════════════════════════════════════════
+# Node.js
+# ═══════════════════════════════════════════
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Audio/Video recordings (demo files)
+# ═══════════════════════════════════════════
+# Python Environments
+# ═══════════════════════════════════════════
+**/.venv/
+**/venv/
+phi4_env/
+trinity_ai_env/
+
+# ═══════════════════════════════════════════
+# Documentation Build
+# ═══════════════════════════════════════════
+docs/build/
+docs/_build/
+
+# ═══════════════════════════════════════════
+# Media (demo recordings)
+# ═══════════════════════════════════════════
 *.mp4
 *.webm
 *.wav
@@ -120,19 +126,34 @@ yarn-error.log*
 recordings/
 demo_videos/
 
-# Personal notes and drafts
+# ═══════════════════════════════════════════
+# Local Cache & Sandboxes
+# ═══════════════════════════════════════════
+.cache/
+.cache-*/
+FastFlowLM/
+Phi-4-mini-reasoning-onnx-ryzenai-hybrid/
+xdna-driver/
+windsurf-conductor-mcp/
+
+# ═══════════════════════════════════════════
+# Archive & Backup
+# ═══════════════════════════════════════════
+backup_old*/
+old_*/
+archive/
 notes/
 drafts/
 TODO.md
 SCRATCH.md
-llama.cpp
+TASK_QUEUE.md
 
-# Security - never commit keys
-trinity_key
-trinity_key.pub
-*.pem
-*.key
-id_rsa
-id_ed25519
+# ═══════════════════════════════════════════
+# Legacy / Stale (no longer part of project)
+# ═══════════════════════════════════════════
+llama.cpp
+docker-compose.yml
+Trunk.toml
+vendor/
 crates/trinity/daydream-x86_64-unknown-linux-gnu
 crates/trinity/frontend/public/forge/engine-pkg-webgl2/forge_engine_bg.wasm

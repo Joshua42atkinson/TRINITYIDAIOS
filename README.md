@@ -30,25 +30,26 @@ Trinity combines instructional design methodology (ADDIE), visual design princip
 ## Quick Start
 
 ### Prerequisites
-- Linux system with 128 GB+ unified RAM (developed on AMD Strix Halo)
-- [llama.cpp](https://github.com/ggml-org/llama.cpp) built with Vulkan support
-- [Mistral Small 4 119B](https://huggingface.co/mistralai/Mistral-Small-4-119B-2503) GGUF (Q4_K_M, ~68 GB)
-- PostgreSQL 15+ with pgvector extension
+- Linux system with 16 GB+ RAM (developed on 128 GB AMD Strix Halo)
+- An OpenAI-compatible LLM backend:
+  - [LM Studio](https://lmstudio.ai) (recommended, port 1234)
+  - [Ollama](https://ollama.com) (port 11434)
+  - [llama-server](https://github.com/ggml-org/llama.cpp) (port 8080)
 - Node.js 18+ and Rust 1.80+
 
 ### Run
 
 ```bash
-# 1. Start the LLM (llama-server GGUF — current default)
-llama-server -m ~/trinity-models/gguf/Mistral-Small-4-119B-2603-Q4_K_M-00001-of-00002.gguf \
-  --host 127.0.0.1 --port 8080 -ngl 99 --ctx-size 262144 --flash-attn on --jinja
+# 1. Start an LLM backend (pick one):
+#    - LM Studio: load a model and start server on port 1234
+#    - Ollama: ollama serve && ollama run mistral-small
+#    - llama-server: llama-server -m YOUR_MODEL.gguf --port 8080
 
 # 2. Build the React frontend
 cd crates/trinity/frontend && npm install && npm run build && cd ../../..
 
 # 3. Build and start Trinity
-cargo build --release
-cargo run --release
+TRINITY_HEADLESS=1 cargo run -p trinity --release
 
 # 4. Open in browser
 xdg-open http://localhost:3000
@@ -86,35 +87,39 @@ Our immediate next objective is **Mini Trinity**: a zero-configuration, single-d
 ## Architecture
 
 ```
-One brain, many modes.
+Three-layer process isolation — one brain, many modes.
 
-Pete (Mistral Small 4 119B MoE) ─── The AI personality (~68 GB Q4_K_M / 116 GB safetensors)
- ├── Aesthetics mode ─── CRAP visual design prompts
- ├── Research mode ───── Qianfan-OCR 4B document intelligence (:8081)
- └── Tempo mode ──────── Code generation, game scaffolding
-
-Rust Axum Server (:3000) ─── ADDIECRAPEYE orchestration, 30 agentic tools
-React Frontend ──────────── Book-view UI, 6 tabs (Iron Road / ART Studio / Character / Yardmaster / Scorecard / Voice)
-PostgreSQL + pgvector ───── Sessions, RAG knowledge base
-Inference Backends ──────── llama-server (:8080) | Ollama | SGLang (auto-detected)
-ComfyUI (:8188) ─────────── SDXL Turbo image generation
-Voice (:7777) ───────────── Whisper STT + Kokoro TTS
-GPU Guard ───────────────── Hotel protocol (prevents double LLM loads)
-Sidecar Monitor ─────────── Checks real sidecar health, reports only true crashes
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 1: Trinity Server (Axum, port 3000)                  │
+│  InferenceRouter: auto-detects LM Studio / Ollama / llama   │
+│  30 agentic tools, ADDIECRAPEYE orchestration               │
+│  SQLite persistence + native ONNX RAG (all-MiniLM-L6-v2)   │
+│  React frontend: Iron Road / ART Studio / Yardmaster        │
+├─────────────────────────────────────────────────────────────┤
+│  Layer 2: Protocol (trinity-protocol crate)                  │
+│  Shared types, CharacterSheet, PEARL, Sacred Circuitry       │
+├─────────────────────────────────────────────────────────────┤
+│  Layer 3: DAYDREAM (trinity-daydream crate)                  │
+│  Native Bevy 0.18.1 sidecar — 3D LitRPG sandbox             │
+├─────────────────────────────────────────────────────────────┤
+│  Optional Sidecars                                           │
+│  ComfyUI (:8188) · Supertonic TTS (native ONNX) · MusicGPT  │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## Codebase
 
-**7 workspace crates · 282 tests · 0 failures · 0 compile errors**
+**8 workspace crates · 0 compile errors**
 
-| Crate | Tests | Description |
-|-------|:-----:|-------------|
-| `trinity` | 83 | Axum server, 29 agentic tools, inference router, creative pipeline, EYE export, GPU Guard, Quality Scorecard |
-| `trinity-protocol` | 67 | Shared types, ADDIE lifecycle, PEARL focus agent, VAAM alignment |
-| `trinity-quest` | 18 | Quest board, XP/Coal/Steam economy, 432+ phase objectives |
-| `trinity-iron-road` | 16 | Iron Road narrative, Pete core, bestiary, MadLibs |
-| `trinity-voice` | 10 | SSML injection, VAAM vocal emphasis |
-| `trinity-bevy-graphics` | — | 3D Yard vision processing (parked: winit 0.30.13 + Rust 1.94 issue) |
+| Crate | Description |
+|-------|-------------|
+| `trinity` | Axum server, 30 agentic tools, inference router, creative pipeline, EYE export, Quality Scorecard |
+| `trinity-protocol` | Shared types, ADDIE lifecycle, PEARL focus agent, VAAM alignment, CharacterSheet |
+| `trinity-quest` | Quest board, XP/Coal/Steam economy, 432 bespoke phase objectives |
+| `trinity-iron-road` | Iron Road narrative, Pete core, bestiary, MadLibs |
+| `trinity-voice` | SSML injection, VAAM vocal emphasis, Supertonic TTS |
+| `trinity-daydream` | Native Bevy 0.18.1 3D LitRPG sidecar (pure Rust, no JS) |
+| `trinity-mcp-server` | Model Context Protocol for IDE integration (Zed, Cursor, Antigravity) |
 
 ### Frontend (Vite + React)
 

@@ -1,37 +1,22 @@
 [workspace]
 members = [
-    # Core System — 3 Screen UI (ID/Pete, AI/Mini, OS/ZEB)
-    "crates/trinity",                  # Main entry, HTTP server, UI shell
-    "crates/trinity-protocol",         # Shared types, ADDIE enums, HeroStage
-    
-    # ADDIE Sidecar — Conductor/GREAT RECYCLER — ID/Pete UI
-                # A-D-D-I-E phases, orchestration
-    "crates/trinity-quest",            # Quest board, XP/Coal/Steam
-    "crates/trinity-iron-road",        # Book writing, narrative
-    "crates/trinity-voice",            # PersonaPlex, Ask Pete
-           # Hands-free voice conversation loop (Rust)
-    
-    # CRAP-E Sidecar — ART — AI/Mini-Trinity UI  
-                 # C-R-A-P phases, contrast/repetition
-                # ComfyUI, Music AI, creative
-    
-    # YE Sidecar — Y/EYE — OS/ZEBLITS UI
-                  # Dev workflow, code editor, rolling context
-                  # E-Y-E phases, coding, ZEBLITS
-    
-    # Shared Infrastructure
-    "crates/trinity-daydream",         # Bevy 3D Yard — the blank canvas where users build
-    "crates/trinity-mcp-server",       # STANDARDIZED PROTOCOL - Model Context Protocol for Agentic Extensibility
-                 # PostgreSQL, pgvector, RAG
-               # llama.cpp, Hotel Pattern
+    # ── Core System ──
+    "crates/trinity",                  # Headless HTTP server + Tauri host (Layer 1)
+    "crates/trinity-protocol",         # Shared types, ADDIE enums, CharacterSheet (Layer 2)
+
+    # ── Game Engine ──
+    "crates/trinity-quest",            # Quest board, XP/Coal/Steam economy
+    "crates/trinity-iron-road",        # Book writing, narrative, VAAM, bestiary
+    "crates/trinity-voice",            # Supertonic TTS, SSML, VAAM vocal emphasis
+
+    # ── Native Extensions ──
+    "crates/trinity-daydream",         # Bevy 0.18.1 3D LitRPG sidecar (Layer 3)
+    "crates/trinity-mcp-server",       # Model Context Protocol for IDE integration
 ]
 
 exclude = [
     "plugins/*",                     # WASM plugins compiled separately
     "crates/archive/*",              # Archived legacy crates
-    "archive/crates/*",              # New archive location
-    "personaplex-7b-v1-onnx",        # Model files
-    ".llama-cpp-rs",                 # Isolated local fork
 ]
 
 resolver = "2"
@@ -40,7 +25,7 @@ resolver = "2"
 version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
-repository = "https://github.com/joshua42atkinson/desktop_trinity"
+repository = "https://github.com/Joshua42atkinson/TRINITYIDAIOS"
 authors = ["Joshua Atkinson"]
 
 [workspace.dependencies]
@@ -87,7 +72,4 @@ tokio-test = "0.4"
 pulldown-cmark = "0.9"
 rodio = "0.17"
 cpal = "0.15"
-
-[patch.crates-io]
-winit = { path = ".cargo_patches/winit" }
 
