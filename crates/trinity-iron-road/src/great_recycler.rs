@@ -77,7 +77,7 @@ impl GreatRecycler {
             current_quest_flavor: event.current_quest_flavor.clone(),
         };
 
-        // Generate prose via the narrative engine (calls vLLM or uses fallback)
+        // Generate prose via the narrative engine (calls LLM backend or uses fallback)
         let prose = self
             .narrative
             .generate_prose(&ctx, &event.description)

@@ -181,7 +181,7 @@ pub async fn chat_completion_stream(
         max_tokens: None, // Let inference backend auto-calculate to prevent context length errors
         temperature: 0.7,
         stream: true,
-        reasoning_effort: None, // Used internally for 'no_reasoning', but vLLM strictly validates against it
+        reasoning_effort: None, // Omitted — some backends reject unknown fields
         tools: None,
     };
 
@@ -300,7 +300,7 @@ pub async fn chat_completion_with_effort(
         max_tokens: None, // Let inference backend auto-calculate to prevent context length errors
         temperature: 0.7,
         stream: false,
-        reasoning_effort: None, // Used internally for 'no_reasoning', but vLLM strictly validates against it
+        reasoning_effort: None, // Omitted — some backends reject unknown fields
         tools: None,
     };
 
@@ -420,7 +420,7 @@ pub async fn chat_completion_with_tools(
         max_tokens: None, // Let inference backend auto-calculate to prevent context length errors
         temperature: 0.7,
         stream: false,
-        reasoning_effort: None, // Used internally for 'no_reasoning', but vLLM strictly validates against it
+        reasoning_effort: None, // Omitted — some backends reject unknown fields
         tools: if tools.is_empty() {
             None
         } else {

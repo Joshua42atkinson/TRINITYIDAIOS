@@ -35,8 +35,8 @@ trinity-genesis/
 | `agent.rs` | 580 | Agent chat loop with tool-calling + persistence |
 | `creative.rs` | 738 | ComfyUI + MusicGPT integration |
 | `conductor_leader.rs` | 447 | ADDIECRAPEYE orchestration (Lone Wolf mode) |
-| `persistence.rs` | 395 | PostgreSQL sessions, messages, projects, DAYDREAM |
-| `rag.rs` | 195 | pgvector semantic search + text fallback |
+| `persistence.rs` | 395 | SQLite sessions, messages, projects, DAYDREAM |
+| `rag.rs` | 195 | ONNX vector semantic search + text fallback |
 | `inference.rs` | ~200 | OpenAI-compatible client → llama-server :8080 |
 | `vaam_bridge.rs` | ~150 | VAAM → system prompt injection |
 
@@ -45,12 +45,12 @@ trinity-genesis/
 ## Phase 4 Features (This Session)
 
 ### 1. Conversation Persistence
-- PostgreSQL tables: `trinity_sessions`, `trinity_messages`, `trinity_projects`
+- SQLite tables: `trinity_sessions`, `trinity_messages`, `trinity_projects`
 - Every user/assistant message persisted during chat
 - Session restore on server restart
 - DAYDREAM archive system for project lifecycle
 
-### 2. pgvector RAG
+### 2. ONNX RAG
 - Semantic search via cosine similarity (HNSW index)
 - Embedding via llama-server `/v1/embeddings` with hash fallback
 - Tiered search: semantic → full-text → ILIKE
@@ -89,7 +89,7 @@ User describes lesson idea
     → scaffold_bevy_game generates Bevy project
     → Agent iterates on code (shell/write_file tools)
     → quest/compile exports Game Design Document
-    → Project saved to PostgreSQL + archived to DAYDREAM
+    → Project saved to SQLite + archived to DAYDREAM
 ```
 
 ---

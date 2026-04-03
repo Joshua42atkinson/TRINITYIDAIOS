@@ -13,7 +13,7 @@
 //   • SQL persistence for vocabulary mastery tracking
 //
 // DEPENDENCIES:
-//   - sqlx — PostgreSQL for vocabulary storage
+//   - sqlx — SQLite for vocabulary storage
 //   - trinity_protocol — Vocabulary types and detection
 //   - serde — Vocabulary pack serialization
 //
@@ -120,7 +120,7 @@ impl VaamState {
         }
     }
 
-    /// Load VAAM state from PostgreSQL vocabulary pack
+    /// Load VAAM state from SQLite vocabulary pack
     pub async fn from_db_pack(pool: &SqlitePool, pack_id: String) -> Result<Self, sqlx::Error> {
         let row = sqlx::query_as::<_, (String, String, String, String, serde_json::Value)>(
             r#"
@@ -159,7 +159,7 @@ impl VaamState {
         Ok(Self::from_pack(pack).await)
     }
 
-    /// Create VAAM state and sync mastery from PostgreSQL
+    /// Create VAAM state and sync mastery from SQLite
     pub async fn new_with_db(genre: Genre, pool: &SqlitePool, project_id: &str) -> Self {
         let state = Self::new(genre).await;
 
@@ -334,10 +334,10 @@ pub fn format_vaam_event(result: &VaamResult) -> String {
 }
 
 // ============================================================================
-// POSTGRESQL INTEGRATION
+// SQLITE INTEGRATION
 // ============================================================================
 
-/// Load mastery state from PostgreSQL for a project
+/// Load mastery state from SQLite for a project
 pub async fn load_mastery_from_db(
     pool: &SqlitePool,
     project_id: &str,
@@ -369,7 +369,7 @@ pub async fn load_mastery_from_db(
     Ok(mastery)
 }
 
-/// Save mastery state to PostgreSQL
+/// Save mastery state to SQLite
 pub async fn save_mastery_to_db(
     pool: &SqlitePool,
     project_id: &str,
@@ -388,7 +388,7 @@ pub async fn save_mastery_to_db(
             DO UPDATE SET
                 times_used = EXCLUDED.times_used,
                 is_mastered = EXCLUDED.is_mastered,
-                last_used_at = NOW()
+                last_used_at = CURRENT_TIMESTAMP
             "#
         )
         .bind(project_id)

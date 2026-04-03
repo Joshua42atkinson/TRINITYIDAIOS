@@ -13,7 +13,7 @@
 //               constraints that shape Pete's language and scaffolding depth.
 //
 // ARCHITECTURE:
-//   • PeteCore wraps a single HTTP client pointed at vLLM/llama-server
+//   • PeteCore wraps a single HTTP client pointed at any OpenAI-compatible backend
 //   • evaluate_and_respond() builds a tier-aware system prompt and calls
 //     the OpenAI-compatible /v1/chat/completions endpoint
 //   • VAAM tier determines vocabulary complexity in Pete's responses
@@ -33,20 +33,20 @@ use reqwest::Client;
 use serde_json::json;
 
 pub struct PeteCore {
-    vllm_url: String,
+    llm_url: String,
     client: Client,
 }
 
 impl PeteCore {
-    pub fn new(vllm_url: &str) -> Self {
+    pub fn new(llm_url: &str) -> Self {
         Self {
-            vllm_url: vllm_url.to_string(),
+            llm_url: llm_url.to_string(),
             client: Client::new(),
         }
     }
 
     /// Evaluates the user's input against their VAAM tier and generates a pedagogical response.
-    /// Uses the Conductor model (Mistral Small 4 119B MoE) via vLLM or llama-server.
+    /// Uses the Conductor model (Mistral Small 4 119B MoE) via any OpenAI-compatible backend.
     pub async fn evaluate_and_respond(
         &self,
         user_input: &str,
@@ -72,7 +72,7 @@ impl PeteCore {
 
         let url = format!(
             "{}/v1/chat/completions",
-            self.vllm_url.trim_end_matches('/')
+            self.llm_url.trim_end_matches('/')
         );
 
         let response = self.client.post(&url).json(&payload).send().await?;

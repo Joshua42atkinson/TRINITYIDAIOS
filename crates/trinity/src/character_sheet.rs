@@ -71,8 +71,15 @@ pub fn load_character_sheet() -> CharacterSheet {
 
     match std::fs::read_to_string(&path) {
         Ok(json) => match serde_json::from_str::<CharacterSheet>(&json) {
-            Ok(sheet) => {
+            Ok(mut sheet) => {
                 info!("✅ Loaded character sheet for: {}", sheet.alias);
+                
+                // If this is an older profile, inject the starter deck
+                if sheet.ldt_portfolio.hook_deck.is_empty() {
+                    let default_sheet = CharacterSheet::default();
+                    sheet.ldt_portfolio.hook_deck = default_sheet.ldt_portfolio.hook_deck;
+                }
+                
                 sheet
             }
             Err(e) => {

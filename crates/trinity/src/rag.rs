@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // FILE:        rag.rs
-// PURPOSE:     RAG (Retrieval-Augmented Generation) — pgvector semantic + text search
+// PURPOSE:     RAG (Retrieval-Augmented Generation) — native ONNX vector semantic + text search
 //
 // 🪟 THE LIVING CODE TEXTBOOK (P-ART-Y Gear R: Research):
 // This file is the memory cortex of the OS. It is designed to be read, modified, 
@@ -12,7 +12,7 @@
 // ACTION: Edit `search_documents()` to adjust semantic similarity thresholds.
 //
 // 📖 THE HOOK BOOK CONNECTION:
-// This file powers the 'Vector Database' Hook. It uses pgvector to turn natural 
+// This file powers the 'Vector Database' Hook. It uses native ONNX embeddings to turn natural 
 // language into mathematical meaning. You can use this engine to build your own 
 // AI search apps! For a full catalogue of capabilities, see: docs/HOOK_BOOK.md
 //
@@ -22,8 +22,8 @@
 // maintaining the Socratic learning loop and keeping drift at bay.
 //
 // ARCHITECTURE:
-//   • pgvector for semantic search (cosine similarity via HNSW index)
-//   • Full-text search (PostgreSQL ts_rank) as fallback
+//   • SQLite + in-memory cosine similarity for semantic search
+//   • Native Rust ONNX (all-MiniLM-L6-v2) for semantic search (cosine similarity)
 //   • ILIKE as last-resort fallback
 //   • Embedding generation via llama-server /v1/embeddings
 //   •   → Falls back to hash-based embedding if server unavailable
@@ -35,7 +35,7 @@
 //   trinity_chunks      — text chunks for full-text search
 //
 // DEPENDENCIES:
-//   - sqlx — PostgreSQL async interface
+//   - sqlx — SQLite async interface
 //   - reqwest — HTTP client for embedding API
 //   - tracing — RAG operation logging
 //
@@ -52,6 +52,7 @@ use tracing::{debug, info, warn};
 
 static ORT_SESSION: OnceLock<Mutex<Session>> = OnceLock::new();
 static RAG_TOKENIZER: OnceLock<Tokenizer> = OnceLock::new();
+static ONNX_UNAVAILABLE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 /// Embedding dimension — matches the existing document_embeddings table schema
 const EMBEDDING_DIM: usize = 384;
@@ -202,8 +203,14 @@ async fn search_text(pool: &SqlitePool, query: &str) -> anyhow::Result<Vec<Strin
         .collect())
 }
 
-/// Initialize the local ONNX embedding model (downloads if missing)
+/// Initialize the local ONNX embedding model.
+/// Returns Ok(()) if already initialized or successfully loaded.
+/// Returns Err if models are missing — caller should fall back to text search.
 async fn init_embeddings_engine() -> anyhow::Result<()> {
+    // Fast path: already known to be unavailable
+    if ONNX_UNAVAILABLE.load(std::sync::atomic::Ordering::Relaxed) {
+        anyhow::bail!("ONNX models not available — using text-only search");
+    }
     if ORT_SESSION.get().is_some() && RAG_TOKENIZER.get().is_some() {
         return Ok(());
     }
@@ -217,7 +224,11 @@ async fn init_embeddings_engine() -> anyhow::Result<()> {
     let tokenizer_path = model_dir.join("tokenizer.json");
 
     if !model_path.exists() || !tokenizer_path.exists() {
-        anyhow::bail!("RAG Models missing! Please manually copy all-MiniLM-L6-v2 ONNX files to ~/trinity-models/onnx/embeddings/");
+        ONNX_UNAVAILABLE.store(true, std::sync::atomic::Ordering::Relaxed);
+        warn!("⚠️ RAG ONNX models not found at ~/trinity-models/onnx/embeddings/");
+        warn!("   Semantic search disabled — text-only fallback active.");
+        warn!("   To enable: copy all-MiniLM-L6-v2 ONNX files to that directory.");
+        anyhow::bail!("ONNX models not installed — degrading to text-only search");
     }
 
     if RAG_TOKENIZER.get().is_none() {

@@ -79,7 +79,7 @@ fn obj(ch: u8, phase: &str, n: String, desc: &str) -> Objective {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// POSTGRESQL PERSISTENCE
+// SQLITE PERSISTENCE
 // ═══════════════════════════════════════════════════════════════════
 
 /// Ensure quest state tables exist
@@ -87,7 +87,7 @@ pub async fn ensure_quest_tables(pool: &SqlitePool) -> anyhow::Result<()> {
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS quest_state (
-            id SERIAL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             player_id TEXT NOT NULL DEFAULT 'default',
             chapter INT NOT NULL DEFAULT 1,
             phase TEXT NOT NULL DEFAULT 'analysis',
@@ -95,11 +95,11 @@ pub async fn ensure_quest_tables(pool: &SqlitePool) -> anyhow::Result<()> {
             coal REAL NOT NULL DEFAULT 87.0,
             steam REAL NOT NULL DEFAULT 0.0,
             resonance INT NOT NULL DEFAULT 1,
-            stats JSONB NOT NULL DEFAULT '{"traction":3,"velocity":2,"combustion":1,"coal_reserves":87.0,"resonance":1,"total_xp":0,"quests_completed":0}'::jsonb,
-            inventory JSONB NOT NULL DEFAULT '["📐 ADDIE Framework","🌸 Bloom'\''s Taxonomy","🧠 Cognitive Load Theory"]'::jsonb,
+            stats TEXT NOT NULL DEFAULT '{"traction":3,"velocity":2,"combustion":1,"coal_reserves":87.0,"resonance":1,"total_xp":0,"quests_completed":0}',
+            inventory TEXT NOT NULL DEFAULT '["📐 ADDIE Framework","🌸 Bloom''s Taxonomy","🧠 Cognitive Load Theory"]',
             subject TEXT NOT NULL DEFAULT '',
             game_title TEXT NOT NULL DEFAULT '',
-            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now')),
             UNIQUE(player_id)
         )
         "#
@@ -114,15 +114,15 @@ pub async fn ensure_quest_tables(pool: &SqlitePool) -> anyhow::Result<()> {
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS quest_history (
-            id SERIAL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             player_id TEXT NOT NULL DEFAULT 'default',
             quest_id TEXT NOT NULL,
             quest_title TEXT NOT NULL,
             status TEXT NOT NULL,
             xp_earned INT NOT NULL DEFAULT 0,
             duration_secs INT,
-            completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            results JSONB
+            completed_at TEXT NOT NULL DEFAULT (datetime('now')),
+            results TEXT
         )
         "#,
     )
@@ -151,7 +151,7 @@ pub async fn ensure_quest_tables(pool: &SqlitePool) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Save game state to PostgreSQL
+/// Save game state to SQLite
 #[allow(dead_code)] // Called from /api/quest/advance when game state changes
 pub async fn save_game_state(
     pool: &SqlitePool,
@@ -165,7 +165,7 @@ pub async fn save_game_state(
     sqlx::query(
         r#"
         INSERT INTO quest_state (player_id, chapter, phase, xp, coal, steam, resonance, stats, inventory, subject, game_title, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, datetime('now'))
         ON CONFLICT (player_id) DO UPDATE SET
             chapter = EXCLUDED.chapter,
             phase = EXCLUDED.phase,
@@ -177,7 +177,7 @@ pub async fn save_game_state(
             inventory = EXCLUDED.inventory,
             subject = EXCLUDED.subject,
             game_title = EXCLUDED.game_title,
-            updated_at = NOW()
+            updated_at = datetime('now')
         "#
     )
     .bind(player_id)
@@ -197,7 +197,7 @@ pub async fn save_game_state(
     Ok(())
 }
 
-/// Load game state from PostgreSQL
+/// Load game state from SQLite
 #[allow(clippy::type_complexity)]
 pub async fn load_game_state(pool: &SqlitePool, player_id: &str) -> anyhow::Result<GameState> {
     let row: Option<(

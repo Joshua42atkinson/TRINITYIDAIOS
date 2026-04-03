@@ -166,7 +166,7 @@ pub fn cleanup_pid_file() {
 
 /// Find the llama-server binary from known locations
 pub fn find_llama_server_binary() -> Option<PathBuf> {
-    // Disabled intentionally to prevent fighting with vLLM over port 8080.
+    // Disabled — Trinity uses InferenceRouter to connect to external backends (LM Studio, Ollama, etc.)
     None
 }
 

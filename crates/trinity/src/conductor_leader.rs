@@ -261,7 +261,7 @@ impl Default for ConductorConfig {
             model_path: PathBuf::from(home)
                 .join("trinity-models/gguf/Mistral-Small-4-119B-2603-Q4_K_M-00001-of-00002.gguf"),
             context_size: 32768, // Start conservative, scale to 256k as needed
-            server_url: std::env::var("VLLM_URL")
+            server_url: std::env::var("LLM_URL")
                 .unwrap_or_else(|_| "http://127.0.0.1:8080".to_string()),
             verbose: false,
         }

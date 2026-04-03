@@ -9,7 +9,7 @@
 //   • Maps Joseph Campbell's 12 Hero's Journey stages to ADDIE cycles
 //   • Each chapter = one stage with full ADDIE cycle (Analysis → Evaluation)
 //   • Party system: AI agents accompany user on quests (P-ART-Y roles)
-//   • Quest state persisted to PostgreSQL
+//   • Quest state persisted to SQLite
 //   • Completion triggers LitRPG chapter generation
 //
 // CHANGES:

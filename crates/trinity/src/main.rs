@@ -97,6 +97,7 @@ mod voice;
 mod voice_loop;
 mod telephone;
 mod supertonic;
+mod sdxl_native;
 mod stt;
 mod edge_guard;
 
@@ -464,7 +465,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // ── Multi-Backend Inference Router (Phase 3) ──
     // Loads config from configs/runtime/default.toml, probes all known ports,
-    // selects the first healthy backend. ENV vars (LLM_URL/VLLM_URL) override.
+    // selects the first healthy backend. ENV var (LLM_URL) overrides.
     let mut inference_router = inference_router::InferenceRouter::from_config(None);
 
     inference_router.auto_detect().await;
@@ -575,7 +576,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if !inference_router.any_healthy() {
                 warn!("⚠️ No inference backend available.");
                 warn!("   Option 1: Set LLM_URL=http://your-server:port (HTTP)");
-                warn!("   Option 2: Download LM Studio, Ollama, or vLLM");
+                warn!("   Option 2: Download LM Studio, Ollama, or llama-server");
                 info!("   Background health loop will auto-connect when a server appears.");
             }
         }
@@ -3813,7 +3814,7 @@ async fn compile_game_design_document(
         gdd_path
     );
 
-    // Persist project + GDD to PostgreSQL for cross-session survival
+    // Persist project + GDD to SQLite for cross-session survival
     let project_id = game.quest.quest_id.clone();
     let session_id = state.project.session_id.as_ref().clone();
     let project_name = game.quest.game_title.clone();

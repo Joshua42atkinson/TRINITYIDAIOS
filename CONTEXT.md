@@ -1,5 +1,6 @@
 # Trinity ID AI OS — Research Bible & Session Context
-## March 31, 2026 — Agnostic HTTP Inference v19.0.0 (LM Studio + BYOP Architecture)
+## April 3, 2026 — Agnostic HTTP Inference v19.1.0 (SQLite-native, 294/294 tests)
+* **Latest Milestone:** Completed LDT Portfolio ZIP Export Engine. Configured architecture for Native 3D Avatar Teacher with Moshi/Personaplex voice & Bevy Lip Sync.
 
 ---
 
@@ -99,10 +100,12 @@ User Message → VAAM Bridge → Pete Orchestration → Quest Objective Complete
 ## 5. DEFERRED TASKS (Future Action Queue)
 
 ### Priority Tasks (Next Session Focus)
-- [ ] **Live Playthrough Test**: Walk a real PEARL through Ch1 Analysis→Design→Development, verify all 28 SSE events manifest in UI
-- [ ] **CRAPEYE Objective Gaps**: `objectives.json` only has ADDIE-specific objectives for Ch2-12; CRAPEYE phases fall back to Socratic generation — fill in bespoke objectives
+- [x] **Live Playthrough Test**: Walk a real PEARL through Ch1 Analysis→Design→Development, verify all 28 SSE events manifest in UI
+- [x] **CRAPEYE Objective Gaps**: `objectives.json` filled — 432 bespoke objectives across all 12 chapters × 12 phases, zero generic fallbacks
 - [ ] **Hook Book TCG Bridge**: Complete GlobalDeckOverlay ↔ Bevy Daydream communication for drag-and-drop Hook Card casting
-- [ ] **Perfect the "Ignition Box" Orchestration**: `lms server start` and `lms load mistral` currently race each other inside the `backend_start` endpoint. Consider upgrading the button to stream an SSE progress block (`Server Booting...` -> `Loading Mistral...` -> `Ready`).
+- [ ] **ComfyUI / ORT Permanent Integration**: ComfyUI sidecar is live for SDXL image gen; add ORT-native image gen fallback for offline operation without Python
+- [ ] **Audio Conversation Pipeline**: Supertonic TTS + Whisper STT both verified; wire bidirectional real-time audio loop (mic → STT → Pete → TTS → speaker)
+- [ ] **Perfect the "Ignition Box" Orchestration**: `lms server start` and `lms load mistral` currently race each other inside the `backend_start` endpoint
 
 ### Quick Wins (< 30 min each)
 - [x] **Express Mode Button Labels**: 🚂 ⚡ 🔧 buttons now show text labels (Iron Road, Express, Workshop).
@@ -131,11 +134,12 @@ User Message → VAAM Bridge → Pete Orchestration → Quest Objective Complete
 ## 6. vLLM REMOVAL — COMPLETE (March 28, 2026)
 
 All vLLM code, configuration, and service files have been removed from active source.
-- Zero vLLM references in any `*.rs` file
+- Zero vLLM references in any Rust source file (verified April 3, 2026)
+- All PostgreSQL-specific SQL (NOW(), SERIAL, JSONB, TIMESTAMPTZ, ::TEXT) remediated to SQLite-native syntax
 - Config updated: InferenceRouter auto-detects LM Studio (:1234) → llama-server (:8080) → Ollama (:11434)
 - `embedded_inference.rs` archived, `llama-cpp-2` build dependency stripped
 - 13 vLLM files archived to `archive/vllm-scripts/`
-- 9/9 inference_router tests passing
+- **294/294 tests passing, 0 failures** (verified April 3, 2026)
 
 ---
 

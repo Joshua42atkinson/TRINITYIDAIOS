@@ -163,9 +163,9 @@ pub async fn health_check(
         database: DbHealth {
             connected: db_connected,
             message: if db_connected {
-                "PostgreSQL connected".to_string()
+                "SQLite connected".to_string()
             } else {
-                "PostgreSQL not required for demo".to_string()
+                "SQLite not available".to_string()
             },
             total_messages: if db_connected {
                 crate::persistence::total_message_count(&state.db_pool)

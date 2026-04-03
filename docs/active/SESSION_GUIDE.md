@@ -17,8 +17,7 @@ llama-server \
 
 ### 2. Start Trinity
 ```bash
-# Ensure PostgreSQL is running
-sudo systemctl start postgresql
+# No database setup needed — Trinity uses embedded SQLite
 
 # Build and run
 cargo run -p trinity --release
@@ -38,7 +37,7 @@ curl -X POST http://localhost:3000/api/chat/yardmaster \
 ## Session Checklist
 
 ### Before Starting
-- [ ] PostgreSQL running (`sudo systemctl status postgresql`)
+- [ ] LM Studio / Ollama running (or `LLM_URL` set)
 - [ ] Mistral loaded (`curl http://localhost:8080/health`)
 - [ ] In workspace: `cd ~/Workflow/desktop_trinity/trinity-genesis`
 
@@ -82,8 +81,9 @@ curl http://localhost:8080/health
 
 ### Database Issues
 ```bash
-psql -h localhost -U trinity -d trinity -c "SELECT 1;"
-# If needed: sudo -u postgres createdb trinity
+# Trinity uses SQLite — data lives in trinity_memory.db
+# If needed, delete and restart to reset:
+rm trinity_memory.db && cargo run -p trinity --release
 ```
 
 ### Compile Errors
@@ -101,14 +101,14 @@ cargo check -p trinity 2>&1 | head -20
 ├── Mistral Small 4 119B (~68GB on :8080)
 ├── Trinity Axum Server (~2GB on :3000)
 │   ├── Agent chat + tool-calling
-│   ├── PostgreSQL persistence (sessions, messages, projects)
-│   ├── pgvector RAG (semantic search + auto-ingest)
+│   ├── SQLite persistence (sessions, messages, projects)
+│   ├── ONNX RAG (semantic search + auto-ingest)
 │   ├── ADDIECRAPEYE orchestration (conductor_leader.rs)
 │   ├── Bevy game scaffolding (templates/)
 │   └── VAAM alignment (vocabulary weights → system prompts)
 ├── ComfyUI SDXL Turbo (~2GB on :8188, optional)
 ├── Voice Pipeline (~2GB on :7777, optional)
-└── System + PostgreSQL (~10GB)
+└── System (~10GB)
 ```
 
 ---

@@ -24,6 +24,7 @@ pub fn export(container: &EyeContainer, format: &ExportFormat) -> (String, Vec<u
         ExportFormat::Html5Adventure => export_html5_adventure(container),
         ExportFormat::RawJson => export_raw_json(container),
         ExportFormat::DocxPortfolio => export_docx_portfolio(container),
+        ExportFormat::ZipPortfolio => export_zip_portfolio(container),
     }
 }
 
@@ -477,6 +478,60 @@ fn export_docx_portfolio(container: &EyeContainer) -> (String, Vec<u8>, &'static
         bytes,
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     )
+}
+
+/// Export a ZIP bundle containing the LDT Portfolio deliverable.
+/// Includes the DOCX portfolio, PLAYERS_HANDBOOK.md, and character_sheet.json.
+fn export_zip_portfolio(container: &EyeContainer) -> (String, Vec<u8>, &'static str) {
+    use std::io::Write;
+    use zip::write::FileOptions;
+
+    let mut buf = std::io::Cursor::new(Vec::new());
+    {
+        let mut zip = zip::ZipWriter::new(&mut buf);
+        let options = FileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated)
+            .unix_permissions(0o755);
+
+        // 1. Add the DOCX portfolio
+        let (docx_name, docx_bytes, _) = export_docx_portfolio(container);
+        if zip.start_file(docx_name, options).is_ok() {
+            let _ = zip.write_all(&docx_bytes);
+        }
+
+        // 2. Add PLAYERS_HANDBOOK.md from workspace
+        if let Ok(playbook_bytes) = std::fs::read("PLAYERS_HANDBOOK.md") {
+            if zip.start_file("PLAYERS_HANDBOOK.md", options).is_ok() {
+                let _ = zip.write_all(&playbook_bytes);
+            }
+        } else if let Ok(playbook_bytes) = std::fs::read("../../PLAYERS_HANDBOOK.md") {
+            if zip.start_file("PLAYERS_HANDBOOK.md", options).is_ok() {
+                let _ = zip.write_all(&playbook_bytes);
+            }
+        }
+
+        // 3. Add character_sheet.json
+        if let Some(home) = std::env::var_os("HOME") {
+            let path = std::path::PathBuf::from(&home)
+                .join(".local")
+                .join("share")
+                .join("trinity")
+                .join("character_sheet.json");
+            
+            if let Ok(sheet_bytes) = std::fs::read(&path) {
+                if zip.start_file("character_sheet.json", options).is_ok() {
+                    let _ = zip.write_all(&sheet_bytes);
+                }
+            }
+        }
+        
+        let _ = zip.finish();
+    }
+
+    let meta = &container.metadata;
+    let filename = format!("{}_LDT_Portfolio.zip", slug(&meta.title));
+    
+    (filename, buf.into_inner(), "application/zip")
 }
 
 /// Convert title to URL-safe slug

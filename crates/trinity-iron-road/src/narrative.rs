@@ -25,7 +25,7 @@ pub struct NarrativeContext {
 
 /// The narrative engine that transforms quest events into LitRPG prose
 pub struct NarrativeEngine {
-    /// vLLM inference URL
+    /// LLM inference URL (any OpenAI-compatible backend)
     inference_url: String,
 }
 
@@ -94,7 +94,7 @@ fn build_narrative_system_prompt(ctx: &NarrativeContext) -> String {
     )
 }
 
-/// Call the inference endpoint (vLLM OpenAI-compatible API)
+/// Call the inference endpoint (OpenAI-compatible API)
 async fn call_inference(
     base_url: &str,
     system_prompt: &str,

@@ -430,6 +430,7 @@ mod tests {
             position: [5.0, 1.0, 0.0],
             mesh_type: MeshType::Sphere,
             station: Some(3),
+            python_script: None,
         };
         let json = serde_json::to_string(&cmd).unwrap();
         assert!(json.contains("SpawnConcept"));
@@ -463,6 +464,7 @@ mod tests {
             position: [0.0, 2.0, 0.0],
             mesh_type: MeshType::Sphere,
             station: Some(7),
+            python_script: None,
         });
 
         let json = serde_json::to_string(&bp).unwrap();

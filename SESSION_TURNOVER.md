@@ -2,6 +2,12 @@
 
 This document tracks all the attempts made to restore the Trinity Yardmaster frontend and Embedded GPU Inference to prevent regression in future sessions.
 
+## Session Turnover: LDT Portfolio ZIP & Native Avatar Architecture (April 3, 2026)
+- **Completed:** Phase 1.1 LDT Portfolio ZIP Exporter. Wired `/api/eye/export?format=zip_portfolio` and React UI to bundle `CharacterSheet`, `docx`, and `PLAYERS_HANDBOOK`.
+- **Architected:** Mapped the full native architecture for the 3D Avatar Teacher Pipeline using existing resources (`Moshi`, `Personaplex-7B`, and Bevy `MorphTarget` lip-syncing without ComfyUI).
+- **Next Session Goal:** Actually build and demo the 3D Avatar Teacher (Phase 1: Downloading standard `.glb` + Wiring Moshi voice stream to Bevy lip-sync blend shapes).
+
+
 ## 1. Problem: "Failed to fetch" / "Network Error" on Frontend
 - **Symptom:** The Yardmaster UI returns `Failed to fetch`. 
 - **Root Cause:** The `POST /api/chat/yardmaster` endpoint in `agent.rs` was falling back to the external HTTP inference mode (`http://127.0.0.1:8080/v1/chat/completions`) because the `embedded_model` struct was `None`.

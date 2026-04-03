@@ -630,6 +630,7 @@ export default function CharacterSheet() {
               <div style={{ display: 'flex', gap: '8px' }}>
                 <a href="/api/eye/export?format=html5_quiz" target="_blank" rel="noreferrer" style={{ background: '#CFB991', color: '#1A1A1A', padding: '8px 16px', borderRadius: '4px', textDecoration: 'none', fontSize: '13px', fontWeight: 'bold' }}>Export Quiz</a>
                 <a href="/api/eye/export?format=html5_adventure" target="_blank" rel="noreferrer" style={{ background: '#10b981', color: '#1A1A1A', padding: '8px 16px', borderRadius: '4px', textDecoration: 'none', fontSize: '13px', fontWeight: 'bold' }}>Export Adventure</a>
+                <a href="/api/eye/export?format=zip_portfolio" target="_blank" rel="noreferrer" style={{ background: '#4ec9b0', color: '#1A1A1A', padding: '8px 16px', borderRadius: '4px', textDecoration: 'none', fontSize: '13px', fontWeight: 'bold', border: '1px solid #CFB991' }}>Download Portfolio ZIP</a>
               </div>
             </div>
 

@@ -117,7 +117,7 @@ pub struct VocabularyWord {
 }
 
 /// A vocabulary pack created by the user with AI assistance.
-/// Stored in PostgreSQL and JSON for persistence.
+/// Stored in SQLite and JSON for persistence.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VocabularyPack {
     /// Unique identifier for this pack

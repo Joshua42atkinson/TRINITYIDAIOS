@@ -102,6 +102,8 @@ pub enum ExportFormat {
     RawJson,
     /// Professional DOCX portfolio — the student deliverable
     DocxPortfolio,
+    /// LDT Portfolio ZIP bundle containing Docx, Character Sheet, Context, etc.
+    ZipPortfolio,
 }
 
 /// Compile an EYE Container from the current game state

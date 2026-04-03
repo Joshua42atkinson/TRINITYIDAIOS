@@ -3,7 +3,7 @@
 
 > **Status:** RESEARCH / FUTURE PILE  
 > **Integration Point:** Yardmaster UI → `rag.rs` pipeline  
-> **Depends On:** RAG infrastructure (pgvector), Ring 3 (Rolling Context)
+> **Depends On:** RAG infrastructure (SQLite + ONNX embeddings), Ring 3 (Rolling Context)
 
 ---
 
@@ -16,8 +16,8 @@ Trinity's existing document ingestion pipeline (`rag.rs`):
 | Component | Implementation | Status |
 |-----------|---------------|--------|
 | **Chunking** | Paragraph-boundary splitting (~500 words/chunk) | ✅ Working |
-| **Text Search** | PostgreSQL `ts_rank` + `ILIKE` fallback | ✅ Working |
-| **Semantic Search** | pgvector cosine similarity (HNSW index) | ✅ Working |
+| **Text Search** | SQLite `LIKE` fallback | ✅ Working |
+| **Semantic Search** | ONNX cosine similarity (in-memory) | ✅ Working |
 | **Embedding** | llama-server `/v1/embeddings` → hash fallback | ✅ Working |
 | **Auto-Ingest** | 7 key docs ingested at server startup | ✅ Working |
 | **User Upload** | ❌ Not implemented | 🔴 Missing |
@@ -265,7 +265,7 @@ NotebookLM (Dec 2025 / Mar 2026 updates) has established several best practices 
 | **Google Classroom integration** (Dec 2025) — pull in assigned resources | Yard upload + filesystem watch | We're local-first — no cloud dependency. Privacy win. |
 | **Mind Map generation** (Mar 2025) | Not yet — but Ring 6 Perspective Engine serves a similar role | Future: auto-generate concept maps from uploaded curriculum |
 | **Deep Research** (Mar 2026) — multi-step investigation | Pete's Socratic protocol already does iterative questioning | We're *guided* research (ADDIECRAPEYE phases), not open-ended |
-| **50 sources / 500K words per source** | No limit (local PostgreSQL) | **Unlimited** — only bounded by disk space |
+| **50 sources / 500K words per source** | No limit (local SQLite) | **Unlimited** — only bounded by disk space |
 | **Continuous review loops** ("What did you miss?") | Ring 6 Perspective Engine (Devil's Advocate lens) | Automated, not manual |
 
 ### 8.2 What Antigravity IDE Does Right (Artifact System)
@@ -336,7 +336,7 @@ pub struct QualityScorecard {
 /// 1. Document Sidecar extracts text + structure
 /// 2. RAG pipeline chunks and embeds
 /// 3. Scoring engine (LLM + heuristics) evaluates each dimension
-/// 4. Results stored in PostgreSQL, shown in Yard UI
+/// 4. Results stored in SQLite, shown in Yard UI
 ```
 
 This is what makes Trinity's Open Notebook **superior to NotebookLM for educators**: NotebookLM will summarize your syllabus. Trinity will tell you it's missing a practice activity in Week 5 and that your Bloom's progression skips Apply.

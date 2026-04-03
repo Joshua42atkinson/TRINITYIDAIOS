@@ -6,7 +6,7 @@
 // PURPOSE:     Conversation & project persistence — nothing is ever lost
 //
 // ARCHITECTURE:
-//   • PostgreSQL tables for sessions, messages, and projects
+//   • SQLite tables for sessions, messages, and projects
 //   • Every user/assistant message is saved to DB immediately
 //   • Sessions restore conversation history across server restarts
 //   • DAYDREAM archive: scope creeps become scope hopes via recycling
@@ -17,7 +17,7 @@
 //   trinity_projects   — game projects with GDD JSON and archive status
 //
 // DEPENDENCIES:
-//   - sqlx — PostgreSQL async operations
+//   - sqlx — SQLite async operations
 //   - serde — JSON serialization
 //   - chrono — Timestamps
 //   - uuid — Session/project IDs
@@ -31,10 +31,9 @@ use tracing::{info, warn};
 
 /// Run all SQL migration files from the migrations/ directory.
 ///
-/// PostgreSQL does not allow multiple commands in a single prepared statement.
-/// This function reads each `.sql` file, splits on `;` boundaries (respecting
-/// dollar-quoted function bodies like `$$ ... $$`), and executes each statement
-/// individually. Files are sorted by name so numbered migrations run in order.
+/// SQLite uses simple statement splitting (no dollar-quoting required, kept
+/// for migration compatibility). This function reads each `.sql` file, splits
+/// on `;` boundaries, and executes each statement individually.
 pub async fn run_all_migrations(pool: &SqlitePool) -> anyhow::Result<()> {
     let migrations_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
@@ -312,7 +311,7 @@ pub async fn ensure_session(pool: &SqlitePool, session_id: &str, mode: &str) -> 
         r#"
         INSERT INTO trinity_sessions (id, mode) 
         VALUES ($1, $2) 
-        ON CONFLICT (id) DO UPDATE SET updated_at = NOW()
+        ON CONFLICT (id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP
         "#,
     )
     .bind(session_id)
@@ -350,7 +349,7 @@ pub async fn save_message(
     .await?;
 
     // Touch session updated_at
-    sqlx::query("UPDATE trinity_sessions SET updated_at = NOW() WHERE id = $1")
+    sqlx::query("UPDATE trinity_sessions SET updated_at = CURRENT_TIMESTAMP WHERE id = $1")
         .bind(session_id)
         .execute(pool)
         .await?;
@@ -401,8 +400,8 @@ pub async fn list_sessions(pool: &SqlitePool, limit: i64) -> anyhow::Result<Vec<
             s.id, 
             s.alias,
             COALESCE((SELECT COUNT(*) FROM trinity_messages m WHERE m.session_id = s.id), 0) as msg_count,
-            s.created_at::TEXT,
-            s.updated_at::TEXT
+            CAST(s.created_at AS TEXT),
+            CAST(s.updated_at AS TEXT)
         FROM trinity_sessions s
         ORDER BY s.updated_at DESC
         LIMIT $1
@@ -480,7 +479,7 @@ pub async fn archive_project(pool: &SqlitePool, project_id: &str, reason: &str) 
         UPDATE trinity_projects 
         SET status = 'archived', 
             archive_reason = $1, 
-            archived_at = NOW() 
+            archived_at = CURRENT_TIMESTAMP 
         WHERE id = $2
         "#,
     )
@@ -533,7 +532,7 @@ pub async fn list_projects(
     let rows: Vec<ProjectRow> = if let Some(status) = status_filter {
         sqlx::query_as(
             r#"
-            SELECT id, session_id, name, status, created_at::TEXT, archived_at::TEXT, archive_reason
+            SELECT id, session_id, name, status, CAST(created_at AS TEXT), CAST(archived_at AS TEXT), archive_reason
             FROM trinity_projects 
             WHERE status = $1
             ORDER BY created_at DESC
@@ -547,7 +546,7 @@ pub async fn list_projects(
     } else {
         sqlx::query_as(
             r#"
-            SELECT id, session_id, name, status, created_at::TEXT, archived_at::TEXT, archive_reason
+            SELECT id, session_id, name, status, CAST(created_at AS TEXT), CAST(archived_at AS TEXT), archive_reason
             FROM trinity_projects 
             ORDER BY created_at DESC
             LIMIT $1

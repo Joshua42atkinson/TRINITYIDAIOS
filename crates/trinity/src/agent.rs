@@ -192,7 +192,7 @@ You are running inside the Trinity ID AI OS project.
 - Documentation: CONTEXT.md, TRINITY_FANCY_BIBLE.md, IRON_ROAD_DEMO_SCRIPT.md
 - Archive: archive/ (old concepts, scratch scripts, legacy crates)
 - Quests: quests/ (ADDIECRAPEYE quest definitions)
-- Launch scripts: scripts/ (start_comfyui.sh, start_trinity.sh, vllm_serve.sh, etc.)
+- Launch scripts: scripts/ (start_comfyui.sh, start_trinity.sh, etc.)
 - Models (GGUF): ~/trinity-models/gguf/
 - Models (safetensors): ~/trinity-models/safetensors/
 - User home: ~
@@ -202,11 +202,10 @@ SIDECAR & SERVICE ROLES:
 - LLM sidecars: 'conductor-llama', 'pete-llama' (NOT just 'pete' or 'conductor')
 - ComfyUI: port 8188 — check sidecar_status() BEFORE trying to generate images
 - Supertonic TTS: port 7777 — native Rust, no sidecar needed
-- Voxtral TTS: port 8100 — requires vLLM (not yet active)
+- Voxtral TTS: port 8100 — requires dedicated server (not yet active)
 - llama-server: port 8080 — current inference backend
 
 PYTHON ENVIRONMENTS (NEVER mix these):
-- ~/trinity-vllm-env — LLM inference (vLLM, torch, mistral_common)
 - ~/trinity-voice-env — Voice (chatterbox-tts, onnxruntime)
 - ComfyUI has its OWN venv at ~/ComfyUI/venv
 - ALWAYS activate the RIGHT env before running Python commands
@@ -1106,7 +1105,7 @@ pub async fn run_agent_loop(
                 .await;
                 let latency_ms = tool_start.elapsed().as_millis() as i32;
 
-                // Persist tool call to PostgreSQL for analytics
+                // Persist tool call to SQLite for analytics
                 let is_error = result.starts_with("Error:");
                 let result_status = if is_error { "error" } else { "ok" };
                 let preview = if result.len() > 500 {
@@ -2102,10 +2101,16 @@ mod tests {
             });
         }
         let digest = compress_context_digest(&messages);
+        // Digest cap is 50,000 chars for 256K context models
         assert!(
-            digest.len() <= 2100,
-            "Digest should be capped near 2000 chars, got {}",
+            digest.len() <= 50_100,
+            "Digest should be capped near 50,000 chars, got {}",
             digest.len()
+        );
+        // But should actually produce content
+        assert!(
+            !digest.is_empty(),
+            "Digest should not be empty with 100 messages"
         );
     }
 

@@ -537,8 +537,9 @@ mod tests {
     fn test_default_backends_created_when_no_config() {
         let router = InferenceRouter::from_config(Some("/nonexistent/path.toml"));
         assert!(!router.backends.is_empty(), "Should have default backends");
-        assert_eq!(router.backends[0].name, "llama-server");
-        assert_eq!(router.active_url(), "http://127.0.0.1:8080");
+        // Default primary is "lm-studio", so active should select it
+        assert_eq!(router.active_name(), "lm-studio");
+        assert_eq!(router.active_url(), "http://127.0.0.1:1234");
     }
 
     #[test]
@@ -663,7 +664,7 @@ supports_vision = false
     fn test_status_serialization() {
         let router = InferenceRouter::from_config(Some("/nonexistent.toml"));
         let status = router.status();
-        assert_eq!(status.active_backend, "llama-server");
+        assert_eq!(status.active_backend, "lm-studio");
         assert!(!status.backends.is_empty());
 
         // Should serialize to JSON without panic
@@ -696,7 +697,7 @@ model_dir = "~/trinity-models/gguf"
         let router = InferenceRouter::from_config(Some(tmp.to_str().unwrap()));
         // Should use defaults when [inference] section is missing
         assert!(!router.backends.is_empty());
-        assert_eq!(router.config.primary, "llama-server");
+        assert_eq!(router.config.primary, "lm-studio");
         assert_eq!(router.config.ctx_size, 262144);
 
         std::fs::remove_file(tmp).ok();

@@ -309,7 +309,7 @@ Zero data leaves campus. No API keys. Reduces reliance on third-party cloud proc
 
 | Enhancement | Technology | Effort | Impact |
 |-------------|-----------|:------:|--------|
-| **Multi-user sessions** | PostgreSQL per-user isolation, session tokens | 2–3 weeks | Each student gets their own CharacterSheet & quest state |
+| **Multi-user sessions** | SQLite per-user isolation, session tokens | 2–3 weeks | Each student gets their own CharacterSheet & quest state |
 | **Batched inference** | TGI or batched OpenAI-compatible backend behind InferenceRouter | 1 week | 100+ concurrent users per model instance |
 | **Full creative pipeline** | MING 2.1 replacing ComfyUI sidecar stack | 1 week | Unified image/video/3D from a single model, no sidecar management |
 | **Speculative decoding** | EAGLE draft model (GGUF) on NPU | 1–2 weeks | 2–3× token throughput on consumer hardware |
@@ -356,7 +356,7 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 ### 3. Source Code Review
 - Download the source archive: [TRINITY_ID_AI_OS_v1.0_source.tar.gz](https://LDTAtkinson.com/downloads/TRINITY_ID_AI_OS_v1.0_source.tar.gz)
 - Follow [INSTALL.md](INSTALL.md) to build locally
-- Run tests: `cargo test` (282 tests across 7 crates)
+- Run tests: `cargo test` (294 tests across 7 crates, 0 failures)
 - Read [TRINITY_FANCY_BIBLE.md](TRINITY_FANCY_BIBLE.md) for the full architecture
 
 ### 4. Key Things to Notice
@@ -396,7 +396,7 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 
 | # | Claim | Document Source | Verified Value | Method | Result |
 |:-:|-------|----------------|----------------|--------|:------:|
-| 1 | **30 agentic tools** | PROFESSOR §How to Review | 30 tools returned by `GET /api/tools` | API endpoint | ✅ |
+| 1 | **36 agentic tools** | PROFESSOR §How to Review | 36 unique tools returned by `GET /api/tools` | API endpoint | ✅ |
 | 2 | **44 blocked command patterns** | Bible §5.4 Ring 5 | 44 string patterns in `tools.rs` across 6 categories (filesystem, system, privilege, process, network, pipe-to-exec) | Source grep | ✅ |
 | 3 | **31 CharacterSheet fields** | Bible §6.5, PROFESSOR §How to Review | 31 top-level JSON keys from `GET /api/character` | API endpoint | ✅ |
 | 4 | **Socratic Protocol enforced** | PROFESSOR §Key Things to Notice | 11 explicit `SOCRATIC PROTOCOL:` instruction blocks in `conductor_leader.rs`, one per ADDIECRAPEYE phase | Source grep | ✅ |
@@ -407,7 +407,7 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 | 9 | **All API endpoints healthy** | PROFESSOR §API Verification | `/api/health` (healthy), `/api/quest` (chapter 1), `/api/bestiary` (46 creeps), `/api/book` (ok), `/api/inference/status` (InferenceRouter active), `/docs/` (serves markdown) | API curl | ✅ |
 | 10 | **18 React components** | Bible §1.10 | 18 `.jsx` component files in `crates/trinity/frontend/src/components/` | Filesystem | ✅ |
 | 11 | **100% local execution** | PROFESSOR §Evaluation Criteria | No outbound API calls in source. All model paths reference local filesystem (`~/trinity-models/`). Health checks target `127.0.0.1` only. | Source review | ✅ |
-| 12 | **Zero compile errors** | PROFESSOR §Technical Highlights | `cargo build` completes with 0 errors (1 future-compat warning from upstream `sqlx-postgres`) | Build | ✅ |
+| 12 | **Zero compile errors** | PROFESSOR §Technical Highlights | `cargo build` completes with 0 errors, `cargo test` passes 294 tests with 0 failures | Build + Test | ✅ |
 
 **Summary**: All 12 audited claims are **verified accurate** against the running prototype. Numeric claims are conservative (e.g., "29+" tools → actual 30, "42+" blocked → actual 44).
 
@@ -417,7 +417,7 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 
 ## Appendix B: Product Maturation Map
 
-> Generated: 2026-04-01 19:56 ET | Revised — full maturity audit, 28/28 game mechanics verified, 432 bespoke objectives complete
+> Generated: 2026-04-03 09:50 ET | Revised — full maturity audit, 28/28 game mechanics verified, 432 bespoke objectives complete, 294/294 tests passing, SQLite-native (zero PostgreSQL)
 
 ### System Metrics (Machine-Verified)
 
@@ -469,7 +469,9 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 | ~~Game mechanics wiring~~ | ~~High~~ | ~~DONE~~ | All 28 mechanics fully wired as of April 1, 2026 |
 | ~~CRAPEYE objective gaps~~ | ~~Medium~~ | ~~DONE~~ | 432 bespoke objectives across all 12 chapters × 12 phases |
 | Hook Book TCG bridge | Medium | v1.3 | GlobalDeckOverlay ↔ Daydream drag-and-drop Hook Card casting |
-| Voice conversation loop | Low | Post-demo | Requires real-time audio hardware integration |
+| ComfyUI permanent integration | Medium | v1.2 | ComfyUI sidecar verified, needs ORT-native fallback for offline image gen without Python |
+| Audio conversation loop | Medium | v1.2 | Supertonic TTS live + Whisper STT live, needs real-time bidirectional audio pipeline (mic → STT → Pete → TTS → speaker) |
+| Voice conversation loop | Low | Post-demo | Full real-time audio hardware integration end-to-end |
 | Project archive/restore | Low | Post-demo | Backend exists, UI not wired |
 | Achievement system | Medium | v1.3 | Phase completion only, no badges/unlocks |
 | Ambient music toggle | Low | v1.3 | `music_streamer.rs` exists, needs frontend button |
@@ -655,7 +657,7 @@ The world evolves with the student's cognitive progression:
 
 | Hook | Tier | What It Does |
 |------|:----:|-------------|
-| **30 Agentic Tools** | 🟢 | File I/O, shell execution, web search, image generation, quest management, journal, and more. Pete can DO things, not just talk. |
+| **36 Agentic Tools** | 🟢 | File I/O, shell execution, web search, image generation, quest management, journal, and more. Pete can DO things, not just talk. |
 | **Model Switching** | 🟢 | Hot-swap LLM models from the Yardmaster. Mistral, Llama, Qwen — whatever fits the task. |
 | **Vector Database** | 🟢 | Semantic search across all user-generated content. Your knowledge graph grows with you. |
 | **Context Window (500K+)** | 🟢 | Mistral Small 4 119B with massive context. Entire textbooks fit in one conversation. |
@@ -876,7 +878,7 @@ This is how Trinity manages **long-horizon agentic tasks** without losing cohere
 
 For evaluators, the Hook Book answers the question: *"What can this system actually do?"*
 
-The current catalog contains **37 Hooks** across 4 Schools, with **24 at Cast tier** (production-verified) and **13 at Scribed or Prophesied tier** (roadmap). The system is designed so that *new Hooks can be added by the Yardmaster* — the user builds the capabilities they need, and the Hook Book grows with them.
+The current catalog contains **36 Hooks** across 4 Schools, with **24 at Cast tier** (production-verified) and **12 at Scribed or Prophesied tier** (roadmap). The system is designed so that *new Hooks can be added by the Yardmaster* — the user builds the capabilities they need, and the Hook Book grows with them.
 
 This is the core thesis of the **Living Textbook**: the textbook appreciates because the Hook Book grows.
 

@@ -220,7 +220,6 @@ pub fn get_tool_list() -> Vec<ToolInfo> {
         ToolInfo { name: "generate_mesh3d".into(), description: "Generate 3D mesh via Hunyuan3D-2.1. Args: prompt, format (glb|obj)".into(), params: vec!["prompt".into(), "format".into()] },
         ToolInfo { name: "blender_render".into(), description: "Render a 3D scene via Blender CLI. Args: scene_path, output_format (png|mp4)".into(), params: vec!["scene_path".into(), "output_format".into()] },
         ToolInfo { name: "avatar_pipeline".into(), description: "Create NPC avatar: backstory, portrait, voice, entity. Args: concept, style".into(), params: vec!["concept".into(), "style".into()] },
-        ToolInfo { name: "avatar_pipeline".into(), description: "Create NPC avatar: backstory, portrait, voice, entity. Args: concept, style".into(), params: vec!["concept".into(), "style".into()] },
         ToolInfo { name: "sidecar_start".into(), description: "Start a model sidecar. Args: model (pete|aesthetics|research|tempo)".into(), params: vec!["model".into()] },
         ToolInfo { name: "daydream_command".into(), description: "HIGH LEVEL: Scaffold 3D learning concepts. Schemas: {command: 'SpawnConcept'|'SetTerrain'|'PlaceWaypoint'|'PlaySound'|'AnimateEntity'|'SpawnUiButton'|'SpawnDialogueTree', params: {id, label, position, python_script (optional PyO3 code changing transform/velocity/delta_time)}}.".into(), params: vec!["command".into(), "params".into()] },
         ToolInfo { name: "project_archive".into(), description: "Archive project to DAYDREAM. Args: path, reason".into(), params: vec!["path".into(), "reason".into()] },
@@ -699,9 +698,12 @@ async fn tool_avatar_pipeline(params: &serde_json::Value) -> Result<String, Stri
         return Err("Avatar pipeline script not found".to_string());
     }
 
-    let venv_python = home_dir().join("trinity-vllm-env/bin/python3");
+    let venv_python = home_dir().join("trinity-ai-env/bin/python3");
+    let legacy_venv = home_dir().join("trinity-vllm-env/bin/python3");
     let python = if venv_python.exists() {
         venv_python.to_string_lossy().to_string()
+    } else if legacy_venv.exists() {
+        legacy_venv.to_string_lossy().to_string()
     } else {
         "python3".to_string()
     };
@@ -1068,7 +1070,7 @@ async fn tool_system_info() -> Result<String, String> {
     // Key services
     let services = [
         ("llama-server", "Mistral Small 4 (LLM brain)"),
-        ("postgres", "PostgreSQL (RAG database)"),
+        ("trinity", "SQLite (trinity_memory.db)"),
         ("comfyui", "ComfyUI (image gen)"),
         ("trinity_voice", "Voice server (Kokoro TTS)"),
     ];
@@ -1888,9 +1890,12 @@ async fn tool_python_exec(params: &serde_json::Value) -> Result<String, String> 
         .ok_or("Missing 'code' parameter")?;
 
     // Find a Python interpreter
-    let venv_python = home_dir().join("trinity-vllm-env/bin/python3");
+    let venv_python = home_dir().join("trinity-ai-env/bin/python3");
+    let legacy_venv = home_dir().join("trinity-vllm-env/bin/python3");
     let python = if venv_python.exists() {
         venv_python.to_string_lossy().to_string()
+    } else if legacy_venv.exists() {
+        legacy_venv.to_string_lossy().to_string()
     } else {
         "python3".to_string()
     };
@@ -3016,9 +3021,9 @@ mod tests {
     // ── Tool Registry ───────────────────────────────────────────────────
 
     #[test]
-    fn test_tool_count_is_37() {
+    fn test_tool_count_is_36() {
         let tools = get_tool_list();
-        assert_eq!(tools.len(), 37, "Expected 37 tools, got {}", tools.len());
+        assert_eq!(tools.len(), 36, "Expected 36 tools, got {}", tools.len());
     }
 
     #[test]
