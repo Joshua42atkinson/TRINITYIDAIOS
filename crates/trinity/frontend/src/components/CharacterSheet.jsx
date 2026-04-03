@@ -73,7 +73,14 @@ export default function CharacterSheet() {
   const [activeTab, setActiveTab] = useState('contract'); // 'contract', 'hookbook', 'identity'
   const [hookBookHtml, setHookBookHtml] = useState('');
   const [backstoryText, setBackstoryText] = useState('');
+  const [alignmentText, setAlignmentText] = useState('');
+  const [locomotiveProfile, setLocomotiveProfile] = useState('AnalyzerClass');
+  const [appearanceData, setAppearanceData] = useState('');
+  const [audioPrefs, setAudioPrefs] = useState({
+    genre: '', voice_id: '', bg_music_genre: '', music_flow_enabled: true
+  });
   const [savingBackstory, setSavingBackstory] = useState(false);
+  const [eyeData, setEyeData] = useState(null);
 
   useEffect(() => {
     Promise.all([
@@ -85,6 +92,12 @@ export default function CharacterSheet() {
         setSheet(charData);
         setQuest(questData);
         setBackstoryText(charData.backstory || '');
+        setAlignmentText(charData.alignment || '');
+        setLocomotiveProfile(charData.locomotive_profile || 'AnalyzerClass');
+        setAppearanceData(charData.appearance || '');
+        if (charData.audio_preferences) {
+          setAudioPrefs(charData.audio_preferences);
+        }
         if (pearlData && !pearlData.error) setPearl(pearlData);
       })
       .catch(err => {
@@ -94,21 +107,28 @@ export default function CharacterSheet() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'hookbook' && !hookBookHtml) {
-      fetch('/docs/HOOK_BOOK.md')
-        .then(r => r.ok ? r.text() : Promise.reject('Not found'))
-        .then(md => setHookBookHtml(marked.parse(md)))
-        .catch(() => setHookBookHtml('<p style="color:#ef4444">Failed to load HOOK_BOOK.md. Perhaps the Great Recycler is still writing it.</p>'));
+    if (activeTab === 'eyeportfolio' && !eyeData) {
+      fetch('/api/eye/preview')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => setEyeData(data))
+        .catch(err => console.error("Failed to load EYE container", err));
     }
   }, [activeTab]);
 
   const saveBackstory = async () => {
     setSavingBackstory(true);
     try {
+      const payload = {
+        backstory: backstoryText,
+        alignment: alignmentText,
+        locomotive_profile: locomotiveProfile,
+        appearance: appearanceData,
+        audio_preferences: audioPrefs
+      };
       const resp = await fetch('/api/character', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ backstory: backstoryText })
+        body: JSON.stringify(payload)
       });
       if (!resp.ok) throw new Error('Failed to save');
       const updatedSheet = await resp.json();
@@ -217,7 +237,7 @@ export default function CharacterSheet() {
 
         {/* ═══ TAB NAVIGATION ═══ */}
         <div style={s.tabNav}>
-          {['contract', 'hookbook', 'identity'].map(tab => (
+          {['contract', 'eyeportfolio', 'hookbook', 'identity'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -226,7 +246,7 @@ export default function CharacterSheet() {
                 ...(activeTab === tab ? s.tabActive : s.tabInactive)
               }}
             >
-              {tab === 'contract' ? '📜 The Contract' : tab === 'hookbook' ? '📖 Hook Book' : '👤 Player Identity'}
+              {tab === 'contract' ? '📜 The Contract' : tab === 'eyeportfolio' ? '👁️ The EYE Portfolio' : tab === 'hookbook' ? '📖 Hook Book' : '👤 Player Identity'}
             </button>
           ))}
         </div>
@@ -599,6 +619,88 @@ export default function CharacterSheet() {
           </>
         )}
 
+        {/* ═══ THE EYE PORTFOLIO ═══ */}
+        {activeTab === 'eyeportfolio' && (
+          <div style={{ marginTop: '24px', padding: '16px', borderRadius: '12px', background: 'rgba(15,13,10,0.6)', border: '1px solid rgba(22,163,74,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid rgba(22,163,74,0.3)', paddingBottom: '16px' }}>
+              <div>
+                <h2 style={{ fontFamily: "'Cinzel', serif", color: '#4ade80', fontSize: '24px', margin: 0 }}>The Executive Summary</h2>
+                <p style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>An aggregation of your ADDIECRAPEYE outputs. The Great Recycler uses this to build the final product.</p>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <a href="/api/eye/export?format=html5_quiz" target="_blank" rel="noreferrer" style={{ background: '#CFB991', color: '#1A1A1A', padding: '8px 16px', borderRadius: '4px', textDecoration: 'none', fontSize: '13px', fontWeight: 'bold' }}>Export Quiz</a>
+                <a href="/api/eye/export?format=html5_adventure" target="_blank" rel="noreferrer" style={{ background: '#10b981', color: '#1A1A1A', padding: '8px 16px', borderRadius: '4px', textDecoration: 'none', fontSize: '13px', fontWeight: 'bold' }}>Export Adventure</a>
+              </div>
+            </div>
+
+            {!eyeData ? (
+              <div style={{ color: '#94a3b8', textAlign: 'center', padding: '40px' }}>Syncing EYE Container...</div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                {/* Left Column: Constraints & Meta */}
+                <div>
+                  <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '8px', padding: '16px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '16px' }}>
+                    <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: '1px' }}>Project Metadata</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '8px', fontSize: '13px' }}>
+                      <span style={{ color: '#64748b' }}>Title:</span> <span style={{ color: '#f8fafc' }}>{eyeData.metadata?.title || 'Unknown'}</span>
+                      <span style={{ color: '#64748b' }}>Subject:</span> <span style={{ color: '#10b981' }}>{eyeData.metadata?.subject || 'Unknown'}</span>
+                      <span style={{ color: '#64748b' }}>PEARL Phase:</span> <span style={{ color: '#a78bfa' }}>{eyeData.metadata?.pearl_phase}</span>
+                      <span style={{ color: '#64748b' }}>Align Grade:</span> <span style={{ color: '#f59e0b' }}>{eyeData.metadata?.alignment_grade}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '8px', padding: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: '1px' }}>PEARL Constraints (Lens)</h3>
+                    <p style={{ fontSize: '13px', color: '#cbd5e1', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+                      {eyeData.pearl_summary || "No PEARL constraints have been established. Define them in Pete's terminal."}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right Column: Content Checklists */}
+                <div>
+                  <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '8px', padding: '16px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '16px', maxHeight: '300px', overflowY: 'auto' }}>
+                    <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: '1px' }}>Objectives Traceability</h3>
+                    {eyeData.objectives && eyeData.objectives.length > 0 ? (
+                      <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                        {eyeData.objectives.map((obj, i) => (
+                          <li key={i} style={{ fontSize: '12px', marginBottom: '8px', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                            <span style={{ color: obj.completed ? '#10b981' : '#64748b' }}>{obj.completed ? '✅' : '⏳'}</span>
+                            <div>
+                              <span style={{ color: '#94a3b8', fontSize: '10px', display: 'block' }}>[{obj.phase}]</span>
+                              <span style={{ color: obj.completed ? '#cbd5e1' : '#64748b' }}>{obj.description}</span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div style={{ fontSize: '12px', color: '#64748b' }}>No objectives tracked yet.</div>
+                    )}
+                  </div>
+
+                  <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '8px', padding: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: '1px' }}>Generated Assets</h3>
+                    {eyeData.assets && eyeData.assets.length > 0 ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))', gap: '8px' }}>
+                        {eyeData.assets.map((asset, i) => (
+                          <div key={i} style={{ background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '4px', textAlign: 'center', fontSize: '10px', color: '#cbd5e1' }}>
+                            <div style={{ fontSize: '16px', marginBottom: '4px' }}>
+                              {asset.asset_type === 'png' ? '🖼️' : asset.asset_type === 'wav' ? '🔊' : '📄'}
+                            </div>
+                            <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{asset.filename}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '12px', color: '#64748b' }}>No artifacts generated by the Art Studio yet.</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ═══ THE HOOK BOOK TAB ═══ */}
         {activeTab === 'hookbook' && (
           <div className="chariot-content" style={{ marginTop: '24px', padding: '16px', borderRadius: '12px', background: 'rgba(15,13,10,0.6)', border: '1px solid rgba(207,185,145,0.1)' }}>
@@ -665,14 +767,28 @@ export default function CharacterSheet() {
             </div>
 
             <div style={{ fontSize: '20px', fontFamily: "'Cinzel', serif", color: '#E2E8F0', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px' }}>
-              The Great Tome
+              The Library of Hooks
             </div>
 
-            {!hookBookHtml ? (
-              <div style={{ color: '#6B7280', fontSize: '14px', textAlign: 'center', padding: '40px' }}>Loading Hook Book...</div>
-            ) : (
-              <article className="chariot-article" dangerouslySetInnerHTML={{ __html: hookBookHtml }} />
-            )}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
+              {HOOK_CATALOG.map(catHook => {
+                const acquired = ldt?.hook_deck?.[catHook.id] || Object.values(ldt?.hook_deck || {}).find(h => h.title === catHook.title);
+                return (
+                  <div key={catHook.title} style={{
+                    background: acquired ? 'linear-gradient(135deg, rgba(207,185,145,0.1), rgba(15,13,20,0.9))' : 'rgba(0,0,0,0.4)',
+                    border: `1px solid ${acquired ? '#CFB991' : 'rgba(255,255,255,0.05)'}`, 
+                    borderRadius: '6px', padding: '12px',
+                    opacity: acquired ? 1 : 0.5,
+                  }}>
+                    <div style={{ fontSize: '9px', color: acquired ? '#a78bfa' : '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>{catHook.school}</div>
+                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: acquired ? '#E2E8F0' : '#94a3b8', fontFamily: "'Cinzel', serif" }}>
+                      {catHook.title} {acquired && '✨'}
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#64748b', marginTop: '8px' }}>{catHook.desc}</div>
+                  </div>
+                );
+              })}
+            </div>
             
             {/* The Trading Card System Tip */}
             <div style={{ marginTop: '32px', padding: '16px', borderRadius: '8px', background: 'rgba(34,211,238,0.05)', borderLeft: '4px solid #22d3ee' }}>
@@ -687,35 +803,143 @@ export default function CharacterSheet() {
         {/* ═══ PLAYER IDENTITY TAB ═══ */}
         {activeTab === 'identity' && (
           <div style={{ marginTop: '24px' }}>
-            <h2 style={{ fontFamily: "'Cinzel', serif", color: '#CFB991', letterSpacing: '2px', borderBottom: '1px solid rgba(207,185,145,0.2)', paddingBottom: '8px', marginBottom: '16px' }}>Your Character Backstory</h2>
-            <p style={{ fontSize: '13px', color: '#cbd5e1', marginBottom: '16px', lineHeight: 1.5 }}>
-              Describe your "player" persona as if you were jumping into a DnD campaign for teachers. Who are you? What drives your instructional design? The Great Recycler reads this to tailor its guidance.
-            </p>
-            <textarea
-              style={{
-                width: '100%', minHeight: '300px', background: 'rgba(24, 22, 18, 0.72)',
-                border: '1px solid rgba(207,185,145,0.3)', borderRadius: '8px',
-                padding: '16px', color: '#E2E8F0', fontFamily: "'Inter', sans-serif",
-                fontSize: '14px', lineHeight: 1.6, resize: 'vertical', outline: 'none'
-              }}
-              value={backstoryText}
-              onChange={(e) => setBackstoryText(e.target.value)}
-              placeholder="E.g., A battle-hardened curriculum developer from the Midwest who specializes in turning boring compliance training into sweeping high-fantasy narrative adventures..."
-            />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-              <button
-                onClick={saveBackstory}
-                disabled={savingBackstory}
-                style={{
-                  background: savingBackstory ? '#4B5563' : '#CFB991',
-                  color: '#1A1A1A', padding: '10px 24px', borderRadius: '6px',
-                  fontFamily: "'JetBrains Mono', monospace", fontWeight: 'bold',
-                  border: 'none', cursor: savingBackstory ? 'not-allowed' : 'pointer',
-                  transition: 'background 0.2s'
-                }}
-              >
-                {savingBackstory ? 'Carving into Stone...' : 'Save Backstory'}
-              </button>
+            <h2 style={{ fontFamily: "'Cinzel', serif", color: '#CFB991', letterSpacing: '2px', borderBottom: '1px solid rgba(207,185,145,0.2)', paddingBottom: '8px', marginBottom: '16px' }}>Player Handbook</h2>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 1fr) 2fr', gap: '24px' }}>
+              {/* Left Column: Visual Identity & Vitals */}
+              <div>
+                <div style={{ background: 'rgba(24, 22, 18, 0.72)', border: '1px solid rgba(207,185,145,0.3)', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
+                  <h3 style={{ fontFamily: "'Cinzel', serif", color: '#E2E8F0', marginTop: 0, fontSize: '16px' }}>Visual Identity</h3>
+                  <p style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '12px' }}>Drag an image here to upload your avatar.</p>
+                  
+                  <div 
+                    style={{ 
+                      width: '140px', height: '140px', border: '2px dashed #4B5563', borderRadius: '50%',
+                      margin: '16px auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      background: appearanceData ? `url(${appearanceData}) center/cover` : 'rgba(0,0,0,0.4)',
+                      cursor: 'pointer', position: 'relative', overflow: 'hidden', boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.5)'
+                    }}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={e => {
+                      e.preventDefault();
+                      const file = e.dataTransfer.files[0];
+                      if (file && file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = ev => {
+                          // Basic client-side resize to save base64 space
+                          const img = new Image();
+                          img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const MAX = 256;
+                            const scale = Math.min(MAX/img.width, MAX/img.height);
+                            canvas.width = img.width * scale;
+                            canvas.height = img.height * scale;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            setAppearanceData(canvas.toDataURL('image/jpeg', 0.8));
+                          };
+                          img.src = ev.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  >
+                    {!appearanceData && <div style={{ textAlign: 'center', opacity: 0.6 }}>
+                      <span style={{ fontSize: '36px', display: 'block', marginBottom: '8px' }}>👁️</span>
+                    </div>}
+                    <div style={{ position: 'absolute', bottom: 0, width: '100%', background: 'rgba(0,0,0,0.7)', padding: '6px', textAlign: 'center', fontSize: '9px', color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: '1px' }}>Drop Image</div>
+                  </div>
+                </div>
+
+                <div style={{ background: 'rgba(24, 22, 18, 0.72)', border: '1px solid rgba(167,139,250,0.3)', borderRadius: '8px', padding: '16px' }}>
+                  <h3 style={{ fontFamily: "'Cinzel', serif", color: '#a78bfa', marginTop: 0, fontSize: '16px' }}>Audio Preferences</h3>
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', color: '#94a3b8', marginBottom: '4px' }}>TTS Voice ID</label>
+                    <select value={audioPrefs.voice_id} onChange={e => setAudioPrefs({...audioPrefs, voice_id: e.target.value})} style={s.input}>
+                      <option value="am_adam">Adam (Male, Professional)</option>
+                      <option value="am_michael">Michael (Male, Warm)</option>
+                      <option value="am_fenrir">Fenrir (Male, Deep)</option>
+                      <option value="am_echo">Echo (Male, Neutral)</option>
+                      <option value="af_heart">Heart (Female, Clear)</option>
+                      <option value="af_bella">Bella (Female, Soft)</option>
+                    </select>
+                  </div>
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', color: '#94a3b8', marginBottom: '4px' }}>World Genre (Music/Tone)</label>
+                    <select value={audioPrefs.genre} onChange={e => setAudioPrefs({...audioPrefs, genre: e.target.value})} style={s.input}>
+                      <option value="Cinematic">Cinematic / Epic</option>
+                      <option value="Lo-Fi">Lo-Fi / Chill</option>
+                      <option value="Synthwave">Synthwave / Cyberpunk</option>
+                      <option value="Steampunk">Steampunk / Acoustic</option>
+                      <option value="Ambient">Minimalist / Ambient</option>
+                    </select>
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#E2E8F0', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={audioPrefs.music_flow_enabled} onChange={e => setAudioPrefs({...audioPrefs, music_flow_enabled: e.target.checked})} />
+                    Enable Music Flow
+                  </label>
+                </div>
+              </div>
+
+              {/* Right Column: Narrative & Stats */}
+              <div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                  <div style={{ background: 'rgba(24, 22, 18, 0.72)', border: '1px solid rgba(207,185,145,0.3)', borderRadius: '8px', padding: '16px' }}>
+                    <label style={{ display: 'block', fontFamily: "'Cinzel', serif", color: '#E2E8F0', fontSize: '14px', marginBottom: '8px' }}>Alignment</label>
+                    <input 
+                      type="text" 
+                      value={alignmentText} 
+                      onChange={e => setAlignmentText(e.target.value)} 
+                      placeholder="e.g. Chaotic Constructor" 
+                      style={s.input} 
+                    />
+                  </div>
+                  <div style={{ background: 'rgba(24, 22, 18, 0.72)', border: '1px solid rgba(207,185,145,0.3)', borderRadius: '8px', padding: '16px' }}>
+                    <label style={{ display: 'block', fontFamily: "'Cinzel', serif", color: '#E2E8F0', fontSize: '14px', marginBottom: '8px' }}>Locomotive Profile (Playstyle)</label>
+                    <p style={{ fontSize: '10px', color: '#94a3b8', marginBottom: '8px' }}>Your natural approach to design and learning.</p>
+                    <select value={locomotiveProfile} onChange={e => setLocomotiveProfile(e.target.value)} style={s.input}>
+                      <option value="AnalyzerClass">🧠 The Sage (Analyzer Class)</option>
+                      <option value="InterceptorExpress">⚔️ The Hero (Interceptor Express)</option>
+                      <option value="AllTerrainSwitcher">🎭 The Jester (All-Terrain Switcher)</option>
+                      <option value="ArmoredSupplyTrain">💚 The Caregiver (Armored Supply Train)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ background: 'rgba(24, 22, 18, 0.72)', border: '1px solid rgba(207,185,145,0.3)', borderRadius: '8px', padding: '16px' }}>
+                  <label style={{ display: 'block', fontFamily: "'Cinzel', serif", color: '#E2E8F0', fontSize: '16px', marginBottom: '4px' }}>
+                    Player Profile (Backstory)
+                  </label>
+                  <p style={{ fontSize: '12px', fontStyle: 'italic', color: '#CFB991', marginBottom: '8px', fontFamily: "'Crimson Text', serif" }}>
+                    "We are the stories we tell ourselves."
+                  </p>
+                  <p style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '12px' }}>
+                    Describe your authentic self as the Instructional Designer working on this project. What drives your design?
+                  </p>
+                  <textarea
+                    style={s.textarea}
+                    value={backstoryText}
+                    onChange={(e) => setBackstoryText(e.target.value)}
+                    placeholder="E.g., An instructional designer focused on building engaging, active-learning environments rather than passive compliance training..."
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+                  <button
+                    onClick={saveBackstory}
+                    disabled={savingBackstory}
+                    style={{
+                      background: savingBackstory ? '#4B5563' : '#CFB991',
+                      color: '#1A1A1A', padding: '10px 24px', borderRadius: '6px',
+                      fontFamily: "'JetBrains Mono', monospace", fontWeight: 'bold', border: 'none', 
+                      cursor: savingBackstory ? 'not-allowed' : 'pointer', transition: 'background 0.2s',
+                      boxShadow: '0 4px 12px rgba(207,185,145,0.2)'
+                    }}
+                  >
+                    {savingBackstory ? 'Carving into Stone...' : 'Save Identity Form'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -976,15 +1200,12 @@ const s = {
   scoreValue: { fontSize: '18px', color: '#E2E8F0' },
   // Vault
   vaultToggle: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    width: '100%', padding: '12px 16px', borderRadius: '8px',
-    background: 'rgba(24, 22, 18, 0.72)', border: '1px solid rgba(207,185,145,0.1)',
-    color: '#CFB991', cursor: 'pointer', fontFamily: "'Cinzel', serif",
-    fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase',
+    width: '100%', background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.3)',
+    color: '#22d3ee', padding: '12px', borderRadius: '6px', fontFamily: "'Cinzel', serif", fontWeight: 'bold',
+    cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     transition: 'background 0.2s',
   },
   vaultGrid: {
-    display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
     gap: '12px', marginTop: '12px', maxHeight: '350px', overflowY: 'auto',
     paddingRight: '8px',
   },
@@ -1041,5 +1262,38 @@ const s = {
   tabInactive: {
     opacity: 0.7,
   },
+  input: {
+    width: '100%', padding: '10px',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    color: '#CFB991', border: '1px solid rgba(207,185,145,0.3)',
+    borderRadius: '4px', outline: 'none',
+    fontFamily: "'JetBrains Mono', monospace", fontSize: '13px',
+  },
+  textarea: {
+    width: '100%', height: '100px', padding: '10px',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    color: '#CFB991', border: '1px solid rgba(207,185,145,0.3)',
+    borderRadius: '4px', outline: 'none',
+    fontFamily: "'JetBrains Mono', monospace", fontSize: '13px',
+    resize: 'vertical',
+  }
 };
 
+const HOOK_CATALOG = [
+  { id: 'Socratic Interview', title: 'Socratic Interview', school: 'Pedagogy', desc: 'Asks WHY before you build.' },
+  { id: '12-Station Quest', title: '12-Station Quest', school: 'Pedagogy', desc: 'ADDIECRAPEYE framework.' },
+  { id: 'Bloom\'s Extraction', title: 'Bloom\'s Extraction', school: 'Pedagogy', desc: 'Tags cognitive progression.' },
+  { id: 'Scope Creep Combat', title: 'Scope Creep Combat', school: 'Pedagogy', desc: 'Tames out-of-scope ideas.' },
+  { id: 'Quality Scorecard', title: 'Quality Scorecard', school: 'Pedagogy', desc: 'QM and IBSTPI grading.' },
+  { id: 'PEARL Review', title: 'PEARL Review', school: 'Pedagogy', desc: '5-dimension quality gate.' },
+  { id: 'Design Doc Export', title: 'Design Doc Export', school: 'Pedagogy', desc: 'One-click Markdown export.' },
+  { id: 'Image Generation', title: 'Image Generation', school: 'Creation', desc: 'SDXL text-to-image.' },
+  { id: 'Music Composition', title: 'Music Composition', school: 'Creation', desc: 'MusicGPT OST creation.' },
+  { id: 'Voice Narration', title: 'Voice Narration', school: 'Creation', desc: 'Supertonic-2 TTS.' },
+  { id: '30 Agentic Tools', title: 'Agentic Tools', school: 'Systems', desc: 'Shell, I/O, Web.' },
+  { id: 'Vector Database', title: 'Vector Database', school: 'Systems', desc: 'RAG semantic search.' },
+  { id: 'CowCatcher', title: 'CowCatcher', school: 'Systems', desc: 'Input sanitization engine.' },
+  { id: 'Character Sheet', title: 'Character Sheet', school: 'Identity', desc: 'Living portfolio system.' },
+  { id: 'Steam/Coal Resources', title: 'Steam & Coal', school: 'Identity', desc: 'Momentum and raw fuel.' },
+  { id: 'Ghost Train Detection', title: 'Ghost Train', school: 'Identity', desc: 'Detects imposter syndrome.' },
+];

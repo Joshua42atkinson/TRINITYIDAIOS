@@ -1,0 +1,131 @@
+//! Game state management — Timeline / Sequencing
+
+use bevy::prelude::*;
+use crate::config::GameConfig;
+
+/// Game phases
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum GamePhase {
+    #[default]
+    Menu,
+    Playing,
+    Paused,
+    Complete,
+}
+
+/// A timeline slot
+#[derive(Component)]
+pub struct TimelineSlot {
+    pub order_index: usize,
+}
+
+/// An item that can be placed on the timeline
+#[derive(Component)]
+pub struct TimelineItem {
+    pub event_name: String,
+    pub correct_index: usize,
+    pub is_dragging: bool,
+    pub is_placed: bool,
+}
+
+/// Level marker component
+#[derive(Component)]
+pub struct LevelEntity;
+
+/// Quest objective tracker
+#[derive(Resource, Default)]
+pub struct QuestTracker {
+    pub items_placed: usize,
+    pub total_items: usize,
+    pub score: u32,
+    pub quest_title: String,
+}
+
+pub fn handle_phase_transitions(
+    tracker: Res<QuestTracker>,
+    current_state: Res<State<GamePhase>>,
+    mut next_state: ResMut<NextState<GamePhase>>,
+) {
+    if *current_state.get() == GamePhase::Playing 
+        && tracker.items_placed >= tracker.total_items 
+        && tracker.total_items > 0 
+    {
+        next_state.set(GamePhase::Complete);
+    }
+}
+
+pub fn spawn_level(
+    mut commands: Commands,
+    config: Res<GameConfig>,
+) {
+    commands.insert_resource(QuestTracker {
+        items_placed: 0,
+        total_items: config.vocabulary.len(),
+        score: 0,
+        quest_title: config.game_title.clone(),
+    });
+
+    let count = config.vocabulary.len();
+    let slot_width = 150.0;
+    let start_x = -((count as f32 * slot_width) / 2.0) + (slot_width / 2.0);
+
+    for i in 0..count {
+        let pos = Vec2::new(start_x + (i as f32 * slot_width), -100.0);
+        
+        commands.spawn((
+            TimelineSlot { order_index: i },
+            Sprite {
+                color: Color::srgb(0.2, 0.2, 0.4),
+                custom_size: Some(Vec2::new(slot_width - 10.0, 100.0)),
+                ..default()
+            },
+            Transform::from_xyz(pos.x, pos.y, 0.0),
+            LevelEntity,
+        ));
+        
+        commands.spawn((
+            Text2d::new(format!("Step {}", i + 1)),
+            TextFont { font_size: 16.0, ..default() },
+            Transform::from_xyz(pos.x, pos.y - 70.0, 0.1),
+            LevelEntity,
+        ));
+    }
+
+    // Spawn draggable events above the timeline
+    for (i, vocab) in config.vocabulary.iter().enumerate() {
+        // Scramble starting positions
+        let pos = Vec2::new(start_x + (((i * 2) % count) as f32 * slot_width), 150.0);
+        
+        commands.spawn((
+            TimelineItem {
+                event_name: vocab.word.clone(),
+                correct_index: i,
+                is_dragging: false,
+                is_placed: false,
+            },
+            Sprite {
+                color: Color::srgb(0.8, 0.8, 0.2),
+                custom_size: Some(Vec2::new(120.0, 60.0)),
+                ..default()
+            },
+            Transform::from_xyz(pos.x, pos.y, 1.0),
+            LevelEntity,
+        )).with_children(|parent| {
+            parent.spawn((
+                Text2d::new(vocab.word.clone()),
+                TextFont { font_size: 14.0, ..default() },
+                TextColor(Color::BLACK),
+                Transform::from_xyz(0.0, 0.0, 0.1),
+            ));
+        });
+    }
+}
+
+pub fn despawn_level(
+    mut commands: Commands,
+    query: Query<Entity, With<LevelEntity>>,
+) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+}

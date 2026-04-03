@@ -1,0 +1,23 @@
+[package]
+name = "{{GAME_NAME}}"
+version = "0.1.0"
+edition = "2021"
+description = "{{GAME_DESCRIPTION}} — Built with Trinity ID AI OS"
+
+[dependencies]
+bevy = { version = "0.15", default-features = false, features = [
+    "bevy_asset",
+    "bevy_color",
+    "bevy_core_pipeline",
+    "bevy_math",
+    "bevy_render",
+    "bevy_sprite",
+    "bevy_text",
+    "bevy_ui",
+    "bevy_winit",
+    "default_font",
+    "x11",
+] }
+rand = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

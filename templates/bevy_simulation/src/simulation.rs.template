@@ -1,0 +1,64 @@
+//! Simulation ticking logic and controls
+
+use bevy::prelude::*;
+use crate::game_state::{QuestTracker, SimVariable, SimDisplay};
+
+pub fn tick_simulation(
+    time: Res<Time>,
+    mut variables: Query<&mut SimVariable>,
+    mut displays: Query<(&mut Text2d, &SimDisplay)>,
+    mut tracker: ResMut<QuestTracker>,
+) {
+    let dt = time.delta_secs();
+    let mut all_stable = true;
+
+    for mut var in variables.iter_mut() {
+        // Natural decay/growth over time
+        var.current_value += var.rate_of_change * dt * 10.0;
+        
+        // Check if within acceptable bounds of target (e.g. +/- 5.0)
+        let diff = (var.current_value - var.target_value).abs();
+        if diff > 5.0 {
+            all_stable = false;
+        }
+    }
+
+    if all_stable {
+        tracker.stable_ticks += 1;
+    } else {
+        // Reset stability if things get out of balance
+        tracker.stable_ticks = 0;
+    }
+
+    // Update displays
+    for (mut text, display) in displays.iter_mut() {
+        for var in variables.iter() {
+            if var.name == display.variable_name {
+                let status = if (var.current_value - var.target_value).abs() <= 5.0 { "(STABLE)" } else { "" };
+                text.0 = format!("{}: {:.1} / {:.1} {}", var.name, var.current_value, var.target_value, status);
+            }
+        }
+    }
+}
+
+pub fn handle_controls(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut variables: Query<&mut SimVariable>,
+) {
+    // In a real templated game we'd map UI buttons to these actions
+    // For this simple template, Up/Down arrow keys apply changes to all variables
+    let mut delta = 0.0;
+    
+    if keyboard.just_pressed(KeyCode::ArrowUp) {
+        delta = 5.0;
+    }
+    if keyboard.just_pressed(KeyCode::ArrowDown) {
+        delta = -5.0;
+    }
+
+    if delta != 0.0 {
+        for mut var in variables.iter_mut() {
+            var.current_value += delta;
+        }
+    }
+}

@@ -1,0 +1,134 @@
+//! Game state management — Categorization
+
+use bevy::prelude::*;
+use crate::config::GameConfig;
+
+/// Game phases — maps to ADDIECRAPEYE progression
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum GamePhase {
+    #[default]
+    Menu,
+    Playing,
+    Paused,
+    Complete,
+}
+
+/// A category drop zone
+#[derive(Component)]
+pub struct CategoryZone {
+    pub name: String,
+}
+
+/// An item that can be dragged
+#[derive(Component)]
+pub struct DraggableItem {
+    pub word: String,
+    pub correct_category: String,
+    pub is_dragging: bool,
+    pub is_sorted: bool,
+}
+
+/// Level marker component
+#[derive(Component)]
+pub struct LevelEntity;
+
+/// Quest objective tracker
+#[derive(Resource, Default)]
+pub struct QuestTracker {
+    pub items_sorted: usize,
+    pub total_items: usize,
+    pub score: u32,
+    pub quest_title: String,
+}
+
+/// Handle phase transitions based on game state
+pub fn handle_phase_transitions(
+    tracker: Res<QuestTracker>,
+    current_state: Res<State<GamePhase>>,
+    mut next_state: ResMut<NextState<GamePhase>>,
+) {
+    if *current_state.get() == GamePhase::Playing 
+        && tracker.items_sorted >= tracker.total_items 
+        && tracker.total_items > 0 
+    {
+        next_state.set(GamePhase::Complete);
+    }
+}
+
+/// Spawn the game level with categories and draggable items
+pub fn spawn_level(
+    mut commands: Commands,
+    config: Res<GameConfig>,
+) {
+    commands.insert_resource(QuestTracker {
+        items_sorted: 0,
+        total_items: config.vocabulary.len(),
+        score: 0,
+        quest_title: config.game_title.clone(),
+    });
+
+    // In a real template, we'd infer categories from the data or have them in config.
+    // For this boilerplate, we create two generic buckets (Left and Right).
+    let categories = [
+        ("Good Concept", Vec2::new(-300.0, 0.0), Color::srgb(0.2, 0.6, 0.2)),
+        ("Bad Concept", Vec2::new(300.0, 0.0), Color::srgb(0.6, 0.2, 0.2))
+    ];
+
+    for (name, pos, color) in categories {
+        commands.spawn((
+            CategoryZone { name: name.to_string() },
+            Sprite {
+                color,
+                custom_size: Some(Vec2::new(200.0, 400.0)),
+                ..default()
+            },
+            Transform::from_xyz(pos.x, pos.y, 0.0),
+            LevelEntity,
+        ));
+        commands.spawn((
+            Text2d::new(name),
+            TextFont { font_size: 24.0, ..default() },
+            TextColor(Color::WHITE),
+            Transform::from_xyz(pos.x, pos.y + 220.0, 0.1),
+            LevelEntity,
+        ));
+    }
+
+    // Spawn items in the middle
+    for (i, vocab) in config.vocabulary.iter().enumerate() {
+        let pos = Vec2::new(0.0, (i as f32 * 50.0) - 150.0);
+        let category = categories[i % 2].0.to_string(); // Simple assignment
+        
+        commands.spawn((
+            DraggableItem {
+                word: vocab.word.clone(),
+                correct_category: category,
+                is_dragging: false,
+                is_sorted: false,
+            },
+            Sprite {
+                color: Color::srgb(0.8, 0.8, 0.8),
+                custom_size: Some(Vec2::new(140.0, 40.0)),
+                ..default()
+            },
+            Transform::from_xyz(pos.x, pos.y, 1.0),
+            LevelEntity,
+        )).with_children(|parent| {
+            parent.spawn((
+                Text2d::new(vocab.word.clone()),
+                TextFont { font_size: 16.0, ..default() },
+                TextColor(Color::BLACK),
+                Transform::from_xyz(0.0, 0.0, 0.1),
+            ));
+        });
+    }
+}
+
+pub fn despawn_level(
+    mut commands: Commands,
+    query: Query<Entity, With<LevelEntity>>,
+) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+}

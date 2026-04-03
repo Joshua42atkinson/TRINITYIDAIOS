@@ -466,6 +466,10 @@ async fn tool_write_file(params: &serde_json::Value) -> Result<String, String> {
         .map_err(|e| format!("Failed to write {}: {}", path, e))?;
 
     info!("📝 Wrote file: {}", validated.display());
+    
+    // Autopoiesis of the User: Ensure the written artifact hasn't lost the User's soul to machine homogenization.
+    crate::authenticity_scorecard::evaluate_and_trigger_if_needed(content, path);
+
     Ok(format!(
         "Written {} bytes to {}{}",
         content.len(),
@@ -1541,7 +1545,8 @@ async fn tool_scaffold_bevy_game(params: &serde_json::Value) -> Result<String, S
         .map_err(|e| format!("Failed to create assets dir: {}", e))?;
 
     // Template directory
-    let template_dir = workspace_root().join("templates/bevy_game");
+    let genre = params["genre"].as_str().unwrap_or("exploration");
+    let template_dir = workspace_root().join(format!("templates/bevy_{}", genre));
     if !template_dir.exists() {
         return Err(format!(
             "Template directory not found at {:?}",

@@ -83,6 +83,7 @@ mod narrative;
 mod persistence;
 mod perspective;
 mod quality_scorecard;
+mod authenticity_scorecard;
 mod quests;
 mod rag;
 mod scope_creep;
@@ -1277,6 +1278,27 @@ async fn update_character_sheet(
     if let Some(backstory) = request.get("backstory").and_then(|v| v.as_str()) {
         // We allow it to be empty if they want to clear it
         sheet.backstory = Some(backstory.to_string());
+    }
+    
+    // Player Handbook fields
+    if let Some(appearance) = request.get("appearance").and_then(|v| v.as_str()) {
+        sheet.appearance = Some(appearance.to_string());
+    }
+    
+    if let Some(alignment) = request.get("alignment").and_then(|v| v.as_str()) {
+        sheet.alignment = Some(alignment.to_string());
+    }
+
+    if let Some(lp) = request.get("locomotive_profile") {
+        if let Ok(locomotive_profile) = serde_json::from_value::<trinity_protocol::character_sheet::LocomotiveProfile>(lp.clone()) {
+            sheet.locomotive_profile = locomotive_profile;
+        }
+    }
+
+    if let Some(audio_prefs) = request.get("audio_preferences") {
+        if let Ok(ap) = serde_json::from_value::<trinity_protocol::character_sheet::AudioPreferences>(audio_prefs.clone()) {
+            sheet.audio_preferences = ap;
+        }
     }
 
     if let Err(e) = character_sheet::save_character_sheet(&sheet) {

@@ -1,0 +1,95 @@
+//! Dialogue and UI logic for answering questions
+
+use bevy::prelude::*;
+use crate::game_state::{QuestTracker, AnswerButton, LevelEntity, QuestionEntity};
+use crate::config::GameConfig;
+
+pub fn handle_answers(
+    mut commands: Commands,
+    mut interaction_query: Query<(&Interaction, &AnswerButton), (Changed<Interaction>, With<Button>)>,
+    mut tracker: ResMut<QuestTracker>,
+    mut question_query: Query<Entity, With<QuestionEntity>>,
+) {
+    let mut answered = false;
+    for (interaction, answer) in interaction_query.iter_mut() {
+        if *interaction == Interaction::Pressed {
+            if answer.is_correct {
+                tracker.score += 100;
+            }
+            tracker.current_question_index += 1;
+            answered = true;
+        }
+    }
+
+    if answered {
+        // Despawn current question UI to allow the system to render the next one
+        for entity in question_query.iter_mut() {
+            commands.entity(entity).despawn_recursive();
+        }
+    }
+}
+
+// Added an easy system hook in main to actually render the question 
+// We would add this as a system in `bevy_quiz_rpg/src/main.rs.template`.
+pub fn render_current_question(
+    mut commands: Commands,
+    tracker: Res<QuestTracker>,
+    config: Res<GameConfig>,
+    query: Query<Entity, With<QuestionEntity>>,
+) {
+    // Only spawn if it doesn't exist
+    if query.iter().count() > 0 { return; }
+    if tracker.current_question_index >= config.vocabulary.len() { return; }
+
+    let vocab = &config.vocabulary[tracker.current_question_index];
+
+    commands.spawn((
+        Node {
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            flex_direction: FlexDirection::Column,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        QuestionEntity,
+        LevelEntity,
+    )).with_children(|parent| {
+        // Question Text
+        parent.spawn((
+            Text::new(format!("What is the definition of '{}'?", vocab.word)),
+            TextFont { font_size: 40.0, ..default() },
+            TextColor(Color::WHITE),
+        ));
+
+        // Simplified: One correct answer (in reality we'd randomize options)
+        parent.spawn((
+            Button,
+            Node {
+                margin: UiRect::all(Val::Px(20.0)),
+                padding: UiRect::all(Val::Px(10.0)),
+                ..default()
+            },
+            BackgroundColor(Color::srgb(0.2, 0.4, 0.8)),
+            AnswerButton { is_correct: true },
+        )).with_child((
+            Text::new(vocab.definition.clone()),
+            TextFont { font_size: 20.0, ..default() },
+        ));
+
+        // Fake wrong answer
+        parent.spawn((
+            Button,
+            Node {
+                margin: UiRect::all(Val::Px(20.0)),
+                padding: UiRect::all(Val::Px(10.0)),
+                ..default()
+            },
+            BackgroundColor(Color::srgb(0.2, 0.4, 0.8)),
+            AnswerButton { is_correct: false },
+        )).with_child((
+            Text::new("A different definition".to_string()),
+            TextFont { font_size: 20.0, ..default() },
+        ));
+    });
+}

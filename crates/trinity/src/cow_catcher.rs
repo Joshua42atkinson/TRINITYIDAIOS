@@ -188,6 +188,7 @@ impl CowCatcher {
             ObstacleType::SidecarCrash => {
                 error!("   → Sidecar Crash Detected");
                 error!("   → Spawning autopoiesis quest to diagnose and repair");
+                trigger_autopoiesis(&obstacle.description);
             }
             _ => {
                 warn!("   → Obstacle logged for analysis");
@@ -265,4 +266,80 @@ pub fn start_hardware_monitor(cow_catcher: Arc<RwLock<CowCatcher>>) {
             cc.check_hardware_limits(99.0).await;
         }
     });
+}
+
+/// Triggers a background job to have the LLM automatically diagnose and attempt repair
+fn trigger_autopoiesis(issue: &str) {
+    let issue = issue.to_string();
+    tokio::spawn(async move {
+        // We use reqwest to fire-and-forget a job to the local API
+        let client = reqwest::Client::new();
+        let payload = serde_json::json!({
+            "message": format!("CRITICAL SYSTEM ERROR (Cow Catcher Autopoiesis): {}. Please diagnose this crash and provide a fix. You may use your tools to view the logs and fix the code.", issue),
+            "mode": "engineer",
+            "max_turns": 5
+        });
+        
+        match client.post("http://127.0.0.1:3000/api/jobs")
+            .json(&payload)
+            .send()
+            .await 
+        {
+            Ok(_) => info!("🔧 Autopoiesis job successfully submitted to Yardmaster."),
+            Err(e) => error!("Failed to submit autopoiesis job: {}", e),
+        }
+    });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cow_catcher_initialization() {
+        let cc = CowCatcher::new();
+        assert!(cc.get_obstacles().is_empty());
+        assert!(cc.auto_restart_enabled);
+    }
+
+    #[test]
+    fn test_report_compilation_error() {
+        let mut cc = CowCatcher::new();
+        cc.report_compilation_error("src/main.rs", "expected `;`");
+        
+        let obstacles = cc.get_obstacles();
+        assert_eq!(obstacles.len(), 1);
+        assert_eq!(obstacles[0].severity, 9);
+        assert_eq!(obstacles[0].location, "src/main.rs");
+    }
+
+    #[tokio::test]
+    async fn test_should_restart_threshold() {
+        let mut cc = CowCatcher::new();
+        assert!(!cc.should_restart());
+
+        // LLMTimeout has severity 7 (not critical)
+        cc.report_timeout("step_1", 310, "mistral"); 
+        assert!(!cc.should_restart());
+        
+        // SidecarCrash has severity 10 (critical)
+        cc.report_sidecar_crash("bevy_engine", Some(1), "SIGSEGV"); 
+        cc.report_sidecar_crash("bevy_engine", Some(1), "SIGSEGV"); 
+        assert!(!cc.should_restart()); // only 2 criticals
+
+        // CompilationError has severity 9 (critical)
+        cc.report_compilation_error("main.rs", "fail"); 
+        // Now we have 3 critical obstacles
+        assert!(cc.should_restart()); 
+    }
+
+    #[test]
+    fn test_clear_obstacles() {
+        let mut cc = CowCatcher::new();
+        cc.report_quest_failure("quest_1", "User cancelled");
+        assert_eq!(cc.get_obstacles().len(), 1);
+        
+        cc.clear_obstacles();
+        assert!(cc.get_obstacles().is_empty());
+    }
 }

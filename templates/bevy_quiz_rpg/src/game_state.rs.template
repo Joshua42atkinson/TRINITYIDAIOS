@@ -1,0 +1,79 @@
+//! Game state management — Quiz / RPG
+
+use bevy::prelude::*;
+use crate::config::GameConfig;
+
+/// Game phases — maps to ADDIECRAPEYE progression
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum GamePhase {
+    #[default]
+    Menu,
+    Playing,
+    Paused,
+    Complete,
+}
+
+#[derive(Component)]
+pub struct QuestionEntity;
+
+#[derive(Component)]
+pub struct AnswerButton {
+    pub is_correct: bool,
+}
+
+/// Level marker component
+#[derive(Component)]
+pub struct LevelEntity;
+
+/// Quest objective tracker
+#[derive(Resource, Default)]
+pub struct QuestTracker {
+    pub current_question_index: usize,
+    pub total_questions: usize,
+    pub score: u32,
+    pub quest_title: String,
+}
+
+/// Handle phase transitions based on game state
+pub fn handle_phase_transitions(
+    tracker: Res<QuestTracker>,
+    current_state: Res<State<GamePhase>>,
+    mut next_state: ResMut<NextState<GamePhase>>,
+) {
+    if *current_state.get() == GamePhase::Playing 
+        && tracker.current_question_index >= tracker.total_questions 
+        && tracker.total_questions > 0 
+    {
+        next_state.set(GamePhase::Complete);
+    }
+}
+
+/// Spawn the game level UI and first question
+pub fn spawn_level(
+    mut commands: Commands,
+    config: Res<GameConfig>,
+) {
+    commands.insert_resource(QuestTracker {
+        current_question_index: 0,
+        total_questions: config.vocabulary.len(),
+        score: 0,
+        quest_title: config.game_title.clone(),
+    });
+
+    // In a real application, we would call an event here or spawn a system that reads 
+    // `current_question_index` and renders it. The UI logic is kept in dialogue.rs.
+    // We'll spawn a single hidden node to mark the level.
+    commands.spawn((
+        Node { ..default() },
+        LevelEntity,
+    ));
+}
+
+pub fn despawn_level(
+    mut commands: Commands,
+    query: Query<Entity, With<LevelEntity>>,
+) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+}

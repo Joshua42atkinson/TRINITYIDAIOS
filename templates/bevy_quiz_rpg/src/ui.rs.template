@@ -1,0 +1,285 @@
+//! UI systems — HUD, menus, and completion screens
+
+use bevy::prelude::*;
+use crate::game_state::{GamePhase, QuestTracker};
+use crate::config::GameConfig;
+
+/// Marker for menu UI entities
+#[derive(Component)]
+pub struct MenuEntity;
+
+/// Marker for HUD elements
+#[derive(Component)]
+pub struct HudEntity;
+
+/// Score text component
+#[derive(Component)]
+pub struct ScoreText;
+
+/// Words collected text component
+#[derive(Component)]
+pub struct WordsText;
+
+/// Spawn the main menu
+pub fn spawn_menu(
+    mut commands: Commands,
+    config: Res<GameConfig>,
+) {
+    // Menu root
+    commands.spawn((
+        Node {
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            flex_direction: FlexDirection::Column,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        BackgroundColor(Color::srgba(0.05, 0.05, 0.15, 0.95)),
+        MenuEntity,
+    )).with_children(|parent| {
+        // Title
+        parent.spawn((
+            Text::new(&config.game_title),
+            TextFont {
+                font_size: 48.0,
+                ..default()
+            },
+            TextColor(Color::srgb(1.0, 0.84, 0.0)), // Purdue Gold
+        ));
+
+        // Subject
+        parent.spawn((
+            Text::new(format!("Subject: {}", config.subject)),
+            TextFont {
+                font_size: 24.0,
+                ..default()
+            },
+            TextColor(Color::srgb(0.8, 0.8, 0.8)),
+            Node {
+                margin: UiRect::top(Val::Px(16.0)),
+                ..default()
+            },
+        ));
+
+        // Description
+        parent.spawn((
+            Text::new("Explore Purdue campus and collect vocabulary words!"),
+            TextFont {
+                font_size: 18.0,
+                ..default()
+            },
+            TextColor(Color::srgb(0.6, 0.6, 0.6)),
+            Node {
+                margin: UiRect::top(Val::Px(8.0)),
+                ..default()
+            },
+        ));
+
+        // Start button
+        parent.spawn((
+            Button,
+            Node {
+                padding: UiRect::all(Val::Px(16.0)),
+                margin: UiRect::top(Val::Px(40.0)),
+                ..default()
+            },
+            BackgroundColor(Color::srgb(0.2, 0.5, 0.2)),
+            StartButton,
+        )).with_children(|btn| {
+            btn.spawn((
+                Text::new("⚡ Start Quest"),
+                TextFont {
+                    font_size: 24.0,
+                    ..default()
+                },
+                TextColor(Color::WHITE),
+            ));
+        });
+
+        // Learning objectives
+        parent.spawn((
+            Text::new("Learning Objectives:"),
+            TextFont {
+                font_size: 16.0,
+                ..default()
+            },
+            TextColor(Color::srgb(0.7, 0.7, 0.7)),
+            Node {
+                margin: UiRect::top(Val::Px(32.0)),
+                ..default()
+            },
+        ));
+
+        for obj in &config.learning_objectives {
+            parent.spawn((
+                Text::new(format!("• {}", obj)),
+                TextFont {
+                    font_size: 14.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.6, 0.6, 0.6)),
+                Node {
+                    margin: UiRect::top(Val::Px(4.0)),
+                    ..default()
+                },
+            ));
+        }
+    });
+
+    // Spawn HUD (persists across states)
+    commands.spawn((
+        Text::new("Score: 0"),
+        TextFont {
+            font_size: 20.0,
+            ..default()
+        },
+        TextColor(Color::srgb(1.0, 0.84, 0.0)),
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(10.0),
+            left: Val::Px(10.0),
+            ..default()
+        },
+        ScoreText,
+        HudEntity,
+    ));
+
+    commands.spawn((
+        Text::new("Words: 0/0"),
+        TextFont {
+            font_size: 20.0,
+            ..default()
+        },
+        TextColor(Color::WHITE),
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(10.0),
+            right: Val::Px(10.0),
+            ..default()
+        },
+        WordsText,
+        HudEntity,
+    ));
+}
+
+/// Despawn menu entities
+pub fn despawn_menu(
+    mut commands: Commands,
+    query: Query<Entity, With<MenuEntity>>,
+) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
+/// Start button marker
+#[derive(Component)]
+pub struct StartButton;
+
+/// Handle menu button interactions
+pub fn menu_interaction(
+    mut interaction_query: Query<
+        (&Interaction, &mut BackgroundColor),
+        (Changed<Interaction>, With<StartButton>),
+    >,
+    mut next_state: ResMut<NextState<GamePhase>>,
+) {
+    for (interaction, mut bg) in interaction_query.iter_mut() {
+        match *interaction {
+            Interaction::Pressed => {
+                next_state.set(GamePhase::Playing);
+            }
+            Interaction::Hovered => {
+                *bg = BackgroundColor(Color::srgb(0.3, 0.7, 0.3));
+            }
+            Interaction::None => {
+                *bg = BackgroundColor(Color::srgb(0.2, 0.5, 0.2));
+            }
+        }
+    }
+}
+
+/// Update HUD text
+pub fn update_hud(
+    tracker: Res<QuestTracker>,
+    mut score_query: Query<&mut Text, (With<ScoreText>, Without<WordsText>)>,
+    mut words_query: Query<&mut Text, (With<WordsText>, Without<ScoreText>)>,
+) {
+    for mut text in score_query.iter_mut() {
+        **text = format!("Score: {}", tracker.score);
+    }
+    for mut text in words_query.iter_mut() {
+        **text = format!("Words: {}/{}", tracker.words_collected.len(), tracker.words_needed);
+    }
+}
+
+/// Spawn completion screen
+pub fn spawn_completion_screen(
+    mut commands: Commands,
+    tracker: Res<QuestTracker>,
+) {
+    commands.spawn((
+        Node {
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            flex_direction: FlexDirection::Column,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        BackgroundColor(Color::srgba(0.05, 0.1, 0.05, 0.95)),
+        MenuEntity,
+    )).with_children(|parent| {
+        parent.spawn((
+            Text::new("🎓 Quest Complete!"),
+            TextFont {
+                font_size: 48.0,
+                ..default()
+            },
+            TextColor(Color::srgb(1.0, 0.84, 0.0)),
+        ));
+
+        parent.spawn((
+            Text::new(format!("Final Score: {}", tracker.score)),
+            TextFont {
+                font_size: 32.0,
+                ..default()
+            },
+            TextColor(Color::WHITE),
+            Node {
+                margin: UiRect::top(Val::Px(20.0)),
+                ..default()
+            },
+        ));
+
+        parent.spawn((
+            Text::new(format!("Words Mastered: {}", tracker.words_collected.len())),
+            TextFont {
+                font_size: 24.0,
+                ..default()
+            },
+            TextColor(Color::srgb(0.8, 0.8, 0.8)),
+            Node {
+                margin: UiRect::top(Val::Px(12.0)),
+                ..default()
+            },
+        ));
+
+        // Show collected words
+        for word in &tracker.words_collected {
+            parent.spawn((
+                Text::new(format!("✨ {}", word)),
+                TextFont {
+                    font_size: 18.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.6, 1.0, 0.6)),
+                Node {
+                    margin: UiRect::top(Val::Px(4.0)),
+                    ..default()
+                },
+            ));
+        }
+    });
+}

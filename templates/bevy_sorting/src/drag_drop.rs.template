@@ -1,0 +1,91 @@
+//! Drag and drop logic for sorting game
+
+use bevy::prelude::*;
+use crate::game_state::{DraggableItem, CategoryZone, QuestTracker};
+
+pub fn drag_interaction(
+    mut commands: Commands,
+    windows: Query<&Window>,
+    camera_q: Query<(&Camera, &GlobalTransform)>,
+    buttons: Res<ButtonInput<MouseButton>>,
+    mut items_q: Query<(Entity, &mut Transform, &mut DraggableItem)>,
+) {
+    let window = windows.single();
+    let (camera, camera_transform) = camera_q.single();
+
+    let Some(cursor_pos) = window.cursor_position() else { return };
+    let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_pos) else { return };
+
+    let is_clicked = buttons.just_pressed(MouseButton::Left);
+    let is_held = buttons.pressed(MouseButton::Left);
+    let is_released = buttons.just_released(MouseButton::Left);
+
+    for (entity, mut transform, mut item) in items_q.iter_mut() {
+        if item.is_sorted { continue; } // Don't drag sorted items
+
+        // Simple bounding box check
+        let half_w = 70.0;
+        let half_h = 20.0;
+        let bounds = Rect::new(transform.translation.x - half_w, transform.translation.y - half_h,
+                               transform.translation.x + half_w, transform.translation.y + half_h);
+        
+        let is_hovered = bounds.contains(world_pos);
+
+        if is_clicked && is_hovered {
+            item.is_dragging = true;
+            transform.translation.z = 2.0; // Bring to front
+        }
+
+        if item.is_dragging {
+            if is_held {
+                transform.translation.x = world_pos.x;
+                transform.translation.y = world_pos.y;
+            }
+            if is_released {
+                item.is_dragging = false;
+                transform.translation.z = 1.0;
+            }
+        }
+    }
+}
+
+pub fn drop_interaction(
+    mut commands: Commands,
+    buttons: Res<ButtonInput<MouseButton>>,
+    mut items_q: Query<(Entity, &mut Transform, &mut DraggableItem)>,
+    zones_q: Query<(&Transform, &Sprite, &CategoryZone), Without<DraggableItem>>,
+    mut tracker: ResMut<QuestTracker>,
+) {
+    if !buttons.just_released(MouseButton::Left) { return; }
+
+    for (_entity, mut item_transform, mut item) in items_q.iter_mut() {
+        if item.is_sorted { continue; }
+        
+        let item_pos = item_transform.translation.truncate();
+        let mut sorted_in_zone = false;
+
+        for (zone_transform, zone_sprite, zone) in zones_q.iter() {
+            let z_pos = zone_transform.translation.truncate();
+            let z_size = zone_sprite.custom_size.unwrap_or_default();
+            let bounds = Rect::new(z_pos.x - z_size.x/2.0, z_pos.y - z_size.y/2.0,
+                                   z_pos.x + z_size.x/2.0, z_pos.y + z_size.y/2.0);
+
+            if bounds.contains(item_pos) {
+                // Determine if it was the correct category
+                if item.correct_category == zone.name {
+                    item.is_sorted = true;
+                    tracker.items_sorted += 1;
+                    tracker.score += 100;
+                    // Snap to zone center ish
+                    item_transform.translation.x = z_pos.x;
+                    item_transform.translation.z = 0.5;
+                } else {
+                    // Send back to origin or visual shake
+                    item_transform.translation.x = 0.0;
+                }
+                sorted_in_zone = true;
+                break;
+            }
+        }
+    }
+}

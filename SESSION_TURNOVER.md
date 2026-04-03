@@ -405,6 +405,24 @@ Before completing a task or advancing an ADDIECRAPEYE station, you must explicit
 
 ---
 
+## 18. Player Handbook Architecture (Vibe Coding Hub)
+Following the PEARL layout documentation (`docs/pearls/CharacterSheet.md`), the `CharacterSheet.jsx` UI was transformed from a simple backstory text-area into a comprehensive "DnD Player Handbook" layout.
+- **Goal:** To serve as a native "Vibe Coding Instruction Hub," ensuring Pete has full demographic, preferential, and visual telemetry on the user to align generated artifacts seamlessly.
+- **Key Enhancements (EYE Stage Integration):**
+  - **Visual Identity (Player Photo):** An integrated drag-and-drop file upload target. The system uses a native React `canvas` to resize and compress uploaded avatars down to a 256x256 Base64 representation (`image/jpeg`), which is persisted directly into the SQLite via the `/api/character` JSON payload. This prevents file system bloat while providing a high-visibility profile avatar (`appearance`).
+  - **Locomotive Profile & Alignment:** New dropdowns and texts modifying the active pedagogical playstyle ("Analyzer Class", "Interceptor Express"), allowing the backend Pete instructor to directly toggle prompt behavior formatting.
+  - **Audio Preferences Menu:** Allows direct access to alter the Ghost Pipeline parameters (`music_flow_enabled`, `voice_id`, `genre`) in the front-end before hitting the Rust server, syncing the environment to the user's specific learning and focus needs.
+- **Outcome:** The frontend payload now matches the expanded struct capacity of `CharacterSheet` inside `crates/trinity/src/main.rs`, ensuring complete bidirectional consistency for the user's profile state.
+
+---
+
+## 19. EYE Portfolio & Handbook Initialization
+- **The EYE Portfolio Tab:** Integrated a dedicated "Executive Summary" view within `CharacterSheet.jsx` (acting as the Player Handbook UI). It dynamically fetches the latest `EyeContainer` via `/api/eye/preview`, visually mapping the active PEARL Phase, the 400+ ADDIECRAPEYE Objectives progression, and live generated assets. It also directly links out to the `html_quiz` and `html_adventure` export pipelines.
+- **Handbook Neutrality:** Iterated upon the identity UI to ensure it reflects a true "empty mirror" for users. Removed highly subjective legacy placeholders ("Technomancer", military anecdotes) and replaced them with objective Instructional Design prompts and intuitive Audio Pipeline Dropdowns (`<select>` for Voice ID and World Genre), preventing unwanted persona projection.
+- **Audiobook Artifact Generation:** Created `scripts/generate_audiobook.py` which interfaces directly with the local Kokoro TTS Python engine (`KPipeline`). It programmatically slices `PLAYERS_HANDBOOK.md` into clean sections, stripping markdown, and generating structured `.wav` tracks into `/audiobook_output/`. Demonstrated stable local AMD MIOpen architecture caching/performance.
+
+---
+
 ## 🛠️ THE MANIFESTATION WORKLOAD (UI STABILIZATION)
 
 The foundation must be solid before we scale. The following tasks are prioritized for immediate UI stabilization. Do not attempt to add new features until these amputated limbs are either fully resurrected or cleanly banished.
