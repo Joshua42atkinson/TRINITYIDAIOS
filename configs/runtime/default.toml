@@ -2,32 +2,38 @@
 # Trinity ID AI OS — Runtime Configuration
 # ═══════════════════════════════════════════════════════════════════════════════
 #
-# INFERENCE ARCHITECTURE (March 2026):
-#   Primary:  Embedded llama-cpp-2 Rust FFI → Vulkan GPU (zero HTTP overhead)
-#   Fallback: HTTP InferenceRouter → any OpenAI-compatible server
+# INFERENCE ARCHITECTURE (April 2026):
+#   Primary:  vLLM Omni sidecar (ROCm GPU) — unified LLM + vision + audio + images
+#   Fallback: llama-server, LM Studio, Ollama, or any OpenAI-compatible server
 #
-# To use embedded inference, set GGUF_MODEL_PATH env var to the model file.
-# If no GGUF_MODEL_PATH is set, the router auto-detects servers on these ports.
+# The InferenceRouter auto-detects servers on known ports at startup.
+# Set LLM_URL env var to override with a specific endpoint.
 # ═══════════════════════════════════════════════════════════════════════════════
 
 [node]
 type = "Auto"  # Auto-detect Brain/Body
 
 [inference]
-primary = "lm-studio"
+primary = "vllm-omni"
 auto_detect = true
 ctx_size = 262144
 max_tokens = 16384
 
-# Duality KV Cache: dual slots for instant persona switching
-# Slot 0 = Great Recycler (strategic planning, documentation)
-# Slot 1 = Programmer Pete (execution, building, shipping)
-[inference.slots]
-parallel = 2
-recycler_slot = 0
-programmer_slot = 1
+# Multi-agent architecture via vLLM multi-model serving:
+# Great Recycler = orchestrator (large dense model, Socratic reasoning)
+# Programmer Pete = sub-agent (fast coding model)
+# ART Studio = sub-agent (image/creative model)
+[inference.agents]
+recycler_model = "default"   # Populated when Gemma 4 model is selected
+pete_model = "default"       # Can be same model or specialized
+art_model = "default"        # Image generation model
 
-# ── Backends (HTTP fallback when embedded inference is not active) ──
+# ── Backends ──
+
+[inference.backends.vllm-omni]
+url = "http://127.0.0.1:8000"
+supports_tools = true
+supports_vision = true
 
 [inference.backends.llama-server]
 url = "http://127.0.0.1:8080"
@@ -45,7 +51,7 @@ supports_tools = true
 supports_vision = false
 
 [model]
-model_dir = "~/trinity-models/gguf"
+model_dir = "~/trinity-models"
 default_model = "Mistral-Small-4-119B-2603-Q4_K_M-00001-of-00002.gguf"
 n_gpu_layers = -1  # Full offload
 context_size = 262144

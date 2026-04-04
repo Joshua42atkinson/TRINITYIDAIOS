@@ -87,16 +87,17 @@ Trinity is explicitly designed around two core psychological frameworks:
 5. **Quality Review** — Output is scored via automated QM matrix analysis.
 6. **Portfolio Artifact** — Completed work is stored immutably with a verified reflection and ethics review.
 
-### The AI Mentors — Inhale / Exhale
+### The AI Mentors (TRINITY Hierarchy)
 
-Trinity uses **two AI personas** sharing one brain (Mistral Small 4 119B via LM Studio or any OpenAI-compatible backend) with system-prompt-differentiated memory:
+Trinity uses a **three-tier agentic hierarchy (Agent > Subagent > Sub-subagent)** mapped to the name TRINITY (Instructional Design, AI Media, Operating System). They share a unified 128GB local VRAM matrix orchestrated natively via vLLM Omni routing:
 
-- **Great Recycler 🔮** (Inhale): The Socratic mentor. Asks WHY, challenges assumptions, guides reflection. Never produces deliverables directly. Makes the user *think*.
-- **Programmer Pete ⚙️** (Exhale): The executor. Builds lesson plans, rubrics, code, artifacts. Acts first, explains after. Produces *things* for the user.
+- **(ID) The Great Recycler 🔮** [Gemma-4-31B-Dense]: The Master Orchestrator. Asks WHY, challenges assumptions, guides reflection. Never produces deliverables directly. Makes the user *think*. Applies the ADDIECRAPEYE scaffolding.
+- **(AI) Voxtral Art Studio 🎨** [Gemma-4-E4B-Omni & DiT]: The Subagent. Triggered autonomously by the Recycler to visually flesh out the project. Drops artifacts invisibly into the portfolio databases.
+- **(OS) Programmer Pete ⚙️** [Gemma-4-26B-MoE]: The Executor (Sub-subagent). Directed by the ID. Builds lesson plans, rubrics, code, websites, artifacts. Executes shell scripts. "Just gets it done."
 
-The Recycler breathes IN (questioning, metacognition). Pete breathes OUT (deliverables, execution). Together they form an instructional cycle: **reflect before you build, then build what you reflected on.**
+The Recycler breathes IN (questioning, metacognition). Pete explicitly breathes OUT (deliverables, execution), supported by AI Media scaffolding. Together they form the instructional cycle: **reflect before you build, then build what you reflected on.**
 
-Both personas:
+All personas:
 - Adapt to the user's cognitive style (4 locomotive profiles)
 - Track engagement, not just completion
 - Present choices, not commands
@@ -240,19 +241,16 @@ Trinity's inference is process-isolated and backend-agnostic. The `InferenceRout
 │  MCP Server: Model Context Protocol for IDE integration     │
 │  Background Jobs: SQLite-persisted async task runner         │
 ├─────────────┬──────────────┬────────────────────────────────┤
-│  LM Studio  │ llama-server │  Ollama / Any OpenAI-compat    │
-│  Port 1234  │  Port 8080   │  Configurable                  │
-│  (primary)  │  (fallback)  │  (fallback)                    │
-│  Q8 KV, 2M+ │ Dual KV slot │  Backend-dependent             │
+│  vLLM-Omni  │ llama-server │  Ollama / Any OpenAI-compat    │
+│  Port 8000  │  Port 8080   │  Configurable                  │
+│  Native UMA │ Dual KV slot │  Backend-dependent             │
 ├─────────────┴──────────────┴────────────────────────────────┤
 │  Native Rust Services (no HTTP, embedded in binary)         │
-│  • Supertonic TTS (ONNX, ~280MB) — 10 voices, real-time     │
-│  • Whisper STT (ONNX, ~278MB) — speech-to-text              │
 │  • RAG Memory (ONNX, all-MiniLM-L6-v2) — vector similarity  │
 ├─────────────────────────────────────────────────────────────┤
-│  Sidecars (optional, independent processes)                 │
-│  • ComfyUI (SDXL Turbo) — port 8188, ~6 GB VRAM            │
-│  • MusicGPT — music generation                              │
+│  Omni Sidecars (vLLM Router on :8000)                       │
+│  • HunyuanImage (vLLM-AWQ) — Image Gen                      │
+│  • Voxtral (E4B-Omni) — Audio/Video Generation              │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -286,10 +284,10 @@ Zero data leaves campus. No API keys. Reduces reliance on third-party cloud proc
 
 | Component | Technology | Status |
 |-----------|-----------|:------:|
-| **LLM Brain** | Agnostic HTTP Inference Router → LM Studio (primary), llama-server / Ollama (fallback). Mistral Small 4 119B GGUF (Q4_K_M, 68 GB) | ✅ Running |
-| **Inference** | System-prompt persona differentiation, 2M+ token context via LM Studio, 40+ tok/s | ✅ Verified |
-| **Image Generation** | ComfyUI + SDXL Turbo (4-step, ~2s/image) | ✅ Running |
-| **Voice** | Supertonic-2 TTS (native ONNX, 10 voices) + Whisper STT (native ONNX) | ✅ Running |
+| **LLM Brain** | Agnostic HTTP Inference Router → vLLM Omni Reverse Proxy (:8000). Direct UMA matrixing on Strix Halo for Pete and Recycler. | ✅ Running |
+| **Inference** | Unified Memory Mapping across Gemma-4 models, 40+ tok/s | ✅ Verified |
+| **Image Generation** | HunyuanImage Native via vLLM Omni (:8004 → :8000) | ✅ Verified |
+| **Voice/Video** | Gemma-4-E4B-Omni native binary payloads | ✅ Verified |
 | **Socratic Protocol** | 12 phase-specific instruction sets in conductor | ✅ 12/12 claims verified |
 | **28 Game Mechanics** | All wired backend↔frontend via SSE events (Coal, Steam, Scope Creep, Friction, Vulnerability, Shadow, Objectives, Perspective) | ✅ 28/28 verified April 1, 2026 |
 | **432 Bespoke Objectives** | `objectives.json` — 12 chapters × 12 ADDIECRAPEYE phases × 3 objectives each | ✅ Zero generic fallbacks |

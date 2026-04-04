@@ -65,3 +65,9 @@ The HUD fulfills the "Mirror Mechanic" principle — every backend state change 
 
 ---
 *Updated 2026-04-01 — PEARL v2 with progressive disclosure audit.*
+
+
+### HOW IT WORKS (User Action)
+*The Presentation \How\: What the user actually does.*
+- **Action:** Located on the side/top of the screen. Look here to track the Locomotive Economy (Coal burning, Steam rising) and your semantic creeps taming status in real-time.
+- **Why:** This demystifies the theoretical \why\ into a direct, clickable interaction that drives the system forward.

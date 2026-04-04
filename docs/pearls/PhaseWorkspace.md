@@ -104,3 +104,9 @@ This document defines the quality gates for the **Iron Road** UI — the primary
 
 ---
 *Updated 2026-04-01 — PEARL evaluation v2 with progressive disclosure and circuitry wiring.*
+
+
+### HOW IT WORKS (User Action)
+*The Presentation \How\: What the user actually does.*
+- **Action:** This is the core chat interface. Select one of the 12 ADDIECRAPEYE phases on the left, read the 3 checkboxes at the top, and chat with Pete to complete each objective.
+- **Why:** This demystifies the theoretical \why\ into a direct, clickable interaction that drives the system forward.

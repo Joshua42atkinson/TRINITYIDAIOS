@@ -745,81 +745,35 @@ async fn tool_generate_image(params: &serde_json::Value) -> Result<String, Strin
         .and_then(|h| h.as_u64())
         .unwrap_or(1024) as u32;
 
-    // Check ComfyUI health
+    info!("🎨 Generating image: {} ({}x{})", prompt, width, height);
+
     let client = &*crate::http::LONG;
-
-    let healthy = client
-        .get("http://127.0.0.1:8188/system_stats")
-        .timeout(std::time::Duration::from_secs(3))
-        .send()
-        .await
-        .map(|r| r.status().is_success())
-        .unwrap_or(false);
-
-    if !healthy {
-        return Err(
-            "ComfyUI not running on :8188. Start with: bash scripts/launch/start_comfyui.sh"
-                .to_string(),
-        );
-    }
-
-    let seed: u64 = rand::random();
-    let workflow = serde_json::json!({
-        "prompt": {
-            "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "sd_xl_turbo_1.0_fp16.safetensors"}},
-            "2": {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": ["1", 1]}},
-            "3": {"class_type": "CLIPTextEncode", "inputs": {"text": "blurry, low quality, distorted, watermark", "clip": ["1", 1]}},
-            "4": {"class_type": "EmptyLatentImage", "inputs": {"width": width, "height": height, "batch_size": 1}},
-            "5": {"class_type": "KSampler", "inputs": {
-                "model": ["1", 0], "positive": ["2", 0], "negative": ["3", 0],
-                "latent_image": ["4", 0], "seed": seed, "steps": 4, "cfg": 1.0,
-                "sampler_name": "euler", "scheduler": "normal", "denoise": 1.0
-            }},
-            "6": {"class_type": "VAEDecode", "inputs": {"samples": ["5", 0], "vae": ["1", 2]}},
-            "7": {"class_type": "SaveImage", "inputs": {"images": ["6", 0], "filename_prefix": "trinity"}}
-        }
+    let body = serde_json::json!({
+        "prompt": prompt,
+        "width": width,
+        "height": height,
     });
 
     let response = client
-        .post("http://127.0.0.1:8188/prompt")
-        .json(&workflow)
+        .post("http://127.0.0.1:3000/api/creative/image")
+        .json(&body)
+        .timeout(std::time::Duration::from_secs(300))
         .send()
         .await
-        .map_err(|e| format!("ComfyUI error: {}", e))?;
+        .map_err(|e| format!("Image generation failed: {}", e))?;
+
     if !response.status().is_success() {
         return Err(format!(
-            "ComfyUI rejected: {}",
+            "Image generation error: {}",
             response.text().await.unwrap_or_default()
         ));
     }
-    let result: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
-    let prompt_id = result["prompt_id"].as_str().unwrap_or("").to_string();
 
-    // Poll for completion
-    for _ in 0..60 {
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        if let Ok(resp) = client
-            .get(format!("http://127.0.0.1:8188/history/{}", prompt_id))
-            .send()
-            .await
-        {
-            if let Ok(hist) = resp.json::<serde_json::Value>().await {
-                if let Some(outputs) = hist.get(&prompt_id).and_then(|h| h.get("outputs")) {
-                    for (_node, output) in outputs.as_object().unwrap_or(&serde_json::Map::new()) {
-                        if let Some(images) = output.get("images").and_then(|i| i.as_array()) {
-                            if let Some(img) = images.first() {
-                                let filename = img["filename"].as_str().unwrap_or("");
-                                let path =
-                                    format!("{}/ComfyUI/output/{}", home_dir().display(), filename);
-                                return Ok(format!("Image generated: {}", path));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    Err("Image generation timed out after 60s".to_string())
+    let result: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
+    let image_path = result["image_path"]
+        .as_str()
+        .unwrap_or("unknown");
+    Ok(format!("Image generated: {}", image_path))
 }
 
 async fn tool_generate_music(params: &serde_json::Value) -> Result<String, String> {
@@ -1109,70 +1063,15 @@ async fn tool_system_info() -> Result<String, String> {
 async fn tool_sidecar_status() -> Result<String, String> {
     let mut status = Vec::new();
 
-    // Check LLM brain (port 8080 — Pete/Conductor)
-    let llm_ok = crate::inference::check_health("http://127.0.0.1:8080").await;
+    let llm_ok = crate::inference::check_health("http://127.0.0.1:8000").await;
     status.push(format!(
-        "LLM Brain (port 8080 — Pete/Conductor): {}",
+        "LLM Brain (port 8000 — vLLM Omni): {}",
         if llm_ok { "✅ running" } else { "❌ stopped" }
     ));
 
-    // Check Researcher sub-agent (port 8081 — Qianfan-OCR)
-    let researcher_ok = crate::inference::check_health("http://127.0.0.1:8081").await;
     status.push(format!(
-        "Researcher (port 8081 — Qianfan-OCR): {}",
-        if researcher_ok { "✅ running" } else { "⏸ not started" }
+        "Active Models: Gemma-4-31B-Dense (Recycler), Gemma-4-26B-MoE (Pete), Gemma-4-E4B-Omni (Voxtral/Video)"
     ));
-
-    // Check ComfyUI (port 8188 — image generation)
-    let comfyui_ok = crate::http::check_health("http://127.0.0.1:8188").await;
-    status.push(format!(
-        "ComfyUI (port 8188 — image gen): {}",
-        if comfyui_ok { "✅ running" } else { "⏸ not started" }
-    ));
-
-    // Check Voice pipeline (port 7777 — Whisper + Kokoro)
-    let voice_ok = crate::http::check_health("http://127.0.0.1:7777").await;
-    status.push(format!(
-        "Voice (port 7777 — Whisper + Kokoro): {}",
-        if voice_ok { "✅ running" } else { "⏸ not started" }
-    ));
-
-    // Check for model files — REAL inventory verified from filesystem
-    let models = [
-        (
-            gguf_model_path("Mistral-Small-4-119B-2603-Q4_K_M-00001-of-00002.gguf"),
-            "P — Mistral Small 4 119B MoE (Conductor/Pete) [68GB]",
-        ),
-        (
-            safetensor_model_path("Ming-flash-omni-2.0/config.json"),
-            "Y — Ming-flash-omni-2.0 (Yardmaster) [~195GB safetensors]",
-        ),
-        (
-            gguf_model_path("Crow-9B-Opus-4.6-Distill-Heretic_Qwen3.5.i1-Q4_K_M.gguf"),
-            "A-R-T (R) — Crow 9B [5.3GB]",
-        ),
-        (
-            gguf_model_path("Qwen3-Coder-REAP-25B-A3B-Rust-Q4_K_M.gguf"),
-            "A-R-T (R) — REAP 25B MoE [15GB]",
-        ),
-        (
-            gguf_model_path("OmniCoder-9B-Q4_K_M.gguf"),
-            "A-R-T (T) — OmniCoder 9B [5.4GB]",
-        ),
-    ];
-
-    for (path, name) in &models {
-        let exists = path.exists();
-        status.push(format!(
-            "{}: {}",
-            name,
-            if exists {
-                "📁 available"
-            } else {
-                "❌ missing"
-            }
-        ));
-    }
 
     Ok(status.join("\n"))
 }

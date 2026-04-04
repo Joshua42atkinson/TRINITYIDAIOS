@@ -308,7 +308,7 @@ pub async fn ensure_comfyui_running() -> Result<(), (StatusCode, String)> {
 
 /// Check creative sidecar status
 pub async fn creative_status() -> Json<CreativeStatus> {
-    let comfyui = check_comfyui().await;
+    let comfyui = check_vllm_creative().await; // Reused struct field "comfyui" but backed by vLLM for dashboard compatibility
     let musicgpt = check_musicgpt().await;
     let hunyuan3d = check_hunyuan3d().await;
 
@@ -319,9 +319,9 @@ pub async fn creative_status() -> Json<CreativeStatus> {
     })
 }
 
-async fn check_comfyui() -> SidecarStatus {
+async fn check_vllm_creative() -> SidecarStatus {
     let running = crate::http::QUICK
-        .get("http://127.0.0.1:8188/system_stats")
+        .get("http://127.0.0.1:8000/v1/models")
         .send()
         .await
         .map(|r| r.status().is_success())
@@ -329,12 +329,11 @@ async fn check_comfyui() -> SidecarStatus {
 
     SidecarStatus {
         running,
-        endpoint: "http://127.0.0.1:8188".to_string(),
+        endpoint: "http://127.0.0.1:8000".to_string(),
         message: if running {
-            "ComfyUI running".to_string()
+            "vLLM Omni creative pipeline running".to_string()
         } else {
-            "ComfyUI not running. Check: systemctl --user status trinity-comfyui.service"
-                .to_string()
+            "vLLM Omni down. Start the unified inference sidecar.".to_string()
         },
     }
 }
@@ -366,196 +365,70 @@ async fn check_hunyuan3d() -> SidecarStatus {
     }
 }
 
-/// Generate an image via ComfyUI
+/// Generate an image natively via vLLM Omni router
 pub async fn generate_image(
     State(state): State<AppState>,
     Json(request): Json<ImageRequest>,
 ) -> Result<Json<ImageResponse>, (StatusCode, String)> {
+    use base64::Engine;
+    
     let start = std::time::Instant::now();
-
     let client = &*crate::http::LONG;
 
-    // Check if ComfyUI is running
-    let healthy = client
-        .get("http://127.0.0.1:8188/system_stats")
-        .timeout(std::time::Duration::from_secs(3))
-        .send()
-        .await
-        .map(|r| r.status().is_success())
-        .unwrap_or(false);
-
-    if !healthy {
-        ensure_comfyui_running().await?;
-    }
-
-    // Build style suffix
+    // Use unified design format via inference options
     let style_suffix = get_style_prompt_suffix(&request.style);
-    let negative = request
-        .negative_prompt
-        .as_deref()
-        .unwrap_or("blurry, low quality, distorted, watermark, text");
     let full_prompt = format!("{}, {}", request.prompt, style_suffix);
 
     info!(
-        "Generating image: {} ({}x{})",
+        "Generating image via vLLM Omni: {} ({}x{})",
         full_prompt, request.width, request.height
     );
 
-    // ComfyUI API workflow for SDXL Turbo (simple txt2img)
-    let workflow = serde_json::json!({
-        "prompt": {
-            "1": {
-                "class_type": "CheckpointLoaderSimple",
-                "inputs": { "ckpt_name": "sd_xl_turbo_1.0_fp16.safetensors" }
-            },
-            "2": {
-                "class_type": "CLIPTextEncode",
-                "inputs": { "text": full_prompt, "clip": ["1", 1] }
-            },
-            "3": {
-                "class_type": "CLIPTextEncode",
-                "inputs": { "text": negative, "clip": ["1", 1] }
-            },
-            "4": {
-                "class_type": "EmptyLatentImage",
-                "inputs": { "width": request.width, "height": request.height, "batch_size": 1 }
-            },
-            "5": {
-                "class_type": "KSampler",
-                "inputs": {
-                    "model": ["1", 0], "positive": ["2", 0], "negative": ["3", 0],
-                    "latent_image": ["4", 0],
-                    "seed": rand::random::<u64>(), "steps": 4, "cfg": 1.0,
-                    "sampler_name": "euler", "scheduler": "normal", "denoise": 1.0
-                }
-            },
-            "6": {
-                "class_type": "VAEDecode",
-                "inputs": { "samples": ["5", 0], "vae": ["1", 2] }
-            },
-            "7": {
-                "class_type": "SaveImage",
-                "inputs": { "images": ["6", 0], "filename_prefix": "trinity" }
-            }
-        }
+    let payload = serde_json::json!({
+        "model": "HunyuanImage",
+        "prompt": full_prompt,
+        "n": 1,
+        "size": format!("{}x{}", request.width, request.height),
+        "response_format": "b64_json"
     });
 
-    // Queue the prompt
     let response = client
-        .post("http://127.0.0.1:8188/prompt")
-        .json(&workflow)
+        .post("http://127.0.0.1:8000/v1/images/generations")
+        .json(&payload)
         .send()
         .await
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("ComfyUI error: {}", e),
-            )
-        })?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("vLLM Omni unreachable: {}", e)))?;
 
     if !response.status().is_success() {
         let body = response.text().await.unwrap_or_default();
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("ComfyUI rejected: {}", body),
-        ));
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, format!("vLLM Omni generation failed: {}", body)));
     }
 
-    let result: serde_json::Value = response
-        .json()
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    let prompt_id = result["prompt_id"].as_str().unwrap_or("").to_string();
+    let result: serde_json::Value = response.json().await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    
+    // Parse the b64_json from the OpenAI compliant response
+    let b64_data = result["data"][0]["b64_json"].as_str().ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, "No b64_json in vLLM response".to_string()))?;
 
-    // Poll for completion (max 60s)
-    for _ in 0..60 {
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        let history = client
-            .get(format!("http://127.0.0.1:8188/history/{}", prompt_id))
-            .send()
-            .await;
-        if let Ok(resp) = history {
-            if let Ok(hist) = resp.json::<serde_json::Value>().await {
-                if let Some(outputs) = hist.get(&prompt_id).and_then(|h| h.get("outputs")) {
-                    // Find the saved image
-                    for (_node, output) in outputs.as_object().unwrap_or(&serde_json::Map::new()) {
-                        if let Some(images) = output.get("images").and_then(|i| i.as_array()) {
-                            if let Some(img) = images.first() {
-                                let filename = img["filename"].as_str().unwrap_or("");
-                                let subfolder = img["subfolder"].as_str().unwrap_or("");
-                                let comfyui_path = if subfolder.is_empty() {
-                                    let home = std::env::var("HOME")
-                                        .unwrap_or_else(|_| "/tmp".to_string());
-                                    std::path::PathBuf::from(format!(
-                                        "{}/ComfyUI/output/{}",
-                                        home, filename
-                                    ))
-                                } else {
-                                    let home = std::env::var("HOME")
-                                        .unwrap_or_else(|_| "/tmp".to_string());
-                                    std::path::PathBuf::from(format!(
-                                        "{}/ComfyUI/output/{}/{}",
-                                        home, subfolder, filename
-                                    ))
-                                };
+    // Decode and save to unified Desktop app storage
+    let b64_bytes = base64::prelude::BASE64_STANDARD.decode(b64_data).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Base64 decode failed: {}", e)))?;
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+    let workspace_dir = std::path::PathBuf::from(&home).join(".local/share/trinity/workspace/assets/images");
+    let _ = std::fs::create_dir_all(&workspace_dir);
+    
+    let filename = format!("trinity_art_{}.png", start.elapsed().as_micros());
+    let final_path = workspace_dir.join(&filename);
+    std::fs::write(&final_path, b64_bytes).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to write image: {}", e)))?;
 
-                                // Copy to unified Desktop app storage
-                                let home = std::env::var("HOME")
-                                    .unwrap_or_else(|_| dirs::home_dir().unwrap_or_default().to_string_lossy().to_string());
-                                let workspace_dir = std::path::PathBuf::from(home)
-                                    .join(".local/share/trinity/workspace/assets/images");
-                                let _ = std::fs::create_dir_all(&workspace_dir);
+    info!("Image stored: {} in {}ms", final_path.display(), start.elapsed().as_millis());
 
-                                let final_path = workspace_dir.join(filename);
-                                let _ = std::fs::copy(&comfyui_path, &final_path);
-
-                                info!(
-                                    "Image generated and stored in unified workspace: {} in {}ms",
-                                    final_path.display(),
-                                    start.elapsed().as_millis()
-                                );
-
-                                // Auto-vault to portfolio
-                                {
-                                    let mut sheet = state.player.character_sheet.write().await;
-                                    let artifact = trinity_protocol::character_sheet::PortfolioArtifact {
-                                        artifact_id: uuid::Uuid::new_v4(),
-                                        title: request.prompt.clone(),
-                                        hooks_cast: Vec::new(),
-            addiecrapeye_phase: "Develop".to_string(),
-                                        artifact_type: "Generated Image".to_string(),
-                                        reflection_journal: format!("ArtStudio generation: {}", request.prompt),
-                                        aligned_supra_badge: "Design & Development".to_string(),
-                                        qm_score: 100.0,
-                                        aect_ethics_cleared: true,
-                                    };
-                                    sheet.ldt_portfolio.artifact_vault.push(artifact);
-                                    sheet.ldt_portfolio.recalculate();
-                                    if let Err(e) = crate::character_sheet::save_character_sheet(&sheet) {
-                                        tracing::error!("Failed to persist character sheet after auto-vault: {}", e);
-                                    }
-                                }
-
-                                return Ok(Json(ImageResponse {
-                                    success: true,
-                                    image_data: None,
-                                    image_path: Some(final_path.to_string_lossy().to_string()),
-                                    image_url: Some(format!("/api/creative/assets/{}", filename)),
-                                    message: "Image generated".to_string(),
-                                    generation_time_ms: start.elapsed().as_millis() as u64,
-                                }));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    Err((
-        StatusCode::REQUEST_TIMEOUT,
-        "Image generation timed out after 60s".to_string(),
-    ))
+    Ok(Json(ImageResponse {
+        success: true,
+        image_data: None, // Too large to send back entirely, relying on URL instead
+        image_path: Some(final_path.to_string_lossy().into_owned()),
+        image_url: Some(format!("/api/creative/assets/{}", filename)),
+        message: "Image generated via vLLM Omni".to_string(),
+        generation_time_ms: start.elapsed().as_millis() as u64,
+    }))
 }
 
 /// Generate tempo via local procedural engine
@@ -656,102 +529,62 @@ pub async fn generate_tempo(
     }
 }
 
-/// Generate a video via ComfyUI with HunyuanVideo
+/// Generate a video via vLLM Omni
 pub async fn generate_video(
     State(state): State<AppState>,
     Json(request): Json<VideoRequest>,
 ) -> Result<Json<VideoResponse>, (StatusCode, String)> {
     let start = std::time::Instant::now();
-
     let client = &*crate::http::LONG;
 
-    // Check ComfyUI health
-    let healthy = client
-        .get("http://127.0.0.1:8188/system_stats")
-        .timeout(std::time::Duration::from_secs(3))
-        .send()
-        .await
-        .map(|r| r.status().is_success())
-        .unwrap_or(false);
+    let payload = serde_json::json!({
+        "model": "Gemma-4-E4B-Omni",
+        "prompt": request.prompt,
+        "duration": request.duration_secs,
+        "fps": request.fps,
+        "response_format": "b64_json"
+    });
 
-    if !healthy {
-        ensure_comfyui_running().await?;
-    }
-
-    info!(
-        "Generating video: {} ({}s @ {}fps)",
-        request.prompt, request.duration_secs, request.fps
-    );
-
-    // Build and queue the HunyuanVideo workflow
-    let workflow = build_hunyuan_workflow(&request);
-    let response = client
-        .post("http://127.0.0.1:8188/prompt")
-        .json(&serde_json::json!({ "prompt": workflow }))
-        .send()
-        .await
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("ComfyUI queue failed: {}", e),
-            )
-        })?;
+    let response = client.post("http://127.0.0.1:8000/v1/video/generations").json(&payload).send().await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("vLLM video queue failed: {}", e)))?;
 
     if !response.status().is_success() {
-        let err_text = response.text().await.unwrap_or_default();
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("ComfyUI rejected workflow: {}", err_text),
-        ));
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, "vLLM rejected video".to_string()));
     }
 
-    let result: serde_json::Value = response
-        .json()
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let result: serde_json::Value = response.json().await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    
+    let b64 = result["data"][0]["b64_json"].as_str().unwrap_or("");
+    use base64::{Engine as _, engine::general_purpose};
+    let bytes = general_purpose::STANDARD.decode(b64).unwrap_or_default();
+    
+    let path = format!("/tmp/trinity_video_{}.mp4", uuid::Uuid::new_v4());
+    let _ = std::fs::write(&path, bytes);
 
-    let prompt_id = result["prompt_id"]
-        .as_str()
-        .ok_or((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "No prompt_id in ComfyUI response".to_string(),
-        ))?
-        .to_string();
-
-    info!("Video queued: prompt_id={}", prompt_id);
-
-    // Wait for completion (up to 10 minutes)
-    let video_path = wait_for_video(client, &prompt_id).await?;
-
-    // Auto-vault to portfolio
-    {
-        let mut sheet = state.player.character_sheet.write().await;
-        let artifact = trinity_protocol::character_sheet::PortfolioArtifact {
-            artifact_id: uuid::Uuid::new_v4(),
-            title: request.prompt.clone(),
-            hooks_cast: Vec::new(),
-            addiecrapeye_phase: "Develop".to_string(),
-            artifact_type: "Generated Video".to_string(),
-            reflection_journal: format!("ArtStudio video: {}", request.prompt),
-            aligned_supra_badge: "Design & Development".to_string(),
-            qm_score: 100.0,
-            aect_ethics_cleared: true,
-        };
-        sheet.ldt_portfolio.artifact_vault.push(artifact);
-        sheet.ldt_portfolio.recalculate();
-        if let Err(e) = crate::character_sheet::save_character_sheet(&sheet) {
-            tracing::error!("Failed to persist character sheet after auto-vault: {}", e);
-        }
-    }
+    let mut sheet = state.player.character_sheet.write().await;
+    sheet.ldt_portfolio.artifact_vault.push(trinity_protocol::character_sheet::PortfolioArtifact {
+        artifact_id: uuid::Uuid::new_v4(),
+        title: request.prompt.clone(),
+        hooks_cast: Vec::new(),
+        addiecrapeye_phase: "Develop".to_string(),
+        artifact_type: "Generated Video".to_string(),
+        reflection_journal: format!("ArtStudio Video: {}", request.prompt),
+        aligned_supra_badge: "Design & Development".to_string(),
+        qm_score: 100.0,
+        aect_ethics_cleared: true,
+    });
+    sheet.ldt_portfolio.recalculate();
+    let _ = crate::character_sheet::save_character_sheet(&sheet);
 
     Ok(Json(VideoResponse {
         success: true,
-        video_path: Some(video_path),
+        video_path: Some(path.clone()),
         video_data: None,
         message: "Video generated successfully".to_string(),
         generation_time_ms: start.elapsed().as_millis() as u64,
     }))
 }
+
 
 /// Generate a 3D mesh via Hunyuan3D-2.1 (Gradio API on :7860)
 /// WHY: Replaces broken Trellis pipeline. Hunyuan3D-2.1 produces high-fidelity

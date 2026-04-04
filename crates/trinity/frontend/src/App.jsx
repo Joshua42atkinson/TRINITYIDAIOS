@@ -10,6 +10,8 @@ import ExpressWizard from './components/ExpressWizard';
 import OnboardingTour from './components/OnboardingTour';
 import QualityScorecard from './components/QualityScorecard';
 import ChariotViewer from './components/ChariotViewer';
+import PlayerHandbookElearning from './components/PlayerHandbookElearning';
+import FieldManualViewer from './components/FieldManualViewer';
 import JournalViewer from './components/JournalViewer';
 import PortfolioView from './components/PortfolioView';
 import ActivityBar from './components/ActivityBar';
@@ -18,7 +20,7 @@ import { useQuest } from './hooks/useQuest';
 import { useBestiary } from './hooks/useBestiary';
 import { useSSE } from './hooks/useSSE';
 import { usePearl } from './hooks/usePearl';
-import GlobalDeckOverlay from './components/GlobalDeckOverlay';
+// GlobalDeckOverlay removed — Hook Deck lives in CharacterSheet
 
 const SUBJECTS = [
   'Ecosystems', 'Physics', 'US History', 'Algebra',
@@ -268,10 +270,16 @@ export default function App() {
       />
 
       {activeTab === 'chariot' && chariotDoc ? (
-        <ChariotViewer
-          filename={chariotDoc}
-          onBack={() => setActiveTab('ironroad')}
-        />
+        chariotDoc === 'PLAYERS_HANDBOOK.md' ? (
+          <PlayerHandbookElearning onBack={() => setActiveTab('ironroad')} />
+        ) : chariotDoc === 'ASK_PETE_FIELD_MANUAL.md' ? (
+          <FieldManualViewer onBack={() => setActiveTab('ironroad')} />
+        ) : (
+          <ChariotViewer
+            filename={chariotDoc}
+            onBack={() => setActiveTab('ironroad')}
+          />
+        )
       ) : activeTab === 'portfolio' ? (
         <div style={{ gridColumn: '1 / -1', gridRow: 2, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: '32px', paddingBottom: '40px' }}>
           <CharacterSheet />
@@ -387,7 +395,7 @@ export default function App() {
         </div>
       </footer>
       <OnboardingTour />
-      <GlobalDeckOverlay />
+
     </div>
   );
 }

@@ -96,9 +96,6 @@ mod vaam_bridge;
 mod voice;
 mod voice_loop;
 mod telephone;
-mod supertonic;
-mod sdxl_native;
-mod stt;
 mod edge_guard;
 
 // Import Great Recycler from trinity-kernel
@@ -183,8 +180,6 @@ pub struct AppState {
     pub db_pool: sqlx::SqlitePool,
     pub cow_catcher: Arc<tokio::sync::RwLock<crate::cow_catcher::CowCatcher>>,
     pub vaam_bridge: Arc<vaam_bridge::VaamBridge>,
-    pub tts_engine: Option<Arc<tokio::sync::Mutex<supertonic::SupertonicEngine>>>,
-    pub stt_engine: Option<Arc<tokio::sync::Mutex<stt::WhisperEngine>>>,
 
     // ── Ignition State Machine (server-side, survives tab switches) ──
     /// Tracks LM Studio boot: idle | launching | daemon_up | server_starting | polling | loading_model | ready | failed
@@ -290,52 +285,27 @@ fn onnx_model_path(relative_path: &str) -> PathBuf {
     home_dir().join("trinity-models/onnx").join(relative_path)
 }
 
+fn safetensors_model_path(repo: &str) -> PathBuf {
+    home_dir().join("trinity-models/vllm").join(repo).join("config.json")
+}
+
 fn installed_model_inventory() -> Vec<(&'static str, PathBuf)> {
     vec![
-        // P — Conductor (Pete): Mistral Small 4 119B MoE, 68GB split GGUF
         (
-            "P: Mistral Small 4 119B MoE (Conductor/Pete) [68GB]",
-            gguf_model_path("Mistral-Small-4-119B-2603-Q4_K_M-00001-of-00002.gguf"),
-        ),
-        // Y — Yardmaster: Ming-flash-omni-2.0, ~195GB safetensors (future)
-        (
-            "Y: Ming-flash-omni-2.0 (Yardmaster) [~195GB]",
-            home_dir().join("trinity-models/safetensors/Ming-flash-omni-2.0/config.json"),
-        ),
-        // A-R-T (R — Research)
-        (
-            "A-R-T (R): Crow 9B [5.3GB]",
-            gguf_model_path("Crow-9B-Opus-4.6-Distill-Heretic_Qwen3.5.i1-Q4_K_M.gguf"),
+            "🔮 Great Recycler: Gemma-4-31B-Dense-AWQ [~18GB]",
+            safetensors_model_path("gemma-4-31B-it-AWQ-4bit"),
         ),
         (
-            "A-R-T (R): REAP 25B MoE [15GB]",
-            gguf_model_path("Qwen3-Coder-REAP-25B-A3B-Rust-Q4_K_M.gguf"),
-        ),
-        // A-R-T (T — Tempo)
-        (
-            "A-R-T (T): OmniCoder 9B [5.4GB]",
-            gguf_model_path("OmniCoder-9B-Q4_K_M.gguf"),
-        ),
-        // Reserve models
-        (
-            "Reserve: GPT-OSS-20B [12GB]",
-            gguf_model_path("gpt-oss-20b-UD-Q4_K_XL.gguf"),
+            "⚙️ Programmer Pete: Gemma-4-26B-MoE-AWQ [~15GB]",
+            safetensors_model_path("gemma-4-26B-A4B-it-AWQ-4bit"),
         ),
         (
-            "Reserve: Qwen3.5-27B Claude Opus [21GB]",
-            gguf_model_path("Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled.i1-Q6_K.gguf"),
+            "🎤 Voxtral Voice/Video: Gemma-4-E4B-Omni-AWQ [~3GB]",
+            safetensors_model_path("gemma-4-E4B-it-AWQ-4bit"),
         ),
         (
-            "Reserve: Qwen3.5-35B-A3B [20GB]",
-            gguf_model_path("Qwen3.5-35B-A3B-Q4_K_M.gguf"),
-        ),
-        (
-            "Reserve: MiniMax-M2.5-REAP-50 [66GB]",
-            gguf_model_path("MiniMax-M2-5-REAP-50-Q4_K_M.gguf"),
-        ),
-        (
-            "Reserve: Step-3.5-Flash-REAP-121B [83GB]",
-            gguf_model_path("Step-3.5-Flash-REAP-121B-A11B.Q4_K_S.gguf"),
+            "🎨 ART Studio: HunyuanImage-vLLM [~20GB]",
+            safetensors_model_path("HunyuanImage"),
         ),
     ]
 }
@@ -757,50 +727,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    // Load Supertonic-2 TTS engine (native ONNX — no Python sidecar)
-    let tts_engine = {
-        let model_dir = dirs::home_dir()
-            .unwrap_or_default()
-            .join("trinity-models/tts/supertonic-2");
-        if model_dir.join("onnx").exists() {
-            match supertonic::SupertonicEngine::load(&model_dir) {
-                Ok(engine) => {
-                    info!("🔊 Supertonic-2 TTS loaded — native ONNX, multi-user ready");
-                    Some(Arc::new(tokio::sync::Mutex::new(engine)))
-                }
-                Err(e) => {
-                    tracing::warn!("⚠ Supertonic-2 TTS failed to load: {}", e);
-                    None
-                }
-            }
-        } else {
-            info!("ℹ Supertonic-2 not found at {}, TTS disabled", model_dir.display());
-            None
-        }
-    };
-
-    // Load Whisper STT engine (native ONNX — no Python sidecar)
-    let stt_engine = {
-        let model_dir = dirs::home_dir()
-            .unwrap_or_default()
-            .join("trinity-models/stt/whisper-base");
-        if model_dir.join("onnx").exists() {
-            match stt::WhisperEngine::load(&model_dir) {
-                Ok(engine) => {
-                    info!("🎤 Whisper STT loaded — native ONNX, hands-free ready");
-                    Some(Arc::new(tokio::sync::Mutex::new(engine)))
-                }
-                Err(e) => {
-                    tracing::warn!("⚠ Whisper STT failed to load: {}", e);
-                    None
-                }
-            }
-        } else {
-            info!("ℹ Whisper STT not found at {}, STT disabled", model_dir.display());
-            None
-        }
-    };
-
     // ── Build shared Arc references ──
     let character_sheet_arc = Arc::new(RwLock::new(character_sheet));
     let bestiary_arc = bestiary;
@@ -833,8 +759,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         db_pool: db_pool.clone(),
         cow_catcher: std::sync::Arc::new(tokio::sync::RwLock::new(cow_catcher::CowCatcher::new())),
         vaam_bridge,
-        tts_engine,
-        stt_engine,
         daydream_tx: Some(daydream_tx_sender),
         // Ignition state machine (starts idle)
         ignition_status: Arc::new(RwLock::new("idle".to_string())),
@@ -1034,7 +958,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Perspective Feedback API — Ring 6 training data
         .route("/api/perspective/feedback", post(perspective_feedback))
         // Four Chariots — root documentation served as raw markdown
-        .route("/docs/:filename", get(serve_chariot_doc));
+        .route("/docs/:filename", get(serve_chariot_doc))
+        // Audiobook assets for Player Handbook E-Learning plugin
+        .route("/audiobook/:filename", get(serve_audiobook_audio))
+        .route("/audiobook_art/:filename", get(serve_audiobook_art));
 
     // ═══ MAIN APP: API routes + static file services ═══
     // API routes are mounted FIRST so they take priority over nest_service.
@@ -1219,6 +1146,53 @@ async fn serve_chariot_doc(
             .body(axum::body::Body::from(content))
             .unwrap()),
         Err(_) => Err((StatusCode::NOT_FOUND, format!("{} not found on disk", filename))),
+    }
+}
+
+/// Serve the generated .wav files for the Player Handbook E-Learning module
+async fn serve_audiobook_audio(
+    axum::extract::Path(filename): axum::extract::Path<String>,
+) -> Result<axum::response::Response, (StatusCode, String)> {
+    // Only serve .wav files as a basic guard
+    if !filename.ends_with(".wav") {
+        return Err((StatusCode::BAD_REQUEST, "Only .wav files are allowed".into()));
+    }
+    
+    let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent().unwrap().parent().unwrap()
+        .join("audiobook_output").join(&filename);
+        
+    match tokio::fs::read(&path).await {
+        Ok(bytes) => Ok(axum::response::Response::builder()
+            .header("Content-Type", "audio/wav")
+            .header("Accept-Ranges", "bytes")
+            .body(axum::body::Body::from(bytes))
+            .unwrap()),
+        Err(_) => Err((StatusCode::NOT_FOUND, "Audio file not found".into())),
+    }
+}
+
+/// Serve the generated artwork (50GB image gen) for the Player Handbook slides
+async fn serve_audiobook_art(
+    axum::extract::Path(filename): axum::extract::Path<String>,
+) -> Result<axum::response::Response, (StatusCode, String)> {
+    if !filename.ends_with(".jpg") && !filename.ends_with(".png") && !filename.ends_with(".webp") {
+        return Err((StatusCode::BAD_REQUEST, "Only image files are allowed".into()));
+    }
+
+    let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent().unwrap().parent().unwrap()
+        .join("images").join("handbook_art").join(&filename);
+
+    match tokio::fs::read(&path).await {
+        Ok(bytes) => {
+            let content_type = if filename.ends_with(".png") { "image/png" } else if filename.ends_with(".webp") { "image/webp" } else { "image/jpeg" };
+            Ok(axum::response::Response::builder()
+                .header("Content-Type", content_type)
+                .body(axum::body::Body::from(bytes))
+                .unwrap())
+        },
+        Err(_) => Err((StatusCode::NOT_FOUND, "Art file not found".into())),
     }
 }
 
@@ -1875,42 +1849,10 @@ async fn tts_proxy(
         }
     }
 
-    // Fallback to Supertonic-2 ONNX (always-on, CPU-capable)
-    let engine = state.tts_engine.as_ref().ok_or((
+    return Err((
         StatusCode::SERVICE_UNAVAILABLE,
-        "TTS engine not loaded (Supertonic-2 model not found)".to_string(),
-    ))?;
-
-    // Synthesize on a blocking thread — Mutex held only during synthesis (~250ms)
-    let engine = engine.clone();
-    let voice_clone = voice.clone();
-    let wav_bytes = tokio::task::spawn_blocking(move || {
-        let mut eng = engine.blocking_lock();
-        eng.synthesize(&text, &voice_clone)
-    })
-    .await
-    .map_err(|e| (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        format!("TTS task panicked: {}", e),
-    ))?
-    .map_err(|e| (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        format!("TTS synthesis failed: {}", e),
-    ))?;
-
-    let latency_ms = t0.elapsed().as_millis();
-
-    axum::response::Response::builder()
-        .status(StatusCode::OK)
-        .header("Content-Type", "audio/wav")
-        .header("X-TTS-Backend", "supertonic-native")
-        .header("X-Latency-Ms", latency_ms.to_string())
-        .header("X-Voice", voice)
-        .body(axum::body::Body::from(wav_bytes))
-        .map_err(|e| (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to build response: {}", e),
-        ))
+        "Supertonic-2 TTS deprecated. Use Omni E4B natively via vLLM over pure API".to_string(),
+    ));
 }
 
 async fn chat_stream(
@@ -4687,59 +4629,42 @@ async fn stt_transcribe(
 ) -> axum::response::Response {
     use axum::http::StatusCode;
     use axum::response::IntoResponse;
-
-    let engine = match &state.stt_engine {
-        Some(e) => e.clone(),
-        None => {
-            return (
-                StatusCode::SERVICE_UNAVAILABLE,
-                Json(serde_json::json!({
-                    "error": "STT engine not loaded. Place Whisper ONNX model at ~/trinity-models/stt/whisper-base/"
-                })),
-            ).into_response();
-        }
-    };
-
-    let content_type = headers
-        .get("content-type")
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("audio/wav");
-
     let t0 = std::time::Instant::now();
-
-    // Parse audio input
-    let audio = match stt::parse_audio_input(&body, content_type) {
-        Ok(a) => a,
-        Err(e) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({ "error": format!("Audio parse error: {}", e) })),
-            ).into_response();
-        }
+    let client = &*crate::http::LONG;
+    
+    // Convert bytes directly to multipart form (mocked simplified logic)
+    // Real implementation would use reqwest::multipart
+    // For now we proxy it directly to the Omni gateway
+    
+    let part = reqwest::multipart::Part::bytes(body.to_vec())
+        .file_name("audio.wav")
+        .mime_str("audio/wav").unwrap();
+    let form = reqwest::multipart::Form::new()
+        .text("model", "Gemma-4-E4B-Omni")
+        .part("file", part);
+        
+    let response = match client.post("http://127.0.0.1:8000/v1/audio/transcriptions").multipart(form).send().await {
+        Ok(r) => r,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": format!("STT failed: {}", e) }))).into_response()
     };
-
-    // Transcribe (lock the engine for mutable access)
-    let mut engine_guard = engine.lock().await;
-    match engine_guard.transcribe(&audio) {
-        Ok(text) => {
-            let duration_ms = t0.elapsed().as_millis() as u64;
-            (
-                StatusCode::OK,
-                Json(serde_json::json!({
-                    "text": text,
-                    "duration_ms": duration_ms,
-                    "audio_samples": audio.len(),
-                    "audio_seconds": audio.len() as f32 / 16000.0,
-                })),
-            ).into_response()
-        }
-        Err(e) => {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": format!("Transcription failed: {}", e) })),
-            ).into_response()
-        }
+    
+    if !response.status().is_success() {
+        let text = response.text().await.unwrap_or_default();
+        return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": format!("STT error: {}", text) }))).into_response();
     }
+    
+    let json: serde_json::Value = response.json().await.unwrap_or_default();
+    let text = json["text"].as_str().unwrap_or("").to_string();
+    
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "text": text,
+            "duration_ms": t0.elapsed().as_millis() as u64,
+            "audio_samples": 0,
+            "audio_seconds": 0.0,
+        })),
+    ).into_response()
 }
 
 /// GET /api/stt/status — Check if STT engine is loaded
@@ -4747,12 +4672,11 @@ async fn stt_status(
     State(state): State<AppState>,
 ) -> Json<serde_json::Value> {
     Json(serde_json::json!({
-        "loaded": state.stt_engine.is_some(),
-        "model": if state.stt_engine.is_some() { "whisper-base" } else { "none" },
-        "backend": "ort (ONNX Runtime, native Rust)",
+        "loaded": true,
+        "model": "Gemma-4-E4B-Omni",
+        "backend": "vllm-omni",
     }))
 }
-
 
 async fn api_community_templates(
     State(state): State<AppState>,

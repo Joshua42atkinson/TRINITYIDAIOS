@@ -243,11 +243,11 @@ pub struct BookUpdate {
 /// Configuration for the Conductor Party Leader
 #[derive(Debug, Clone)]
 pub struct ConductorConfig {
-    /// Path to the Conductor model (Mistral Small 4 119B MoE)
+    /// Path to the Conductor model (Great Recycler - Gemma 4 31B Dense)
     pub model_path: PathBuf,
-    /// Context size (default: 65536)
+    /// Context size (default: 256000 with TurboQuant)
     pub context_size: u32,
-    /// llama-server base URL
+    /// vLLM Omni base URL
     pub server_url: String,
     /// Enable verbose logging
     pub verbose: bool,
@@ -257,12 +257,12 @@ impl Default for ConductorConfig {
     fn default() -> Self {
         let home = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/tmp")).to_string_lossy().to_string();
         Self {
-            // Mistral Small 4 119B MoE — the actual Conductor model
+            // Great Recycler — Gemma 4 31B Dense
             model_path: PathBuf::from(home)
-                .join("trinity-models/gguf/Mistral-Small-4-119B-2603-Q4_K_M-00001-of-00002.gguf"),
-            context_size: 32768, // Start conservative, scale to 256k as needed
+                .join("trinity-models/vllm/gemma-4-31B-it-AWQ-4bit"),
+            context_size: 256000, // Safe with TurboQuant on 128GB unified RAM
             server_url: std::env::var("LLM_URL")
-                .unwrap_or_else(|_| "http://127.0.0.1:8080".to_string()),
+                .unwrap_or_else(|_| "http://127.0.0.1:8000".to_string()),
             verbose: false,
         }
     }
@@ -271,8 +271,8 @@ impl Default for ConductorConfig {
 /// Conductor Party Leader - orchestrates quests via ADDIECRAPEYE
 ///
 /// ARCHITECTURE:
-/// - Runs on GPU via llama-server
-/// - Reads Iron Road book updates from Great Recycler (NPU)
+/// - Runs on GPU via vLLM Omni (Great Recycler pent-house)
+/// - Reads Iron Road book updates and delegates to P.A.R.T.Y. sub-agents
 /// - Coordinates party members for complex multi-step objectives
 pub struct ConductorLeader {
     /// Configuration
@@ -345,9 +345,9 @@ impl ConductorLeader {
         // Verify model exists
         if !self.model_exists() {
             return Err(anyhow!(
-                "Mistral Small 4 119B MoE not found at {:?}. \
-                 Please ensure the split GGUF is at ~/trinity-models/gguf/. \
-                 AI should NOT automatically download models.",
+                "Great Recycler model (Gemma 4 31B Dense AWQ) not found at {:?}. \
+                 Please ensure the safetensors are placed in ~/trinity-models/vllm/.\n\
+                 AI should NOT automatically download models without user initiation.",
                 self.config.model_path
             ));
         }
@@ -531,7 +531,11 @@ impl ConductorLeader {
             .cloned()
             .unwrap_or_else(|| crate::http::LONG.clone());
 
+        // Extract the model name from the directory path (vLLM uses this to route in multi-model)
+        let model_id = self.config.model_path.file_name().unwrap_or_default().to_string_lossy();
+
         let body = serde_json::json!({
+            "model": model_id,
             "messages": [
                 { "role": "system", "content": system_prompt },
                 { "role": "user", "content": user_prompt }

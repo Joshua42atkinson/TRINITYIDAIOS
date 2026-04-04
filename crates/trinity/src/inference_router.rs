@@ -7,7 +7,7 @@
 //              and manage multiple LLM inference servers
 //
 // ARCHITECTURE:
-//   • Primary: Embedded llama-cpp-2 (Vulkan GPU) — zero HTTP overhead
+//   • Primary: vLLM Omni sidecar (ROCm GPU) — unified LLM + vision + audio + images
 //   • Fallback: llama-server, LM Studio, Ollama, or any OpenAI-compatible server
 //   • Auto-detection probes known ports on startup
 //   • Health monitoring with automatic failover
@@ -15,8 +15,9 @@
 //   • All callers use router.active_url() instead of raw strings
 //
 // CHANGES:
-//   2026-03-28  Embedded  Removed vLLM/SGLang — embedded llama-cpp-2 is primary
-//   2026-03-22  Phase 3   Initial implementation — multi-backend inference router
+//   2026-04-04  vLLM Omni  vLLM Omni as primary — unified backbone for all modalities
+//   2026-03-28  Embedded   Removed vLLM/SGLang — embedded llama-cpp-2 is primary
+//   2026-03-22  Phase 3    Initial implementation — multi-backend inference router
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -31,6 +32,7 @@ use tracing::{info, warn};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum BackendKind {
+    VllmOmni,
     LlamaServer,
     Ollama,
     LmStudio,
@@ -41,6 +43,7 @@ impl BackendKind {
     /// Default port for each backend kind
     pub fn default_port(&self) -> u16 {
         match self {
+            BackendKind::VllmOmni => 8000,
             BackendKind::LlamaServer => 8080,
             BackendKind::Ollama => 11434,
             BackendKind::LmStudio => 1234,
@@ -51,6 +54,7 @@ impl BackendKind {
     /// Human-readable display name
     pub fn display_name(&self) -> &str {
         match self {
+            BackendKind::VllmOmni => "vLLM Omni",
             BackendKind::LlamaServer => "llama-server",
             BackendKind::Ollama => "Ollama",
             BackendKind::LmStudio => "LM Studio",
@@ -61,9 +65,10 @@ impl BackendKind {
     /// Health check endpoint path for each backend
     pub fn health_path(&self) -> &str {
         match self {
-            BackendKind::Ollama => "/api/tags", // Ollama uses /api/tags as health-ish
-            BackendKind::LmStudio => "/v1/models", // LM Studio uses /v1/models
-            _ => "/health",                     // OpenAI-compatible servers use /health
+            BackendKind::VllmOmni => "/health",    // vLLM uses standard /health
+            BackendKind::Ollama => "/api/tags",     // Ollama uses /api/tags as health-ish
+            BackendKind::LmStudio => "/v1/models",  // LM Studio uses /v1/models
+            _ => "/health",                         // OpenAI-compatible servers use /health
         }
     }
 
@@ -131,7 +136,7 @@ pub struct BackendConfig {
 }
 
 fn default_primary() -> String {
-    "lm-studio".to_string()
+    "vllm-omni".to_string()
 }
 fn default_true() -> bool {
     true
@@ -278,6 +283,7 @@ impl InferenceRouter {
             .iter()
             .map(|(name, bc)| {
                 let kind = match name.as_str() {
+                    "vllm-omni" | "vllm" => BackendKind::VllmOmni,
                     "llama-server" => BackendKind::LlamaServer,
                     "ollama" => BackendKind::Ollama,
                     "lm-studio" => BackendKind::LmStudio,
@@ -300,6 +306,17 @@ impl InferenceRouter {
     /// Default backend list when no config is found
     fn default_backends() -> Vec<InferenceBackend> {
         vec![
+            // vLLM Omni is the primary backbone — unified LLM + vision + audio + images
+            InferenceBackend {
+                name: "vllm-omni".to_string(),
+                kind: BackendKind::VllmOmni,
+                base_url: "http://127.0.0.1:8000".to_string(),
+                supports_tools: true,
+                supports_vision: true,
+                model_name: None,
+                healthy: false,
+                last_checked: 0,
+            },
             InferenceBackend {
                 name: "llama-server".to_string(),
                 kind: BackendKind::LlamaServer,
@@ -537,9 +554,9 @@ mod tests {
     fn test_default_backends_created_when_no_config() {
         let router = InferenceRouter::from_config(Some("/nonexistent/path.toml"));
         assert!(!router.backends.is_empty(), "Should have default backends");
-        // Default primary is "lm-studio", so active should select it
-        assert_eq!(router.active_name(), "lm-studio");
-        assert_eq!(router.active_url(), "http://127.0.0.1:1234");
+        // Default primary is "vllm-omni", so active should select it
+        assert_eq!(router.active_name(), "vllm-omni");
+        assert_eq!(router.active_url(), "http://127.0.0.1:8000");
     }
 
     #[test]
@@ -664,20 +681,22 @@ supports_vision = false
     fn test_status_serialization() {
         let router = InferenceRouter::from_config(Some("/nonexistent.toml"));
         let status = router.status();
-        assert_eq!(status.active_backend, "lm-studio");
+        assert_eq!(status.active_backend, "vllm-omni");
         assert!(!status.backends.is_empty());
 
         // Should serialize to JSON without panic
         let json = serde_json::to_string(&status).unwrap();
-        assert!(json.contains("llama-server"));
+        assert!(json.contains("vllm-omni"));
     }
 
     #[test]
     fn test_backend_kind_properties() {
+        assert_eq!(BackendKind::VllmOmni.default_port(), 8000);
         assert_eq!(BackendKind::LlamaServer.default_port(), 8080);
         assert_eq!(BackendKind::Ollama.default_port(), 11434);
         assert_eq!(BackendKind::LmStudio.default_port(), 1234);
 
+        assert_eq!(BackendKind::VllmOmni.health_path(), "/health");
         assert_eq!(BackendKind::Ollama.health_path(), "/api/tags");
         assert_eq!(BackendKind::LlamaServer.health_path(), "/health");
     }
@@ -697,7 +716,7 @@ model_dir = "~/trinity-models/gguf"
         let router = InferenceRouter::from_config(Some(tmp.to_str().unwrap()));
         // Should use defaults when [inference] section is missing
         assert!(!router.backends.is_empty());
-        assert_eq!(router.config.primary, "lm-studio");
+        assert_eq!(router.config.primary, "vllm-omni");
         assert_eq!(router.config.ctx_size, 262144);
 
         std::fs::remove_file(tmp).ok();

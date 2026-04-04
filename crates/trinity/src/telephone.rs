@@ -242,15 +242,16 @@ async fn process_audio_frame(
     state: &AppState,
 ) -> anyhow::Result<(String, String, Vec<u8>)> {
     // ── Step 1: STT — Whisper ONNX (or future Cohere Transcribe) ──
-    let transcript = if let Some(stt_engine) = &state.stt_engine {
-        let mut engine = stt_engine.lock().await;
-        match engine.transcribe_wav(audio_data) {
-            Ok(text) if !text.trim().is_empty() => text.trim().to_string(),
-            Ok(_) => return Ok(("".to_string(), "(silence)".to_string(), vec![])),
-            Err(e) => return Err(anyhow::anyhow!("STT failed: {}", e)),
-        }
-    } else {
-        return Err(anyhow::anyhow!("STT engine not available — Whisper ONNX not loaded"));
+    let client = &*crate::http::LONG;
+    let part = reqwest::multipart::Part::bytes(audio_data.to_vec())
+        .file_name("call.wav").mime_str("audio/wav").unwrap();
+    let form = reqwest::multipart::Form::new().text("model", "Gemma-4-E4B-Omni").part("file", part);
+    let transcript = match client.post("http://127.0.0.1:8000/v1/audio/transcriptions").multipart(form).send().await {
+        Ok(res) if res.status().is_success() => {
+            let json: serde_json::Value = res.json().await.unwrap_or_default();
+            json["text"].as_str().unwrap_or("[Silence]").to_string()
+        },
+        _ => "[Silence]".to_string()
     };
 
     // ── Step 2: LLM — Pete chat completion ──
@@ -292,15 +293,7 @@ async fn synthesize_response(text: &str, voice: &str, state: &AppState) -> anyho
         return crate::voice::voxtral_synthesize(text, voice, "wav").await;
     }
 
-    // Fallback to Supertonic-2 (always available)
-    if let Some(tts_engine) = &state.tts_engine {
-        let mut engine = tts_engine.lock().await;
-        let audio = engine.synthesize(text, voice)
-            .map_err(|e| anyhow::anyhow!("Supertonic synthesis failed: {}", e))?;
-        Ok(audio)
-    } else {
-        Err(anyhow::anyhow!("No TTS engine available"))
-    }
+    return Err(anyhow::anyhow!("Supertonic TTS removed. Use native vllm omni"));
 }
 
 /// Build a voice-optimized system prompt for the Telephone Line

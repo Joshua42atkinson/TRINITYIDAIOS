@@ -32,3 +32,9 @@ The Yardmaster UI surface is technically powered by three structural pillars in 
 ## 5. [R] Research & Architecture Decisions
 - **Decoupling from SSE:** In earlier versions, closing the Yardmaster browser tab severed the SSE connection, killing whatever coding task Pete was executing. We introduced `jobs.rs` specifically to bridge this gap, ensuring that long-turn tasks (like formatting an entire e-learning module) continue entirely in the background, saving final logs and diffs to `~/Workflow/trinity-reports/`.
 - **Pre-Escaping Internal Monologue:** The `Yardmaster.jsx` React file manually intercepts `<thinking>` and `<thought>` tags before feeding them into standard markdown parsers. If left un-escaped, Chrome's DOM parser treats the LLM's raw XML thought process as an invalid HTML element and hides it from the user, causing a "Black Box" transparency failure. Pre-escaping forces the cognitive chain-of-thought to render visibly.
+
+
+### HOW IT WORKS (User Action)
+*The Presentation \How\: What the user actually does.*
+- **Action:** Click the OS (Work) tab. Use this multi-turn agentic terminal to direct Pete to read files, rewrite scripts, or compile documents if you prefer a power-user experience.
+- **Why:** This demystifies the theoretical \why\ into a direct, clickable interaction that drives the system forward.

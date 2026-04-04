@@ -41,21 +41,13 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 
-use std::sync::OnceLock;
-use ort::{session::Session, value::Value};
-use tokenizers::Tokenizer;
-use ndarray::Array2;
 use tokio::sync::Mutex;
 
 use sqlx::SqlitePool;
 use tracing::{debug, info, warn};
 
-static ORT_SESSION: OnceLock<Mutex<Session>> = OnceLock::new();
-static RAG_TOKENIZER: OnceLock<Tokenizer> = OnceLock::new();
-static ONNX_UNAVAILABLE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-
-/// Embedding dimension — matches the existing document_embeddings table schema
-const EMBEDDING_DIM: usize = 384;
+/// Embedding dimension — maps to the Nomic embedding dimensionality
+const EMBEDDING_DIM: usize = 768;
 
 /// Initialize the RAG tables if they don't exist
 pub async fn ensure_tables(pool: &SqlitePool) -> anyhow::Result<()> {
@@ -203,114 +195,38 @@ async fn search_text(pool: &SqlitePool, query: &str) -> anyhow::Result<Vec<Strin
         .collect())
 }
 
-/// Initialize the local ONNX embedding model.
-/// Returns Ok(()) if already initialized or successfully loaded.
-/// Returns Err if models are missing — caller should fall back to text search.
-async fn init_embeddings_engine() -> anyhow::Result<()> {
-    // Fast path: already known to be unavailable
-    if ONNX_UNAVAILABLE.load(std::sync::atomic::Ordering::Relaxed) {
-        anyhow::bail!("ONNX models not available — using text-only search");
-    }
-    if ORT_SESSION.get().is_some() && RAG_TOKENIZER.get().is_some() {
-        return Ok(());
-    }
-    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("No home dir found"))?;
-    let model_dir = home.join("trinity-models/onnx/embeddings");
-    if !model_dir.exists() {
-        tokio::fs::create_dir_all(&model_dir).await?;
-    }
-
-    let model_path = model_dir.join("model_quantized.onnx");
-    let tokenizer_path = model_dir.join("tokenizer.json");
-
-    if !model_path.exists() || !tokenizer_path.exists() {
-        ONNX_UNAVAILABLE.store(true, std::sync::atomic::Ordering::Relaxed);
-        warn!("⚠️ RAG ONNX models not found at ~/trinity-models/onnx/embeddings/");
-        warn!("   Semantic search disabled — text-only fallback active.");
-        warn!("   To enable: copy all-MiniLM-L6-v2 ONNX files to that directory.");
-        anyhow::bail!("ONNX models not installed — degrading to text-only search");
-    }
-
-    if RAG_TOKENIZER.get().is_none() {
-        let tok = Tokenizer::from_file(&tokenizer_path)
-            .map_err(|e| anyhow::anyhow!("Failed to parse tokenizer: {}", e))?;
-        let _ = RAG_TOKENIZER.set(tok);
-    }
-    if ORT_SESSION.get().is_none() {
-        let session = Session::builder().map_err(|e| anyhow::anyhow!("Session build err: {}", e))?
-            .with_intra_threads(4).map_err(|e| anyhow::anyhow!("Thread err: {}", e))?
-            .commit_from_file(&model_path).map_err(|e| anyhow::anyhow!("Load err: {}", e))?;
-        let _ = ORT_SESSION.set(Mutex::new(session));
-    }
-
-    Ok(())
-}
-
-
-/// Generate embedding for text using native pure-Rust ONNX execution
+/// Generate embedding for text using vLLM Reverse Proxy
 async fn generate_embedding(text: &str) -> anyhow::Result<Vec<f32>> {
-    init_embeddings_engine().await?;
-    let session_lock = ORT_SESSION.get().unwrap();
-    let tokenizer = RAG_TOKENIZER.get().unwrap();
+    let client = reqwest::Client::new();
+    let payload = serde_json::json!({
+        "model": "nomic-embed-text-v1.5-AWQ",
+        "input": text
+    });
 
-    let encoding = tokenizer.encode(text, true)
-        .map_err(|e| anyhow::anyhow!("Tokenizer error: {}", e))?;
-    let ids: Vec<i64> = encoding.get_ids().iter().map(|&x| x as i64).collect();
-    let mask: Vec<i64> = encoding.get_attention_mask().iter().map(|&x| x as i64).collect();
-    let type_ids: Vec<i64> = encoding.get_type_ids().iter().map(|&x| x as i64).collect();
+    let res = client
+        .post("http://127.0.0.1:8000/v1/embeddings")
+        .json(&payload)
+        .send()
+        .await?;
 
-    let seq_len = ids.len();
-    if seq_len == 0 {
-        return Ok(vec![0.0; EMBEDDING_DIM]);
+    if !res.status().is_success() {
+        anyhow::bail!("vLLM embedding API error: {}", res.status());
     }
 
-    let input_ids = Array2::from_shape_vec((1, seq_len), ids)?;
-    let attention_mask = Array2::from_shape_vec((1, seq_len), mask.clone())?;
-    let token_type_ids = Array2::from_shape_vec((1, seq_len), type_ids)?;
+    let json: serde_json::Value = res.json().await?;
+    let embedding_array = json["data"][0]["embedding"]
+        .as_array()
+        .ok_or_else(|| anyhow::anyhow!("Missing embedding array in vLLM response"))?;
 
-    let input_ids_val = Value::from_array(input_ids)?;
-    let attention_mask_val = Value::from_array(attention_mask.clone())?;
-    let token_type_ids_val = Value::from_array(token_type_ids)?;
+    let vec: Vec<f32> = embedding_array
+        .iter()
+        .filter_map(|v| v.as_f64().map(|f| f as f32))
+        .collect();
 
-    let inputs = ort::inputs![
-        "input_ids" => &input_ids_val,
-        "attention_mask" => &attention_mask_val,
-        "token_type_ids" => &token_type_ids_val,
-    ];
-
-    let mut session = session_lock.lock().await;
-
-    let outputs = session.run(inputs).map_err(|e| anyhow::anyhow!("Inference err: {}", e))?;
-    let extracted = outputs["last_hidden_state"].try_extract_tensor::<f32>().map_err(|e| anyhow::anyhow!("Tensor extract err: {}", e))?;
-    let val = extracted.1;
-
-    let mut pooled = vec![0.0f32; EMBEDDING_DIM];
-    let mut sum_mask = 0.0f32;
-    for (i, m) in mask.iter().enumerate() {
-        let m_f32 = *m as f32;
-        if m_f32 > 0.0 {
-            sum_mask += m_f32;
-            for j in 0..EMBEDDING_DIM {
-                pooled[j] += val[i * EMBEDDING_DIM + j] * m_f32;
-            }
-        }
+    if vec.len() != EMBEDDING_DIM {
+        anyhow::bail!("Embedding dimension mismatch: got {}, expected {}", vec.len(), EMBEDDING_DIM);
     }
-
-    let mut norm = 0.0f32;
-    if sum_mask > 0.0 {
-        for j in 0..EMBEDDING_DIM {
-            pooled[j] /= sum_mask;
-            norm += pooled[j] * pooled[j];
-        }
-        let l2 = norm.sqrt();
-        if l2 > 0.0 {
-            for j in 0..EMBEDDING_DIM {
-                pooled[j] /= l2;
-            }
-        }
-    }
-
-    Ok(pooled)
+    Ok(vec)
 }
 
 /// Ingest a document by chunking and storing both text chunks AND vector embeddings
