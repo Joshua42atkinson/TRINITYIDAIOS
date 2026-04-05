@@ -1,9 +1,10 @@
 use bevy::prelude::*;
 use bevy::tasks::IoTaskPool;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use crossbeam_channel::{unbounded as channel, Receiver, Sender};
 use serde_json::Value;
 use futures::StreamExt;
-use reqwest_eventsource::{Event, EventSource};
+use reqwest_eventsource::EventSource;
+use reqwest_eventsource::Event as SseEvent;
 
 #[derive(Clone)]
 pub struct ChatMessage {
@@ -32,9 +33,13 @@ impl Default for SocraticThread {
     }
 }
 
-/// Event triggered when the user hits 'Enter' in the HUD text box.
-#[derive(Event)]
-pub struct SubmitPrompt(pub String);
+/// Receiver for prompts submitted by the HUD.
+#[derive(Resource)]
+pub struct PromptQueuer(pub Receiver<String>);
+
+/// Sender used by the HUD to submit prompts.
+#[derive(Resource)]
+pub struct PromptSender(pub Sender<String>);
 
 /// Receiver for SSE chunk streams sent from the background task.
 #[derive(Resource)]
@@ -50,8 +55,10 @@ pub struct BridgeClientPlugin;
 
 impl Plugin for BridgeClientPlugin {
     fn build(&self, app: &mut App) {
+        let (tx, rx) = channel::<String>();
         app.init_resource::<SocraticThread>()
-            .add_event::<SubmitPrompt>()
+            .insert_resource(PromptSender(tx))
+            .insert_resource(PromptQueuer(rx))
             .add_systems(Update, (handle_submit_prompt, process_sse_chunks));
     }
 }
@@ -59,12 +66,12 @@ impl Plugin for BridgeClientPlugin {
 /// Whenever the user submits a prompt, spawn an async task to POST to localhost:3000
 /// and stream the SSE events back via an MPSC channel.
 fn handle_submit_prompt(
-    mut events: EventReader<SubmitPrompt>,
     mut thread: ResMut<SocraticThread>,
     mut commands: Commands,
+    rx: Option<Res<PromptQueuer>>,
 ) {
-    for ev in events.read() {
-        let prompt = ev.0.clone();
+    if let Some(prompt_rx) = rx {
+        while let Ok(prompt) = prompt_rx.0.try_recv() {
         
         // Push the user's message to the UI
         thread.messages.push(ChatMessage {
@@ -109,8 +116,8 @@ fn handle_submit_prompt(
             
             while let Some(event) = es.next().await {
                 match event {
-                    Ok(Event::Open) => {}
-                    Ok(Event::Message(message)) => {
+                    Ok(SseEvent::Open) => {}
+                    Ok(SseEvent::Message(message)) => {
                         if message.data == "[DONE]" {
                             let _ = tx.send(SseChunk::Done);
                             break;
@@ -131,6 +138,7 @@ fn handle_submit_prompt(
                 }
             }
         }).detach();
+        }
     }
 }
 
@@ -139,6 +147,7 @@ fn process_sse_chunks(
     mut thread: ResMut<SocraticThread>,
     receiver: Option<Res<StreamReceiver>>,
     mut commands: Commands,
+    tx_voice: Option<Res<crate::voice_bridge::VoiceRequestSender>>,
 ) {
     if let Some(rx) = receiver {
         while let Ok(chunk) = rx.0.try_recv() {
@@ -150,7 +159,21 @@ fn process_sse_chunks(
                         }
                     }
                 }
-                SseChunk::Done | SseChunk::Error(_) => {
+                SseChunk::Done => {
+                    thread.is_generating = false;
+                    commands.remove_resource::<StreamReceiver>();
+                    
+                    // The generation finished. Grab the full text of Pete's message and trigger TTS!
+                    if let Some(last) = thread.messages.last() {
+                        if last.speaker == "Pete" {
+                            bevy::log::info!("🚂 SSE Stream complete. Dispatching text to Voice Engine.");
+                            if let Some(tx) = &tx_voice {
+                                let _ = tx.0.send((last.content.clone(), "Pete".to_string()));
+                            }
+                        }
+                    }
+                }
+                SseChunk::Error(_) => {
                     thread.is_generating = false;
                     commands.remove_resource::<StreamReceiver>();
                 }

@@ -26,8 +26,11 @@ pub struct ArtPanelsPlugin;
 
 impl Plugin for ArtPanelsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(EguiPlugin::default())
-            .insert_resource(CanvasState::default())
+        if !app.is_plugin_added::<EguiPlugin>() {
+            app.add_plugins(EguiPlugin::default());
+        }
+        
+        app.insert_resource(CanvasState::default())
             .add_systems(EguiPrimaryContextPass, render_control_rail);
     }
 }
@@ -153,7 +156,14 @@ fn render_control_rail(
     sidecar: Option<Res<ArtSidecarState>>,
     mailbox: Option<Res<CreativeMailbox>>,
     consist: Option<Res<crate::train_car::TrainConsist>>,
+    sao_state: Option<Res<crate::sao_menu::SaoMenuState>>,
 ) {
+    if let Some(sao) = sao_state {
+        if sao.is_dream_mode {
+            return; // Hide ART rail in Dream Mode for clean video capture
+        }
+    }
+
     if let Some(consist_data) = consist {
         if consist_data.user_index == 0 || consist_data.user_index == consist_data.length() - 1 {
             return; // Art Control Rail ONLY visible when standing inside an Accordion ART Car

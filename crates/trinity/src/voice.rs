@@ -25,11 +25,11 @@
 // QUEST_PHASE:  supports all ADDIECRAPEYE phases (narration)
 //
 // ARCHITECTURE:
-//   • "Voxtral" (PRIMARY): Mistral Voxtral-4B TTS via vLLM-Omni
+//   • "Omni" (PRIMARY): Gemma-4-Audio-11b TTS via vLLM-Omni
 //     - 20 preset voices, 9 languages, 90ms latency, emotionality
 //     - OpenAI-compatible /v1/audio/speech endpoint
 //   • "Walkie-Talkie" (FALLBACK): Whisper STT + Piper TTS via voice sidecar (:8200)
-//     - STT/TTS run on NPU, leaving 100% GPU for Mistral Small 4
+//     - STT/TTS run on NPU, leaving 100% GPU for Gemma-4-31B
 //   • "Supertonic-2" (ALWAYS-ON): Native ONNX TTS (66M params, CPU-capable)
 //   • "Telephone" (FUTURE): PersonaPlex/Moshi audio-to-audio on GPU
 //   • Two modes: DEV (production agent) and IRON ROAD (gamified roleplay)
@@ -67,7 +67,7 @@ use crate::AppState;
 pub struct VoiceStatus {
     pub sidecar_running: bool,
     pub personaplex_available: bool,
-    pub voxtral_available: bool,
+    pub omni_available: bool,
     pub npu_available: bool,
     pub active_pipeline: String,
     pub mode: String,
@@ -103,17 +103,17 @@ pub struct VoiceResponse {
 pub async fn voice_status() -> Json<VoiceStatus> {
     let sidecar_running = check_voice_sidecar_health().await;
     let personaplex_available = check_personaplex_health().await;
-    let voxtral_available = check_voxtral_health().await;
+    let omni_available = check_omni_audio_health().await;
 
     let (pipeline, message) = if personaplex_available {
         (
             "telephone",
             "PersonaPlex audio-to-audio ready (zero latency)".to_string(),
         )
-    } else if voxtral_available {
+    } else if omni_available {
         (
-            "voxtral",
-            "Voxtral-4B TTS ready via vLLM-Omni (20 voices, 9 languages, 90ms latency)".to_string(),
+            "omni",
+            "Gemma-4 Omni TTS ready via vLLM-Omni (20 voices, 9 languages, 90ms latency)".to_string(),
         )
     } else if sidecar_running {
         (
@@ -130,7 +130,7 @@ pub async fn voice_status() -> Json<VoiceStatus> {
     Json(VoiceStatus {
         sidecar_running,
         personaplex_available,
-        voxtral_available,
+        omni_available,
         npu_available: check_npu_availability(),
         active_pipeline: pipeline.to_string(),
         mode: "dev".to_string(),
@@ -324,7 +324,7 @@ async fn check_personaplex_health() -> bool {
 }
 
 // ============================================================================
-// VOXTRAL-4B TTS (via vLLM-Omni) — Narrator Voice Acting Engine
+// GEMMA OMNI-AUDIO TTS (via vLLM-Omni) — Narrator Voice Acting Engine
 // ============================================================================
 //
 // The voice acting system supports:
@@ -333,16 +333,16 @@ async fn check_personaplex_health() -> bool {
 //   3. Narrator mode      — Great Recycler can break character (DM mode)
 //   4. Voice toggle       — Recycler narration can be on/off per user pref
 //
-// Voxtral supports emotional tonality: neutral, happy, sarcastic
-// We map Trinity's richer emotion set onto Voxtral's capabilities.
+// Omni audio supports emotional tonality: neutral, happy, sarcastic
+// We map Trinity's richer emotion set onto Omni's capabilities.
 
-// ─── Voxtral-4B Voice Acting Subsystem ───────────────────────────────────────
-// Built and ready — activates when Voxtral-4B vLLM-Omni server goes live on :8100.
+// ─── Gemma Omni Audio Acting Subsystem ───────────────────────────────────────
+// Built and ready — activates when Gemma-4-audio vLLM-Omni server goes live on :8100.
 // Suppress dead_code warnings for the entire subsystem until then.
 
-/// Voxtral-4B voice port — vLLM-Omni with --omni flag
+/// Omni Audio port — vLLM-Omni with --omni flag
 #[allow(dead_code)]
-const VOXTRAL_PORT: u16 = 8100;
+const OMNI_PORT: u16 = 8100;
 
 /// Voice acting emotion — detected from text content
 // VoiceEmotion and detect_emotion have been relocated to trinity_protocol::character_sheet
@@ -395,11 +395,11 @@ fn dm_voice_cue() -> &'static str {
     "Pausing story mode. "
 }
 
-/// Check if Voxtral-4B is available via vLLM-Omni
-#[allow(dead_code)] // Activates with Voxtral-4B
-pub async fn check_voxtral_health() -> bool {
+/// Check if Omni Audio is available via vLLM-Omni
+#[allow(dead_code)] // Activates with Gemma Omni
+pub async fn check_omni_audio_health() -> bool {
     crate::http::QUICK
-        .get(format!("http://127.0.0.1:{}/v1/models", VOXTRAL_PORT))
+        .get(format!("http://127.0.0.1:{}/v1/models", OMNI_PORT))
         .timeout(std::time::Duration::from_secs(2))
         .send()
         .await
@@ -407,31 +407,38 @@ pub async fn check_voxtral_health() -> bool {
         .unwrap_or(false)
 }
 
-/// Map Trinity persona names to Voxtral preset voices
-#[allow(dead_code)] // Activates with Voxtral-4B
-pub fn persona_to_voxtral_voice(persona: &str) -> &'static str {
-    match persona.to_lowercase().as_str() {
+/// Map Trinity persona names to Omni preset voices
+#[allow(dead_code)] // Activates with Gemma Omni
+pub fn persona_to_omni_voice(persona: &str) -> String {
+    let lower = persona.to_lowercase();
+    
+    // Allow pass-through for custom cloned voices (e.g. joshua, or clone_xyz)
+    if lower == "joshua" || lower.starts_with("clone_") {
+        return lower;
+    }
+
+    match lower.as_str() {
         // Pete — warm, confident, mentor
-        "pete" | "conductor" | "m1" | "causal_male" => "causal_male",
+        "pete" | "conductor" | "m1" | "causal_male" => "causal_male".to_string(),
         // Great Recycler — authoritative narrator (DM voice)
-        "recycler" | "narrator" | "alloy" | "dm" => "alloy",
+        "recycler" | "narrator" | "alloy" | "dm" => "alloy".to_string(),
         // NPCs — varied voices
-        "npc" | "default" | "echo" => "echo",
+        "npc" | "default" | "echo" => "echo".to_string(),
         // Youser feedback — encouraging, warm
-        "youser" | "student" | "nova" => "nova",
+        "youser" | "student" | "nova" => "nova".to_string(),
         // Female voices
-        "f1" | "f2" | "f3" | "shimmer" => "shimmer",
-        "fable" => "fable",
-        "onyx" => "onyx",
+        "f1" | "f2" | "f3" | "shimmer" => "shimmer".to_string(),
+        "fable" => "fable".to_string(),
+        "onyx" => "onyx".to_string(),
         // Fallback
-        _ => "causal_male",
+        _ => "causal_male".to_string(),
     }
 }
 
 /// Full narrated synthesis — persona + emotion + narrator mode
 /// This is the main entry point for voice-acted TTS.
-#[allow(dead_code)] // Activates with Voxtral-4B
-pub async fn voxtral_synthesize_narrated(
+#[allow(dead_code)] // Activates with Gemma Omni
+pub async fn omni_synthesize_narrated(
     text: &str,
     persona: &str,
     format: &str,
@@ -450,7 +457,7 @@ pub async fn voxtral_synthesize_narrated(
         });
     }
 
-    let voxtral_voice = persona_to_voxtral_voice(persona);
+    let omni_voice = persona_to_omni_voice(persona);
 
     // Prepend DM cue for out-of-character narration
     let speak_text = if narrator_mode == NarratorMode::OutOfCharacter {
@@ -461,23 +468,23 @@ pub async fn voxtral_synthesize_narrated(
 
     info!(
         "🎭 Voice Act: persona={} voice={} emotion={:?} mode={:?} len={}",
-        persona, voxtral_voice, emotion, narrator_mode, speak_text.len()
+        persona, omni_voice, emotion, narrator_mode, speak_text.len()
     );
 
-    let audio = voxtral_synthesize(&speak_text, persona, format).await?;
+    let audio = omni_synthesize(&speak_text, persona, format).await?;
 
     Ok(VoiceActResult {
         audio: Some(audio),
         emotion,
         narrator_mode,
-        voice_used: voxtral_voice.to_string(),
+        voice_used: omni_voice.to_string(),
         text: clean_text,
     })
 }
 
 /// Result of a voice-acted synthesis
 #[derive(Debug, Serialize)]
-#[allow(dead_code)] // Activates with Voxtral-4B
+#[allow(dead_code)] // Activates with Gemma Omni
 pub struct VoiceActResult {
     /// Audio bytes (None if Silent mode)
     #[serde(skip)]
@@ -486,33 +493,33 @@ pub struct VoiceActResult {
     pub emotion: VoiceEmotion,
     /// Narrator mode used
     pub narrator_mode: NarratorMode,
-    /// Voxtral voice name used
+    /// Omni voice name used
     pub voice_used: String,
     /// Clean text (tags stripped)
     pub text: String,
 }
 
-/// Synthesize text via Voxtral-4B on vLLM-Omni
+/// Synthesize text via Gemma-4 on vLLM-Omni
 /// Returns raw audio bytes
-#[allow(dead_code)] // Activates with Voxtral-4B
-pub async fn voxtral_synthesize(
+#[allow(dead_code)] // Activates with Gemma Omni
+pub async fn omni_synthesize(
     text: &str,
     voice: &str,
     format: &str,
 ) -> anyhow::Result<Vec<u8>> {
-    let voxtral_voice = persona_to_voxtral_voice(voice);
+    let omni_voice = persona_to_omni_voice(voice);
 
-    info!("🎙️ Voxtral TTS: voice={} format={} len={}", voxtral_voice, format, text.len());
+    info!("🎙️ Omni TTS: voice={} format={} len={}", omni_voice, format, text.len());
 
     let payload = serde_json::json!({
         "input": text,
-        "model": "mistralai/Voxtral-4B-TTS-2603",
+        "model": "google/gemma-4-audio-11b",
         "response_format": format,
-        "voice": voxtral_voice,
+        "voice": omni_voice,
     });
 
     let response = crate::http::LONG
-        .post(format!("http://127.0.0.1:{}/v1/audio/speech", VOXTRAL_PORT))
+        .post(format!("http://127.0.0.1:{}/v1/audio/speech", OMNI_PORT))
         .json(&payload)
         .timeout(std::time::Duration::from_secs(30))
         .send()
@@ -522,11 +529,11 @@ pub async fn voxtral_synthesize(
     if !response.status().is_success() {
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
-        anyhow::bail!("Voxtral returned {}: {}", status, body);
+        anyhow::bail!("Omni returned {}: {}", status, body);
     }
 
     let audio_bytes = response.bytes().await?;
-    info!("🎙️ Voxtral returned {} bytes", audio_bytes.len());
+    info!("🎙️ Omni returned {} bytes", audio_bytes.len());
     Ok(audio_bytes.to_vec())
 }
 
@@ -658,45 +665,45 @@ pub struct TextResponse {
 mod tests {
     use super::*;
 
-    // ── Voxtral Persona Mapping ─────────────────────────────────────────
+    // ── Omni Persona Mapping ─────────────────────────────────────────
 
     #[test]
     fn test_persona_pete_maps_to_causal_male() {
-        assert_eq!(persona_to_voxtral_voice("pete"), "causal_male");
-        assert_eq!(persona_to_voxtral_voice("conductor"), "causal_male");
-        assert_eq!(persona_to_voxtral_voice("M1"), "causal_male");
+        assert_eq!(persona_to_omni_voice("pete"), "causal_male");
+        assert_eq!(persona_to_omni_voice("conductor"), "causal_male");
+        assert_eq!(persona_to_omni_voice("M1"), "causal_male");
     }
 
     #[test]
     fn test_persona_recycler_maps_to_alloy() {
-        assert_eq!(persona_to_voxtral_voice("recycler"), "alloy");
-        assert_eq!(persona_to_voxtral_voice("narrator"), "alloy");
-        assert_eq!(persona_to_voxtral_voice("dm"), "alloy");
+        assert_eq!(persona_to_omni_voice("recycler"), "alloy");
+        assert_eq!(persona_to_omni_voice("narrator"), "alloy");
+        assert_eq!(persona_to_omni_voice("dm"), "alloy");
     }
 
     #[test]
     fn test_persona_npc_maps_to_echo() {
-        assert_eq!(persona_to_voxtral_voice("npc"), "echo");
-        assert_eq!(persona_to_voxtral_voice("default"), "echo");
+        assert_eq!(persona_to_omni_voice("npc"), "echo");
+        assert_eq!(persona_to_omni_voice("default"), "echo");
     }
 
     #[test]
     fn test_persona_youser_maps_to_nova() {
-        assert_eq!(persona_to_voxtral_voice("youser"), "nova");
-        assert_eq!(persona_to_voxtral_voice("student"), "nova");
+        assert_eq!(persona_to_omni_voice("youser"), "nova");
+        assert_eq!(persona_to_omni_voice("student"), "nova");
     }
 
     #[test]
     fn test_persona_unknown_falls_back_to_causal_male() {
-        assert_eq!(persona_to_voxtral_voice("unknown_voice"), "causal_male");
-        assert_eq!(persona_to_voxtral_voice(""), "causal_male");
+        assert_eq!(persona_to_omni_voice("unknown_voice"), "causal_male");
+        assert_eq!(persona_to_omni_voice(""), "causal_male");
     }
 
     #[test]
     fn test_persona_case_insensitive() {
-        assert_eq!(persona_to_voxtral_voice("PETE"), "causal_male");
-        assert_eq!(persona_to_voxtral_voice("Recycler"), "alloy");
-        assert_eq!(persona_to_voxtral_voice("NPC"), "echo");
+        assert_eq!(persona_to_omni_voice("PETE"), "causal_male");
+        assert_eq!(persona_to_omni_voice("Recycler"), "alloy");
+        assert_eq!(persona_to_omni_voice("NPC"), "echo");
     }
 
     // ── Emotion Detection ───────────────────────────────────────────────
@@ -741,7 +748,7 @@ mod tests {
     }
 
     #[test]
-    fn test_emotion_to_voxtral_tag() {
+    fn test_emotion_to_omni_tag() {
         assert_eq!(VoiceEmotion::Celebratory.to_voxtral_tag(), "happy");
         assert_eq!(VoiceEmotion::Sarcastic.to_voxtral_tag(), "sarcastic");
         assert_eq!(VoiceEmotion::Neutral.to_voxtral_tag(), "neutral");
@@ -792,22 +799,22 @@ mod tests {
         let status = VoiceStatus {
             sidecar_running: false,
             personaplex_available: false,
-            voxtral_available: true,
+            omni_available: true,
             npu_available: false,
-            active_pipeline: "voxtral".to_string(),
+            active_pipeline: "omni".to_string(),
             mode: "dev".to_string(),
-            message: "Voxtral ready".to_string(),
+            message: "Omni ready".to_string(),
         };
         let json = serde_json::to_string(&status).unwrap();
-        assert!(json.contains("\"voxtral_available\":true"));
-        assert!(json.contains("\"active_pipeline\":\"voxtral\""));
+        assert!(json.contains("\"omni_available\":true"));
+        assert!(json.contains("\"active_pipeline\":\"omni\""));
     }
 
-    // ── Voxtral Port ────────────────────────────────────────────────────
+    // ── Omni Port ────────────────────────────────────────────────────
 
     #[test]
-    fn test_voxtral_port_constant() {
-        assert_eq!(VOXTRAL_PORT, 8100);
+    fn test_omni_port_constant() {
+        assert_eq!(OMNI_PORT, 8100);
     }
 
     // ── NPU Check (doesn't panic) ──────────────────────────────────────

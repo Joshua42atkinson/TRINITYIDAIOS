@@ -24,6 +24,8 @@ tokio = { workspace = true }
 async-trait = { workspace = true }
 reqwest = { workspace = true }
 reqwest-eventsource = "0.5"
+futures = { workspace = true }
+crossbeam-channel = "0.5"
 
 # Serialization
 serde = { workspace = true }
@@ -69,6 +71,7 @@ desktop = [
     "bevy/bevy_state",
     "bevy/bevy_sprite",
     "bevy/bevy_gltf",
+    "bevy/bevy_audio",
     "bevy/multi_threaded",
     "bevy/default_font",
     "bevy/x11",

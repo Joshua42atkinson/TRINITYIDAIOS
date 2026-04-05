@@ -737,7 +737,7 @@ pub async fn run_agent_loop(
         }
 
         // Inject recent conversation history with strict role alternation
-        // Mistral chat template requires: system → user → assistant → user → assistant...
+        // Gemma chat template requires: system → user → assistant → user → assistant...
         let mut last_role = messages.last().map(|m| m.role.as_str()).unwrap_or("system");
         for msg in recent_history {
             let role = if msg.role == "assistant" {
@@ -1566,7 +1566,7 @@ fn extract_thinking(response: &str) -> (String, String) {
     let mut thinking = String::new();
     let mut remaining = response.to_string();
 
-    // Match <thinking>...</thinking> blocks (Mistral Small 4 reasoning output)
+    // Match <think>...</think> blocks (Gemma 4 reasoning output)
     loop {
         let start = remaining.find("<thinking>");
         let end = remaining.find("</thinking>");

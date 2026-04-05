@@ -10,7 +10,7 @@
 //   1. Client sends Binary frames (WAV/PCM audio chunks)
 //   2. Server routes audio → STT (Whisper ONNX)
 //   3. Server routes transcript → LLM (Pete, via inference_router)
-//   4. Server routes response → TTS (Supertonic-2 or Voxtral)
+//   4. Server routes response → TTS (Supertonic-2 or Omni)
 //   5. Server sends Binary frames (WAV audio) back to client
 //
 //   Text frames carry JSON control messages:
@@ -276,7 +276,7 @@ async fn process_audio_frame(
         .await
         .map_err(|e| anyhow::anyhow!("LLM failed: {}", e))?;
 
-    // ── Step 3: TTS — Voxtral (if available) or Supertonic-2 (fallback) ──
+    // ── Step 3: TTS — Omni (if available) or Supertonic-2 (fallback) ──
     let response_audio = synthesize_response(&response_text, &session.voice, state).await
         .unwrap_or_else(|e| {
             warn!("📞 TTS failed (sending text only): {}", e);
@@ -288,9 +288,9 @@ async fn process_audio_frame(
 
 /// Synthesize response text via best available TTS
 async fn synthesize_response(text: &str, voice: &str, state: &AppState) -> anyhow::Result<Vec<u8>> {
-    // Try Voxtral first (highest quality)
-    if crate::voice::check_voxtral_health().await {
-        return crate::voice::voxtral_synthesize(text, voice, "wav").await;
+    // Try Omni first (highest quality)
+    if crate::voice::check_omni_audio_health().await {
+        return crate::voice::omni_synthesize(text, voice, "wav").await;
     }
 
     return Err(anyhow::anyhow!("Supertonic TTS removed. Use native vllm omni"));
@@ -330,8 +330,8 @@ fn build_telephone_system_prompt(persona: &str, mode: &str) -> String {
 
 /// Detect which voice pipeline is active
 async fn detect_voice_pipeline() -> String {
-    if crate::voice::check_voxtral_health().await {
-        "voxtral".to_string()
+    if crate::voice::check_omni_audio_health().await {
+        "omni".to_string()
     } else {
         "supertonic".to_string()
     }
@@ -421,12 +421,12 @@ mod tests {
     #[test]
     fn test_telephone_event_serialize_status() {
         let event = TelephoneEvent::Status {
-            pipeline: "voxtral".to_string(),
+            pipeline: "omni".to_string(),
             latency_ms: 150,
             message: "ok".to_string(),
         };
         let json = serde_json::to_string(&event).unwrap();
-        assert!(json.contains("\"pipeline\":\"voxtral\""));
+        assert!(json.contains("\"pipeline\":\"omni\""));
         assert!(json.contains("150"));
     }
 }

@@ -43,7 +43,12 @@ pub mod hud;
 pub mod train_car;
 #[cfg(feature = "desktop")]
 pub mod bridge_client;
-
+#[cfg(feature = "desktop")]
+pub mod yardmaster_ui;
+#[cfg(feature = "desktop")]
+pub mod sao_menu;
+#[cfg(feature = "desktop")]
+pub mod voice_bridge;
 
 pub use meshes::*;
 pub use vision::*;

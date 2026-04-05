@@ -197,6 +197,7 @@ pub struct AppState {
     // ── Daydream Sidecar Pipeline ──
     /// Channel to send JSON commands to the native Bevy sidecar's STDIN
     pub daydream_tx: Option<tokio::sync::mpsc::Sender<String>>,
+    pub telemetry_updates: tokio::sync::broadcast::Sender<serde_json::Value>,
 }
 
 /// Chat message
@@ -859,6 +860,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/tools", get(tools::list_tools))
         .route("/api/projects/community", get(api_community_templates))
         .route("/api/tools/execute", post(tools::execute_tool))
+        .route("/api/telemetry/stream", get(telemetry_stream))
+        .route("/api/document/:id", get(get_document))
         .route("/api/daydream/command", post(post_daydream_command))
 
         .route("/api/quest", get(quests::get_game_state))
@@ -1828,8 +1831,8 @@ async fn tts_proxy(
         .to_string();
 
     // Try Voxtral-4B via vLLM-Omni first
-    if voice::check_voxtral_health().await {
-        match voice::voxtral_synthesize(&text, &voice, &format).await {
+    if voice::check_omni_audio_health().await {
+        match voice::omni_synthesize(&text, &voice, &format).await {
             Ok(audio_bytes) => {
                 let latency_ms = t0.elapsed().as_millis();
                 let content_type = match format.as_str() {
@@ -1843,7 +1846,7 @@ async fn tts_proxy(
                     .header("Content-Type", content_type)
                     .header("X-TTS-Backend", "voxtral-4b")
                     .header("X-Latency-Ms", latency_ms.to_string())
-                    .header("X-Voice", voice::persona_to_voxtral_voice(&voice))
+                    .header("X-Voice", voice::persona_to_omni_voice(&voice))
                     .body(axum::body::Body::from(audio_bytes))
                     .map_err(|e| (
                         StatusCode::INTERNAL_SERVER_ERROR,
@@ -4536,6 +4539,66 @@ async fn stt_status(
     }))
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// UI Documents & Text Streaming API
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Fetch markdown text for the Four Chariots or other root documentation
+async fn get_document(
+    axum::extract::Path(doc_id): axum::extract::Path<String>,
+) -> Result<String, (StatusCode, String)> {
+    if doc_id.contains("..") || doc_id.contains('/') {
+        return Err((StatusCode::BAD_REQUEST, "Invalid document ID".to_string()));
+    }
+    
+    let mut filename = doc_id.clone();
+    if !filename.ends_with(".md") {
+        filename.push_str(".md");
+    }
+    
+    let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join(&filename);
+
+    tokio::fs::read_to_string(&path).await.map_err(|e| {
+        (
+            StatusCode::NOT_FOUND,
+            format!("Document not found at {:?}: {}", path, e),
+        )
+    })
+}
+
+/// SSE stream for real-time Cognitive Load tracking
+async fn telemetry_stream(
+    State(state): State<AppState>,
+) -> Sse<impl Stream<Item = Result<sse::Event, anyhow::Error>>> {
+    use async_stream::stream;
+
+    info!("SSE client connected to telemetry stream");
+    let mut receiver = state.telemetry_updates.subscribe();
+
+    let stream = stream! {
+        loop {
+            match receiver.recv().await {
+                Ok(trace) => {
+                    let json_payload = serde_json::to_string(&trace)?;
+                    yield Ok(sse::Event::default().event("trace").data(json_payload));
+                }
+                Err(broadcast::error::RecvError::Closed) => {
+                    break;
+                }
+                Err(broadcast::error::RecvError::Lagged(_)) => {
+                    continue;
+                }
+            }
+        }
+    };
+
+    Sse::new(stream)
+}
 async fn api_community_templates(
     State(state): State<AppState>,
 ) -> impl axum::response::IntoResponse {

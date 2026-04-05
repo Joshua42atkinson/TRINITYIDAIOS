@@ -91,7 +91,7 @@ impl Plugin for IsomorphicTrainPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<TrainConsist>()
            .add_systems(Update, handle_train_navigation)
-           .add_systems(Update, render_universal_nav_bar);
+           .add_systems(bevy_egui::EguiPrimaryContextPass, render_universal_nav_bar);
     }
 }
 

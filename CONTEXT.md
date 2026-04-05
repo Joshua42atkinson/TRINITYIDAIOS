@@ -88,7 +88,7 @@ User Message → VAAM Bridge → Pete Orchestration → Quest Objective Complete
 - **Code Textbook Autopoiesis (Phase 8)**: LIVE.
 - **UI Deliverables Triad**: LIVE. Work (Yardmaster IDE), Fun (Art Studio/DAYDREAM), Learning (Iron Road).
 - **Art Studio (Conversational Media)**: LIVE. Developer telemetry stripped in favor of a purely conversational interface with a dynamic Virtual File System (VAAM) for navigating assets.
-- **Yardmaster (Root Dev Zone)**: LIVE. The Beast Logger has been transformed into a massive, centralized telemetry terminal, chronologically merging ComfyUI, System, and Forge Agent traces.
+- **Yardmaster (Root Dev Zone)**: LIVE. The beastlogger has been transformed into a massive, centralized media terminal, chronologically merging ComfyUI, System, and Forge Agent traces.
 - **Portfolio & Character Sheet Unification**: LIVE.
 - **Edge Guard Security**: LIVE.
 - **Setup Wizard Resilience**: LIVE. Automatically skips setup based on `localStorage` to avoid looping lockouts when the VRAM/backend daemon is offline.

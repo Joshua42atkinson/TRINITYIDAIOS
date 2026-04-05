@@ -62,9 +62,9 @@ The User fully commands the TRINITY loop on a single, isolated hardware node. Th
 TRINITY operates a constant Vector Database utilizing the `nomic-embed-text-v1.5-AWQ` pipeline hosted dynamically on Port 8005. 
 As textbooks, JSON files, or user interactions are read, they are vectorized mathematically and pushed into the local SQLite database. This gives The Great Recycler instant, passive memory of all architectural changes to the OS.
 
-### 2. The B.E.A.S.T. Logger (Behavioral Engine Analytics & System Telemetry)
-The BEAST Logger acts as the organizational cortex for the HUD. It is a telemetry subsystem designed to perfectly organize the raw output of the Socratic loop:
-- **File Organization:** Because Pete executes raw bash logic without human intervention, the BEAST Logger tracks workspace changes and correctly drops `.rs`, `.md`, and Image outputs into their respective HUD Vaults structurally.
+### 2. The beastlogger (Media HUD Telemetry)
+The beastlogger acts as the organizational cortex for the HUD. It is a telemetry subsystem designed to perfectly organize the raw output of the Socratic loop:
+- **File Organization:** Because Pete executes raw bash logic without human intervention, the beastlogger tracks workspace changes and correctly drops `.rs`, `.md`, and Image outputs into their respective HUD Vaults structurally.
 - **Cognitive Mapping:** It tracks the 'Coal' expenditures visually, assuring users understand their cognitive load mapping throughout the Iron Road. It operates entirely via the React state UI interacting with Rust's Tracing events.
 
 ### 3. Auto-Bootstrap Distribution (Zero-Config Delivery)

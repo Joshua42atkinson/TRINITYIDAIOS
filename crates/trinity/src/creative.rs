@@ -167,7 +167,7 @@ pub struct VideoResponse {
     pub generation_time_ms: u64,
 }
 
-/// 3D mesh generation request — Hunyuan3D-2.1 via Gradio API
+/// 3D mesh generation request — TripoSR API
 #[derive(Debug, Deserialize)]
 pub struct Mesh3DRequest {
     /// The prompt describing the desired 3D mesh (or image path for image-to-3D)
@@ -713,7 +713,7 @@ pub async fn generate_3d_mesh(
     Ok(Json(Mesh3DResponse {
         success: mesh_path.is_some(),
         mesh_path,
-        message: "3D mesh generated via Hunyuan3D-2.1".to_string(),
+        message: "3D mesh generated via TripoSR".to_string(),
         generation_time_ms: start.elapsed().as_millis() as u64,
     }))
 }

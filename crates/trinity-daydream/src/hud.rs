@@ -6,7 +6,7 @@ pub struct DaydreamHudPlugin;
 
 impl Plugin for DaydreamHudPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, render_hud);
+        app.add_systems(bevy_egui::EguiPrimaryContextPass, render_hud);
     }
 }
 
@@ -41,7 +41,17 @@ impl Default for HudState {
 pub fn render_hud(
     mut contexts: EguiContexts,
     consist: Option<Res<crate::train_car::TrainConsist>>,
+    thread_res: Option<ResMut<crate::bridge_client::SocraticThread>>,
+    prompt_tx_res: Option<ResMut<crate::bridge_client::PromptSender>>,
+    sao_state: Option<Res<crate::sao_menu::SaoMenuState>>,
 ) {
+    // Check Dream Mode
+    if let Some(sao) = sao_state {
+        if sao.is_dream_mode {
+            return; // Hide the entire HUD in Dream Mode
+        }
+    }
+
     if let Some(consist_data) = consist {
         if consist_data.user_index != 0 {
             return; // Only render HUD telemetry in the P-Car (Locomotive)
@@ -131,7 +141,7 @@ pub fn render_hud(
         ..Default::default()
     };
 
-    let Some(mut thread) = contexts.world_mut().get_resource_mut::<crate::bridge_client::SocraticThread>() else { return };
+    let Some(mut thread) = thread_res else { return };
     let mut submit_requested = false;
 
     egui::Window::new("THE SOCRATIC LOOP")
@@ -199,6 +209,10 @@ pub fn render_hud(
     if submit_requested {
         let prompt_text = thread.input_text.clone();
         thread.input_text.clear();
-        contexts.world_mut().send_event(crate::bridge_client::SubmitPrompt(prompt_text));
+        
+        // Push physical string to the Socratic loop bridge queue
+        if let Some(prompt_tx) = prompt_tx_res {
+            let _ = prompt_tx.0.send(prompt_text);
+        }
     }
 }

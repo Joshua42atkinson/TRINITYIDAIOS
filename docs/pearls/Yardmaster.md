@@ -7,7 +7,7 @@ Unlike the Art Studio, which focuses on reflective dialogue and vocabulary synth
 
 ## 1. Physical Mechanics (The Surface)
 The Yardmaster provides a 3-column, high-density professional IDE layout designed specifically for zero-friction LLM interactions, rebuilt in Phase 4 using premium glassmorphic tokens:
-1. **Left (Context & Telemetry):** The Live Quest Card (Objective Tracking) and The Beast Logger (real-time server telemetry and hardware events).
+1. **Left (Context & Telemetry):** The Live Quest Card (Objective Tracking) and the beastlogger (media HUD tracking).
 2. **Center (Chat & Flow):** The core chat window, powered by standard SSML/VAAM capabilities inherited from `agent.rs`. The execution window allows for seamless persona switching (`Dev` -> `Recycler` -> `Pete`).
 3. **Right (Capability Explorer):** RAG injection settings and **The Hook Book** terminal, broadcasting the user's available vector-searchable tools mapped in real-time to the agent's context.
 

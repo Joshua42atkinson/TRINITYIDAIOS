@@ -123,7 +123,13 @@ impl Plugin for DaydreamPlugin {
             // Add Python interpreter plugin
             .add_plugins(crate::python_bridge::PythonPlugin)
             // The 3D UI Train Car Layout
-            .add_plugins(crate::train_car::IsomorphicTrainPlugin);
+            .add_plugins(crate::train_car::IsomorphicTrainPlugin)
+            // Yardmaster Dashboard
+            .add_plugins(crate::yardmaster_ui::YardmasterUiPlugin)
+            // SAO Dropdown Menu & Hook Deck
+            .add_plugins(crate::sao_menu::SaoMenuPlugin)
+            // Voice Integration TTS
+            .add_plugins(crate::voice_bridge::VoiceBridgePlugin);
     }
 }
 
@@ -198,6 +204,8 @@ const CYAN_ACCENT: Color = Color::srgb(0.0, 0.8, 1.0);
 /// Pete shapes the landscape around their subject.
 fn setup_daydream_shell(
     mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     // ── 3D Camera with orbit controls ────────────────────────────
     // The user can look around the empty world while Pete builds it
@@ -238,11 +246,78 @@ fn setup_daydream_shell(
         Transform::from_xyz(0.0, 30.0, 0.0),
     ));
 
-    // ── Origin beacon — the one constant, showing where the PEARL sits
-    // This is the ONLY hardcoded world element. Everything else comes from Pete.
+    // ── The Dream Void Floor ──
+    // A vast, reflective, dark cyan obsidian surface to catch reflections
+    let floor_mat = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.01, 0.03, 0.06),
+        perceptual_roughness: 0.1, // very smooth/reflective
+        metallic: 0.8,
+        ..default()
+    });
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(Plane3d::default().mesh().size(2000.0, 2000.0)),
+        material: floor_mat,
+        transform: Transform::from_xyz(0.0, -0.5, 0.0), // slightly below the origin to not clip standard entities
+        ..default()
+    });
 
-    info!("🌙 DAYDREAM shell ready — awaiting PEARL blueprint from Pete");
-    info!("🌙 The world is empty. As the user's PEARL forms, Pete will shape it.");
+    // ── The Astral Rings (Dream aesthetics) ──
+    // Giant floating geometric rings that give a sci-fi / LitRPG "Dream" vibe
+    let ring_mesh1 = meshes.add(Torus::new(80.0, 1.0));
+    let ring_mat1 = materials.add(StandardMaterial {
+        base_color: Color::BLACK,
+        emissive: CYAN_ACCENT.into(),
+        ..default()
+    });
+    commands.spawn(PbrBundle {
+        mesh: ring_mesh1,
+        material: ring_mat1,
+        transform: Transform::from_xyz(0.0, 50.0, -150.0).with_rotation(Quat::from_rotation_x(1.2)),
+        ..default()
+    });
+    
+    let ring_mesh2 = meshes.add(Torus::new(60.0, 2.0));
+    let ring_mat2 = materials.add(StandardMaterial {
+        base_color: Color::BLACK,
+        emissive: OLD_GOLD.into(),
+        ..default()
+    });
+    commands.spawn(PbrBundle {
+        mesh: ring_mesh2,
+        material: ring_mat2,
+        transform: Transform::from_xyz(0.0, 50.0, -150.0).with_rotation(Quat::from_rotation_z(0.5).mul_quat(Quat::from_rotation_x(1.2))),
+        ..default()
+    });
+
+    // ── Dream Orbs (Floating Wisps) ──
+    // Scatter a field of gently glowing spheres to give the void some scale
+    let orb_mesh = meshes.add(Sphere::new(0.4));
+    let orb_mat_white = materials.add(StandardMaterial {
+        base_color: Color::WHITE,
+        emissive: LinearRgba::rgb(1.0, 1.5, 3.0),
+        ..default()
+    });
+    let orb_mat_gold = materials.add(StandardMaterial {
+        base_color: Color::WHITE,
+        emissive: LinearRgba::rgb(2.5, 2.0, 0.5),
+        ..default()
+    });
+    
+    for i in 0..100 {
+        let x = (i as f32 * 23.0 % 400.0) - 200.0;
+        let y = (i as f32 * 11.0 % 80.0) + 5.0;
+        let z = (i as f32 * 37.0 % 400.0) - 200.0;
+        
+        commands.spawn(PbrBundle {
+            mesh: orb_mesh.clone(),
+            material: if i % 3 == 0 { orb_mat_gold.clone() } else { orb_mat_white.clone() },
+            transform: Transform::from_xyz(x, y, z),
+            ..default()
+        });
+    }
+
+    info!("🌙 DAYDREAM shell ready — Dream Aesthetic Initialized");
+    info!("🌙 The background is vast. As the user's PEARL forms, Pete will construct the core scenario.");
 }
 
 // ─── Blueprint Processing ────────────────────────────────────────────────────
