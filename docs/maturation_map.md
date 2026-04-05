@@ -70,3 +70,26 @@ The beastlogger acts as the organizational cortex for the HUD. It is a telemetry
 ### 3. Auto-Bootstrap Distribution (Zero-Config Delivery)
 To ensure the OS is "distributable", the entire ecosystem collapses behind `scripts/launch/start_vllm_omni.sh`. When a user launches the ecosystem, the backend dynamically verifies the presence of required AI weights. If uninstalled, it organically pulls the necessary `AWQ` weights via HuggingFace. 
 **Offline Architecture Masquerading:** To bypass fragile Python dependencies on diverse systems, the backend utilizes architecture masquerading locally—re-mapping future `.safetensors` into structural envelopes standard `transformers` environments understand, guaranteeing an out-of-the-box local inference classroom without demanding 10-hour C++ engine recompilations.
+
+---
+
+## Appendix A: Purdue Video Presentation Flow (What Works NATIVELY)
+> *April 5, 2026 — Verified Native Architecture Video Script*
+
+The system is now fully native, fast, and does not rely on legacy sidecars. For your video, **do not worry about the old UI.** Present the new LDTAtkinson Portfolio as the ultimate manifestation of Instructional Design. 
+
+**Here is your proven, working flow for the video:**
+
+1. **Launch the Core:** 
+   - Show the terminal running `cargo run --bin trinity`. Point out it compiles cleanly and runs natively.
+   - Show the terminal running `npm run dev` in the `LDTAtkinson/client` directory.
+2. **The Portfolio Hub:** 
+   - Open your browser to `http://localhost:5173`. Show the gorgeous React interface. Explain that this UI is the "Wrapper" for the TRINITY OS. 
+3. **The BeastLogger Telemetry:** 
+   - Point out the new BeastLogger overlay. Explain that instead of just "talking to an AI", the system physically meters Cognitive Load (Coal/Steam) entirely autonomously using `tokio` telemetry layers in the backend.
+4. **The Four Chariots (The Crown Jewel):**
+   - Click the Navigation links to open the Socratic Audiobooks (`/chariot/PLAYERS_HANDBOOK.md` or `TRINITY_SYLLABUS.md`).
+   - Show the **Double-Page ELearning UI**. 
+   - Explain the Pipeline: *"This wasn't built by pasting text into ChatGPT. I engineered a Python compiler that seamlessly chunks structurally sound markdown, feeds it to the local vLLM-Omni endpoint for audio narration, and dynamically queries the local Aesthetic Triad (Flux) for the spot illustrations."*
+5. **The Iron Road Integration:**
+   - Finally, click the **Interact** button in the Audiobook UI, which pivots seamlessly to the "Ask Pete" Iron Road workspace. This visually proves you've designed a unified system where Documentation, Socratic Interaction, and UI design are entirely biologically coupled to pedagogical theory.
