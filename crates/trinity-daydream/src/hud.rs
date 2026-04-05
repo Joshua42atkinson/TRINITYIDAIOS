@@ -121,4 +121,84 @@ pub fn render_hud(
                 });
             });
         });
+
+    // ── The Socratic HUD (Central Glassmorphism Chat Window) ──
+    let socratic_frame = egui::Frame {
+        fill: egui::Color32::from_rgba_premultiplied(20, 22, 30, 200), // Core Glassmorphism panel base (semi-transparent)
+        stroke: egui::Stroke::new(1.0, egui::Color32::from_rgba_premultiplied(50, 55, 75, 230)),
+        inner_margin: egui::Margin::same(24),
+        corner_radius: egui::CornerRadius::same(12),
+        ..Default::default()
+    };
+
+    let Some(mut thread) = contexts.world_mut().get_resource_mut::<crate::bridge_client::SocraticThread>() else { return };
+    let mut submit_requested = false;
+
+    egui::Window::new("THE SOCRATIC LOOP")
+        .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 50.0))
+        .fixed_size(egui::vec2(800.0, 600.0))
+        .resizable(false)
+        .collapsible(false)
+        .title_bar(false) // Clean flush aesthetic
+        .frame(socratic_frame)
+        .show(ctx, |ui| {
+            ui.vertical(|ui| {
+                // Header
+                ui.horizontal(|ui| {
+                    ui.label(egui::RichText::new("THE SOCRATIC COMPANION").color(THEME_GOLD).strong().size(18.0));
+                    if thread.is_generating {
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            ui.label(egui::RichText::new("⚡ GENERATING").color(THEME_CYAN).size(12.0));
+                        });
+                    }
+                });
+                ui.add_space(12.0);
+                ui.separator();
+                ui.add_space(12.0);
+
+                // Message Area (Scrollable)
+                egui::ScrollArea::vertical()
+                    .max_height(450.0)
+                    .stick_to_bottom(true)
+                    .show(ui, |ui| {
+                        for msg in &thread.messages {
+                            ui.horizontal(|ui| {
+                                if msg.speaker == "Pete" {
+                                    ui.label(egui::RichText::new("🦾 Pete: ").color(THEME_CYAN).strong());
+                                    ui.label(egui::RichText::new(&msg.content).color(egui::Color32::from_rgb(220, 230, 250)));
+                                } else {
+                                    ui.label(egui::RichText::new("👤 You: ").color(THEME_GOLD).strong());
+                                    ui.label(egui::RichText::new(&msg.content).color(egui::Color32::WHITE));
+                                }
+                            });
+                            ui.add_space(12.0); // Spacing between messages to match the web UI feel
+                        }
+                    });
+
+                // Input Box
+                ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
+                    ui.add_space(10.0);
+                    let response = ui.add_sized(
+                        [750.0, 40.0],
+                        egui::TextEdit::singleline(&mut thread.input_text)
+                            .hint_text(egui::RichText::new("Cast a Hook or state your intent...").color(egui::Color32::from_rgba_premultiplied(150, 150, 150, 200)))
+                            .text_color(egui::Color32::WHITE),
+                    );
+
+                    // Check for Enter key press on the input box
+                    if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                        if !thread.input_text.trim().is_empty() {
+                            submit_requested = true;
+                        }
+                        response.request_focus();
+                    }
+                });
+            });
+        });
+
+    if submit_requested {
+        let prompt_text = thread.input_text.clone();
+        thread.input_text.clear();
+        contexts.world_mut().send_event(crate::bridge_client::SubmitPrompt(prompt_text));
+    }
 }

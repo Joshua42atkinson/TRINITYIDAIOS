@@ -23,6 +23,7 @@ bevy = { version = "0.18.1", default-features = false, features = ["bevy_render"
 tokio = { workspace = true }
 async-trait = { workspace = true }
 reqwest = { workspace = true }
+reqwest-eventsource = "0.5"
 
 # Serialization
 serde = { workspace = true }

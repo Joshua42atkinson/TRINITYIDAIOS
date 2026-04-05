@@ -41,6 +41,8 @@ pub mod python_bridge;
 pub mod hud;
 #[cfg(feature = "desktop")]
 pub mod train_car;
+#[cfg(feature = "desktop")]
+pub mod bridge_client;
 
 
 pub use meshes::*;

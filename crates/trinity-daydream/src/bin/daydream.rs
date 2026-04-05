@@ -33,6 +33,7 @@ use trinity_daydream::art_panels::ArtPanelsPlugin;
 use trinity_daydream::creative_bridge::CreativeBridgePlugin;
 use trinity_daydream::daydream::DaydreamPlugin;
 use trinity_daydream::hud::DaydreamHudPlugin;
+use trinity_daydream::bridge_client::BridgeClientPlugin;
 
 fn main() {
     App::new()
@@ -63,5 +64,6 @@ fn main() {
         .add_plugins(CreativeBridgePlugin)
         .add_plugins(ArtPanelsPlugin)
         .add_plugins(DaydreamHudPlugin)
+        .add_plugins(BridgeClientPlugin)
         .run();
 }
