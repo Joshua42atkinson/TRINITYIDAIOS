@@ -4,7 +4,7 @@
 
 > *"I know what success looks like."* — The Stakeholder's Tagline
 
-**Version 1.2** — April 1, 2026
+**Version 1.3** — April 4, 2026
 
 > 🌐 **Live Demo**: [https://LDTAtkinson.com](https://LDTAtkinson.com) · [Trinity App](https://LDTAtkinson.com/trinity/) · [Source Archive](https://LDTAtkinson.com/downloads/TRINITY_ID_AI_OS_v1.0_source.tar.gz)
 
@@ -89,11 +89,12 @@ Trinity is explicitly designed around two core psychological frameworks:
 
 ### The AI Mentors (TRINITY Hierarchy)
 
-Trinity uses a **three-tier agentic hierarchy (Agent > Subagent > Sub-subagent)** mapped to the name TRINITY (Instructional Design, AI Media, Operating System). They share a unified 128GB local VRAM matrix orchestrated natively via vLLM Omni routing:
+Trinity uses a **three-tier agentic hierarchy (Agent > Subagent > Sub-subagent)** mapped to the name TRINITY (Instructional Design, AI Media, Operating System). They share a unified 128GB local VRAM matrix orchestrated natively via **vLLM Omni** — a FastAPI reverse proxy on port `:8000` that routes requests to purpose-specific Gemma-4 engines:
 
-- **(ID) The Great Recycler 🔮** [Gemma-4-31B-Dense]: The Master Orchestrator. Asks WHY, challenges assumptions, guides reflection. Never produces deliverables directly. Makes the user *think*. Applies the ADDIECRAPEYE scaffolding.
-- **(AI) Voxtral Art Studio 🎨** [Gemma-4-E4B-Omni & DiT]: The Subagent. Triggered autonomously by the Recycler to visually flesh out the project. Drops artifacts invisibly into the portfolio databases.
-- **(OS) Programmer Pete ⚙️** [Gemma-4-26B-MoE]: The Executor (Sub-subagent). Directed by the ID. Builds lesson plans, rubrics, code, websites, artifacts. Executes shell scripts. "Just gets it done."
+- **(ID) The Great Recycler 🔮** [Gemma-4-31B-Dense AWQ · Port 8001 · 40% VRAM]: The Master Orchestrator. The heaviest model in the fleet. Asks WHY, challenges assumptions, guides reflection. Never produces deliverables directly. Makes the user *think*. Applies the ADDIECRAPEYE scaffolding.
+- **(OS) Programmer Pete ⚙️** [Gemma-4-26B-A4B MoE AWQ · Port 8002 · 25% VRAM]: The Executor (Sub-subagent). The Mixture-of-Experts architecture gives Pete broad capability at lower active parameter cost. Directed by the ID. Builds lesson plans, rubrics, code, websites, artifacts. Executes shell scripts. "Just gets it done."
+- **(AI) Omni NPC Engine 🎨** [Gemma-4-E4B AWQ · Port 8003 · 10% VRAM]: The fast-inference agent. Handles NPC dialogue, vocabulary creature responses, and lightweight scaffolding tasks with sub-second latency.
+- **(ART) HunyuanImage 🖼️** [HunyuanImage AWQ 4-bit · Port 8004 · 20% VRAM]: The visual creative engine. Generates instructional illustrations, game assets, and course materials natively via the OpenAI-compatible `/v1/images/generations` endpoint.
 
 The Recycler breathes IN (questioning, metacognition). Pete explicitly breathes OUT (deliverables, execution), supported by AI Media scaffolding. Together they form the instructional cycle: **reflect before you build, then build what you reflected on.**
 
@@ -195,13 +196,25 @@ Most educational AI systems treat learner anxiety as outside their scope. Trinit
 
 Trinity is designed for AMD Strix Halo (Ryzen AI Max+ 395) but can scale down:
 
-| Configuration | Hardware | VRAM | AI Capability | Benchmark |
+| Configuration | Hardware | Unified/VRAM | AI Capability | Model Budget |
 |--------------|----------|------|---------------|----------|
-| **Minimum** | Any GPU + 16GB RAM | 8GB | Basic chat, no creative | ~10 tok/s (7B model) |
-| **Recommended** | RDNA 3+ GPU | 24GB+ | Full Socratic interaction | ~25 tok/s (24B model) |
-| **Optimal** | AMD Strix Halo (Ryzen AI Max+ 395) | 128GB unified | All AI models concurrent | **40+ tok/s (119B MoE)** |
+| **Minimum** | Any GPU + 16GB RAM | 8GB | Basic chat only (Pete 26B AWQ alone) | ~15 tok/s |
+| **Recommended** | RDNA 3+ GPU or Apple M-series | 32-64GB | Pete + Recycler concurrent | ~25 tok/s |
+| **Optimal** | AMD Strix Halo (Ryzen AI Max+ 395) | 128GB unified | All 4 AI engines concurrent + creative pipeline | **40+ tok/s** |
 
-The development system (AMD Strix Halo) runs **Mistral Small 4 119B** (68GB Q4_K_M) via **LM Studio** at **40+ tokens/second** with a **2M+ token context window** — entirely offline. Inference is backend-agnostic: the user can "Bring Your Own Pipeline" (LM Studio, Ollama, llama-server, or any OpenAI-compatible API). This includes:
+**Distribution Target**: The complete Trinity AI model payload (3× Gemma-4 AWQ + HunyuanImage AWQ) fits within **~60 GB** of storage. This is designed to ship as a single downloadable archive — no internet required after initial installation.
+
+The development system (AMD Strix Halo) runs all models concurrently via **vLLM Omni** (ROCm/Triton) with the following VRAM budget:
+
+| Engine | Model | Port | VRAM Allocation | Storage |
+|--------|-------|:----:|:--------------:|:-------:|
+| Great Recycler | Gemma-4-31B AWQ | 8001 | 40% (~51 GB) | 20 GB |
+| Programmer Pete | Gemma-4-26B-A4B AWQ | 8002 | 25% (~32 GB) | 17 GB |
+| Omni NPC | Gemma-4-E4B AWQ | 8003 | 10% (~13 GB) | ~3 GB |
+| HunyuanImage | HunyuanImage AWQ 4-bit | 8004 | 20% (~26 GB) | ~15 GB |
+| **Total** | | | **95%** | **~55 GB** |
+
+Development hardware specifications:
 
 - **CPU**: Zen 5, 16 cores / 32 threads
 - **GPU**: RDNA 3.5 integrated, 40 CUs
@@ -240,21 +253,29 @@ Trinity's inference is process-isolated and backend-agnostic. The `InferenceRout
 │  EdgeGuard: route-level security middleware                 │
 │  MCP Server: Model Context Protocol for IDE integration     │
 │  Background Jobs: SQLite-persisted async task runner         │
-├─────────────┬──────────────┬────────────────────────────────┤
-│  vLLM-Omni  │ llama-server │  Ollama / Any OpenAI-compat    │
-│  Port 8000  │  Port 8080   │  Configurable                  │
-│  Native UMA │ Dual KV slot │  Backend-dependent             │
-├─────────────┴──────────────┴────────────────────────────────┤
+├─────────────────────────────────────────────────────────────┤
+│  Layer 2: vLLM Omni Reverse Proxy (FastAPI, port 8000)      │
+│  Routes OpenAI-compatible requests to purpose-specific      │
+│  model engines. Single entry point for all AI operations.   │
+├─────────────┬──────────────┬──────────────┬─────────────────┤
+│  Gemma-4    │  Gemma-4     │  Gemma-4     │  HunyuanImage   │
+│  31B Dense  │  26B-A4B MoE │  E4B Edge    │  AWQ 4-bit      │
+│  Port 8001  │  Port 8002   │  Port 8003   │  Port 8004      │
+│  Recycler   │  Pete        │  NPC Agent   │  Image Gen      │
+├─────────────┴──────────────┴──────────────┴─────────────────┤
+│  Future Expansion Ports                                      │
+│  • Port 8005: TTS Model (Parler-TTS / Dia)                  │
+│  • Port 8006: Video Gen (HunyuanVideo AWQ)                  │
+│  • Port 8007: Embedding Model (nomic-embed-text)            │
+├─────────────────────────────────────────────────────────────┤
 │  Native Rust Services (no HTTP, embedded in binary)         │
 │  • RAG Memory (ONNX, all-MiniLM-L6-v2) — vector similarity  │
-├─────────────────────────────────────────────────────────────┤
-│  Omni Sidecars (vLLM Router on :8000)                       │
-│  • HunyuanImage (vLLM-AWQ) — Image Gen                      │
-│  • Voxtral (E4B-Omni) — Audio/Video Generation              │
+│  • Tempo Audio (procedural generation, native Rust)          │
+│  • Audio Playback (rodio/cpal)                               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-The key architectural insight: **"Bring Your Own Pipeline" (BYOP)**. Trinity ships as a lightweight Rust binary that dispatches to whatever inference backend the user has running. Students on consumer hardware use Ollama with small models; the development system runs Mistral 119B via LM Studio; institutional deployments can use batched inference servers. The same Trinity binary works with all of them.
+The key architectural insight: **"Bring Your Own Pipeline" (BYOP)**. Trinity ships as a lightweight Rust binary that dispatches to whatever inference backend the user has running. The `InferenceRouter` auto-detects vLLM Omni (primary), llama-server, Ollama, LM Studio, or any OpenAI-compatible API. Students on consumer hardware use Ollama with small models; the development system runs all four Gemma-4 engines concurrently via vLLM; institutional deployments can use batched inference servers. The same Trinity binary works with all of them.
 
 ### Realistic Deployment: 1,000 Users on Gautschi
 
@@ -278,16 +299,17 @@ Purdue's Gautschi supercomputer (March 2025) has **160 NVIDIA H100 SXMs** (80 GB
 
 Zero data leaves campus. No API keys. Reduces reliance on third-party cloud processing. And the compute is already paid for.
 
-### What IS (Proven, Running)
+### What IS (Proven, Running) — Verified April 4, 2026
 
 > **The following features are implemented now. Everything after the next divider is roadmap.**
 
 | Component | Technology | Status |
 |-----------|-----------|:------:|
-| **LLM Brain** | Agnostic HTTP Inference Router → vLLM Omni Reverse Proxy (:8000). Direct UMA matrixing on Strix Halo for Pete and Recycler. | ✅ Running |
-| **Inference** | Unified Memory Mapping across Gemma-4 models, 40+ tok/s | ✅ Verified |
-| **Image Generation** | HunyuanImage Native via vLLM Omni (:8004 → :8000) | ✅ Verified |
-| **Voice/Video** | Gemma-4-E4B-Omni native binary payloads | ✅ Verified |
+| **LLM Brain** | Agnostic HTTP Inference Router → vLLM Omni Reverse Proxy (:8000). Gemma-4 31B + 26B native AWQ. | ✅ Running |
+| **Inference Architecture** | `start_vllm_omni.sh` auto-bootstraps all model weights, launches 4 vLLM engines, starts FastAPI proxy | ✅ Verified |
+| **Image Generation** | `creative.rs` → `http://127.0.0.1:8000/v1/images/generations` → HunyuanImage AWQ 4-bit on port 8004 | 🟡 Wired (awaiting model download) |
+| **Video Generation** | `creative.rs` → `http://127.0.0.1:8000/v1/video/generations` → stub ready for future video model | 🟡 Wired (no model yet) |
+| **3D Mesh Generation** | `creative.rs` → Hunyuan3D-2.1 Gradio API on port 7860 | 🟡 Wired (sidecar optional) |
 | **Socratic Protocol** | 12 phase-specific instruction sets in conductor | ✅ 12/12 claims verified |
 | **28 Game Mechanics** | All wired backend↔frontend via SSE events (Coal, Steam, Scope Creep, Friction, Vulnerability, Shadow, Objectives, Perspective) | ✅ 28/28 verified April 1, 2026 |
 | **432 Bespoke Objectives** | `objectives.json` — 12 chapters × 12 ADDIECRAPEYE phases × 3 objectives each | ✅ Zero generic fallbacks |
@@ -299,7 +321,10 @@ Zero data leaves campus. No API keys. Reduces reliance on third-party cloud proc
 | **Background Jobs** | SQLite-persisted async task runner for overnight autonomous work | ✅ Running |
 | **Native RAG** | Pure Rust ONNX (all-MiniLM-L6-v2) vector memory, cosine similarity search | ✅ Running |
 | **Tauri Desktop** | Native desktop app with headless daemon mode for web hosting | ✅ Running |
+| **Player Handbook** | Double-page digital sourcebook viewer (RPG-style spreads, Cinzel typography) | ✅ Running |
+| **Field Manual** | Double-page digital sourcebook viewer for Ask Pete Field Manual | ✅ Running |
 | **User Model** | Single-user prototype — one CharacterSheet per instance | ✅ By design |
+| **Portfolio Website** | LDTAtkinson.com served via Caddy + Trinity headless on port 3000 | ✅ Running |
 
 ---
 
@@ -415,41 +440,72 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 
 ## Appendix B: Product Maturation Map
 
-> Generated: 2026-04-03 09:50 ET | Revised — full maturity audit, 28/28 game mechanics verified, 432 bespoke objectives complete, 294/294 tests passing, SQLite-native (zero PostgreSQL)
+> Generated: 2026-04-04 20:00 ET | Revised — vLLM Omni Gemma-4 unification, AWQ static model architecture, 25 React components, 267K LOC Rust, 16K LOC JSX, 38 backend modules, honest gap assessment
 
-### System Metrics (Machine-Verified)
+### System Metrics (Machine-Verified April 4, 2026)
 
 | Metric | Count | Method |
 |--------|-------|--------|
-| Frontend API targets (fetch) | 44 | `grep -rhoP "fetch" across 24 JSX/JS files` |
-| Frontend API targets (window.open) | 3 | `grep window.open` — eye/export, eye/preview |
-| **Total frontend→backend connections** | **47** | Union of above |
-| Backend API routes | 73 | `grep "/api/" main.rs` unique routes |
-| **User-facing coverage** | **47/73 (64%)** | Remaining 26 are internal/plumbing |
-| React components | 18 | `ls components/*.jsx` |
-| React hooks | 6 | `ls hooks/*.js` |
-| Backend Rust modules | 39 | `ls src/*.rs` |
-| Bible verified features | 23 | Feature Status table |
+| React components | **25** | `ls components/*.jsx \| wc -l` |
+| React hooks | **7** | `ls hooks/*.js \| wc -l` |
+| Backend Rust modules | **38** | `ls src/*.rs \| wc -l` |
+| Backend API routes | **131** | `grep route/get/post main.rs` |
+| Total Rust LOC (workspace) | **267,406** | `find . -name '*.rs' \| xargs wc -l` |
+| Total JSX LOC (frontend) | **16,014** | `find . -name '*.jsx' \| xargs wc -l` |
+| AI model storage (on disk) | **~50 GB** | `du -sh ~/trinity-models/vllm/` |
+| AI model target (static) | **~55 GB** | 3× Gemma-4 AWQ + HunyuanImage AWQ |
+| Workspace crates | **8** | trinity, protocol, quest, iron-road, voice, daydream, mcp-server, archive |
+
+### Model Inventory (April 4, 2026)
+
+| Model | Size | Status | Role |
+|-------|:----:|:------:|------|
+| `gemma-4-31B-it-AWQ-4bit` | 20 GB | ✅ Downloaded | Great Recycler (Port 8001) |
+| `gemma-4-26B-A4B-it-AWQ-4bit` | 17 GB | ✅ Downloaded | Programmer Pete (Port 8002) |
+| `gemma-4-E4B-it-AWQ-4bit` | 8 KB | ⚠️ Empty (HF terms pending) | Omni NPC (Port 8003) |
+| `HunyuanImage-vLLM-AWQ` | 4 KB | ⚠️ Empty (auto-fetch on boot) | Image Generation (Port 8004) |
+| `Qwen2.5-14B-Instruct-AWQ` | 9.4 GB | 🗑️ Legacy (can be deleted) | Former stand-in for Recycler |
+| `Qwen2.5-7B-Instruct-AWQ` | 5.2 GB | 🗑️ Legacy (can be deleted) | Former stand-in for Pete |
+| `nomic-embed-text-v1.5-AWQ` | 8 KB | ⚠️ Empty (auto-fetch on boot) | Embedding (future Port 8007) |
 
 ### Functional Coverage by Domain
 
-| Domain | Score | Evidence | Theoretical Basis |
-|--------|-------|----------|-------------------|
-| **Core Game Loop** | 🟢 95% | ZenMode + PhaseWorkspace + 12-tab ADDIECRAPEYE | ADDIE Framework (Molenda, 2003) |
-| **Character/Identity** | 🟢 90% | Sheet, portfolio, shadow process, RLHF, clear button | Self-Determination Theory (Deci & Ryan, 2000) — autonomy |
-| **Quest Engine** | 🟢 90% | 12 phases, objectives, completion, party toggle | Kolb's Experiential Learning Cycle (Kolb, 1984) |
-| **Narrative/Book** | 🟢 85% | `/api/book`, `/api/narrative/generate` in GameHUD | Storytelling as Pedagogy (Bruner, 1991) |
-| **Scout Sniper RLHF** | 🟢 90% | Hope/Nope economy, thumbs up/down, coal→steam→XP | RLHF (Christiano et al., 2017) adapted for learning |
-| **Voice/TTS** | 🟡 65% | Supertonic TTS live, test voice, `/api/voice/text` | Multimedia Learning Theory (Mayer, 2009) |
-| **Creative Studio** | 🟢 90% | SDXL images, MusicGPT, video, 3D mesh — all via hooks | Constructionist Learning (Papert, 1980) |
-| **EYE Export** | 🟢 85% | Export JSON/HTML5 quiz/adventure + preview | Backward Design (Wiggins & McTighe, 2005) |
-| **AI Inference** | 🟢 80% | Model switcher in Yardmaster, refresh, footer display | Local-first AI (privacy by architecture) |
-| **RAG/Knowledge** | 🟡 70% | Search + stats in Yardmaster sidebar | RAG (Lewis et al., 2020) |
-| **Session/Journal** | 🟢 80% | JournalViewer tab, reflections, bookmarks, export | Reflective Practice (Schön, 1983) |
-| **Safety** | 🟢 85% | CowCatcher + EdgeGuard + Demo badges visible | FERPA/COPPA compliance architecture |
-| **Quality Assurance** | 🟢 90% | QualityScorecard — 5 dimensions, grade, recommendations | Quality Matters™ rubric alignment |
-| **Documentation** | 🟢 90% | 23 verified features in Bible, Four Chariots complete | Documentation-driven development |
-| **Project Management** | 🟡 60% | Save project in Express, `/api/projects` — no archive/restore UI | Planned: VAAM Profile System |
+| Domain | Score | Evidence | Blocker to 100% |
+|--------|:-----:|----------|------------------|
+| **Core Game Loop** | 🟢 95% | ZenMode + PhaseWorkspace + 12-tab ADDIECRAPEYE | Minor: ambient music toggle |
+| **Character/Identity** | 🟢 90% | Sheet, portfolio, shadow, RLHF, clear button | Minor: achievement badges UI |
+| **Quest Engine** | 🟢 92% | 12 phases, 432 objectives, completion, party toggle | None |
+| **Narrative/Book** | 🟢 88% | Book view, handbook sourcebook, field manual sourcebook | Minor: audiobook sync |
+| **Scout Sniper RLHF** | 🟢 90% | Hope/Nope economy, thumbs up/down, coal→steam→XP | None |
+| **AI Inference** | 🟢 85% | vLLM Omni router, Gemma-4 31B+26B downloaded, auto-detect | Blocker: E4B HF terms, HunyuanImage download |
+| **Image Generation** | 🟡 60% | `creative.rs` fully wired to `/v1/images/generations` | **Blocker: HunyuanImage AWQ not yet downloaded** |
+| **Voice/TTS** | 🟡 40% | `trinity-voice` crate has rodio/cpal playback only | **Blocker: No TTS model in vLLM yet** |
+| **Video Generation** | 🟡 30% | `creative.rs` stub wired, no model available | Blocker: No video model in vLLM yet |
+| **Creative Studio UI** | 🟢 85% | ArtStudio component, style selector, generation buttons | Minor: gallery view |
+| **EYE Export** | 🟢 85% | Export JSON/HTML5 quiz/adventure + preview | Minor: PDF export |
+| **RAG/Knowledge** | 🟡 70% | Search + stats in Yardmaster sidebar | Medium: embedding model not downloaded |
+| **Session/Journal** | 🟢 82% | JournalViewer tab, reflections, bookmarks, export | Minor: search within journal |
+| **Safety/Security** | 🟢 88% | CowCatcher + EdgeGuard + 44 blocked patterns | None |
+| **Quality Assurance** | 🟢 90% | QualityScorecard — 5 dimensions, grade, recommendations | None |
+| **Documentation** | 🟢 92% | Four Chariots complete, sourcebook viewers, live demo | None |
+| **Project Management** | 🟡 55% | Save project in Express, `/api/projects` | Medium: no archive/restore UI |
+
+### Overall Maturation Score
+
+```
+  ┌──────────────────────────────────────────────────┐
+  │  TRINITY v1.3 MATURATION: 78% COMPLETE           │
+  │                                                    │
+  │  ████████████████████████████████░░░░░░░░░ 78%    │
+  │                                                    │
+  │  ✅ Core Platform (Rust + React + vLLM) .... 92%  │
+  │  ✅ Game Mechanics ...................... 90%      │
+  │  ✅ Documentation ....................... 92%      │
+  │  🟡 Creative Pipeline .................. 50%      │
+  │  🟡 Voice/Audio ........................ 40%      │
+  │  🟡 Model Downloads ................... 65%      │
+  └──────────────────────────────────────────────────┘
+```
 
 ### Four Persona Evaluation (Summative)
 
@@ -460,19 +516,36 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 | 🎮 **Brother** | Engagement | 🟢 **Approved** | Fantasy narrative, XP/Steam economy, Bestiary, scope creep battles, RLHF feedback, creative studio |
 | 👩‍🎓 **Sister** | Utility | 🟢 **Approved** | Story Mode produces design documents. Export button works. Express Wizard for 10-minute lesson plans. |
 
+### Path to 100% — The Final Sprint
+
+| Task | Impact | Effort | What It Unlocks |
+|------|:------:|:------:|----------------|
+| **Accept HF terms for Gemma-4 E4B** | High | 2 min | Omni NPC engine boots on port 8003 |
+| **Run `start_vllm_omni.sh` (triggers all downloads)** | High | ~30 min | HunyuanImage + nomic-embed auto-fetch |
+| **Delete Qwen 2.5 legacy models** | Low | 1 min | Frees 14.6 GB of disk space |
+| **Add TTS model to vLLM (Port 8005)** | High | 1 hour | Pete speaks. Voice conversation loop. |
+| **Verify image generation end-to-end** | Critical | 10 min | Proves creative pipeline is live |
+| **Wire achievement badges UI** | Medium | 2 hours | Phase completion badges visible in CharacterSheet |
+| **Project archive/restore UI** | Medium | 3 hours | Backend exists, needs Yardmaster button |
+| **Ambient music toggle** | Low | 30 min | `music_streamer.rs` exists, needs frontend button |
+| **End-to-end Playwright test suite** | Medium | 1 week | Automated regression testing |
+
 ### Remaining Gaps (Honest Assessment)
 
 | Gap | Impact | Priority | Notes |
 |-----|--------|----------|-------|
 | ~~Game mechanics wiring~~ | ~~High~~ | ~~DONE~~ | All 28 mechanics fully wired as of April 1, 2026 |
 | ~~CRAPEYE objective gaps~~ | ~~Medium~~ | ~~DONE~~ | 432 bespoke objectives across all 12 chapters × 12 phases |
-| Hook Book TCG bridge | Medium | v1.3 | GlobalDeckOverlay ↔ Daydream drag-and-drop Hook Card casting |
-| ComfyUI permanent integration | Medium | v1.2 | ComfyUI sidecar verified, needs ORT-native fallback for offline image gen without Python |
-| Audio conversation loop | Medium | v1.2 | Supertonic TTS live + Whisper STT live, needs real-time bidirectional audio pipeline (mic → STT → Pete → TTS → speaker) |
-| Voice conversation loop | Low | Post-demo | Full real-time audio hardware integration end-to-end |
-| Project archive/restore | Low | Post-demo | Backend exists, UI not wired |
-| Achievement system | Medium | v1.3 | Phase completion only, no badges/unlocks |
-| Ambient music toggle | Low | v1.3 | `music_streamer.rs` exists, needs frontend button |
+| ~~vLLM Omni unification~~ | ~~High~~ | ~~DONE~~ | Gemma-4 natively wired, Qwen stand-ins removed April 4, 2026 |
+| ~~Double-page sourcebooks~~ | ~~Medium~~ | ~~DONE~~ | Player Handbook + Field Manual in premium RPG spread layout |
+| HunyuanImage model download | High | v1.3 | Auto-fetches on next `start_vllm_omni.sh` boot |
+| Gemma-4 E4B HF terms | Medium | v1.3 | User must accept gated model terms on HuggingFace |
+| TTS model integration | High | v1.4 | Add a vLLM-compatible TTS engine on port 8005 |
+| Audio conversation loop | Medium | v1.4 | Mic → STT → Pete → TTS → speaker pipeline |
+| Hook Book TCG bridge | Medium | v2.0 | GlobalDeckOverlay ↔ Daydream drag-and-drop Hook Card casting |
+| Achievement system | Medium | v1.4 | Phase completion only, no badges/unlocks UI |
+| Ambient music toggle | Low | v1.4 | `music_streamer.rs` exists, needs frontend button |
+| Project archive/restore | Low | v1.4 | Backend exists, UI not wired |
 | Multi-user sessions | Medium | v2.0 | Needs batched inference backend (TGI behind InferenceRouter) |
 
 ### References
@@ -618,12 +691,12 @@ Hooks are organized by **School** (domain of application) and **Tier** (current 
 
 | Hook | Tier | What It Does |
 |------|:----:|-------------|
-| **Image Generation** | 🟢 | SDXL via ComfyUI. Text → image for course materials, presentations, game assets. |
-| **Music Composition** | 🟢 | MusicGPT. Text → original music for learning modules, game soundtracks, presentations. |
-| **Video Generation** | 🟡 | Hunyuan Video. Text/image → short-form video for instructional content. |
-| **3D Asset Generation** | 🟡 | Hunyuan3D. Text → 3D models for VR/XR educational environments. |
-| **Voice Narration** | 🟢 | Supertonic-2 TTS, native Rust ONNX. 10 voices. Real-time narration of Pete's responses. No Python dependencies. |
-| **Asset Pipeline** | 🟢 | All creative outputs stored in the local asset library. Reusable across projects. |
+| **Image Generation** | 🟡 | HunyuanImage AWQ 4-bit via vLLM Omni (Port 8004). Text → image for course materials, presentations, game assets. Backend wired, model download pending. |
+| **Music Composition** | 🟢 | Trinity Tempo (native Rust procedural audio). Context-aware soundtrack generation. |
+| **Video Generation** | 🟡 | `creative.rs` stub wired to vLLM. Awaiting video model integration (HunyuanVideo AWQ). |
+| **3D Asset Generation** | 🟡 | Hunyuan3D-2.1 via Gradio API (optional sidecar). Text/image → 3D meshes. |
+| **Voice Narration** | 🟡 | `trinity-voice` crate provides audio playback (rodio/cpal). TTS model not yet integrated — planned for vLLM Port 8005. |
+| **Asset Pipeline** | 🟢 | All creative outputs stored in the local asset library (`~/.local/share/trinity/workspace/assets/`). Reusable across projects. |
 | **Bevy Game Scaffold** | 🟡 | Generate a working Bevy game project from instructional design data. DAYDREAM engine (pure Rust, native Bevy 0.18.1 sidecar — no JavaScript) provides 3D LitNovel world that Pete constructs via PEARL-driven blueprints. Course → game. |
 | **VR/XR Scene Builder** | 🔴 | Generate immersive VR/XR educational environments from design documents. The endgame. |
 | **Interactive Simulation** | 🔴 | Bevy-powered simulations that teach through play. Physics, chemistry, history — any domain. |
@@ -687,12 +760,21 @@ The world evolves with the student's cognitive progression:
 ### 🚀 The Endgame — What Trinity Scales To
 
 ```
-TODAY (v1.1 — Single User, Local)
-├── One student, one machine, one AI mentor
-├── 200K+ LOC total, 39 backend modules, 73 API endpoints
-├── Agnostic inference (LM Studio / Ollama / llama-server / custom)
+TODAY (v1.3 — Single User, Local, Gemma-4 Native)
+├── One student, one machine, four AI engines
+├── 283K+ LOC total (267K Rust + 16K JSX)
+├── 25 React components, 7 hooks, 38 backend modules, 131 API routes
+├── 8 workspace crates, vLLM Omni unified inference
 ├── MCP Server ∙ Background Jobs ∙ Native RAG ∙ Tauri Desktop
+├── ~55 GB static model payload (fits on USB drive)
 └── Fully functional prototype, zero cloud dependencies
+
+NEXT (v1.4 — Creative Pipeline Complete)
+├── HunyuanImage AWQ live → native image generation
+├── TTS model on Port 8005 → Pete speaks
+├── Achievement badges UI → visible progression
+├── End-to-end Playwright test suite
+└── Delete Qwen 2.5 legacy models
 
 THIS YEAR (v2.0 — Multi-User, Institutional)
 ├── Batched inference backend → multiple students, one server
