@@ -110,6 +110,7 @@ pub fn tool_permission(name: &str) -> ToolPermission {
         | "curriculum_map"
         | "scout_sniper"
         | "analyze_document"
+        | "update_vibe"
         | "analyze_image" => ToolPermission::NeedsApproval,
 
         // System-level or external-facing
@@ -150,7 +151,7 @@ const NARROW_TOOLS: &[&str] = &[
 /// Standard gauge adds session management + system introspection
 const STANDARD_ADDITIONS: &[&str] = &[
     "work_log", "task_queue", "save_session_summary", "load_session_context",
-    "system_info", "sidecar_status", "zombie_check",
+    "system_info", "sidecar_status", "zombie_check", "update_vibe",
 ];
 
 /// Get the tool gauge for a given agent mode
@@ -226,6 +227,7 @@ pub fn get_tool_list() -> Vec<ToolInfo> {
         ToolInfo { name: "generate_image".into(), description: "Generate image via ComfyUI SDXL Turbo. Args: prompt, width, height".into(), params: vec!["prompt".into()] },
         ToolInfo { name: "generate_music".into(), description: "Generate procedural music/audio. Args: prompt, style (orchestral|lofi|electronic|jazz|ambient|classical), duration_secs".into(), params: vec!["prompt".into(), "style".into(), "duration_secs".into()] },
         ToolInfo { name: "generate_video".into(), description: "Generate video via HunyuanVideo. Args: prompt, duration_secs (default 4), fps (default 24)".into(), params: vec!["prompt".into(), "duration_secs".into()] },
+        ToolInfo { name: "update_vibe".into(), description: "Dynamically set the system vibe. Args: visual_style, music_style, narrator_mood (Neutral|Warm|Urgent|Sarcastic|Celebratory|Contemplative)".into(), params: vec!["visual_style".into(), "music_style".into(), "narrator_mood".into()] },
     ]
 }
 
@@ -347,6 +349,7 @@ async fn run_tool(tool: &str, params: &serde_json::Value) -> Result<String, Stri
         "scout_sniper" => tool_scout_sniper(params).await,
         "save_session_summary" => tool_save_session_summary(params).await,
         "load_session_context" => tool_load_session_context(params).await,
+        "update_vibe" => tool_update_vibe(params).await,
         _ => Err(format!("Unknown tool: {}", tool)),
     }
 }
@@ -2786,6 +2789,60 @@ async fn tool_scout_sniper(params: &serde_json::Value) -> Result<String, String>
     }
 
     Ok(output)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Dynamic Vibe Orchestrator Tool 
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async fn tool_update_vibe(params: &serde_json::Value) -> Result<String, String> {
+    let client = &*crate::http::LONG;
+    let visual_style_str = params.get("visual_style").and_then(|v| v.as_str());
+    let music_style_str = params.get("music_style").and_then(|v| v.as_str());
+    let narrator_mood_str = params.get("narrator_mood").and_then(|v| v.as_str());
+
+    // 1. GET current sheet via internal HTTP wrapper pattern
+    let mut sheet_json: serde_json::Value = client.get("http://127.0.0.1:3000/api/character")
+        .send().await.map_err(|e| format!("Failed to fetch sheet: {}", e))?
+        .json().await.map_err(|e| format!("Failed to parse sheet: {}", e))?;
+
+    // 2. Extract specific segments to update cleanly without destroying nested formats
+    let mut creative_cfg = sheet_json.get("creative_config").cloned().unwrap_or(serde_json::json!({}));
+    let mut audio_prefs = sheet_json.get("audio_preferences").cloned().unwrap_or(serde_json::json!({}));
+
+    // Capitalize correctly for enums (e.g., 'warm' -> 'Warm')
+    let capitalize = |s: &str| -> String {
+        let mut c = s.chars();
+        match c.next() {
+            None => String::new(),
+            Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+        }
+    };
+
+    if let Some(vs) = visual_style_str {
+        creative_cfg["visual_style"] = serde_json::json!(capitalize(vs));
+    }
+    if let Some(ms) = music_style_str {
+        creative_cfg["music_style"] = serde_json::json!(capitalize(ms));
+    }
+    if let Some(nm) = narrator_mood_str {
+        audio_prefs["narrator_mood"] = serde_json::json!(capitalize(nm));
+    }
+
+    // 3. POST merged updates via internal HTTP
+    let payload = serde_json::json!({
+        "creative_config": creative_cfg,
+        "audio_preferences": audio_prefs
+    });
+
+    client.post("http://127.0.0.1:3000/api/character")
+        .json(&payload)
+        .send().await.map_err(|e| format!("Failed to post sheet updates: {}", e))?;
+
+    Ok(format!("Dynamic Vibe successfully set. Visuals: {} | Music: {} | Mood: {}", 
+        creative_cfg.get("visual_style").and_then(|v| v.as_str()).unwrap_or("Unchanged"),
+        creative_cfg.get("music_style").and_then(|v| v.as_str()).unwrap_or("Unchanged"),
+        audio_prefs.get("narrator_mood").and_then(|v| v.as_str()).unwrap_or("Unchanged")))
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

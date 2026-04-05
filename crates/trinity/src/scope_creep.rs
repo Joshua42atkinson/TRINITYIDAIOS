@@ -37,11 +37,11 @@ impl ScopeCreep {
 
         Self {
             name: format!(
-                "Scope Creep ({})",
+                "Scope Anomaly ({})",
                 feature_request.chars().take(20).collect::<String>()
             ),
             description: format!(
-                "A wild Scope Creep appears! Trying to add {} during {:?}",
+                "Scope Anomaly Detected. The SME suggested '{}' during {:?}. Pending PEARL Evaluation...",
                 feature_request, phase
             ),
             threat_level: threat,

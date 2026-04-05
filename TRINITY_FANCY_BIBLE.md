@@ -58,7 +58,7 @@
 - [Car 3: DEVELOP — The ADDIECRAPEYE Framework](#-car-3-develop--the-addiecrapeye-framework)
   - [3.1 12 Stations](#31-the-12-stations) · [3.2 Bloom's Integration](#32-blooms-taxonomy-integration) · [3.3 Sacred Circuitry](#33-sacred-circuitry--the-15-word-cognitive-scaffolding) · [3.4 Circuit↔Station Map](#34-the-circuit--station-isomorphism) · [3.5 Hotel Pattern](#35-the-hotel-management-pattern) · [3.6 Socratic Prompts](#36-phase-implementation-socratic-prompts)
 - [Car 4: IMPLEMENT — Iron Road Game Mechanics](#-car-4-implement--the-iron-road-game-mechanics)
-  - [4.1 Core Loop](#41-the-iron-road-core-loop) · [4.2 VAAM](#42-vaam--vocabulary-as-a-mechanism) · [4.3 SemanticCreep](#43-semanticcreep--vocabulary-creatures) · [4.4 Bestiary](#44-the-bestiary) · [4.5 MadLibs](#45-lesson-madlibs) · [4.6 Events](#46-the-game-loop-events) · [4.7 Book](#47-the-book-of-the-bible) · [4.8 Tests](#48-test-coverage) · [4.9 Pythagorean PPPPP](#49-the-pythagorean-ppppp) · [4.10 TCG HookDeck](#410-the-tcg-hookdeck)
+  - [4.1 Core Loop](#41-the-iron-road-core-loop) · [4.2 VAAM](#42-vaam--vocabulary-as-a-mechanism) · [4.3 SemanticCreep](#43-semanticcreep--vocabulary-creatures) · [4.4 Bestiary](#44-the-bestiary) · [4.5 MadLibs](#45-lesson-madlibs) · [4.6 Events](#46-the-game-loop-events) · [4.7 Book](#47-the-book-of-the-bible) · [4.8 Tests](#48-test-coverage) · [4.9 Pythagorean PPPPP](#49-the-pythagorean-ppppp) · [4.10 TCG HookDeck](#410-the-tcg-hookdeck) · [4.11 Ascension Architecture](#411-ascension-architecture--the-conductor-protocols)
 - [Car 5: EVALUATE — Quality Systems & Security Rings](#-car-5-evaluate--quality-systems--security-rings)
   - [5.1 Ring System](#51-the-ring-system) · [5.2 Tool Permissions](#52-ring-1-tool-permissions) · [5.3 Persona Gates](#53-ring-2-persona-based-access-control) · [5.4 Sandboxing](#54-ring-5-command-sandboxing) · [5.5 Perspective Engine](#55-ring-6-the-perspective-engine) · [5.6 QM Rubric](#56-quality-matters-rubric--automated-evaluation) · [5.7 Scorecard](#57-quality-scorecard--document-evaluation) · [5.8 Cow Catcher](#58-the-cow-catcher--error-classification)
 
@@ -150,19 +150,21 @@ Every design decision in Trinity serves exactly three audiences:
 | **Instructor** | Curriculum tools, quality assurance, standards alignment | PEARL focusing, Quality Scorecard, QM Rubric, EYE Container export |
 | **Institution** | Compliance, portfolio evidence, scalable deployment | LDT Portfolio with IBSTPI/AECT mapping, FERPA-safe local execution |
 
-### 1.3 The P-ART-Y Framework
+### 1.3 The P.A.R.T.Y. Framework
 
-Trinity's AI is not one monolithic model. It is three specialized agents, each with a distinct personality, responsibility, and hardware assignment:
+Trinity's AI is not one monolithic model. It is a cluster of six specialized models operating isomorphically across the 128GB unified APU matrix. Each model carries a distinct personality, responsibility, and architectural assignment, elegantly mapped to the **P.A.R.T.Y.** protocol:
 
-| Agent | Full Name | Role | Model |
+| Agent | Full Name | Role | Model Spec (vLLM Omni) |
 |-------|-----------|------|-------|
-| **P** (Pete) | Programmer Pete | Socratic mentor, curriculum guide | Mistral Small 4 119B MoE (68 GB, dual KV cache 256K×2 = 500K+ context) |
-| **ART** | Aesthetic Research Technician | Creative pipeline — images, video, music, 3D | SDXL Turbo (ComfyUI), HunyuanVideo, Hunyuan3D-2.1, trinity-tempo-ai |
-| **Y** (Yardmaster) | OS/Dev Agent | Code generation, tool execution, system admin | Ming-flash-omni-2.0 (future), currently uses Pete's model |
+| **P** (Programming) | Programmer Pete | Code, tools, lesson building. The Executor. | `Gemma-4-26B-A4B-it` (MoE) · Port 8002 |
+| **A** (Aesthetics) | The Artist Triad | Complete visual and spatial realization. | `FLUX.1-schnell` (2D), `CogVideoX-2B` (Time), `TripoSR` (Space) |
+| **R** (Reasoning) | The Great Recycler | Socratic mentor, philosophy, deep RAG extraction. | `Gemma-4-31B-it` (Dense) · Port 8001 |
+| **T** (Tempo) | Omni_NPC | Rapid conversation, gamification loops, NPC dialogue. | `Gemma-4-E4B-it` · Port 8003 |
+| **Y** (Yardmaster) | Game/OS Agent | The native OS orchestrator binding the entire party. | The unified Rust/Bevy Client Engine. |
 
-> 📍 `main.rs:L220-268` — `installed_model_inventory()` lists all 10 deployed models with paths and sizes
+> 📍 `main.rs:L220-268` — `installed_model_inventory()` lists all loaded models dynamically routing through EdgeGuard
 
-The **PARTY** mnemonic: **P**ete + **A**RT + the use**R** + **T**rinity + **Y**ardmaster. The user is always at the center.
+The **P.A.R.T.Y.** mnemonic establishes structural parity: from the highest-level stakeholder documentation down to the exact port mapping on the VRAM layer. The architecture *is* the pedagogy.
 
 ### 1.4 The Three Operating Modes
 
@@ -318,23 +320,27 @@ crates/trinity/src/
 
 ### 1.9 The Hardware Platform
 
-Trinity is designed for a specific class of hardware: **AMD Strix Halo** with unified CPU-GPU-NPU memory architecture.
+Trinity is designed explicitly for the unified memory architecture of the **AMD Strix Halo APU**.
 
 | Component | Specification | Trinity Uses For |
 |-----------|--------------|-----------------|
-| **CPU** | Ryzen AI Max+ 395 (16C/32T Zen 5) | Server, I/O, orchestration |
-| **GPU** | Radeon 8060S (40 CUs RDNA 3.5) | LM Studio inference backend (Vulkan) |
-| **NPU** | XDNA 2 (50 TOPS) | Planned: speculative decoding, embeddings, voice |
-| **Memory** | 128 GB unified LPDDR5x-8000 | Shared across CPU+GPU+NPU — no copy overhead |
+| **CPU** | Ryzen AI Max+ 395 (16C/32T Zen 5) | Server, I/O, Python Server orchestration |
+| **GPU** | Radeon 8060S (40 CUs RDNA 3.5) | vLLM Omni proxy inference backend (ROCm) |
+| **NPU** | XDNA 2 (50 TOPS) | Planned: speculative decoding, rapid STT/TTS |
+| **Memory** | 128 GB unified LPDDR5x-8000 | Shared across CPU+GPU+NPU — zero copy overhead |
 
-**Why this matters**: The 128 GB unified memory means a 68 GB model (Mistral Small 4 119B MoE) can load without any GPU VRAM carving. The CPU, GPU, and NPU all see the same memory space. This eliminates the #1 bottleneck in local AI inference.
+**Why this matters**: A traditional PCIe GPU maxes out at 24GB. The unified 128GB memory allows an impossible deployment on a single machine: running the *entire P.A.R.T.Y. cluster simultaneously*. 
 
-**Agnostic Inference Architecture**: Trinity no longer embeds llama.cpp directly. Instead, it acts as a lightweight HTTP dispatcher via the `InferenceRouter`, connecting to whichever OpenAI-compatible backend the user prefers — LM Studio (port 1234), Ollama (port 11434), llama-server (port 8080), or any custom endpoint. This "Bring Your Own Pipeline" (BYOP) approach dropped build times from minutes to seconds and decoupled Trinity from any single inference engine.
+**vLLM Omni Proxy Architecture**: Trinity uses a highly parallelized `vLLM` proxy on port `:8000` to dispatch workloads perfectly to purpose-fit cognitive models.
+- **Port 8001**: For deep analytical instruction routing, the Dense `Gemma-4-31B-AWQ` serves as the Recycler.
+- **Port 8002**: For rapid software execution and tools, the MoE `Gemma-4-26B-A4B-AWQ` drives Programmer Pete.
+- **Port 8003**: The 3GB `Gemma-4-E4B-it` drives Omni_NPC.
+- **Port 8004, 8006, 8007**: Direct FastAPI nodes serving the Aesthetics models (Flux.1, CogVideoX, TripoSR).
 
-**Dual KV Cache**: Mistral Small 4 runs with two KV caches at up to 1M tokens each via LM Studio's `--parallel 2`, providing **2M+ total context** — enough to hold entire curricula, textbooks, and project histories simultaneously. This happens entirely locally, with zero cloud dependency.
+Because the inference backend processes requests dynamically across independent server nodes, no single massive monolithic model dictates the speed or memory boundary. The result is a highly responsive multimodal operating system taking up exactly **~96% of the 128GB budget**.
 
 > 📍 `main.rs:L287-335` — `installed_model_inventory()`: all models with sizes and paths
-> 📍 `inference_router.rs` — Multi-backend auto-detect and failover logic
+> 📍 `scripts/launch/start_vllm_omni.sh` — Bootloader mapping the entire 6-node physical architecture
 
 ### 1.10 The Frontend
 
@@ -937,6 +943,65 @@ The game loop has **16 unit tests** validating the core mechanics:
 
 - **§5 The Iron Network** — "The user is the locomotive. Trinity is the track." The Iron Road game mechanics are the track — they guide without constraining.
 - **§6 The Heavilon Algorithm** — "Failure is data, not death." When a Creep loses a battle or a lesson fails QM review, the system recycles the event as learning data, not punishment.
+
+### 4.10 The TCG HookDeck
+
+The **HookDeck** acts as the Player's "Spellbook". It resolves the disconnect between passive AI generation and active user pedagogy. By forcing the user to "cast a spell" to prompt the AI, Trinity introduces **pedagogical friction**.
+
+*   **Steam Economy**: Casting a spell (like "Mirror" or "Socratic Interview") physically deducts `20.0 Steam`. This means users must earn momentum through VAAM and authentic discussion before they are "allowed" to generate artifacts.
+*   **Maturation Algorithm**: Hooks level up via XP (`quests.rs:tame_creep()`). As a spell matures, it gains access to deeper telemetry on the `CharacterSheet`. A Level 1 spell generates generic content; a Level 5 spell automatically injects the user's `Aesthetic Config` (vogue); a Level 20 spell maps the generation directly to the user's `Intent Posture` and `Vulnerability`.
+
+> 📍 `character_sheet.rs:L915` — `HookCard` struct storing level, XP, and `agent_tool` binding.
+> 📍 `quests.rs:L840` — `cast_spell()` Maturation algorithm dynamically constructing the `[SYSTEM OVERRIDE]` prompt based on Hook level.
+> 📍 `D20GameWindow.jsx` — Frontend rendering of the Slide-Up "Gameplay Deck" hand.
+
+### 4.11 The Conceptualization Triad
+
+The true power of the Iron Road lies in how it networks the **28 Game Mechanics** across three distinct conceptual dimensions. The AI OS evaluates every interaction by triangulating the Learner, the Product, and the Game.
+
+#### Dimension 1: The Learner (`CharacterSheet`)
+The system tracks the user's psychological state to scaffold their learning curve.
+
+*   **Intent Posture (Mastery vs. Efficiency)**: `agent.rs` reads this to determine if Pete should use Socratic friction (asking questions to force learning) or automate generation (getting the job done).
+*   **Vulnerability Index**: High vulnerability means the AI lowers the `track_friction` penalty and softens its narrative tone. 
+*   **Shadow Status**: Tracked via `consecutive_negatives` during RLHF feedback. If the user flags 3 consecutive bad interactions, the Shadow becomes Active. The `AppChrome` UI dims, music shifts to a minor key, and the user must invoke a Grounding Protocol before generating again.
+*   **Coal (Working Memory)**: An abstract representation of Miller's Law. It depletes per complex interaction. When empty, generation halts, mimicking cognitive exhaustion.
+
+#### Dimension 2: The Product (`PEARL`)
+"Quality can have authenticity." The system bounds creativity without crushing it via the **PEARL** (Subject, Medium, Vision).
+
+*   **Scope HOPE (Validation & Parking)**: The Great Recycler semantically bounds the user. If the user attempts to expand the software but their request *aligns* with the PEARL's vision, `agent.rs` bypasses combat. The LLM validates the idea as "100% Quality Authenticity," labels it **Scope HOPE**, and parses it into the `scope_hope_backlog` on the CharacterSheet without draining Steam. 
+*   **Scope CREEP (Boundary Setting)**: If the idea structurally bloats or *contradicts* the PEARL, the Recycler triggers a `Scope Anomaly`. The UI flashes a red CowCatcher modal (`ScopeCreepModal`), deducts Steam, and forces the user to physically cast a Hook Card to tame the bloat. 
+*   **Autopoiesis (Evaluation)**: The `PEARL` holds `addie_score`, `crap_score`, and `eye_score`. The Recycler calculates these as phases close. If the design phase (CRAP) drifts from the analysis phase (ADDIE), the overall alignment drops, physically locking the user out of the EYE export until refined.
+
+#### Dimension 3: The Game (`Iron Road Game Loop`)
+The runtime simulation tracking momentum.
+
+*   **Steam (Momentum)**: The user accesses higher-tier AI tools by paying for them with Steam. Steam is earned through continuous, on-topic Socratic discussion and by successfully navigating Scope Anomalies. 
+*   **VAAM NLP Execution**: As users converse, the `vaam.scan_message()` parser listens for correct technical vocabulary. Using correct Instructional Design Lexicon yields immediate visual XP floating above the chat and refunds Steam.
+*   **The Socratic Inlay**: In `agent.rs`:L430-L460, `[SYSTEM OVERRIDE]` prompts dynamically force Gemini or vLLM-Omni to break the fourth wall and narratively reference the user's `PEARL`, `Steam`, and `Shadow Status` within standard conversation.
+
+> 📍 `pearl.rs` — Mathematical execution of `PearlEvaluation` scores preventing off-topic drift.
+> 📍 `agent.rs:L430-460` — The exact ingestion point combining VAAM, Pearl bounding, and Scope Anomaly parsing within the continuous chat stream.
+> 📍 `scope_creep.rs` — The heuristic parsing layer triggering the `creep_tameable` SSE UI state.
+
+### 4.11 Ascension Architecture: The Conductor Protocols
+
+> *"Be the student you want to teach."*
+
+The Iron Road is a sandbox narrative of **Free Will**. The user is the Architect of the project and the master of their own pace; Pete is merely the Conductor. As the student architectures the product (the PEARL), the system architectures the student (the Ascension).
+
+This bidirectional growth is mapped through two core Conductor safety protocols that track cognitive load and emotional friction, providing guardrails without ever wresting control of the system away from the user:
+
+**1. The Ghost Train (Shadow Lock)**
+*   **The Mechanic**: Negative reinforcement tracker. If Pete detects sequential frustration, self-doubt, or negativity in the User's text, the `Shadow Status` upgrades from *Stirring* to *Active*.
+*   **The Intervention**: The UI text area physically darkens with a red `rgba(80,0,0,0.2)` ghost highlight. The placeholder text morphs to gently mandate the user reflect in their "Maintenance Shed" (Journal).
+*   **Free Will First**: The text box is never functionally disabled. Users can ignore the warning and force a prompt through, teaching them that while Pete will scaffold them, the *Architect* bears the weight of the momentum.
+
+**2. The Gemini Protocol (Death Spin Override)**
+*   **The Mechanic**: Telemetry thrash monitor. If a user fires 4+ short, erratic messages within 20 seconds, the system diagnostics trip an OAMS Error.
+*   **The Intervention**: The system detects cognitive overload and issues a "Gilbreth Protocol" recommendation: take a physical break. The chat stream pulses to warn the user.
+*   **The System Override (`agent.rs:L408`)**: If the user pushes through, an invisible `[SYSTEM OVERRIDE]` prompt is injected into the LLM context. Pete dynamically addresses the thrashing, breaking the fourth wall to empathetically slow the user down before fulfilling their request.
 
 ---
 
@@ -1635,33 +1700,16 @@ This architectural decision was made for three reasons:
 
 ### 11.2 The ART Creative Pipeline
 
-**ART** = Aesthetics, Research, Tempo — Trinity's creative subsystem that generates multi-modal content:
+**ART** = Aesthetics (Flux, CogVideo, TripoSR) — Trinity's generative aesthetics subsystem wired natively to vLLM's OpenAI-compatible proxy natively on the APU via independent FastAPI worker nodes without relying on heavy bloatware like ComfyUI or Gradio:
 
-| Modality | Technology | Endpoint | Port |
+| Modality | Technology | Node Port | Architecture |
 |----------|-----------|----------|------|
-| **Image** | SDXL Turbo via ComfyUI | `POST /api/creative/image` | :8188 |
-| **Music** | trinity-tempo-ai (procedural) | `POST /api/creative/tempo` | CLI sidecar |
-| **Video** | HunyuanVideo via CLI | `POST /api/creative/video` | CLI sidecar |
-| **3D Mesh** | Hunyuan3D-2.1 via Gradio | `POST /api/creative/mesh3d` | :7860 |
+| **Image** | FLUX.1-schnell (NF4) | :8004 | vLLM Native Server `/v1/images/generations` |
+| **Video** | CogVideoX-2B (INT4) | :8006 | Headless FastAPI Daemon via diffusers |
+| **3D Mesh** | TripoSR | :8007 | Headless FastAPI Daemon |
 
-> 📍 `creative.rs:L1-24` — Architecture: "CRAP design system: Contrast, Repetition, Alignment, Proximity"
-> 📍 `creative.rs:L44-62` — `ImageRequest`: prompt, negative_prompt, style, width (default 1024), height
-> 📍 `creative.rs:L86-97` — `MusicRequest`: style, duration_secs (default 60), mood
-> 📍 `creative.rs:L114-128` — `VideoRequest`: prompt, duration_secs (default 4), fps (24), height (720)
-> 📍 `creative.rs:L152-163` — `Mesh3DRequest`: prompt, image_base64, format (default "glb")
-
-### 11.2 ComfyUI Workflow — SDXL Turbo
-
-Image generation uses a 7-node ComfyUI workflow:
-
-```
-CheckpointLoader → CLIPTextEncode(+) → CLIPTextEncode(-) →
-EmptyLatentImage → KSampler(4 steps, euler, cfg 1.0) →
-VAEDecode → SaveImage
-```
-
-> 📍 `creative.rs:L336-373` — Full ComfyUI SDXL Turbo workflow JSON
-> 📍 `creative.rs:L360-361` — KSampler: 4 steps, euler sampler, cfg 1.0 (Turbo defaults)
+> 📍 `creative.rs` — Rust client wired elegantly to all aesthetic endpoints
+> 📍 `scripts/launch/start_vllm_omni.sh` — Daemon Bootloader ensuring zero manual terminal management
 
 ### 11.3 Visual Style System
 
@@ -1694,20 +1742,18 @@ Trinity implements a **dual voice pipeline**:
 
 ### 11.5 Model Inventory
 
-Trinity's AI party is composed of pre-configured model assignments:
+Trinity's pure *P.A.R.T.Y.* cluster consists of strictly vetted (`Apache 2.0` / `MIT`) open model weights deployed natively on Strix Halo unified memory via vLLM Omni:
 
-| Role | Model | Size | Active Params |
+| Role | Model Engine | Size | Precision |
 |------|-------|------|--------------|
-| **P** (Conductor) | Mistral Small 4 119B MoE | 68GB | ~6.5B |
-| **Y** (Yardmaster) | Ming-flash-omni-2.0 | 195GB | MoE (256 experts, 8 active) |
-| **R** (Research) | REAP 25B MoE | 15GB | 3B |
-| **R** (Research) | Crow 9B | 5GB | 9B |
-| **T** (Tempo) | OmniCoder 9B | 5GB | 9B |
-| **Evaluator** | Qwen3.5-27B Opus | 21GB | 27B |
-| **Visionary** | Qwen3.5-35B-A3B | 20GB | 3B |
+| **P** (Programming) | `Gemma-4-26B-A4B-it` | 17GB | AWQ (INT4) |
+| **A** (Aesthetic 2D) | `FLUX.1-schnell` | 12GB | NF4 |
+| **A** (Aesthetic Time) | `CogVideoX-2b` | 14GB | INT4 |
+| **A** (Aesthetic Space)| `TripoSR` | ~2GB | FP16 |
+| **R** (Reasoning) | `Gemma-4-31B-it` | 20GB | AWQ (INT4) |
+| **T** (Tempo) | `Gemma-4-E4B-it` | ~3GB | AWQ (INT4) |
 
-> 📍 `character_sheet.rs:L620-712` — `ModelAssignment` factory methods with full specs
-> 📍 `character_sheet.rs:L625-634` — Mistral Small 4: "256k context with Q4 KV cache quantization, vision capable"
+> 📍 `scripts/launch/start_vllm_omni.sh` — Master launch sequence validating model presence
 
 ---
 
@@ -1723,48 +1769,22 @@ Trinity runs on AMD's Strix Halo (Ryzen AI Max+ 395):
 
 | Spec | Value | Trinity Usage |
 |------|-------|--------------|
-| CPU | Zen 5, 16 cores / 32 threads | Tokio async runtime, Bevy ECS |
-| GPU | RDNA 3.5, 40 CUs | Mistral inference via llama-server |
-| NPU | XDNA 2, 50 TOPS | Voice STT/TTS (Whisper/Piper) |
-| RAM | 128 GB unified (LPDDR5X) | All models loaded concurrently |
-| Context | 256K × 2 KV cache = 500K+ tokens | Dual persona slots |
+| CPU | Zen 5, 16 cores / 32 threads | Tokio async runtime, Bevy ECS, Python orchestrators |
+| GPU | RDNA 3.5, 40 CUs | **vLLM Omni proxy array processing** |
+| NPU | XDNA 2, 50 TOPS | Voice STT/TTS (Whisper) |
+| RAM | 128 GB unified (LPDDR5X) | All 6 P.A.R.T.Y. models loaded concurrently |
 
-The **unified memory** architecture is the key enabler — GPU, CPU, and NPU share the same 128GB pool, meaning Mistral's 68GB model doesn't compete with system RAM.
+The **unified memory** architecture is the absolute core enabler — the APU's lack of PCIe bottlenecks ensures we can run all 6 massive LLM, Diffusion, and Mesh generation models synchronously without eviction constraints.
 
-> 📍 `main.rs:L220-268` — `installed_model_inventory()`: all models with sizes and paths
-> 📍 `conductor_leader.rs:L240-252` — `ConductorConfig::default()`: model path, context 32768 (conservative start)
+### 12.2 The vLLM Omni Deployment
 
-### 12.2 The Dual KV Cache Architecture
+Trinity utilizes a highly parallelized inference architecture managed by `vLLM` proxy on port `:8000` combined with custom headless Python servers. This eliminates the sluggish single-lane queue bottleneck found in legacy local systems like Ollama or LM Studio.
 
-Trinity's inference architecture is **agnostic** — it dispatches to whichever OpenAI-compatible backend the user prefers via the `InferenceRouter`. The recommended configuration uses LM Studio with Mistral Small 4 119B MoE:
+- **Unified OpenAI Compliance**: All nodes conform strictly to `/v1/chat/completions` or analogous `/v1/images/generations` logic.
+- **Port Masking**: The Rust client (`creative.rs` and `inference_router.rs`) sees the cluster as normal segmented internet APIs. 
+- **The Memory Sweep**: The boot script dynamically verifies presence and integrity to ensure the `~96% memory load` sits exactly within constraints. 
 
-- **Dual slots** via LM Studio's `--parallel 2` — two simultaneous conversations
-- **Up to 1M tokens per slot** — enabled by MLA (Multi-head Latent Attention)
-- **Combined**: 2M+ tokens of persistent context across personas
-
-Persona differentiation (Great Recycler vs. Programmer Pete) is handled at the system prompt layer, not via hardcoded KV cache slot routing. This makes the system backend-agnostic — any OpenAI-compatible API works.
-
-> [!NOTE] 
-> **ADDENDUM: Author's Preferred AI LLM: MS4 (Mistral Small 4 119B)**
->
-> We have conducted extensive real-world memory profiling on the Trinity architecture running on AMD Strix Halo (128GB unified memory).
-> 
-> **1. The MLA Advantage**
-> Mistral Small 4 explicitly uses **Multi-head Latent Attention (MLA)**. Its `config.json` sets `kv_lora_rank: 256`. Instead of storing full `32 heads × 128 dim` KV matrices per token, it stores a compressed 256-dimensional latent vector.
-> * Standard dense FP16 KV cache: ~576 KB per token
-> * MS4 MLA with Q4 KV Quantization: **~9 KB per token** (64x smaller!)
->
-> **2. Real-World Memory Footprint (1M Context)**
-> Because of MLA, we can safely push MS4 far beyond its native 256k window. Our active production configuration in LM Studio:
-> * **Model**: `mistral-small-4-119b-2603`
-> * **Context Length**: `1,048,576` (1 Million tokens)
-> * **Parallel**: `2`
-> * **KV Cache Quantization**: `Q4` (Must be enabled in LM Studio settings)
-> * **Total Actual Memory**: ~85 GB total (67GB model weights + 18GB for the dual 1M token KV caches). 
-> This comfortably fits within 128GB with headroom for the OS and creative sidecars. LM Studio's built-in memory estimator does *not* account for MLA and will falsely warn that 1M context requires >100GB of KV cache. Ignore the warning.
->
-> **3. Evaluation Batch Size (n_batch)**
-> Setting evaluation batch size to **512** (or 1024) is correct. This dictates how many tokens are processed simultaneously during prompt ingestion (the "prefill" phase). 512 provides a stable balance between prompt parsing speed and VRAM spike stability on unified memory.
+No more switching out character personas mechanically by swapping large KV caches or models out of memory — the models *are* the characters, constantly running side by side, bound together by the Daydream LitRPG framework.
 
 ### 12.3 Server Architecture
 

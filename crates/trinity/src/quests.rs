@@ -58,6 +58,9 @@ pub async fn get_game_state(
         _ => "Ship It! 🚀",
     };
 
+    let sheet = state.player.character_sheet.read().await;
+    let hook_deck: Vec<_> = sheet.ldt_portfolio.hook_deck.values().collect();
+
     // Build response JSON using trinity-quest types
     let response = serde_json::json!({
         "chapter": game.quest.hero_stage.chapter(),
@@ -77,6 +80,25 @@ pub async fn get_game_state(
         "coal": 100.0 - game.quest.coal_used,
         "resonance": game.stats.resonance,
         "inventory": game.inventory,
+        "hook_deck": hook_deck.iter().map(|card| {
+            let mut alignments = Vec::new();
+            if card.level >= 2 {
+                alignments.push("Visual Style");
+            }
+            if card.level >= 5 {
+                alignments.push("Intent");
+                alignments.push("Narrative");
+            }
+            if card.level >= 20 {
+                alignments.push("Vision");
+            }
+            serde_json::json!({
+                "id": card.id,
+                "title": card.title,
+                "level": card.level,
+                "alignments": alignments.join(" + ")
+            })
+        }).collect::<Vec<_>>(),
         "phases": trinity_quest::hero::Phase::all_phases().iter().map(|p| {
             serde_json::json!({
                 "name": p.label(),
@@ -779,13 +801,15 @@ pub struct TameCreepResponse {
     pub xp_earned: u32,
 }
 
-/// Grant xp and level up a Hook when a scope creep is tamed (HOPE)
 pub async fn tame_creep(
     State(state): State<AppState>,
-    Json(_req): Json<TameCreepRequest>,
+    Json(req): Json<TameCreepRequest>,
 ) -> Result<Json<TameCreepResponse>, StatusCode> {
     let mut sheet = state.player.character_sheet.write().await;
     
+    // Save to the Parking Lot!
+    sheet.scope_hope_backlog.push(req.creep_word.clone());
+
     // Pick a random hook to level up
     let hooks = ["Pearl", "Coal", "Steam", "Hook", "Mirror", "Compass"];
     let selected = hooks[rand::random::<usize>() % hooks.len()];
@@ -815,5 +839,77 @@ pub async fn tame_creep(
         success: true,
         leveled_hook: if leveled_up { Some(selected.to_string()) } else { None },
         xp_earned,
+    }))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CastSpellRequest {
+    pub spell_id: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CastSpellResponse {
+    pub success: bool,
+    pub message: String,
+    pub agent_tool_triggered: Option<String>,
+}
+
+/// Cast a spell from the Hook Book inventory, triggering agentic capabilities
+pub async fn cast_spell(
+    State(state): State<AppState>,
+    Json(req): Json<CastSpellRequest>,
+) -> Result<Json<CastSpellResponse>, StatusCode> {
+    let mut sheet = state.player.character_sheet.write().await;
+    
+    // Find the spell in the Hook Deck
+    let (success, message, agent_tool_triggered) = if let Some(card) = sheet.ldt_portfolio.hook_deck.get(&req.spell_id) {
+        if card.level > 0 {
+            let tool = card.agent_tool.clone().unwrap_or_else(|| "Standard Behavior".to_string());
+            
+            let mut telemetry = Vec::new();
+            
+            // Level 1: Baseline
+            telemetry.push("EXECUTION_TIER: NOVICE".to_string());
+            
+            // Level 2+: Apprentice
+            if card.level >= 2 {
+                telemetry[0] = "EXECUTION_TIER: APPRENTICE".to_string();
+                telemetry.push(format!("VISUAL_STYLE: {:?}", sheet.creative_config.visual_style));
+                if let Some(audio) = &sheet.audio_preferences.genre {
+                    telemetry.push(format!("AUDIO_GENRE: {}", audio));
+                }
+            }
+            
+            // Level 5+: Expert
+            if card.level >= 5 {
+                telemetry[0] = "EXECUTION_TIER: EXPERT".to_string();
+                telemetry.push(format!("INTENT_POSTURE: {}", sheet.intent_posture.display_name()));
+                telemetry.push(format!("NARRATIVE_GENRE: {:?}", sheet.genre));
+            }
+            
+            // Level 20+: Mastery
+            if card.level >= 20 {
+                telemetry[0] = "EXECUTION_TIER: MASTERY".to_string();
+                telemetry.push(format!("VULNERABILITY_INDEX: {:.2}", sheet.vulnerability));
+                if let Some(vision) = &sheet.success_vision {
+                    telemetry.push(format!("SUCCESS_VISION: {}", vision));
+                }
+            }
+            
+            let telemetry_str = telemetry.join(" | ");
+            let msg = format!("Cast spell: {}.\nEnforcing: {}", card.title, telemetry_str);
+            
+            (true, msg, Some(tool))
+        } else {
+            (false, "Spell level too low".to_string(), None)
+        }
+    } else {
+        (false, "Spell not found in Hook Book".to_string(), None)
+    };
+    
+    Ok(Json(CastSpellResponse {
+        success,
+        message,
+        agent_tool_triggered,
     }))
 }

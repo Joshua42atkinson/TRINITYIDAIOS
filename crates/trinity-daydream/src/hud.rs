@@ -40,8 +40,14 @@ impl Default for HudState {
 
 pub fn render_hud(
     mut contexts: EguiContexts,
-    // Add Res<HudState> once we inject it, for now mock it if not present
+    consist: Option<Res<crate::train_car::TrainConsist>>,
 ) {
+    if let Some(consist_data) = consist {
+        if consist_data.user_index != 0 {
+            return; // Only render HUD telemetry in the P-Car (Locomotive)
+        }
+    }
+
     let Ok(ctx) = contexts.ctx_mut() else { return };
     
     let frame = egui::Frame {

@@ -82,6 +82,38 @@ fn default_vulnerability() -> f32 {
 
 /// The user's full identity and progression record in Trinity.
 /// Persisted to `~/.local/share/trinity/character_sheet.json`.
+/// Voice acting emotion — used by Voxtral-4B TTS engine and set by the Dynamic Vibe Orchestrator.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum VoiceEmotion {
+    /// Standard delivery
+    #[default]
+    Neutral,
+    /// Encouraging feedback, celebration, quest completion
+    Warm,
+    /// Warnings, deadlines, critical design issues
+    Urgent,
+    /// Playful teasing, Great Recycler wit
+    Sarcastic,
+    /// Quest completion, milestone reached, XP awarded
+    Celebratory,
+    /// Reflection, philosophical, Socratic questioning
+    Contemplative,
+}
+
+impl VoiceEmotion {
+    /// Convert to Voxtral-compatible emotion tag
+    pub fn to_voxtral_tag(&self) -> &'static str {
+        match self {
+            VoiceEmotion::Neutral => "neutral",
+            VoiceEmotion::Warm => "happy",
+            VoiceEmotion::Urgent => "neutral",       // Voxtral neutral + fast pacing
+            VoiceEmotion::Sarcastic => "sarcastic",
+            VoiceEmotion::Celebratory => "happy",
+            VoiceEmotion::Contemplative => "neutral", // Voxtral neutral + slow pacing
+        }
+    }
+}
+
 /// User preferences for the audio pipeline and flow state
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AudioPreferences {
@@ -93,6 +125,8 @@ pub struct AudioPreferences {
     pub music_flow_enabled: bool,
     /// Specific genre for background music if different from overall narrative genre
     pub bg_music_genre: Option<String>,
+    /// Current TTS Narrator mood (governed by Omni NPC Vibe Setting Tool)
+    pub narrator_mood: VoiceEmotion,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -220,6 +254,14 @@ pub struct CharacterSheet {
     #[serde(default)]
     pub locomotive_profile: LocomotiveProfile,
 
+    /// Track rapid-fire erratic messaging ("Thrashing" / Gemini Protocol Death Spin)
+    #[serde(default)]
+    pub thrash_count: u32,
+    
+    /// Unix timestamp of the last message sent by the user, for calculating thrash speed.
+    #[serde(default)]
+    pub last_interaction_timestamp: u64,
+
     // --- PURDUE LDT PORTFOLIO (The Graduation Track) ---
     /// The LDT Portfolio is the isomorphic layer that maps academic
     /// requirements (IBSTPI, ATD, AECT, QM) to game progression.
@@ -246,6 +288,12 @@ pub struct CharacterSheet {
     /// 3+ negatives in a row = Shadow becomes Active.
     #[serde(default)]
     pub consecutive_negatives: u8,
+
+    // --- IMMERSIVE LEARNING: SCOPE HOPE ---
+    /// A parking lot for validated SME ideas that were technically out of scope for
+    /// the current phase. Tamed "Scope Creeps" become "Scope HOPE" and are deferred here.
+    #[serde(default)]
+    pub scope_hope_backlog: Vec<String>,
 }
 
 impl CharacterSheet {
@@ -303,6 +351,13 @@ impl CharacterSheet {
 
             // RLHF tracking
             consecutive_negatives: 0,
+            
+            // Scope HOPE Parking Lot
+            scope_hope_backlog: Vec::new(),
+            
+            // Telemetry
+            thrash_count: 0,
+            last_interaction_timestamp: 0,
         }
     }
 
@@ -882,6 +937,7 @@ pub struct HookCard {
     pub level: u8,
     pub xp: u32,
     pub creeps_tamed: u32,
+    pub agent_tool: Option<String>,
 }
 
 impl Default for LdtPortfolio {
@@ -894,6 +950,7 @@ impl Default for LdtPortfolio {
             level: 1,
             xp: 0,
             creeps_tamed: 0,
+            agent_tool: Some("generate_assessment".to_string()),
         });
         default_deck.insert("Coal".to_string(), HookCard {
             id: "Coal".to_string(),
@@ -902,6 +959,7 @@ impl Default for LdtPortfolio {
             level: 1,
             xp: 0,
             creeps_tamed: 0,
+            agent_tool: Some("generate_challenge".to_string()),
         });
         default_deck.insert("Steam".to_string(), HookCard {
             id: "Steam".to_string(),
@@ -910,6 +968,7 @@ impl Default for LdtPortfolio {
             level: 1,
             xp: 0,
             creeps_tamed: 0,
+            agent_tool: Some("generate_gamification".to_string()),
         });
         default_deck.insert("Hook".to_string(), HookCard {
             id: "Hook".to_string(),
@@ -918,6 +977,7 @@ impl Default for LdtPortfolio {
             level: 1,
             xp: 0,
             creeps_tamed: 0,
+            agent_tool: Some("generate_engagement_media".to_string()),
         });
         default_deck.insert("Mirror".to_string(), HookCard {
             id: "Mirror".to_string(),
@@ -926,6 +986,7 @@ impl Default for LdtPortfolio {
             level: 1,
             xp: 0,
             creeps_tamed: 0,
+            agent_tool: Some("generate_avatar_reflection".to_string()),
         });
         default_deck.insert("Compass".to_string(), HookCard {
             id: "Compass".to_string(),
@@ -934,6 +995,7 @@ impl Default for LdtPortfolio {
             level: 1,
             xp: 0,
             creeps_tamed: 0,
+            agent_tool: Some("generate_document".to_string()),
         });
 
         Self {

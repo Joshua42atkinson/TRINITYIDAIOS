@@ -54,6 +54,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
+use trinity_protocol::character_sheet::VoiceEmotion;
 
 use crate::AppState;
 
@@ -344,37 +345,9 @@ async fn check_personaplex_health() -> bool {
 const VOXTRAL_PORT: u16 = 8100;
 
 /// Voice acting emotion — detected from text content
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[allow(dead_code)] // Activates with Voxtral-4B
-pub enum VoiceEmotion {
-    /// Standard delivery
-    Neutral,
-    /// Encouraging feedback, celebration, quest completion
-    Warm,
-    /// Warnings, deadlines, critical design issues
-    Urgent,
-    /// Playful teasing, Great Recycler wit
-    Sarcastic,
-    /// Quest completion, milestone reached, XP awarded
-    Celebratory,
-    /// Reflection, philosophical, Socratic questioning
-    Contemplative,
-}
-
-impl VoiceEmotion {
-    /// Convert to Voxtral-compatible emotion tag
-    #[allow(dead_code)] // Activates with Voxtral-4B
-    pub fn to_voxtral_tag(&self) -> &'static str {
-        match self {
-            VoiceEmotion::Neutral => "neutral",
-            VoiceEmotion::Warm => "happy",
-            VoiceEmotion::Urgent => "neutral",       // Voxtral neutral + fast pacing
-            VoiceEmotion::Sarcastic => "sarcastic",
-            VoiceEmotion::Celebratory => "happy",
-            VoiceEmotion::Contemplative => "neutral", // Voxtral neutral + slow pacing
-        }
-    }
-}
+// VoiceEmotion and detect_emotion have been relocated to trinity_protocol::character_sheet
+// VoiceEmotion and detect_emotion have been relocated to trinity_protocol::character_sheet
+// granting the Omni NPC (Gemma-4) dynamic overriding control over the narrator's emotional state natively through the Vibe Tool ecosystem.
 
 /// Narrator mode — the Great Recycler can DM
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -387,74 +360,6 @@ pub enum NarratorMode {
     OutOfCharacter,
     /// Silent — narrator text appears but no voice (reading mode)
     Silent,
-}
-
-/// Detect emotion from text content using keyword/pattern heuristics.
-/// This runs on every TTS call — fast, no ML needed.
-#[allow(dead_code)] // Activates with Voxtral-4B
-pub fn detect_emotion(text: &str) -> VoiceEmotion {
-    let lower = text.to_lowercase();
-
-    // Celebratory — quest complete, XP, level up
-    if lower.contains("congratulations")
-        || lower.contains("quest complete")
-        || lower.contains("level up")
-        || lower.contains("xp awarded")
-        || lower.contains("milestone")
-        || lower.contains("achievement")
-        || lower.contains("well done")
-        || lower.contains("excellent work")
-    {
-        return VoiceEmotion::Celebratory;
-    }
-
-    // Urgent — warnings, deadlines, critical
-    if lower.contains("warning")
-        || lower.contains("critical")
-        || lower.contains("deadline")
-        || lower.contains("urgent")
-        || lower.contains("caution")
-        || lower.contains("danger")
-        || lower.contains("immediately")
-    {
-        return VoiceEmotion::Urgent;
-    }
-
-    // Sarcastic — Great Recycler wit, playful edge
-    if lower.contains("oh really")
-        || lower.contains("interesting choice")
-        || lower.contains("bold move")
-        || lower.contains("surely you")
-        || lower.contains("how... creative")
-        || lower.contains("as expected")
-    {
-        return VoiceEmotion::Sarcastic;
-    }
-
-    // Contemplative — questions, reflection, Socratic
-    if lower.contains("consider")
-        || lower.contains("what if")
-        || lower.contains("reflect on")
-        || lower.contains("think about")
-        || lower.contains("have you considered")
-        || lower.contains("ponder")
-        || lower.contains("perhaps")
-    {
-        return VoiceEmotion::Contemplative;
-    }
-
-    // Warm — encouragement, support, progress
-    if lower.contains("great job")
-        || lower.contains("nice work")
-        || lower.contains("you're making progress")
-        || lower.contains("keep going")
-        || lower.contains("proud")
-        || lower.contains("welcome")
-    {
-        return VoiceEmotion::Warm;
-    }
-
-    VoiceEmotion::Neutral
 }
 
 /// Detect narrator mode from text markers.
@@ -530,6 +435,7 @@ pub async fn voxtral_synthesize_narrated(
     text: &str,
     persona: &str,
     format: &str,
+    emotion: VoiceEmotion,
 ) -> anyhow::Result<VoiceActResult> {
     let (narrator_mode, clean_text) = detect_narrator_mode(text);
 
@@ -544,7 +450,6 @@ pub async fn voxtral_synthesize_narrated(
         });
     }
 
-    let emotion = detect_emotion(&clean_text);
     let voxtral_voice = persona_to_voxtral_voice(persona);
 
     // Prepend DM cue for out-of-character narration

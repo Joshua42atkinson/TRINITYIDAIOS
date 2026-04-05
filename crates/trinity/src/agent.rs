@@ -385,6 +385,52 @@ pub async fn run_agent_loop(
         let _active_kv_slot = persona_slot(&request.mode);
         let track_mechanics = true;
         let enforce_narrative = request.mode != "dev";
+        let mut modified_user_message = request.message.clone();
+
+        // === IRON ROAD: Gemini Protocol (Death Spin) ===
+        if enforce_narrative {
+            let mut sheet = character_sheet.write().await;
+            let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+            
+            // Only count short, rapid messages.
+            if request.message.len() < 100 && !request.message.contains("[RE-ENTRY STABILIZED]") {
+                if now.saturating_sub(sheet.last_interaction_timestamp) < 20 {
+                    sheet.thrash_count = sheet.thrash_count.saturating_add(1);
+                } else {
+                    sheet.thrash_count = 0;
+                }
+            } else {
+                sheet.thrash_count = 0;
+            }
+            sheet.last_interaction_timestamp = now;
+            
+            let thrash = sheet.thrash_count;
+            crate::character_sheet::save_character_sheet(&sheet).ok();
+            drop(sheet);
+
+            if thrash >= 4 {
+                info!("🌀 Gemini Protocol triggered — conversational thrashing detected");
+                let msg = "\n\n🚨 **OAMS ERROR: DEATH SPIN DETECTED** 🚨\n\nThe Gilbreth Protocol recommends taking a physical break. \nType `[RE-ENTRY STABILIZED]` to clear the warning, or keep building if you wish. You are the Architect.\n\n";
+                let json_str = serde_json::json!({ "content": msg }).to_string();
+                let _ = tx.send(format!("data: {}\n\n", json_str)).await;
+                
+                let event_json = serde_json::json!({ "type": "gemini_lockout", "active": true }).to_string();
+                let _ = tx.send(format!("event: gemini_lockout\ndata: {}\n\n", event_json)).await;
+                
+                // Inject the telemetry into the LLM context so Pete knows
+                modified_user_message.push_str("\n\n[SYSTEM OVERRIDE]: Telemetry detects the user is in a Gemini Death Spin (thrashing / moving too fast). Acknowledge that they might be overloaded. Offer a break, but respect their free will to continue if they choose.");
+            }
+            
+            // Reset if they type the correct override phrase
+            if request.message.contains("[RE-ENTRY STABILIZED]") {
+                let msg = "\n\n**OAMS OVERRIDE ACCEPTED.** Controls restored. Welcome back, Pilot. The tracks are clear.\n";
+                let json_str = serde_json::json!({ "content": msg }).to_string();
+                let _ = tx.send(format!("data: {}\n\n", json_str)).await;
+                
+                let event_json = serde_json::json!({ "type": "gemini_lockout", "active": false }).to_string();
+                let _ = tx.send(format!("event: gemini_lockout\ndata: {}\n\n", event_json)).await;
+            }
+        }
 
         // === IRON ROAD: Combat Roll Resolution (Narrative Only) ===
         if enforce_narrative {
@@ -430,13 +476,25 @@ pub async fn run_agent_loop(
             let vaam_result = state.vaam_bridge.vaam.scan_message(&request.message).await;
             
             if enforce_narrative {
-                let current_phase = { game_state.read().await.quest.current_phase };
+                let current_phase = { game_state.read().await.quest.current_phase.clone() };
+                let pearl_opt = { game_state.read().await.quest.pearl.clone() };
+                
                 if let Some(creep) =
                     crate::scope_creep::detect_scope_creep(&request.message, &[], &current_phase)
                 {
-                    let msg = format!("\n\n⚔️ **COMBAT ENCOUNTER!** A wild *Scope Creep* appears!\nThreat Level: {}\nPenalty: -{:.1} Steam if you yield.\n", creep.threat_level, creep.steam_penalty);
+                    // Option B: Conversational Scaffold + PEARL Semantic Check
+                    let pearl_context = if let Some(p) = pearl_opt {
+                        format!("PEARL Subject: '{}'. PEARL Vision: '{}'", p.subject, p.vision)
+                    } else {
+                        "PEARL is undefined".to_string()
+                    };
+
+                    let msg = format!("\n\n🔍 **SCOPE ANOMALY DETECTED:** Evaluating ({}) against {}...\n", creep.backlog_item, pearl_context);
                     let json_str = serde_json::json!({ "content": msg }).to_string();
                     let _ = tx.send(format!("data: {}\n\n", json_str)).await;
+                    
+                    // Inject pedagogical guidance into the LLM context so it physically maps the conceptual alignment!
+                    modified_user_message.push_str(&format!("\n\n[SYSTEM OVERRIDE]: The user just suggested a feature expansion ({}). Evaluate this conceptually against their PEARL ({}). If it aligns with the problem the project solves, validate it as 'Scope HOPE', explain why it improves their project, and gently ask them to park it. If it contradicts or detracts from the PEARL, identify it as 'Scope CREEP', explain why it breaks their vision, and instruct them to cast a Hook Deck spell to tame it.", creep.backlog_item, pearl_context));
 
                     // R2: Emit SSE event for ScopeCreepModal
                     let creep_json = serde_json::json!({
@@ -499,15 +557,24 @@ pub async fn run_agent_loop(
             if negative_count >= 1 {
                 let mut sheet = state.player.character_sheet.write().await;
                 sheet.consecutive_negatives = sheet.consecutive_negatives.saturating_add(1);
-
-                if sheet.consecutive_negatives >= 3 {
+                
+                let mut changed = false;
+                if sheet.consecutive_negatives >= 3 && sheet.shadow_status != trinity_protocol::character_sheet::ShadowStatus::Active {
                     sheet.shadow_status = trinity_protocol::character_sheet::ShadowStatus::Active;
                     info!("🌑 Shadow activated — negative sentiment detected");
+                    changed = true;
                 } else if sheet.shadow_status == trinity_protocol::character_sheet::ShadowStatus::Clear {
                     sheet.shadow_status = trinity_protocol::character_sheet::ShadowStatus::Stirring;
                     info!("🌘 Shadow stirring — frustration detected");
+                    changed = true;
                 }
                 sheet.recalculate_vulnerability();
+                
+                if changed {
+                    let shadow_json = serde_json::json!({ "status": sheet.shadow_status }).to_string();
+                    let _ = tx.send(format!("event: shadow_status\ndata: {}\n\n", shadow_json)).await;
+                }
+                
                 crate::character_sheet::save_character_sheet(&sheet).ok();
                 drop(sheet);
             } else {
@@ -515,6 +582,14 @@ pub async fn run_agent_loop(
                 let mut sheet = state.player.character_sheet.write().await;
                 if sheet.consecutive_negatives > 0 {
                     sheet.consecutive_negatives = sheet.consecutive_negatives.saturating_sub(1);
+                    
+                    if sheet.consecutive_negatives == 0 && sheet.shadow_status != trinity_protocol::character_sheet::ShadowStatus::Clear {
+                        sheet.shadow_status = trinity_protocol::character_sheet::ShadowStatus::Clear;
+                        info!("☀️ Shadow cleared — positive engagement restored");
+                        let shadow_json = serde_json::json!({ "status": sheet.shadow_status }).to_string();
+                        let _ = tx.send(format!("event: shadow_status\ndata: {}\n\n", shadow_json)).await;
+                    }
+                    
                     sheet.recalculate_vulnerability();
                     crate::character_sheet::save_character_sheet(&sheet).ok();
                 }
@@ -694,13 +769,13 @@ pub async fn run_agent_loop(
             }
         }
 
-        // Clone user message for R5/R7 mechanics (before request.message is moved)
-        let user_message_text = request.message.clone();
+        // Clone user message for R5/R7 mechanics (before modified_user_message is moved)
+        let user_message_text = modified_user_message.clone();
 
         // Current user message
         messages.push(ChatMessage {
             role: "user".to_string(),
-            content: request.message,
+            content: modified_user_message,
             timestamp: None,
             image_base64: request.image_base64,
         });

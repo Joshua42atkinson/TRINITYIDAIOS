@@ -121,7 +121,9 @@ impl Plugin for DaydreamPlugin {
                 pulse_waypoints,
             ))
             // Add Python interpreter plugin
-            .add_plugins(crate::python_bridge::PythonPlugin);
+            .add_plugins(crate::python_bridge::PythonPlugin)
+            // The 3D UI Train Car Layout
+            .add_plugins(crate::train_car::IsomorphicTrainPlugin);
     }
 }
 

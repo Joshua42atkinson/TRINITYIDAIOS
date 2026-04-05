@@ -2,6 +2,9 @@
 
 ![Pete — The Conductor of the Iron Road](/images/pete_conductor.png)
 
+*(Cover Art: Trinity AI OS — First Autonomous Generation — Iron Road Steampunk Teacher)*  
+![Steampunk Victorian Teacher](/home/joshua/.gemini/antigravity/brain/56acf803-0af8-4eac-8131-b34968a99672/steampunk_victorian_teacher_1775409717320.png)
+
 Property of the Department of Cognitive Logistics | West Lafayette Node  
 System Status: ONLINE  
 Clearance: OPERATOR EYES ONLY  

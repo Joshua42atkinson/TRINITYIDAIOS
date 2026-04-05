@@ -152,7 +152,14 @@ fn render_control_rail(
     mut state: ResMut<CanvasState>,
     sidecar: Option<Res<ArtSidecarState>>,
     mailbox: Option<Res<CreativeMailbox>>,
+    consist: Option<Res<crate::train_car::TrainConsist>>,
 ) {
+    if let Some(consist_data) = consist {
+        if consist_data.user_index == 0 || consist_data.user_index == consist_data.length() - 1 {
+            return; // Art Control Rail ONLY visible when standing inside an Accordion ART Car
+        }
+    }
+
     let Ok(ctx) = contexts.ctx_mut() else { return };
 
     // ── Style: dark, minimal, transparent ─────────────────────────

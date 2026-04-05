@@ -385,7 +385,7 @@ pub async fn generate_image(
     );
 
     let payload = serde_json::json!({
-        "model": "HunyuanImage",
+        "model": "FLUX.1-schnell",
         "prompt": full_prompt,
         "n": 1,
         "size": format!("{}x{}", request.width, request.height),
@@ -440,20 +440,45 @@ pub async fn generate_tempo(
 
     info!("Generating procedural tempo: {}", request.prompt);
 
-    // Map the requested style/prompt to a learning context loosely
-    let context_arg = if request.prompt.to_lowercase().contains("problem") || request.prompt.to_lowercase().contains("fight") {
-        "problem_solving"
-    } else if request.prompt.to_lowercase().contains("creative") || request.prompt.to_lowercase().contains("art") {
-        "creative_exploration"
-    } else if request.prompt.to_lowercase().contains("review") {
-        "review_practice"
-    } else if request.prompt.to_lowercase().contains("assess") || request.prompt.to_lowercase().contains("test") {
-        "assessment"
-    } else if request.prompt.to_lowercase().contains("break") || request.prompt.to_lowercase().contains("relax") {
-        "break"
+    // Call the little Gemma-4 (E4B) on port 8003 to act as the "vibe setting boss"
+    let system_prompt = "You are the Tempo Vibe Boss. Your job is to analyze the user's prompt and select the best musical context for it. Respond with EXACTLY ONE of the following precise strings, with NO other text, punctuation, or explanation: problem_solving, creative_exploration, review_practice, assessment, break, concept_introduction.";
+    
+    let vibe_payload = serde_json::json!({
+        "model": "gemma-4-E4B",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": request.prompt}
+        ],
+        "temperature": 0.3,
+        "max_tokens": 10
+    });
+
+    let client = &*crate::http::STANDARD;
+    let mut context_arg = "concept_introduction".to_string(); // default fallback
+
+    if let Ok(vibe_res) = client.post("http://127.0.0.1:8003/v1/chat/completions")
+        .json(&vibe_payload)
+        .send().await 
+    {
+        if vibe_res.status().is_success() {
+            if let Ok(vibe_json) = vibe_res.json::<serde_json::Value>().await {
+                if let Some(content) = vibe_json["choices"][0]["message"]["content"].as_str() {
+                    let cleaned = content.trim().to_lowercase();
+                    // Validate it's one of our supported contexts
+                    if ["problem_solving", "creative_exploration", "review_practice", "assessment", "break", "concept_introduction"].contains(&cleaned.as_str()) {
+                        context_arg = cleaned;
+                        info!("vibe boss (E4B) selected context: {}", context_arg);
+                    } else {
+                        info!("vibe boss returned invalid context '{}', using default", cleaned);
+                    }
+                }
+            }
+        } else {
+            info!("vibe boss (E4B) returned non-success, using default context");
+        }
     } else {
-        "concept_introduction" // default
-    };
+        info!("vibe boss (E4B) offline or failed, using default context");
+    }
 
     let _duration_str = request.duration_secs.to_string();
     
@@ -538,18 +563,17 @@ pub async fn generate_video(
     let client = &*crate::http::LONG;
 
     let payload = serde_json::json!({
-        "model": "Gemma-4-E4B-Omni",
         "prompt": request.prompt,
         "duration": request.duration_secs,
         "fps": request.fps,
         "response_format": "b64_json"
     });
 
-    let response = client.post("http://127.0.0.1:8000/v1/video/generations").json(&payload).send().await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("vLLM video queue failed: {}", e)))?;
+    let response = client.post("http://127.0.0.1:8006/v1/video/generations").json(&payload).send().await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("CogVideoX queue failed: {}", e)))?;
 
     if !response.status().is_success() {
-        return Err((StatusCode::INTERNAL_SERVER_ERROR, "vLLM rejected video".to_string()));
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, "CogVideoX rejected video request".to_string()));
     }
 
     let result: serde_json::Value = response.json().await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
@@ -586,9 +610,7 @@ pub async fn generate_video(
 }
 
 
-/// Generate a 3D mesh via Hunyuan3D-2.1 (Gradio API on :7860)
-/// WHY: Replaces broken Trellis pipeline. Hunyuan3D-2.1 produces high-fidelity
-///      3D meshes with PBR materials from text or image input.
+/// Generate a 3D mesh via TripoSR (MIT) API on port 8007
 pub async fn generate_3d_mesh(
     State(state): State<AppState>,
     Json(request): Json<Mesh3DRequest>,
@@ -597,9 +619,9 @@ pub async fn generate_3d_mesh(
 
     let client = &*crate::http::LONG;
 
-    // Check Hunyuan3D-2.1 Gradio health
+    // Check TripoSR health
     let healthy = client
-        .get("http://127.0.0.1:7860/api/predict")
+        .get("http://127.0.0.1:8007/docs")
         .timeout(std::time::Duration::from_secs(3))
         .send()
         .await
@@ -609,36 +631,31 @@ pub async fn generate_3d_mesh(
     if !healthy {
         return Err((
             StatusCode::SERVICE_UNAVAILABLE,
-            "Hunyuan3D-2.1 not running. Start with: python app.py (port 7860)".to_string(),
+            "TripoSR not running. Start with start_vllm_omni.sh".to_string(),
         ));
     }
 
     info!("Generating 3D mesh: {}", request.prompt);
 
-    // Call Gradio API — text-to-3D or image-to-3D depending on input
-    let payload = if let Some(ref img_b64) = request.image_base64 {
-        // Image-to-3D mode
-        serde_json::json!({
-            "data": [img_b64, request.prompt, 50, 7.5],
-            "fn_index": 1
-        })
-    } else {
-        // Text-to-3D mode
-        serde_json::json!({
-            "data": [request.prompt, 50, 7.5],
-            "fn_index": 0
-        })
+    let img_b64 = match request.image_base64 {
+        Some(b64) => b64,
+        None => return Err((StatusCode::BAD_REQUEST, "TripoSR requires an input image_base64.".to_string())),
     };
 
+    let payload = serde_json::json!({
+        "prompt": request.prompt,
+        "image_base64": img_b64
+    });
+
     let response = client
-        .post("http://127.0.0.1:7860/api/predict")
+        .post("http://127.0.0.1:8007/v1/3d/generations")
         .json(&payload)
         .send()
         .await
         .map_err(|e| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Hunyuan3D request failed: {}", e),
+                format!("TripoSR request failed: {}", e),
             )
         })?;
 
@@ -646,7 +663,7 @@ pub async fn generate_3d_mesh(
         let err_text = response.text().await.unwrap_or_default();
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Hunyuan3D error: {}", err_text),
+            format!("TripoSR error: {}", err_text),
         ));
     }
 
@@ -655,24 +672,22 @@ pub async fn generate_3d_mesh(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    // Gradio returns file paths in data array
-    let mesh_path = result["data"]
-        .as_array()
-        .and_then(|a| a.first())
-        .and_then(|v| v.as_str())
-        .map(|s| {
-            // Copy to Trinity workspace
-            let home = std::env::var("HOME").unwrap_or_else(|_| dirs::home_dir().unwrap_or_default().to_string_lossy().to_string());
-            let workspace_dir = std::path::PathBuf::from(&home)
-                .join(".local/share/trinity/workspace/assets/meshes");
-            let _ = std::fs::create_dir_all(&workspace_dir);
+    let obj_b64 = result["data"][0]["obj_base64"].as_str().unwrap_or("");
+    use base64::{Engine as _, engine::general_purpose};
+    let bytes = general_purpose::STANDARD.decode(obj_b64).unwrap_or_default();
 
-            let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
-            let filename = format!("trinity_mesh_{}.{}", timestamp, request.format);
-            let final_path = workspace_dir.join(&filename);
-            let _ = std::fs::copy(s, &final_path);
-            final_path.to_string_lossy().to_string()
-        });
+    // Copy to Trinity workspace
+    let home = std::env::var("HOME").unwrap_or_else(|_| dirs::home_dir().unwrap_or_default().to_string_lossy().to_string());
+    let workspace_dir = std::path::PathBuf::from(&home)
+        .join(".local/share/trinity/workspace/assets/meshes");
+    let _ = std::fs::create_dir_all(&workspace_dir);
+
+    let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
+    let filename = format!("trinity_mesh_{}.obj", timestamp);
+    let final_path = workspace_dir.join(&filename);
+    let _ = std::fs::write(&final_path, bytes);
+            
+    let mesh_path = Some(final_path.to_string_lossy().to_string());
 
     if mesh_path.is_some() {
         // Auto-vault to portfolio

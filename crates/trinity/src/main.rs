@@ -867,6 +867,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/quest/party", post(quests::toggle_party_member))
         .route("/api/quest/subject", post(quests::set_subject))
         .route("/api/quest/tame_creep", post(quests::tame_creep))
+        .route("/api/quest/cast_spell", post(quests::cast_spell))
         .route("/api/quest/economy", post(quests::update_economy))
         .route("/api/quest/execute", post(orchestrate_quest))
         .route("/api/quest/compile", post(compile_game_design_document))
@@ -1273,6 +1274,12 @@ async fn update_character_sheet(
     if let Some(audio_prefs) = request.get("audio_preferences") {
         if let Ok(ap) = serde_json::from_value::<trinity_protocol::character_sheet::AudioPreferences>(audio_prefs.clone()) {
             sheet.audio_preferences = ap;
+        }
+    }
+
+    if let Some(creative_cfg) = request.get("creative_config") {
+        if let Ok(cc) = serde_json::from_value::<trinity_protocol::character_sheet::CreativeConfig>(creative_cfg.clone()) {
+            sheet.creative_config = cc;
         }
     }
 
@@ -2397,40 +2404,7 @@ pub struct BackendStartRequest {
     backend: String,
 }
 
-/// Resolve the `lms` CLI binary path — it lives at ~/.lmstudio/bin/lms
-fn resolve_lms_path() -> std::path::PathBuf {
-    let home_lms = home_dir().join(".lmstudio/bin/lms");
-    if home_lms.exists() {
-        home_lms
-    } else {
-        std::path::PathBuf::from("lms")
-    }
-}
 
-/// Find the LM Studio AppImage on disk
-fn find_lm_studio_appimage() -> Option<std::path::PathBuf> {
-    // Check common locations
-    let candidates = vec![
-        home_dir().join("Downloads/LM-Studio-0.4.8-1-x64.AppImage"),
-        home_dir().join("Applications/LM-Studio.AppImage"),
-        home_dir().join(".local/bin/LM-Studio.AppImage"),
-    ];
-    for c in &candidates {
-        if c.exists() {
-            return Some(c.clone());
-        }
-    }
-    // Glob search ~/Downloads for any LM-Studio*.AppImage
-    if let Ok(entries) = std::fs::read_dir(home_dir().join("Downloads")) {
-        for entry in entries.flatten() {
-            let name = entry.file_name().to_string_lossy().to_string();
-            if name.starts_with("LM-Studio") && name.ends_with(".AppImage") {
-                return Some(entry.path());
-            }
-        }
-    }
-    None
-}
 
 /// Helper: set ignition status atomically
 async fn set_ignition(status: &Arc<RwLock<String>>, value: &str) {
@@ -2458,199 +2432,83 @@ async fn backend_start(
     }
 
     match payload.backend.as_str() {
-        "lm_studio" => {
+        "vllm-omni" => {
             set_ignition(&ignition, "launching").await;
-            let lms = resolve_lms_path();
             let ignition_bg = ignition.clone();
             let inference_router = state.inference_router.clone();
 
-            // Entire ignition runs in a background task
             tokio::spawn(async move {
                 let client = reqwest::Client::new();
                 
-                // ═══ Phase 1: Fast-path check: Is the API server already healthy? ═══
+                // ═══ Phase 1: Fast-path check
                 let mut server_already_up = false;
-                match client.get("http://127.0.0.1:1234/v1/models")
+                match client.get("http://127.0.0.1:8000/v1/models")
                     .timeout(std::time::Duration::from_secs(2))
                     .send().await
                 {
                     Ok(resp) if resp.status().is_success() => {
-                        info!("🔥 Fast-path: LM Studio API server is already running on :1234");
+                        info!("🔥 Fast-path: vLLM Omni API server is already running on :8000");
                         server_already_up = true;
                     }
                     _ => {}
                 }
 
                 if !server_already_up {
-                    // ═══ Phase 2: Check if LM Studio GUI is running at all ═══
-                    // Use `lms status` (not `lms daemon status`) because the
-                    // GUI app uses IPC, not the daemon protocol.
-                    let lms_alive = match tokio::process::Command::new(&lms)
-                        .arg("status")
-                        .output().await
+                    info!("🔥 vLLM Omni not running — launching proxy in background...");
+                    
+                    let trinity_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+                    let launch_script = trinity_dir.join("scripts/launch/start_vllm_omni.sh");
+                    
+                    match tokio::process::Command::new("bash")
+                        .arg(launch_script)
+                        .spawn()
                     {
-                        Ok(out) => {
-                            let stdout = String::from_utf8_lossy(&out.stdout);
-                            !stdout.contains("not running")
-                        }
-                        Err(_) => false,
-                    };
-
-                    if !lms_alive {
-                        info!("🔥 LM Studio not running — launching AppImage in foreground...");
-
-                        // Clean up any orphaned FUSE mounts that prevent relaunching
-                        let _ = tokio::process::Command::new("bash")
-                            .arg("-c")
-                            .arg("for d in /tmp/.mount_LM-St*; do fusermount -uz \"$d\" 2>/dev/null; done")
-                            .output().await;
-
-                        if let Some(appimage) = find_lm_studio_appimage() {
-                            info!("🔥 Found AppImage at: {}", appimage.display());
-                            // CRITICAL: Do NOT use Stdio::null() — Electron needs
-                            // functional file descriptors or it crashes silently.
-                            // Use Stdio::piped() so the child process survives in the graphical session.
-                            match tokio::process::Command::new(&appimage)
-                                .env("DISPLAY", std::env::var("DISPLAY").unwrap_or_else(|_| ":0".to_string()))
-                                .stdout(std::process::Stdio::inherit())
-                                .stderr(std::process::Stdio::inherit())
-                                .spawn()
-                            {
-                                Ok(mut child) => {
-                                    info!("🔥 AppImage launched natively! keeping process handle alive in background...");
-                                    // Spawn a background task to keep the child handle alive so the Electron process isn't killed or orphaned.
-                                    tokio::spawn(async move {
-                                        let _ = child.wait().await;
-                                    });
-                                },
-                                Err(e) => {
-                                    warn!("❌ Failed to launch AppImage: {}", e);
-                                    set_ignition(&ignition_bg, "failed").await;
-                                    return;
-                                }
-                            }
-                        } else {
-                            warn!("❌ No AppImage found in standard directories.");
+                        Ok(mut child) => {
+                            info!("🔥 Launched vLLM Omni script in background!");
+                            // Just detach, assuming the script handles long-lived daemon
+                            tokio::spawn(async move {
+                                let _ = child.wait().await;
+                            });
+                        },
+                        Err(e) => {
+                            warn!("❌ Failed to launch vLLM Omni script: {}", e);
                             set_ignition(&ignition_bg, "failed").await;
                             return;
                         }
-
-                        // The FUSE AppImage takes 10-15s to mount and start the internal IPC daemon.
-                        // We will continuously retry `lms server start` until it succeeds.
-                        let mut server_started = false;
-                        set_ignition(&ignition_bg, "daemon_up").await;
-                        info!("🔥 Polling lms server start command (waiting for AppImage daemon)...");
-                        for attempt in 1..=45 {
-                            // Give it a breather between FUSE and daemon attempts
-                            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-                            
-                            match tokio::process::Command::new(&lms)
-                                .arg("server").arg("start")
-                                .arg("--port").arg("1234")
-                                .arg("--cors")
-                                .output().await
-                            {
-                                Ok(out) => {
-                                    let stderr = String::from_utf8_lossy(&out.stderr);
-                                    if out.status.success() || stderr.contains("Server is already running") {
-                                        info!("🔥 lms server started successfully on attempt {}!", attempt);
-                                        server_started = true;
-                                        break;
-                                    }
-                                }
-                                Err(_) => {} // command execution failed entirely, keep waiting
-                            }
-                        }
-                        
-                        if !server_started {
-                            warn!("❌ `lms server start` failed to connect to daemon after 90 seconds.");
-                            set_ignition(&ignition_bg, "failed").await;
-                            return;
-                        }
-                    } else {
-                        // The AppImage is ALREADY alive. We just need to start the server.
-                        set_ignition(&ignition_bg, "server_starting").await;
-                        let _ = tokio::process::Command::new(&lms)
-                            .arg("server").arg("start")
-                            .arg("--port").arg("1234")
-                            .arg("--cors")
-                            .output().await;
                     }
 
-                    // `server start` logic is handled above now.
-
-                    // ═══ Phase 4: Poll :1234 until the server is healthy (up to 60s) ═══
+                    // ═══ Phase 2: Poll :8000 until the server is healthy (up to 300s since models are huge)
                     set_ignition(&ignition_bg, "polling").await;
                     let mut server_ready = false;
-                    for attempt in 1..=60 {
+                    for attempt in 1..=300 {
                         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                        match client.get("http://127.0.0.1:1234/v1/models")
+                        match client.get("http://127.0.0.1:8000/v1/models")
                             .timeout(std::time::Duration::from_secs(2))
                             .send().await
                         {
                             Ok(resp) if resp.status().is_success() => {
-                                info!("🔥 LM Studio API server ready after {}s", attempt);
+                                info!("🔥 vLLM Omni API server ready after {}s", attempt);
                                 server_ready = true;
                                 break;
                             }
                             _ => {
                                 if attempt % 10 == 0 {
-                                    info!("🔥 Waiting for LM Studio API... ({}s)", attempt);
+                                    info!("🔥 Waiting for vLLM Omni API... ({}s)", attempt);
                                 }
                             }
                         }
                     }
                     if !server_ready {
-                        warn!("❌ LM Studio API server did not respond after 60s");
+                        warn!("❌ vLLM Omni API server did not respond after 300s");
                         set_ignition(&ignition_bg, "failed").await;
                         return;
                     }
                 }
 
-                // ═══ Phase 4: Load Mistral model ═══
-                set_ignition(&ignition_bg, "loading_model").await;
-                match tokio::process::Command::new(&lms)
-                    .arg("load").arg("mistral")
-                    .output().await
-                {
-                    Ok(out) => {
-                        let stdout = String::from_utf8_lossy(&out.stdout);
-                        let stderr = String::from_utf8_lossy(&out.stderr);
-                        info!("🔥 lms load mistral: {} {}", stdout.trim(), stderr.trim());
-                    }
-                    Err(e) => {
-                        warn!("❌ lms load mistral failed: {}", e);
-                        set_ignition(&ignition_bg, "failed").await;
-                        return;
-                    }
-                }
-
-                // ═══ Phase 5: Verify the model actually loaded ═══
-                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-                let model_loaded = match client.get("http://127.0.0.1:1234/v1/models")
-                    .timeout(std::time::Duration::from_secs(5))
-                    .send().await
-                {
-                    Ok(resp) => {
-                        if let Ok(body) = resp.json::<serde_json::Value>().await {
-                            if let Some(data) = body.get("data").and_then(|d| d.as_array()) {
-                                !data.is_empty()
-                            } else { false }
-                        } else { false }
-                    }
-                    Err(_) => false,
-                };
-
-                if model_loaded {
-                    set_ignition(&ignition_bg, "ready").await;
-                    // Refresh the inference router to detect the newly healthy backend
-                    let mut router = inference_router.write().await;
-                    router.auto_detect().await;
-                    info!("🔥 ═══ IGNITION COMPLETE — LM Studio is ONLINE ═══");
-                } else {
-                    warn!("❌ Model did not appear in /v1/models after loading");
-                    set_ignition(&ignition_bg, "failed").await;
-                }
+                set_ignition(&ignition_bg, "ready").await;
+                let mut router = inference_router.write().await;
+                router.auto_detect().await;
+                info!("🔥 ═══ IGNITION COMPLETE — vLLM Omni is ONLINE ═══");
             });
         },
         "ollama" => {
@@ -4698,7 +4556,7 @@ async fn setup_config(
     Json(config): Json<SetupConfig>,
 ) -> impl axum::response::IntoResponse {
     let url = match config.backend.as_str() {
-        "lm_studio" => "http://127.0.0.1:1234/v1/chat/completions",
+        "vllm-omni" => "http://127.0.0.1:8000/v1/chat/completions",
         "ollama" => "http://127.0.0.1:11434/v1/chat/completions",
         _ => config.custom_url.as_deref().unwrap_or("http://127.0.0.1:11434/v1/chat/completions"),
     };

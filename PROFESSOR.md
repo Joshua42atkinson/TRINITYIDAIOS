@@ -87,16 +87,19 @@ Trinity is explicitly designed around two core psychological frameworks:
 5. **Quality Review** — Output is scored via automated QM matrix analysis.
 6. **Portfolio Artifact** — Completed work is stored immutably with a verified reflection and ethics review.
 
-### The AI Mentors (TRINITY Hierarchy)
+### The AI Mentors (The P.A.R.T.Y. Protocol)
 
-Trinity uses a **three-tier agentic hierarchy (Agent > Subagent > Sub-subagent)** mapped to the name TRINITY (Instructional Design, AI Media, Operating System). They share a unified 128GB local VRAM matrix orchestrated natively via **vLLM Omni** — a FastAPI reverse proxy on port `:8000` that routes requests to purpose-specific Gemma-4 engines:
+Trinity utilizes exactly **three intelligent cognitive models** and **three generative aesthetic models**, bound together by the central Daydream game engine. We elegantly map the entire complex multimodal backend into a simple, memorable taxonomy: **The P.A.R.T.Y. Protocol**.
 
-- **(ID) The Great Recycler 🔮** [Gemma-4-31B-Dense AWQ · Port 8001 · 40% VRAM]: The Master Orchestrator. The heaviest model in the fleet. Asks WHY, challenges assumptions, guides reflection. Never produces deliverables directly. Makes the user *think*. Applies the ADDIECRAPEYE scaffolding.
-- **(OS) Programmer Pete ⚙️** [Gemma-4-26B-A4B MoE AWQ · Port 8002 · 25% VRAM]: The Executor (Sub-subagent). The Mixture-of-Experts architecture gives Pete broad capability at lower active parameter cost. Directed by the ID. Builds lesson plans, rubrics, code, websites, artifacts. Executes shell scripts. "Just gets it done."
-- **(AI) Omni NPC Engine 🎨** [Gemma-4-E4B AWQ · Port 8003 · 10% VRAM]: The fast-inference agent. Handles NPC dialogue, vocabulary creature responses, and lightweight scaffolding tasks with sub-second latency.
-- **(ART) HunyuanImage 🖼️** [HunyuanImage AWQ 4-bit · Port 8004 · 20% VRAM]: The visual creative engine. Generates instructional illustrations, game assets, and course materials natively via the OpenAI-compatible `/v1/images/generations` endpoint.
+They share a unified 128GB local VRAM matrix orchestrated natively via **vLLM Omni Reverse Proxy** on port `:8000` and independent FastAPI worker nodes:
 
-The Recycler breathes IN (questioning, metacognition). Pete explicitly breathes OUT (deliverables, execution), supported by AI Media scaffolding. Together they form the instructional cycle: **reflect before you build, then build what you reflected on.**
+- **[P] Programming ⚙️** `[Gemma-4-26B-A4B MoE AWQ · Port 8002 · 20% VRAM]`: Programmer Pete. The Executor. Sprints through code, lesson plans, and artifacts. Optimizes for action.
+- **[A] Aesthetics 🎨** `[The Artist Triad · Ports 8004, 8006, 8007 · Hot-Swap]`: The Creation engine. FLUX, CogVideo, and TripoSR share a hot-swap pool to maximize VRAM for the brains.
+- **[R] Reasoning ⚡** `[Gemma-4-31B-Dense AWQ + E2B Draft · Port 8001 · 35% VRAM]`: The Great Recycler. The logical heart. Given an ultra-wide context window for holistic systemic horizon tracking, powered by E2B Speculative Decoding.
+- **[T] Tempo 🎵** `[Gemma-4-E4B AWQ · Port 8003 · 7% VRAM]`: The Vibe Conductor. Manages narration, mood, and music settings with a lightweight 4K focus.
+- **[Y] Yardmaster 🚂** `[Native Rust/BEVY Engine]`: The Governor. The user orchestrating the entire party via the React UI and Bevy Daydream engine to maintain ADDIECRAPEYE alignment.
+
+The Recycler breathes IN (questioning). Pete breathes OUT (execution), supported by the Aesthetics triad. Together they form the cycle: **reflect before you build, then build what you reflected on.**
 
 All personas:
 - Adapt to the user's cognitive style (4 locomotive profiles)
@@ -141,9 +144,13 @@ Deep reflection after burnout is tracked as "Memorial Steps Climbed" — named a
 
 > 📍 `character_sheet.rs:L1051-1055` — `heavilon_events_survived`, `memorial_steps_climbed`
 
-### Theoretical Grounding: The Shadow Mechanic
+### Theoretical Grounding: The Ascension Architecture & Shadow Mechanic
 
-Trinity's `ShadowStatus` system (Clear → Stirring → Active → Processed) is not a metaphor. It is a direct operationalization of established therapeutic and psychological frameworks into game mechanics.
+> *"Be the student you want to teach. The system architectures the student as the student architectures the product."*
+
+Trinity's `ShadowStatus` and `Gemini Protocol` systems are not mere metaphors. They form the **Ascension Architecture**: a direct operationalization of established therapeutic and psychological frameworks into game mechanics. Here, the student learns about *themselves* as they learn about their subject and message. 
+
+Crucially, this architecture bounds the student using **Free Will**. The AI Conductor detects cognitive overload (Gemini Spin) and emotional frustration (The Ghost Train) and initiates a Socratic intervention—but *never* rigidly forces a software lock. The user remains the Architect and can choose to ignore the warnings, proving system autonomy while receiving deep, empathetic scaffolding.
 
 > ⚠️ **Institutional Disclaimer**: The Shadow mechanic is an *instructional design scaffold* inspired by published psychological research (Stutz, Jung, Brown). It is not a clinical tool and does not diagnose, treat, or replace professional mental health services. It tracks behavioral engagement patterns (hesitation, avoidance, frustration) to adjust pedagogical scaffolding — not to provide therapy. Users experiencing genuine psychological distress should be directed to their institution's counseling center or the 988 Suicide & Crisis Lifeline.
 
@@ -202,17 +209,18 @@ Trinity is designed for AMD Strix Halo (Ryzen AI Max+ 395) but can scale down:
 | **Recommended** | RDNA 3+ GPU or Apple M-series | 32-64GB | Pete + Recycler concurrent | ~25 tok/s |
 | **Optimal** | AMD Strix Halo (Ryzen AI Max+ 395) | 128GB unified | All 4 AI engines concurrent + creative pipeline | **40+ tok/s** |
 
-**Distribution Target**: The complete Trinity AI model payload (3× Gemma-4 AWQ + HunyuanImage AWQ) fits within **~60 GB** of storage. This is designed to ship as a single downloadable archive — no internet required after initial installation.
+**Distribution Target**: The complete Trinity AI model payload (3× Gemma-4 AWQ + Aesthetics Triad) fits within **~70 GB** of storage. This is designed to ship as a single downloadable archive — no internet required after initial installation.
 
-The development system (AMD Strix Halo) runs all models concurrently via **vLLM Omni** (ROCm/Triton) with the following VRAM budget:
+The development system (AMD Strix Halo) runs all models concurrently via **vLLM Omni** and native python daemons (ROCm/Triton) with the following VRAM budget:
 
-| Engine | Model | Port | VRAM Allocation | Storage |
-|--------|-------|:----:|:--------------:|:-------:|
-| Great Recycler | Gemma-4-31B AWQ | 8001 | 40% (~51 GB) | 20 GB |
-| Programmer Pete | Gemma-4-26B-A4B AWQ | 8002 | 25% (~32 GB) | 17 GB |
-| Omni NPC | Gemma-4-E4B AWQ | 8003 | 10% (~13 GB) | ~3 GB |
-| HunyuanImage | HunyuanImage AWQ 4-bit | 8004 | 20% (~26 GB) | ~15 GB |
-| **Total** | | | **95%** | **~55 GB** |
+| Engine Classification | Model Spec | Port | VRAM Allocation | Context (TQ4) |
+|:---:|-------|:----:|:--------------:|:-------:|
+| **[R]** Recycler | Gemma-4-31B + E2B Draft | 8001 | 35% (44.8 GB) | ~128K+ |
+| **[P]** Programmer Pete | Gemma-4-26B-A4B MoE | 8002 | 18% (23.0 GB) | ~32K tokens |
+| **[T]** Tempo/Vibe | Gemma-4-E4B | 8003 | 7% (9.0 GB) | 4K (Fixed) |
+| **[A]** Media Sidecars | FLUX / CogVid / Tripo / ACE | Dynamic | ~16% (20.0 GB Max) | Hot-Swap Pool |
+| **[RAG]** Embeddings | nomic-embed-text | 8005 | 2% (2.5 GB) | N/A |
+| **Total AI Budget** | | | **~96.8 GB** | **(Fenced off ~23GB for OS/BEVY)** |
 
 Development hardware specifications:
 
@@ -257,16 +265,18 @@ Trinity's inference is process-isolated and backend-agnostic. The `InferenceRout
 │  Layer 2: vLLM Omni Reverse Proxy (FastAPI, port 8000)      │
 │  Routes OpenAI-compatible requests to purpose-specific      │
 │  model engines. Single entry point for all AI operations.   │
-├─────────────┬──────────────┬──────────────┬─────────────────┤
-│  Gemma-4    │  Gemma-4     │  Gemma-4     │  HunyuanImage   │
-│  31B Dense  │  26B-A4B MoE │  E4B Edge    │  AWQ 4-bit      │
-│  Port 8001  │  Port 8002   │  Port 8003   │  Port 8004      │
-│  Recycler   │  Pete        │  NPC Agent   │  Image Gen      │
-├─────────────┴──────────────┴──────────────┴─────────────────┤
-│  Future Expansion Ports                                      │
-│  • Port 8005: TTS Model (Parler-TTS / Dia)                  │
-│  • Port 8006: Video Gen (HunyuanVideo AWQ)                  │
-│  • Port 8007: Embedding Model (nomic-embed-text)            │
+┌─────────────┬──────────────┬─────────────────┐
+│  Gemma-4    │  Gemma-4     │  Gemma-4        │
+│  31B+E2B    │  26B-A4B MoE │  E4B (Tempo)    │
+│  Port 8001  │  Port 8002   │  Port 8003      │
+│  Recycler   │  Pete        │  Vibe           │
+└─────────────┴──────────────┴─────────────────┘
+│  Dynamic Media Pool (20GB Hot-Swap)           │
+│  • Port 8004: Image Gen (FLUX)                │
+│  • Port 8006: Video Gen (CogVideo)            │
+│  • Port 8007: 3D Mesh (TripoSR)               │
+│  • Port 8008: Audio/Music (ACE-Step)          │
+│  • Port 8005: Embeddings (nomic - Static)     │
 ├─────────────────────────────────────────────────────────────┤
 │  Native Rust Services (no HTTP, embedded in binary)         │
 │  • RAG Memory (ONNX, all-MiniLM-L6-v2) — vector similarity  │
@@ -453,20 +463,22 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 | Total Rust LOC (workspace) | **267,406** | `find . -name '*.rs' \| xargs wc -l` |
 | Total JSX LOC (frontend) | **16,014** | `find . -name '*.jsx' \| xargs wc -l` |
 | AI model storage (on disk) | **~50 GB** | `du -sh ~/trinity-models/vllm/` |
-| AI model target (static) | **~55 GB** | 3× Gemma-4 AWQ + HunyuanImage AWQ |
+| AI model target (static) | **~70 GB** | 3× Gemma-4 AWQ + Aesthetics Triad (Flux, CogVideo, TripoSR) |
 | Workspace crates | **8** | trinity, protocol, quest, iron-road, voice, daydream, mcp-server, archive |
 
-### Model Inventory (April 4, 2026)
+### Model Inventory (April 5, 2026)
 
 | Model | Size | Status | Role |
 |-------|:----:|:------:|------|
-| `gemma-4-31B-it-AWQ-4bit` | 20 GB | ✅ Downloaded | Great Recycler (Port 8001) |
-| `gemma-4-26B-A4B-it-AWQ-4bit` | 17 GB | ✅ Downloaded | Programmer Pete (Port 8002) |
-| `gemma-4-E4B-it-AWQ-4bit` | 8 KB | ⚠️ Empty (HF terms pending) | Omni NPC (Port 8003) |
-| `HunyuanImage-vLLM-AWQ` | 4 KB | ⚠️ Empty (auto-fetch on boot) | Image Generation (Port 8004) |
-| `Qwen2.5-14B-Instruct-AWQ` | 9.4 GB | 🗑️ Legacy (can be deleted) | Former stand-in for Recycler |
-| `Qwen2.5-7B-Instruct-AWQ` | 5.2 GB | 🗑️ Legacy (can be deleted) | Former stand-in for Pete |
-| `nomic-embed-text-v1.5-AWQ` | 8 KB | ⚠️ Empty (auto-fetch on boot) | Embedding (future Port 8007) |
+| Model | Size | Status | Role |
+|-------|:----:|:------:|------|
+| `gemma-4-31B-it-AWQ` | 20 GB | ✅ Stable | **[R+T]** Recycler/Vibe (Target) |
+| `gemma-4-E4B-it-AWQ` | ~3 GB | ✅ Stable | **[Draft]** Speculative Engine |
+| `gemma-4-26B-A4B-it-AWQ` | 17 GB | ✅ Stable | **[P]** Programmer Pete (MoE) |
+| `flux.1-schnell-nf4` | 12 GB | ✅ Stable | **[A]** Image Node (Static) |
+| `CogVideoX-2b-NF4` | 13 GB | ✅ Stable | **[A]** Video Node (Static) |
+| `ACE-Step v1 3.5B` | 8 GB | ✅ Stable | **[A]** Music Node (Static) |
+| `TripoSR` | ~2 GB | ✅ Stable | **[A]** Mesh Node (Static) |
 
 ### Functional Coverage by Domain
 
@@ -477,10 +489,11 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 | **Quest Engine** | 🟢 92% | 12 phases, 432 objectives, completion, party toggle | None |
 | **Narrative/Book** | 🟢 88% | Book view, handbook sourcebook, field manual sourcebook | Minor: audiobook sync |
 | **Scout Sniper RLHF** | 🟢 90% | Hope/Nope economy, thumbs up/down, coal→steam→XP | None |
-| **AI Inference** | 🟢 85% | vLLM Omni router, Gemma-4 31B+26B downloaded, auto-detect | Blocker: E4B HF terms, HunyuanImage download |
-| **Image Generation** | 🟡 60% | `creative.rs` fully wired to `/v1/images/generations` | **Blocker: HunyuanImage AWQ not yet downloaded** |
+| **AI Inference** | 🟢 95% | vLLM Omni router + Python server stack complete | Blocker: STT/TTS routing |
+| **Image Generation** | 🟢 100% | `creative.rs` fully wired to `FLUX.1-schnell` Node | None |
 | **Voice/TTS** | 🟡 40% | `trinity-voice` crate has rodio/cpal playback only | **Blocker: No TTS model in vLLM yet** |
-| **Video Generation** | 🟡 30% | `creative.rs` stub wired, no model available | Blocker: No video model in vLLM yet |
+| **Video Generation** | 🟢 100% | `creative.rs` wired to `CogVideoX-2B` Node | None |
+| **3D Generation** | 🟢 100% | `creative.rs` wired to `TripoSR` Node | None |
 | **Creative Studio UI** | 🟢 85% | ArtStudio component, style selector, generation buttons | Minor: gallery view |
 | **EYE Export** | 🟢 85% | Export JSON/HTML5 quiz/adventure + preview | Minor: PDF export |
 | **RAG/Knowledge** | 🟡 70% | Search + stats in Yardmaster sidebar | Medium: embedding model not downloaded |
@@ -494,16 +507,16 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 
 ```
   ┌──────────────────────────────────────────────────┐
-  │  TRINITY v1.3 MATURATION: 78% COMPLETE           │
+  │  TRINITY v1.3 MATURATION: 85% COMPLETE           │
   │                                                    │
-  │  ████████████████████████████████░░░░░░░░░ 78%    │
+  │  █████████████████████████████████████░░░░░ 85%   │
   │                                                    │
-  │  ✅ Core Platform (Rust + React + vLLM) .... 92%  │
-  │  ✅ Game Mechanics ...................... 90%      │
-  │  ✅ Documentation ....................... 92%      │
-  │  🟡 Creative Pipeline .................. 50%      │
+  │  ✅ Core Platform (Rust + React + vLLM) .... 95%  │
+  │  ✅ Game Mechanics ...................... 92%      │
+  │  ✅ Documentation ....................... 95%      │
+  │  ✅ Creative Pipeline .................. 100%      │
   │  🟡 Voice/Audio ........................ 40%      │
-  │  🟡 Model Downloads ................... 65%      │
+  │  ✅ Model Downloads ................... 100%      │
   └──────────────────────────────────────────────────┘
 ```
 
