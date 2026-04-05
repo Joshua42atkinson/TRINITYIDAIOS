@@ -753,8 +753,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let (daydream_tx_sender, mut daydream_rx_receiver) = tokio::sync::mpsc::channel::<String>(100);
+    let (telemetry_tx, _) = tokio::sync::broadcast::channel(100);
 
     let state = AppState {
+        telemetry_updates: telemetry_tx,
         // System layer
         inference_router: Arc::new(RwLock::new(inference_router)),
         db_pool: db_pool.clone(),
