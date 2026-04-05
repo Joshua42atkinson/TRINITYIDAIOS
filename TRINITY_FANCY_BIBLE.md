@@ -23,7 +23,7 @@
 | **Quality Scorecard** | `Verified` | `quality_scorecard.rs`, unit tests pass |
 | **Socratic Protocol & Agent Tools** | `Verified` | `conductor_leader.rs`, `tools.rs`, 30 available tools |
 | **LDT Portfolio HUD** | `Verified` | `CharacterSheet.jsx`, `character_api.rs` |
-| **App Modes (Iron Road, Express, Yardmaster, Demo)** | `Verified` | `AppMode` enum in `main.rs`, React UI |
+| **App Modes (Iron Road, Express, Yardmaster)** | `Verified` | `AppMode` enum natively integrated into Bevy Train Consist |
 | **Creative Pipeline (Images, Music, Video, 3D)** | `Verified` | `creative.rs`, `useCreative.js` — ComfyUI/MusicGPT/Hunyuan |
 | **Voice Pipeline (Supertonic-2 TTS)** | `Verified` | `supertonic.rs`, native ONNX — browser fallback auto-detect |
 | **DAYDREAM (Native Bevy Sidecar)** | `Verified` | `trinity-daydream` crate — Pure Rust Bevy 0.18.1 3D LitRPG, no JS |
@@ -38,7 +38,7 @@
 | **Journal & Reflections** | `Verified` | `JournalViewer.jsx` — timeline, weekly reflections, bookmarks, export |
 | **Book Narrative** | `Verified` | `GameHUD.jsx` — chapters from `/api/book`, generate via `/api/narrative/generate` |
 | **Setup Wizard (BYOM)** | `Verified` | `SetupWizard.jsx` — API health gate, dynamic backend selection |
-| **Tauri v2 Desktop App** | `Verified` | Dual-headed binary: Tauri main thread + Axum background thread |
+| **Headless JSON Server** | `Verified` | Single binary: Axum daemon answering native SSE HTTP requests |
 | **Background Job Runner** | `Verified` | `jobs.rs` — SQLite-persisted task queue, headless multi-turn agent |
 | **MCP Server** | `Verified` | `trinity-mcp-server` crate — Model Context Protocol for agentic extensibility |
 | **Shadow Process** | `Verified` | `CharacterSheet.jsx` — Ghost Train stop button → `/api/character/shadow/process` |
@@ -197,24 +197,24 @@ Trinity is not a chatbot wrapper. It is a three-layer operating system:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Layer 3: DAYDREAM (Spatial Sandbox)                     │
-│  Bevy 0.18.1 — pure Rust 3D LitRPG sidecar process      │
+│  Layer 3: DAYDREAM (The Front Engine)                   │
+│  Bevy 0.18.1 — Pure Rust Accordion Train OS             │
 │  📍 crates/trinity-daydream/                            │
 ├─────────────────────────────────────────────────────────┤
-│  Layer 2: Protocol (The Language)                        │
-│  Shared types, ADDIECRAPEYE enums, CharacterSheet        │
+│  Layer 2: Protocol (The Language)                       │
+│  Shared types, ADDIECRAPEYE enums, CharacterSheet       │
 │  📍 crates/trinity-protocol/ (26 public modules)        │
 ├─────────────────────────────────────────────────────────┤
-│  Layer 1: Headless Server + Tauri Host                   │
+│  Layer 1: The Brain (Headless Server)                   │
 │  Axum HTTP API on port 3000 — the "engine room"         │
-│  Tauri v2 wraps Layer 1 for native desktop delivery      │
+│  Pure JSON payload delivery. React/Tauri eradicated.    │
 │  📍 crates/trinity/src/main.rs (startup)                │
 └─────────────────────────────────────────────────────────┘
 ```
 
-**Layer 1** (Headless Server) is the foundation. It runs without a screen. The Axum HTTP server spawns on a background `tokio::spawn` thread, while `tauri::Builder` owns the main thread for native UI rendering (`npx tauri dev`). Passing `--headless` or `TRINITY_HEADLESS=1` bypasses Tauri entirely, allowing the same binary to serve as a headless daemon on `LDTAtkinson.com` via Cloudflared EdgeGuard on port 3000.
+**Layer 1** (Headless Server) is the foundation and runs without a GUI representation. The Axum HTTP server spawns and quietly responds to Socratic API requests completely agnostically, effectively allowing it to serve as a pure brain API on `LDTAtkinson.com`.
 
-**Layer 3** (DAYDREAM) runs as a **separate native process** — not embedded in the Tauri WebView. Due to Linux/Wayland `winit` constraints (both Tauri and Bevy demand the main thread), the Bevy `daydream` binary is spawned as an OS child process, cleanly isolating the 3D render pipeline from the web UI.
+**Layer 3** (DAYDREAM) runs as the **absolute frontend orchestrator**. The Bevy engine leverages physical components synced to an internal memory state, querying the Axum Brain natively over standard `reqwest` HTTP streaming ports, rendering the entire interface through `egui` inside the Game Environment.
 
 > 📍 `main.rs:L415-417` — Startup banner: `"TRINITY HEADLESS SERVER - Layer 1"`
 > 📍 `main.rs` — `let addr = "0.0.0.0:3000"` — binds to all interfaces
@@ -342,34 +342,19 @@ Because the inference backend processes requests dynamically across independent 
 > 📍 `main.rs:L287-335` — `installed_model_inventory()`: all models with sizes and paths
 > 📍 `scripts/launch/start_vllm_omni.sh` — Bootloader mapping the entire 6-node physical architecture
 
-### 1.10 The Frontend
+### 1.10 The Frontend (The Accordion Train)
 
-Trinity's web UI is built with **16 React components** served from the Axum backend:
+Trinity has officially completed the **Javascript Purge**. All React/Tauri components have been deleted. The OS operates inherently inside the `Layer 3` 3D physics engine natively utilizing Bevy `egui`.
 
-| Component | Purpose |
-|-----------|---------|
-| `ArtStudio.jsx` | Creative pipeline — image/music/video/3D generation via `useCreative` hook |
-| `ChapterRail.jsx` | ADDIECRAPEYE phase progress rail |
-| `CharacterSheet.jsx` | User identity and skill dashboard |
-| `CreepCard.jsx` | Vocabulary creature display card |
-| `ExpressWizard.jsx` | Streamlined Express mode wizard |
-| `GameHUD.jsx` | Iron Road HUD (XP, Coal, Steam) + Safety Badges (CowCatcher/EdgeGuard/Demo) |
-| `JournalViewer.jsx` | Chapter milestones and reflection viewer |
-| `NavBar.jsx` | Mode-aware navigation bar |
-| `OnboardingTour.jsx` | First-run guided tour |
-| `PearlCard.jsx` | PEARL project focus display |
-| `PerspectiveSidebar.jsx` | Ring 6 multi-perspective annotations |
-| `PhaseWorkspace.jsx` | Current ADDIECRAPEYE phase workspace |
-| `QualityScorecard.jsx` | Document quality evaluation display |
-| `ScopeCard.jsx` | Scope creep creature encounter card |
-| `SetupWizard.jsx` | Bring Your Own Mind — dynamic backend selection wizard |
-| `TrainStatus.jsx` | Iron Road train progress animation |
-| `Yardmaster.jsx` | IDE/Agent mode — agentic chat with DAYDREAM terminal via `useYardmaster` hook |
-| `DAYDREAM` | The native Bevy sidecar — Pure Rust 3D LitRPG world. No JavaScript. Spawned as OS child process. |
+Instead of web fragments, UI is navigated spatially inside the engine using the **Accordion Train** topology (`TrainConsist` resource). The user walks the train to change their context:
 
+| Context | Render Component | Purpose |
+|---------|------------------|---------|
+| `Index 0: P-Car` | `addiecrapeye.rs`, `hud.rs` | The Socratic Locomotive. Pete's workspace for executing ADDIECRAPEYE tasks and observing global system telemetry. |
+| `Index 1..N: ART-Cars` | `art_panels.rs` | The Payload Engine. A dynamic array of decoupled product workspaces for graphic, narrative, and video execution. |
+| `Index N+1: Y-Car` | `yardmaster.rs` | The Caboose. Terminal overrides, tool definitions, and manual OS overrides. |
 
-> 📍 `crates/trinity/frontend/src/components/` — 18 files
-> 📍 `main.rs` — Static file serving: React `frontend/dist/` with SPA fallback
+> 📍 `crates/trinity-daydream/src/train_car.rs` — The dynamic train state
 
 ### 1.11 Field Manual Cross-Reference
 
