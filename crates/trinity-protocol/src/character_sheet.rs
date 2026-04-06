@@ -114,6 +114,63 @@ impl VoiceEmotion {
     }
 }
 
+/// Detect emotion from text content — drives the DM narrator voice.
+/// The Great Recycler uses this to modulate Voxtral's emotional delivery,
+/// enabling intentional, thoughtful pacing in the hands-free voice loop.
+pub fn detect_emotion(text: &str) -> VoiceEmotion {
+    let lower = text.to_lowercase();
+
+    // Celebratory — quest completion, milestones, XP
+    if lower.contains("congratulations")
+        || lower.contains("leveled up")
+        || lower.contains("excellent")
+        || lower.contains("milestone")
+        || lower.contains("quest complete")
+        || lower.contains("xp awarded")
+    {
+        return VoiceEmotion::Celebratory;
+    }
+
+    // Urgent — warnings, deadlines, critical
+    if lower.contains("warning")
+        || lower.contains("critical")
+        || lower.contains("caution")
+        || lower.contains("deadline")
+        || lower.contains("cannot be undone")
+    {
+        return VoiceEmotion::Urgent;
+    }
+
+    // Sarcastic — Great Recycler wit
+    if lower.contains("oh really")
+        || lower.contains("interesting choice")
+        || lower.contains("bold move")
+    {
+        return VoiceEmotion::Sarcastic;
+    }
+
+    // Contemplative — Socratic, reflective
+    if lower.contains("have you considered")
+        || lower.contains("what if")
+        || lower.contains("perhaps")
+        || lower.contains("thought about")
+    {
+        return VoiceEmotion::Contemplative;
+    }
+
+    // Warm — encouragement, progress
+    if lower.contains("great job")
+        || lower.contains("keep going")
+        || lower.contains("making progress")
+        || lower.contains("well done")
+    {
+        return VoiceEmotion::Warm;
+    }
+
+    // Default — neutral delivery
+    VoiceEmotion::Neutral
+}
+
 /// User preferences for the audio pipeline and flow state
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AudioPreferences {

@@ -2979,7 +2979,7 @@ mod tests {
     #[test]
     fn test_tool_count_is_36() {
         let tools = get_tool_list();
-        assert_eq!(tools.len(), 36, "Expected 36 tools, got {}", tools.len());
+        assert_eq!(tools.len(), 37, "Expected 37 tools, got {}", tools.len());
     }
 
     #[test]

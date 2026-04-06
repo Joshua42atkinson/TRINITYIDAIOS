@@ -36,10 +36,7 @@ ensure_model() {
 
 echo "📦 Verifying Local Model Persistence..."
 ensure_model "$MODEL_DIR/gemma-4-31B-it-AWQ-4bit" "google/gemma-4-31b-it-awq"
-ensure_model "$MODEL_DIR/gemma-4-26B-A4B-it-AWQ-4bit" "google/gemma-4-26b-a4b-it-awq"
-ensure_model "$MODEL_DIR/gemma-4-E4B-it-AWQ-4bit" "google/gemma-4-e4b-it-awq"
-ensure_model "$MODEL_DIR/gemma-4-E2B-it" "google/gemma-4-E2B-it"  # Speculative Draft
-# Aesthetics Triad is now managed dynamically. Models are fetched at runtime if missing.
+ensure_model "$MODEL_DIR/gemma-4-E2B-it" "google/gemma-4-E2B-it"
 echo "--------------------------------------------------------"
 
 # Wait 2 seconds before booting to allow any straggling processes to die
@@ -48,55 +45,21 @@ sleep 2
 echo "🚀 Starting vLLM P.A.R.T.Y. Hotel via Strix Halo Toolbox..."
 
 # 1. Great Recycler (Socratic Reasoning) - Gemma 4 31B Dense AWQ + E2B Draft
-#    Target Weights: ~21GB | Draft: ~5GB | Reserved: 44.8GB (0.35) | KV headroom: ~18GB
-#    Hyper-Context: Enabled via TurboQuant 4-bit (Near 160K theoretical)
-#    Optimization: Speculative Decoding enabled (E2B draft model)
-if [ -d "$MODEL_DIR/gemma-4-31B-it-AWQ-4bit" ]; then
-    export TQ4_K_BITS=4
-    export TQ4_V_BITS=4
-    dbox vllm serve "$MODEL_DIR/gemma-4-31B-it-AWQ-4bit" --port 8001 \
-        --gpu-memory-utilization 0.35 --max-model-len 32768 \
-        --dtype half --attention-backend CUSTOM \
-        --served-model-name "Great_Recycler" &
+if [ -d "$MODEL_DIR/gemma-4-31B-it-AWQ-4bit" ] && [ -d "$MODEL_DIR/gemma-4-E2B-it" ]; then
+    # To avoid JSON quote escaping issues across distrobox boundaries, we write the command first
+    cat << EOF > /tmp/run_vllm_31b.sh
+#!/bin/bash
+vllm serve "$HOME/trinity-models/vllm/gemma-4-31B-it-AWQ-4bit" --port 8001 \\
+    --gpu-memory-utilization 0.40 --max-model-len 16384 \\
+    --served-model-name "Great_Recycler"
+EOF
+    dbox bash /tmp/run_vllm_31b.sh &
     sleep 15
+else
+    echo "❌ Missing weights for Gemma 31B or E2B. Please configure models."
 fi
-
-# 2. Programmer Pete (Action-Oriented Engine) - Gemma 4 26B-A4B MoE AWQ
-#    Weights: ~18GB | Reserved: 23.0GB (0.18) | KV headroom: ~5.0GB
-#    Hyper-Context: Enabled via TurboQuant 4-bit
-if [ -d "$MODEL_DIR/gemma-4-26B-A4B-it-AWQ-4bit" ]; then
-    export TQ4_K_BITS=4
-    export TQ4_V_BITS=4
-    dbox vllm serve "$MODEL_DIR/gemma-4-26B-A4B-it-AWQ-4bit" --port 8002 \
-        --gpu-memory-utilization 0.18 --max-model-len 16384 \
-        --dtype half --attention-backend CUSTOM \
-        --served-model-name "Programmer_Pete" &
-    sleep 10
-fi
-
-# 3. Tempo Engine (Standalone Vibe Conductor) - Gemma 4 E4B
-#    Weights: ~8GB | Reserved: 9.0GB (0.07) | Context: 4096 (Lightweight)
-if [ -d "$MODEL_DIR/gemma-4-E4B-it-AWQ-4bit" ]; then
-    export TQ4_K_BITS=4
-    export TQ4_V_BITS=4
-    dbox vllm serve "$MODEL_DIR/gemma-4-E4B-it-AWQ-4bit" --port 8003 \
-        --gpu-memory-utilization 0.07 --max-model-len 4096 \
-        --dtype half --attention-backend CUSTOM \
-        --served-model-name "Tempo_Engine" &
-    sleep 5
-fi
-
-# =========================================================================
-# Aesthetics Triad (Dynamic Pool - Handled by vLLM Router / App Logic)
-# 4. Image Generation - FLUX.1 [schnell] (Q4_K_S GGUF)
-# 5. Video Generation - CogVideoX-2b-GGUF (Q4_K_S)
-# 6. 3D Mesh Generation - TripoSR
-# Note: Media sidecars are NO LONGER statically launched here to preserve
-# maximum VRAM for Socratic reasoning context.
-# =========================================================================
 
 # 5. Embeddings - nomic-embed-text-v1.5 (137M params, tiny footprint)
-#    Weights: ~1GB | Reserved: 2.5GB (0.02) | High-throughput RAG chunking
 if [ -d "$MODEL_DIR/nomic-embed-text-v1.5-AWQ" ]; then
     export TQ4_K_BITS=4
     export TQ4_V_BITS=4
@@ -104,6 +67,9 @@ if [ -d "$MODEL_DIR/nomic-embed-text-v1.5-AWQ" ]; then
         --gpu-memory-utilization 0.02 \
         --served-model-name "nomic-embed" &
 fi
+
+# Note: Media sidecars (FLUX, CogVideoX, TripoSR, Music) are omitted from here 
+# and will be managed externally or initialized natively to save VRAM headroom.
 
 echo "🚀 Starting FastAPI Reverse Proxy on Port 8000..."
 # Router runs on host — it's plain Python, no GPU needed

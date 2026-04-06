@@ -1,10 +1,9 @@
 # Trinity ID AI OS — Research Bible & Session Context
-## April 5, 2026 — The Four Chariots & Native React ELearning (Claude Opus Turnover)
-* **Latest Milestone:** Completed the integration of the **Four Chariots** into the React Native Portfolio. We formalized the game mechanics into `TRINITY_SYLLABUS.md`, migrated Professor context into `TRINITY_FANCY_BIBLE.md`, and merged them alongside `PLAYERS_HANDBOOK.md` and `FIELD_MANUAL.md`. 
-* **The Socratic Pipeline:** We natively constructed `scripts/build_chariot_audiobooks.py` which chunks documentation, uses vLLM-Omni for Audio Generation, and Flux/Hunyuan for Image Generation.
-* **The Native UI:** The React Double-Page Sourcebook format (`ChariotAudiobook.jsx`) is now successfully wired into `/chariot/:id` without legacy HashRoutes.
-* **Backend:** Cleaned `E0063` AppState initialization issues. `BeastLogger` Telemetry hooks are merged.
-* **Next Session Goal (Claude Turnover):** The User is pivoting to Claude Opus to troubleshoot the remaining Daydream Bevy card hooks and formally run the system (`cargo run --bin trinity` + `npm run dev`) to record a flawless demo video for upcoming Purdue LDT presentations.
+## April 5, 2026 — One Big Brain Architecture (Committed)
+* **Architecture Decision:** Committed to a single-LLM design. Gemma-4 31B Dense AWQ is the sole reasoning engine. Pete, the Great Recycler, and Tempo are **system prompt personas**, not separate models. This is simpler, higher quality (31B always-active params vs 4B in MoE), and uses only ~18GB of 128GB unified memory.
+* **Voice Pipeline:** Switched from Voxtral (CC BY-NC) to **Kokoro TTS** (Apache 2.0) — stress-free licensing for everyone. 6 voices, low-latency, port 8200.
+* **ASR Pipeline (Phase 2):** Gemma-4 E2B will serve as the audio listener for hands-free operation — the "ears" for accessibility.
+* **All 166 tests passing, 0 failures.** Code is demo-ready.
 
 ---
 
@@ -12,6 +11,9 @@
 > The capitalization and spelling of the core pedagogical frameworks must NEVER drift. We use words as systems management:
 > 1. **ADDIECRAPEYE**: *Always* fully capitalized, exactly as written. It is the 12-station instructional design lifecycle. Do not use variations.
 > 2. **PEARL**: *Always* fully capitalized (Perspective, Engineering, Aesthetic, Research, Layout). It is the pedagogical focusing lens. Do not use variations.
+> 
+> **CRITICAL PROGRESSIVE MIGRATION POLICY:**
+> **DO NOT MASS-DELETE THE REACT (JS/JSX) FRONTEND JUMPING TO PURE RUST.** We are moving away from JS toward Python/PyO3 and Rust, but this must be done SLOWLY and INTENTIONALLY through sidecars to isolate the UI, preserving the pure Rust backend over time. Replace individual components systematically and only with user consent. "Pure Rust pivots" that delete `LDTAtkinson/client` or the functional Web UI are strictly forbidden.
 
 ## 1. WHAT TRINITY IS
 
@@ -28,15 +30,15 @@ Trinity ID AI OS is a gamified instructional design system that helps K-12 teach
 - **WORK (The YARDMASTER Tab)**: The actual product you are on the Iron Road to build. The page opens to `Yard IDE`.
 
 **THE THREE UX SYSTEMS:**
-- **AUDIO** — Telephone line / Voice interfaces.
+- **AUDIO** — Kokoro TTS (speech output) + Gemma-4 E2B (speech input / ASR).
 - **WEB** — React frontend (Iron Road / ART page / About).
 - **BEVY** — **DAYDREAM** (The immersive 3D native Bevy engine, spawned as an OS sidecar process. Pure Rust. No JavaScript in the DAYDREAM engine).
 
 **The P-ART-Y Framework (Who operates Trinity):**
-- **P = Pete** — The ONLY AI personality (Mistral Small 4 119B)
-- **A = Aesthetics** — CRAP visual design, ComfyUI assets 
+- **P = Pete** — The ONLY AI personality (Gemma-4 31B Dense, system-prompt persona)
+- **A = Aesthetics** — CRAP visual design, image generation
 - **R = Research** — QM audits, tests, CI/CD
-- **T = Tempo** — Code gen, Bevy scaffolding
+- **T = Tempo** — Narrative pacing, audio pipeline conductor
 - **Y = You** — The Yardmaster. Executive core.
 
 ---
@@ -54,50 +56,87 @@ User Message → VAAM Bridge → Pete Orchestration → Quest Objective Complete
 
 ---
 
-## 3. RUNTIME ARCHITECTURE (Agnostic HTTP Inference)
+## 3. RUNTIME ARCHITECTURE (One Big Brain + Kokoro Voice)
 
-> **ARCHITECTURE CHANGE (March 30–31, 2026):** Trinity now uses an agnostic HTTP InferenceRouter
-> that dispatches to any OpenAI-compatible backend. LM Studio is the primary backend.
-> Embedded `llama-cpp-2` has been fully archived. The system is a lightweight Rust binary
-> that connects to whichever backend the user launches on their machine.
+> **ARCHITECTURE DECISION (April 5, 2026):** Trinity uses ONE LLM (Gemma-4 31B Dense AWQ)
+> for all reasoning. Pete and the Great Recycler are **system prompt personas**, not separate models.
+> The InferenceRouter dispatches to whichever backend is healthy (auto-detect).
+> Voice output via Kokoro TTS (Apache 2.0). Voice input via Gemma-4 E2B (Phase 2).
 
-- **LM Studio (PRIMARY, :1234)**:
-  - Mistral Small 4 119B Q4_K_M.
-  - 2M+ token dual context window, Q8_0 KV cache quantization.
-  - System-prompt persona differentiation (no `id_slot` required).
-  - Flash Attention enabled.
-- **HTTP Fallback (AUTO-DETECT)**:
-  - llama-server (:8080), Ollama (:11434), any OpenAI-compat (configurable).
-  - Auto-detected by InferenceRouter when primary is offline.
-- **Voice (Embedded ORT)**: Supertonic-2 TTS (~280MB) & Whisper Base STT (~278MB).
-- **Native RAG (Embedded ORT)**: all-MiniLM-L6-v2 embeddings via `ort` crate, cosine similarity in Rust.
-- **ComfyUI SDXL Turbo (:8188)**: Image generation (HTTP sidecar).
-- **MCP Server**: `trinity-mcp-server` stdio bridge for IDE integration (Zed, Cursor).
-- **Background Jobs**: SQLite-persisted async task queue for overnight autonomous generation.
+### The Committed Model Stack
 
-**Boot Order:**
-1. Server starts on :3000 (instant)
-2. TTS/STT ONNX models load on CPU (~2s)
-3. ComfyUI probed (HTTP, separate process)
-4. InferenceRouter checks LM Studio → llama-server → Ollama (auto-detect)
+| Service | Port | Model | Memory | License | Role |
+|---------|------|-------|--------|---------|------|
+| **Great Recycler** | 8001 | Gemma-4 31B Dense AWQ | ~18GB | Apache 2.0 | THE brain — reasoning, Pete, Recycler, Tempo via system prompt |
+| **Kokoro TTS** | 8200 | Kokoro (kokoro_sidecar.py) | ~1GB | Apache 2.0 | THE voice — 6 presets, emotion-aware narration |
+| **nomic-embed** | 8005 | nomic-embed-text-v1.5 | ~1GB | Apache 2.0 | Embeddings for RAG |
+| **E2B Listener** | 8003 | Gemma-4 E2B (Phase 2) | ~3GB | Apache 2.0 | THE ears — speech-to-text for hands-free |
+
+**Total Phase 1: ~20GB of 128GB unified memory. 108GB left for you.**
+
+### How Pete & Recycler Share One Brain (KV Cache)
+
+The 31B model runs as a single vLLM process. Each chat request gets its own **KV cache allocation** within the shared pool. Pete and the Great Recycler never interfere because:
+
+1. **Separate requests = separate KV entries.** When Pete answers a Socratic question, that request has its own KV state. When the Recycler narrates, that's a different request with its own KV state. They don't share conversation memory unless the code explicitly merges their histories.
+
+2. **System prompts are the personality switch.** The `conductor_leader.rs` module selects the right system prompt based on the active ADDIECRAPEYE phase:
+   - **Analysis/Design phases** → Pete's warm Socratic prompt
+   - **Evaluation/Envision phases** → Recycler's authoritative DM prompt
+   - **DM break-character** → `[DM]` tag triggers `NarratorMode::OutOfCharacter`
+
+3. **vLLM prefix caching** helps here — if Pete's system prompt prefix is reused across multiple requests, vLLM caches those KV entries automatically, making repeat calls faster.
+
+4. **32K context per request** is plenty for either persona. Pete rarely needs more than a few thousand tokens of conversation. The Recycler's narration chunks are even shorter.
+
+### Voice Persona Mapping (Kokoro)
+
+| Trinity Persona | Kokoro Voice | Emotion System |
+|----------------|-------------|----------------|
+| Pete (Conductor) | am_adam | Warm, contemplative, celebratory |
+| Great Recycler (DM) | am_fenrir | Authoritative, sarcastic, urgent |
+| NPC | am_echo | Neutral |
+| Student/Youser | af_heart | Encouraging |
+
+### Boot Order (Phase 1)
+```bash
+# 1. Start the brain (in vllm distrobox)
+distrobox enter vllm -- vllm serve ~/trinity-models/vllm/gemma-4-31B-it-AWQ-4bit \
+  --port 8001 --gpu-memory-utilization 0.35 --max-model-len 32768 \
+  --dtype half --served-model-name "Great_Recycler"
+
+# 2. Start the voice (Kokoro TTS, Apache 2.0)
+source ~/trinity-vllm-env/bin/activate
+python3 scripts/launch/kokoro_sidecar.py  # port 8200
+
+# 3. Start Trinity server
+cargo run --release --bin trinity  # port 3000
+
+# 4. Start React frontend
+cd LDTAtkinson/client && npm run dev  # port 5173
+```
+
+### Boot Order (Phase 2 — Hands-Free)
+```bash
+# Add the ears (Gemma-4 E2B for ASR)
+distrobox enter vllm -- vllm serve ~/trinity-models/vllm/gemma-4-E2B-it \
+  --port 8003 --gpu-memory-utilization 0.05 --max-model-len 4096 \
+  --dtype half --served-model-name "Tempo_Listener"
+```
+**Flow:** 🎤 Mic → E2B (ASR, port 8003) → 31B (Think, port 8001) → Kokoro (Speak, port 8200) → 🔊
 
 ---
 
-## 4. CURRENT SYSTEM STATE (Purdue Presentation Ready)
-- **Agnostic HTTP Inference**: LIVE. LM Studio serves Mistral Small 4 119B via HTTP; Trinity dispatches via InferenceRouter.
+## 4. CURRENT SYSTEM STATE (April 5, 2026)
+- **One Big Brain Architecture**: COMMITTED. Gemma-4 31B Dense AWQ as sole reasoning engine.
+- **Kokoro TTS (Apache 2.0)**: WIRED. voice.rs fully integrated, 6 voices, emotion detection, DM break-character.
+- **InferenceRouter**: LIVE. Auto-detects ports 8001 (Recycler), 8002 (Pete), 8003 (Tempo), 8000 (proxy), 8080 (llama-server), 1234 (LM Studio), 11434 (Ollama).
+- **166 Tests Passing**: 0 failures (verified April 5, 2026).
+- **detect_emotion() Restored**: Powers emotional narrator pacing for hands-free voice loop.
 - **BYOP Architecture**: LIVE. Users can "Bring Your Own Pipeline" — any OpenAI-compatible backend works.
-- **Startup Connection Handshake**: LIVE. `/api/config/setup` actively pings external LLMs (LM Studio/Ollama) with a 3-second timeout to prevent UI load on dead connections.
-- **The Forge 3D WASM Studio**: `Archived` — replaced by DAYDREAM (native Bevy sidecar, no WASM).
-- **Code Textbook Autopoiesis (Phase 8)**: LIVE.
 - **UI Deliverables Triad**: LIVE. Work (Yardmaster IDE), Fun (Art Studio/DAYDREAM), Learning (Iron Road).
-- **Art Studio (Conversational Media)**: LIVE. Developer telemetry stripped in favor of a purely conversational interface with a dynamic Virtual File System (VAAM) for navigating assets.
-- **Yardmaster (Root Dev Zone)**: LIVE. The beastlogger has been transformed into a massive, centralized media terminal, chronologically merging ComfyUI, System, and Forge Agent traces.
-- **Portfolio & Character Sheet Unification**: LIVE.
-- **Edge Guard Security**: LIVE.
-- **Setup Wizard Resilience**: LIVE. Automatically skips setup based on `localStorage` to avoid looping lockouts when the VRAM/backend daemon is offline.
-- **Dynamic Ignition Button**: LIVE. Extracted backend port parameters directly from `localStorage`, removing hardcoded `.sh` logic.
-- **Portfolio Graceful Degradation**: LIVE. The public `LDTAtkinson` Portfolio dynamically catches SSE socket drops from the Rust inference pipe and renders "🔌 [SYS_ERR] The Trinity Engine is offline" to visitors beautifully.
-- **Sidecar Vaulting**: LIVE.
+- **All 28 Game Mechanics Wired**: Coal/Steam, Scope Creep, Friction, Vulnerability, Shadow, Per-Phase Objectives, Perspective.
+- **37 Agent Tools**: Full tool suite including Scout Sniper, Dynamic Vibe Orchestrator, session continuity.
 
 ---
 

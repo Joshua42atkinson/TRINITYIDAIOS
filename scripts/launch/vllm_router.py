@@ -6,10 +6,11 @@ import json
 app = FastAPI()
 
 # Map requested models to local vLLM backend ports
+# We now map all text generation personas to the unified Great_Recycler cluster
 MODEL_ROUTING = {
     "Great_Recycler": "http://127.0.0.1:8001",
-    "Programmer_Pete": "http://127.0.0.1:8002",
-    "Tempo_Engine": "http://127.0.0.1:8003",
+    "Programmer_Pete": "http://127.0.0.1:8001",
+    "Tempo_Engine": "http://127.0.0.1:8001",
     "FLUX.1-schnell": "http://127.0.0.1:8004",
     "nomic-embed": "http://127.0.0.1:8005",
     "CogVideoX-2b": "http://127.0.0.1:8006",
@@ -27,7 +28,7 @@ async def proxy_request(request: Request, path: str):
     except Exception:
         model = ""
     
-    # Default to 31B if not specified or unknown
+    # Default to 31B/E2B tuned cluster if not specified or unknown
     target_base = MODEL_ROUTING.get(model, "http://127.0.0.1:8001")
     
     url = f"{target_base}/{path}"
@@ -71,6 +72,7 @@ async def health():
 
 @app.get("/v1/models")
 async def models(request: Request):
+    # Fetch actual active model aliases from underlying cluster
     url = f"http://127.0.0.1:8001/v1/models"
     try:
         response = await client.get(url)

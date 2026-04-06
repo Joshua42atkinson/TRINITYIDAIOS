@@ -301,8 +301,12 @@ fn installed_model_inventory() -> Vec<(&'static str, PathBuf)> {
             safetensors_model_path("gemma-4-26B-A4B-it-AWQ-4bit"),
         ),
         (
-            "🎤 Voxtral Voice/Video: Gemma-4-E4B-Omni-AWQ [~3GB]",
+            "🎵 Tempo Engine: Gemma-4-E4B-AWQ (ASR/Pacing) [~3GB]",
             safetensors_model_path("gemma-4-E4B-it-AWQ-4bit"),
+        ),
+        (
+            "🎤 Voice Narration: Kokoro TTS (Apache 2.0)",
+            home_dir().join("trinity-models/tts/kokoro/config.json"),
         ),
         (
             "🎨 ART Studio: HunyuanImage-vLLM [~20GB]",

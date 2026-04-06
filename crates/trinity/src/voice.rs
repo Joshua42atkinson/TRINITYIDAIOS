@@ -25,9 +25,9 @@
 // QUEST_PHASE:  supports all ADDIECRAPEYE phases (narration)
 //
 // ARCHITECTURE:
-//   • "Omni" (PRIMARY): Gemma-4-Audio-11b TTS via vLLM-Omni
-//     - 20 preset voices, 9 languages, 90ms latency, emotionality
-//     - OpenAI-compatible /v1/audio/speech endpoint
+//   • "Kokoro" (PRIMARY): Kokoro TTS (Apache 2.0) via FastAPI sidecar
+//     - 6 preset voices, American English, low-latency
+//     - POST /tts endpoint returning WAV audio
 //   • "Walkie-Talkie" (FALLBACK): Whisper STT + Piper TTS via voice sidecar (:8200)
 //     - STT/TTS run on NPU, leaving 100% GPU for Gemma-4-31B
 //   • "Supertonic-2" (ALWAYS-ON): Native ONNX TTS (66M params, CPU-capable)
@@ -105,15 +105,15 @@ pub async fn voice_status() -> Json<VoiceStatus> {
     let personaplex_available = check_personaplex_health().await;
     let omni_available = check_omni_audio_health().await;
 
-    let (pipeline, message) = if personaplex_available {
+    let (pipeline, message) = if omni_available {
+        (
+            "kokoro",
+            "Kokoro TTS ready (Apache 2.0, 6 voices, low-latency)".to_string(),
+        )
+    } else if personaplex_available {
         (
             "telephone",
             "PersonaPlex audio-to-audio ready (zero latency)".to_string(),
-        )
-    } else if omni_available {
-        (
-            "omni",
-            "Gemma-4 Omni TTS ready via vLLM-Omni (20 voices, 9 languages, 90ms latency)".to_string(),
         )
     } else if sidecar_running {
         (
@@ -324,25 +324,24 @@ async fn check_personaplex_health() -> bool {
 }
 
 // ============================================================================
-// GEMMA OMNI-AUDIO TTS (via vLLM-Omni) — Narrator Voice Acting Engine
+// KOKORO TTS (Apache 2.0) — Narrator Voice Acting Engine
 // ============================================================================
 //
 // The voice acting system supports:
-//   1. Persona voices     — Pete (causal_male), Recycler (alloy), NPC (echo)
+//   1. Persona voices     — Pete (am_adam), Recycler (am_fenrir), NPC (am_echo)
 //   2. Emotion detection  — infer happy/sarcastic/contemplative from text
 //   3. Narrator mode      — Great Recycler can break character (DM mode)
 //   4. Voice toggle       — Recycler narration can be on/off per user pref
 //
-// Omni audio supports emotional tonality: neutral, happy, sarcastic
-// We map Trinity's richer emotion set onto Omni's capabilities.
+// Kokoro voices: af_heart, af_bella, am_adam, am_echo, am_michael, am_fenrir
+// License: Apache 2.0 — stress-free for everyone.
 
-// ─── Gemma Omni Audio Acting Subsystem ───────────────────────────────────────
-// Built and ready — activates when Gemma-4-audio vLLM-Omni server goes live on :8100.
+// ─── Kokoro TTS Acting Subsystem ─────────────────────────────────────────────
+// Built and ready — activates when kokoro_sidecar.py goes live on :8200.
 // Suppress dead_code warnings for the entire subsystem until then.
 
-/// Omni Audio port — vLLM-Omni with --omni flag
-#[allow(dead_code)]
-const OMNI_PORT: u16 = 8100;
+/// Kokoro TTS port — FastAPI sidecar
+const OMNI_PORT: u16 = 8200;
 
 /// Voice acting emotion — detected from text content
 // VoiceEmotion and detect_emotion have been relocated to trinity_protocol::character_sheet
@@ -395,11 +394,10 @@ fn dm_voice_cue() -> &'static str {
     "Pausing story mode. "
 }
 
-/// Check if Omni Audio is available via vLLM-Omni
-#[allow(dead_code)] // Activates with Gemma Omni
+/// Check if Kokoro TTS is available
 pub async fn check_omni_audio_health() -> bool {
     crate::http::QUICK
-        .get(format!("http://127.0.0.1:{}/v1/models", OMNI_PORT))
+        .get(format!("http://127.0.0.1:{}/health", OMNI_PORT))
         .timeout(std::time::Duration::from_secs(2))
         .send()
         .await
@@ -407,31 +405,30 @@ pub async fn check_omni_audio_health() -> bool {
         .unwrap_or(false)
 }
 
-/// Map Trinity persona names to Omni preset voices
-#[allow(dead_code)] // Activates with Gemma Omni
+/// Map Trinity persona names to Kokoro preset voices
+/// Kokoro voices: af_heart, af_bella, am_adam, am_echo, am_michael, am_fenrir
 pub fn persona_to_omni_voice(persona: &str) -> String {
     let lower = persona.to_lowercase();
     
-    // Allow pass-through for custom cloned voices (e.g. joshua, or clone_xyz)
+    // Allow pass-through for custom cloned voices
     if lower == "joshua" || lower.starts_with("clone_") {
         return lower;
     }
 
     match lower.as_str() {
         // Pete — warm, confident, mentor
-        "pete" | "conductor" | "m1" | "causal_male" => "causal_male".to_string(),
+        "pete" | "conductor" | "m1" | "causal_male" => "am_adam".to_string(),
         // Great Recycler — authoritative narrator (DM voice)
-        "recycler" | "narrator" | "alloy" | "dm" => "alloy".to_string(),
+        "recycler" | "narrator" | "alloy" | "dm" => "am_fenrir".to_string(),
         // NPCs — varied voices
-        "npc" | "default" | "echo" => "echo".to_string(),
+        "npc" | "default" | "echo" => "am_echo".to_string(),
         // Youser feedback — encouraging, warm
-        "youser" | "student" | "nova" => "nova".to_string(),
+        "youser" | "student" | "nova" => "af_heart".to_string(),
         // Female voices
-        "f1" | "f2" | "f3" | "shimmer" => "shimmer".to_string(),
-        "fable" => "fable".to_string(),
-        "onyx" => "onyx".to_string(),
+        "f1" | "f2" | "f3" | "shimmer" => "af_bella".to_string(),
+        "fable" | "onyx" => "am_michael".to_string(),
         // Fallback
-        _ => "causal_male".to_string(),
+        _ => "am_adam".to_string(),
     }
 }
 
@@ -499,41 +496,37 @@ pub struct VoiceActResult {
     pub text: String,
 }
 
-/// Synthesize text via Gemma-4 on vLLM-Omni
-/// Returns raw audio bytes
-#[allow(dead_code)] // Activates with Gemma Omni
+/// Synthesize text via Kokoro TTS (Apache 2.0)
+/// Returns raw WAV audio bytes
 pub async fn omni_synthesize(
     text: &str,
     voice: &str,
-    format: &str,
+    _format: &str,
 ) -> anyhow::Result<Vec<u8>> {
-    let omni_voice = persona_to_omni_voice(voice);
+    let kokoro_voice = persona_to_omni_voice(voice);
 
-    info!("🎙️ Omni TTS: voice={} format={} len={}", omni_voice, format, text.len());
+    info!("🎙️ Kokoro TTS: voice={} len={}", kokoro_voice, text.len());
 
     let payload = serde_json::json!({
-        "input": text,
-        "model": "google/gemma-4-audio-11b",
-        "response_format": format,
-        "voice": omni_voice,
+        "text": text,
+        "voice": kokoro_voice,
     });
 
     let response = crate::http::LONG
-        .post(format!("http://127.0.0.1:{}/v1/audio/speech", OMNI_PORT))
+        .post(format!("http://127.0.0.1:{}/tts", OMNI_PORT))
         .json(&payload)
         .timeout(std::time::Duration::from_secs(30))
         .send()
         .await?;
 
-
     if !response.status().is_success() {
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
-        anyhow::bail!("Omni returned {}: {}", status, body);
+        anyhow::bail!("Kokoro returned {}: {}", status, body);
     }
 
     let audio_bytes = response.bytes().await?;
-    info!("🎙️ Omni returned {} bytes", audio_bytes.len());
+    info!("🎙️ Kokoro returned {} bytes", audio_bytes.len());
     Ok(audio_bytes.to_vec())
 }
 
@@ -664,46 +657,47 @@ pub struct TextResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use trinity_protocol::character_sheet::detect_emotion;
 
     // ── Omni Persona Mapping ─────────────────────────────────────────
 
     #[test]
     fn test_persona_pete_maps_to_causal_male() {
-        assert_eq!(persona_to_omni_voice("pete"), "causal_male");
-        assert_eq!(persona_to_omni_voice("conductor"), "causal_male");
-        assert_eq!(persona_to_omni_voice("M1"), "causal_male");
+        assert_eq!(persona_to_omni_voice("pete"), "am_adam");
+        assert_eq!(persona_to_omni_voice("conductor"), "am_adam");
+        assert_eq!(persona_to_omni_voice("M1"), "am_adam");
     }
 
     #[test]
     fn test_persona_recycler_maps_to_alloy() {
-        assert_eq!(persona_to_omni_voice("recycler"), "alloy");
-        assert_eq!(persona_to_omni_voice("narrator"), "alloy");
-        assert_eq!(persona_to_omni_voice("dm"), "alloy");
+        assert_eq!(persona_to_omni_voice("recycler"), "am_fenrir");
+        assert_eq!(persona_to_omni_voice("narrator"), "am_fenrir");
+        assert_eq!(persona_to_omni_voice("dm"), "am_fenrir");
     }
 
     #[test]
     fn test_persona_npc_maps_to_echo() {
-        assert_eq!(persona_to_omni_voice("npc"), "echo");
-        assert_eq!(persona_to_omni_voice("default"), "echo");
+        assert_eq!(persona_to_omni_voice("npc"), "am_echo");
+        assert_eq!(persona_to_omni_voice("default"), "am_echo");
     }
 
     #[test]
     fn test_persona_youser_maps_to_nova() {
-        assert_eq!(persona_to_omni_voice("youser"), "nova");
-        assert_eq!(persona_to_omni_voice("student"), "nova");
+        assert_eq!(persona_to_omni_voice("youser"), "af_heart");
+        assert_eq!(persona_to_omni_voice("student"), "af_heart");
     }
 
     #[test]
     fn test_persona_unknown_falls_back_to_causal_male() {
-        assert_eq!(persona_to_omni_voice("unknown_voice"), "causal_male");
-        assert_eq!(persona_to_omni_voice(""), "causal_male");
+        assert_eq!(persona_to_omni_voice("unknown_voice"), "am_adam");
+        assert_eq!(persona_to_omni_voice(""), "am_adam");
     }
 
     #[test]
     fn test_persona_case_insensitive() {
-        assert_eq!(persona_to_omni_voice("PETE"), "causal_male");
-        assert_eq!(persona_to_omni_voice("Recycler"), "alloy");
-        assert_eq!(persona_to_omni_voice("NPC"), "echo");
+        assert_eq!(persona_to_omni_voice("PETE"), "am_adam");
+        assert_eq!(persona_to_omni_voice("Recycler"), "am_fenrir");
+        assert_eq!(persona_to_omni_voice("NPC"), "am_echo");
     }
 
     // ── Emotion Detection ───────────────────────────────────────────────
@@ -814,7 +808,7 @@ mod tests {
 
     #[test]
     fn test_omni_port_constant() {
-        assert_eq!(OMNI_PORT, 8100);
+        assert_eq!(OMNI_PORT, 8200);
     }
 
     // ── NPU Check (doesn't panic) ──────────────────────────────────────

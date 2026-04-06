@@ -306,7 +306,41 @@ impl InferenceRouter {
     /// Default backend list when no config is found
     fn default_backends() -> Vec<InferenceBackend> {
         vec![
-            // vLLM Omni is the primary backbone — unified LLM + vision + audio + images
+            // ── vLLM Omni P.A.R.T.Y. Hotel (individual model ports) ──
+            // Great Recycler — Gemma-4 31B Dense AWQ (Socratic reasoning)
+            InferenceBackend {
+                name: "vllm-recycler".to_string(),
+                kind: BackendKind::VllmOmni,
+                base_url: "http://127.0.0.1:8001".to_string(),
+                supports_tools: true,
+                supports_vision: true,
+                model_name: None,
+                healthy: false,
+                last_checked: 0,
+            },
+            // Programmer Pete — Gemma-4 26B MoE AWQ (action-oriented)
+            InferenceBackend {
+                name: "vllm-pete".to_string(),
+                kind: BackendKind::VllmOmni,
+                base_url: "http://127.0.0.1:8002".to_string(),
+                supports_tools: true,
+                supports_vision: true,
+                model_name: None,
+                healthy: false,
+                last_checked: 0,
+            },
+            // Tempo Engine — Gemma-4 E4B AWQ (ASR + lightweight tasks)
+            InferenceBackend {
+                name: "vllm-tempo".to_string(),
+                kind: BackendKind::VllmOmni,
+                base_url: "http://127.0.0.1:8003".to_string(),
+                supports_tools: false,
+                supports_vision: true,
+                model_name: None,
+                healthy: false,
+                last_checked: 0,
+            },
+            // vLLM Omni proxy (if running a unified proxy on 8000)
             InferenceBackend {
                 name: "vllm-omni".to_string(),
                 kind: BackendKind::VllmOmni,
@@ -349,6 +383,7 @@ impl InferenceRouter {
             },
         ]
     }
+
 
     // ── Auto-Detection ──
 

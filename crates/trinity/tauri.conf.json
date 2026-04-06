@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "identifier": "com.ldtatkinson.trinity",
   "build": {
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build",
-    "frontendDist": "frontend/dist"
+    "beforeDevCommand": "cd ../../LDTAtkinson/client && npm run dev",
+    "beforeBuildCommand": "cd ../../LDTAtkinson/client && npm run build",
+    "frontendDist": "../../LDTAtkinson/client/dist"
   },
   "app": {
     "windows": [
