@@ -64,6 +64,11 @@ pub enum AddiecrapeyePhase {
     Evolve,
 }
 
+/// Get the system prompt associated with a phase.
+pub fn phase_system_prompt(_phase: AddiecrapeyePhase) -> &'static str {
+    "You are the Conductor. Guide the user through this phase of the IRON ROAD."
+}
+
 impl std::fmt::Display for AddiecrapeyePhase {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

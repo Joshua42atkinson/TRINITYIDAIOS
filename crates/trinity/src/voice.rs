@@ -3,13 +3,13 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // FILE:        voice.rs
-// PURPOSE:     Voice conversation API — Voxtral + Walkie-Talkie + Telephone
+// PURPOSE:     Voice conversation API — Kokoro TTS + Walkie-Talkie + Telephone
 //
 // 🪟 THE LIVING CODE TEXTBOOK (P-ART-Y Gear T: Tempo):
 // This file is the vocal cords of the OS. It is designed to be read, modified, 
 // and authored by YOU. If you want to change Pete's voice or integrate a new TTS 
 // engine, this is the file to edit.
-// ACTION: Edit `persona_to_voxtral_voice()` to build custom emotional voices.
+// ACTION: Edit `persona_to_omni_voice()` to build custom emotional voices.
 //
 // 📖 THE HOOK BOOK CONNECTION:
 // This file powers the 'Voice Narration' Hook. By mastering this file, you can 
@@ -21,7 +21,7 @@
 // errors and scope creep are intercepted to prevent catastrophic derailment,
 // maintaining the Socratic learning loop and keeping drift at bay.
 //
-// MATURITY:     L2 → L3 (Voxtral wired, needs model download)
+// MATURITY:     L2 → L3 (Kokoro wired, needs model download)
 // QUEST_PHASE:  supports all ADDIECRAPEYE phases (narration)
 //
 // ARCHITECTURE:
@@ -30,7 +30,7 @@
 //     - POST /tts endpoint returning WAV audio
 //   • "Walkie-Talkie" (FALLBACK): Whisper STT + Piper TTS via voice sidecar (:8200)
 //     - STT/TTS run on NPU, leaving 100% GPU for Gemma-4-31B
-//   • "Supertonic-2" (ALWAYS-ON): Native ONNX TTS (66M params, CPU-capable)
+//   • "Kokoro" (ALWAYS-ON): Native ONNX TTS (66M params, CPU-capable)
 //   • "Telephone" (FUTURE): PersonaPlex/Moshi audio-to-audio on GPU
 //   • Two modes: DEV (production agent) and IRON ROAD (gamified roleplay)
 //
@@ -40,7 +40,7 @@
 //   - tracing — Voice operation logging
 //
 // CHANGES:
-//   2026-03-26  Cascade  Voxtral-4B TTS integration (vLLM-Omni primary)
+//   2026-03-26  Cascade  Kokoro TTS integration (vLLM-Omni primary)
 //   2026-03-18  Cascade  Dual-mode voice (DEV + Iron Road), voice sidecar
 //   2026-03-16  Cascade  Migrated to §17 comment standard
 //
@@ -123,7 +123,7 @@ pub async fn voice_status() -> Json<VoiceStatus> {
     } else {
         (
             "supertonic",
-            "Supertonic-2 native TTS (always-on fallback)".to_string(),
+            "Kokoro native TTS (always-on fallback)".to_string(),
         )
     };
 
@@ -340,8 +340,8 @@ async fn check_personaplex_health() -> bool {
 // Built and ready — activates when kokoro_sidecar.py goes live on :8200.
 // Suppress dead_code warnings for the entire subsystem until then.
 
-/// Kokoro TTS port — FastAPI sidecar
-const OMNI_PORT: u16 = 8200;
+/// LongCat proxy port — FastAPI translation layer
+const OMNI_PORT: u16 = 8010;
 
 /// Voice acting emotion — detected from text content
 // VoiceEmotion and detect_emotion have been relocated to trinity_protocol::character_sheet
@@ -350,7 +350,7 @@ const OMNI_PORT: u16 = 8200;
 
 /// Narrator mode — the Great Recycler can DM
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[allow(dead_code)] // Activates with Voxtral-4B
+#[allow(dead_code)] // Activates with Kokoro
 pub enum NarratorMode {
     /// Story Mode — in-character narration (LitRPG audiobook voice)
     InCharacter,
@@ -363,7 +363,7 @@ pub enum NarratorMode {
 
 /// Detect narrator mode from text markers.
 /// The Great Recycler can embed `[DM]` or `[OOC]` tags to break character.
-#[allow(dead_code)] // Activates with Voxtral-4B
+#[allow(dead_code)] // Activates with Kokoro
 pub fn detect_narrator_mode(text: &str) -> (NarratorMode, String) {
     // Check for DM/OOC tags
     if text.starts_with("[DM]") || text.starts_with("[OOC]") {
@@ -389,7 +389,7 @@ pub fn detect_narrator_mode(text: &str) -> (NarratorMode, String) {
 }
 
 /// Generate a DM voice cue prefix for out-of-character narration
-#[allow(dead_code)] // Activates with Voxtral-4B
+#[allow(dead_code)] // Activates with Kokoro
 fn dm_voice_cue() -> &'static str {
     "Pausing story mode. "
 }
@@ -522,11 +522,11 @@ pub async fn omni_synthesize(
     if !response.status().is_success() {
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
-        anyhow::bail!("Kokoro returned {}: {}", status, body);
+        anyhow::bail!("LongCat Proxy returned {}: {}", status, body);
     }
 
     let audio_bytes = response.bytes().await?;
-    info!("🎙️ Kokoro returned {} bytes", audio_bytes.len());
+    info!("🎙️ LongCat Proxy returned {} bytes", audio_bytes.len());
     Ok(audio_bytes.to_vec())
 }
 

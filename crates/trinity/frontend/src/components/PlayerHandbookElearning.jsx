@@ -365,41 +365,43 @@ export default function PlayerHandbookElearning({ onBack }) {
                     grid-column: 1 / -1; grid-row: 2;
                     display: flex; flex-direction: column;
                     align-items: center; justify-content: center;
-                    background: #0a0a0a;
+                    background: radial-gradient(circle at center, #1a1510 0%, #050403 100%);
                     height: 100%; width: 100%; overflow: hidden;
                     padding: 16px; position: relative;
                 }
 
                 .stow-btn {
-                    position: absolute; top: 16px; left: 32px; z-index: 50;
-                    padding: 8px 16px; background: rgba(15,12,8,0.9);
+                    position: absolute; top: 24px; left: 40px; z-index: 50;
+                    padding: 10px 20px; background: rgba(15,12,8,0.95);
                     border: 1px solid #CFB991; color: #CFB991;
-                    font-family: 'Cinzel', serif; font-size: 13px; cursor: pointer;
-                    border-radius: 4px; transition: all 0.2s;
+                    font-family: 'Cinzel', serif; font-size: 14px; font-weight: 700; cursor: pointer;
+                    border-radius: 4px; transition: all 0.3s ease;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.5), inset 0 0 10px rgba(207,185,145,0.1);
                 }
-                .stow-btn:hover { background: rgba(207,185,145,0.15); }
+                .stow-btn:hover { background: rgba(207,185,145,0.2); box-shadow: 0 4px 20px rgba(207,185,145,0.2), inset 0 0 15px rgba(207,185,145,0.3); }
                 .page-counter {
-                    position: absolute; top: 16px; right: 32px; z-index: 50;
-                    color: #CFB991; font-family: 'Inter', sans-serif; font-size: 13px;
-                    background: rgba(15,12,8,0.9); padding: 6px 16px;
-                    border-radius: 4px; border: 1px solid rgba(207,185,145,0.3);
+                    position: absolute; top: 24px; right: 40px; z-index: 50;
+                    color: #CFB991; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600;
+                    background: rgba(15,12,8,0.95); padding: 8px 20px;
+                    border-radius: 4px; border: 1px solid rgba(207,185,145,0.4);
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
                 }
 
                 .book-spread {
-                    display: flex; width: 100%; max-width: 1400px; height: calc(100% - 80px);
+                    display: flex; width: 100%; max-width: 1500px; height: calc(100% - 90px);
                     background: #2a2015; /* Base for empty pages */
-                    box-shadow: 0 30px 60px rgba(0,0,0,0.8), inset 0 0 80px rgba(139,115,85,0.2);
-                    border-radius: 4px 8px 8px 4px;
-                    border: 2px solid #5a4b3c;
+                    box-shadow: 0 40px 80px rgba(0,0,0,0.9), inset 0 0 100px rgba(139,115,85,0.3), 0 0 0 4px #5a4b3c, 0 0 0 6px #111;
+                    border-radius: 6px 12px 12px 6px;
                     position: relative; overflow: hidden;
-                    transition: opacity 0.6s ease, transform 0.6s ease;
+                    transition: opacity 0.7s cubic-bezier(0.4, 0.0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0.0, 0.2, 1);
                 }
-                .flip-forward { opacity: 0; transform: translateX(80px); }
-                .flip-backward { opacity: 0; transform: translateX(-80px); }
+                .flip-forward { opacity: 0; transform: perspective(2000px) rotateY(-10deg) translateX(50px); }
+                .flip-backward { opacity: 0; transform: perspective(2000px) rotateY(10deg) translateX(-50px); }
 
                 .book-spine {
-                    position: absolute; top: 0; bottom: 0; left: 50%; width: 40px; margin-left: -20px;
-                    background: linear-gradient(to right, rgba(0,0,0,0.4), rgba(0,0,0,0.8) 50%, rgba(0,0,0,0.4));
+                    position: absolute; top: 0; bottom: 0; left: 50%; width: 60px; margin-left: -30px;
+                    background: linear-gradient(to right, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.9) 40%, rgba(30,20,10,1) 50%, rgba(0,0,0,0.9) 60%, rgba(0,0,0,0.6) 100%);
+                    box-shadow: inset 0 0 20px rgba(0,0,0,1);
                     z-index: 10; pointer-events: none;
                 }
 
@@ -409,212 +411,230 @@ export default function PlayerHandbookElearning({ onBack }) {
                 }
                 
                 .left-page {
-                    padding: 36px 52px 28px 44px; /* Inner padding differs from right */
-                    box-shadow: inset -25px 0 25px rgba(0,0,0,0.15);
+                    padding: 50px 60px 40px 50px; 
+                    box-shadow: inset -40px 0 40px -10px rgba(0,0,0,0.5), inset 0 0 60px rgba(139,115,85,0.1);
                 }
                 
                 .right-page {
-                    padding: 36px 44px 28px 52px;
-                    box-shadow: inset 25px 0 25px rgba(0,0,0,0.15);
+                    padding: 50px 50px 40px 60px;
+                    box-shadow: inset 40px 0 40px -10px rgba(0,0,0,0.5), inset 0 0 60px rgba(139,115,85,0.1);
                 }
 
                 .art-bg {
-                    background: #1a1510;
-                    padding: 24px;
+                    background: #0a0806;
+                    padding: 12px;
                 }
                 
                 .content-bg {
-                    background: linear-gradient(135deg, #f4ebd8 0%, #ede2cc 60%, #e8d9bf 100%);
+                    background: linear-gradient(135deg, #f4ebd8 0%, #ebddc5 40%, #e0ceae 100%);
+                    background-image: radial-gradient(rgba(139,115,85,0.05) 1px, transparent 1px), radial-gradient(rgba(139,115,85,0.05) 1px, transparent 1px);
+                    background-size: 20px 20px;
+                    background-position: 0 0, 10px 10px;
                 }
 
                 .art-frame {
                     width: 100%; height: 100%;
-                    border: 10px solid #2a2015;
-                    outline: 2px solid #CFB991; outline-offset: -5px;
+                    border: 8px solid #1a120b;
+                    outline: 2px solid #CFB991; outline-offset: -2px;
+                    border-radius: 4px;
                     overflow: hidden; position: relative;
-                    box-shadow: inset 0 0 40px rgba(0,0,0,0.6);
+                    box-shadow: inset 0 0 50px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.5);
                     background: #111;
                 }
                 .splash-img {
                     width: 100%; height: 100%; object-fit: cover;
+                    transition: transform 10s linear;
                 }
+                .splash-img:hover { transform: scale(1.05); }
 
                 .page-watermark-left {
-                    position: absolute; bottom: 12px; left: 20px;
-                    font-family: 'Cinzel', serif; font-size: 14px; color: rgba(139,115,85,0.4);
+                    position: absolute; bottom: 20px; left: 30px;
+                    font-family: 'Cinzel', serif; font-size: 16px; font-weight: 700; color: rgba(139,115,85,0.6);
                 }
                 .page-watermark-right {
-                    position: absolute; bottom: 12px; right: 20px;
-                    font-family: 'Cinzel', serif; font-size: 14px; color: rgba(139,115,85,0.4);
+                    position: absolute; bottom: 20px; right: 30px;
+                    font-family: 'Cinzel', serif; font-size: 16px; font-weight: 700; color: rgba(139,115,85,0.6);
                 }
 
                 .gold-rule {
-                    height: 3px; width: 40%; margin: 24px auto;
-                    background: linear-gradient(to right, transparent, #CFB991, transparent);
+                    height: 2px; width: 60%; margin: 30px auto;
+                    background: linear-gradient(to right, transparent, rgba(207,185,145,1), transparent);
+                    box-shadow: 0 0 10px rgba(207,185,145,0.5);
                 }
                 .book-title {
-                    color: #5A1B1B; font-size: 46px; line-height: 1.05;
+                    color: #5A1B1B; font-size: 52px; line-height: 1.1;
                     font-family: 'Cinzel', serif; font-weight: 900;
-                    letter-spacing: 2px; text-shadow: 1px 2px 0px rgba(255,255,255,0.6);
-                    margin: 0;
+                    letter-spacing: 4px; text-shadow: 2px 2px 0px rgba(255,255,255,0.8), 0 0 20px rgba(207,185,145,0.4);
+                    margin: 0; text-transform: uppercase;
                 }
                 .book-subtitle {
-                    color: #5a4b3c; font-size: 17px; font-style: italic;
-                    font-family: 'Inter', sans-serif; margin-top: 16px;
+                    color: #4a3a2a; font-size: 18px; font-style: italic;
+                    font-family: 'Inter', sans-serif; margin-top: 20px;
+                    letter-spacing: 1px;
                 }
                 .part-art {
-                    width: 160px; height: 160px; border-radius: 50%;
-                    border: 4px solid #CFB991; object-fit: cover;
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                    width: 180px; height: 180px; border-radius: 50%;
+                    border: 4px solid #CFB991; outline: 6px solid rgba(207,185,145,0.2);
+                    object-fit: cover; box-shadow: 0 15px 40px rgba(0,0,0,0.4), inset 0 0 20px rgba(0,0,0,0.4);
                 }
                 .part-heading {
-                    color: #5A1B1B; font-size: 44px; font-family: 'Cinzel', serif;
-                    font-weight: 900; letter-spacing: 3px;
-                    text-shadow: 1px 2px 0px rgba(255,255,255,0.5);
+                    color: #5A1B1B; font-size: 50px; font-family: 'Cinzel', serif;
+                    font-weight: 900; letter-spacing: 4px; text-transform: uppercase;
+                    text-shadow: 2px 2px 0px rgba(255,255,255,0.8), 0 0 15px rgba(207,185,145,0.3);
                     margin: 0;
                 }
                 .part-subtitle {
-                    color: #2a2015; font-size: 22px; font-family: 'Cinzel', serif;
-                    margin-top: 8px; font-weight: 700;
+                    color: #2a2015; font-size: 24px; font-family: 'Cinzel', serif;
+                    margin-top: 12px; font-weight: 700; letter-spacing: 2px;
                 }
 
                 .page-header {
-                    border-bottom: 2px solid #CFB991;
-                    padding-bottom: 8px; margin-bottom: 16px;
+                    border-bottom: 2px solid rgba(207,185,145,0.8);
+                    padding-bottom: 12px; margin-bottom: 24px;
                 }
                 .chapter-label {
-                    font-family: 'Inter', sans-serif; font-size: 11px;
-                    text-transform: uppercase; letter-spacing: 3px;
-                    color: #8b7355; margin-bottom: 4px;
+                    font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
+                    text-transform: uppercase; letter-spacing: 4px;
+                    color: #8b7355; margin-bottom: 6px;
                 }
                 .section-title {
-                    color: #2a2015; font-size: 26px; line-height: 1.15;
+                    color: #2a2015; font-size: 30px; line-height: 1.15;
                     font-weight: 900; margin: 0; font-family: 'Cinzel', serif;
-                    text-shadow: 0.5px 0.5px 0px rgba(255,255,255,0.7);
+                    text-shadow: 1px 1px 0px rgba(255,255,255,0.9);
                 }
                 .continuation-label {
-                    font-family: 'Cinzel', serif; font-size: 18px;
-                    color: #5A1B1B; margin-bottom: 12px;
-                    border-bottom: 1px solid rgba(207,185,145,0.4);
-                    padding-bottom: 8px;
+                    font-family: 'Cinzel', serif; font-size: 20px; font-weight: 700;
+                    color: #5A1B1B; margin-bottom: 16px;
+                    border-bottom: 1px solid rgba(207,185,145,0.5);
+                    padding-bottom: 10px;
                 }
 
                 .spot-art {
-                    float: right; width: 140px; height: 140px;
-                    margin: 0 0 16px 16px; border-radius: 50%;
-                    border: 3px solid #8b7355;
-                    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+                    float: right; width: 160px; height: 160px;
+                    margin: 0 0 20px 24px; border-radius: 50%;
+                    border: 4px solid #8b7355; outline: 4px solid rgba(139,115,85,0.2);
+                    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
                     shape-outside: circle(50%); object-fit: cover;
                 }
 
                 .dnd-markdown {
                     font-family: 'Inter', sans-serif;
-                    color: #2a2015; font-size: 14px; line-height: 1.6;
+                    color: #1a1510; font-size: 15px; line-height: 1.7;
                 }
                 .dnd-markdown > p:first-of-type::first-letter {
-                    font-family: 'Cinzel', serif; font-size: 3.2em;
-                    float: left; margin: 6px 6px 0 -2px;
+                    font-family: 'Cinzel', serif; font-size: 3.5em;
+                    float: left; margin: 8px 8px 0 -4px;
                     line-height: 0.8; color: #5A1B1B;
-                    text-shadow: 1px 1px 2px rgba(0,0,0,0.15);
+                    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
                 }
-                .dnd-markdown p { margin-bottom: 12px; text-align: justify; }
+                .dnd-markdown p { margin-bottom: 16px; text-align: justify; }
                 .dnd-markdown h1, .dnd-markdown h2, .dnd-markdown h3 {
-                    font-family: 'Cinzel', serif; color: #5A1B1B;
-                    margin-top: 16px; margin-bottom: 8px;
-                    border-bottom: 1px solid rgba(207,185,145,0.4);
+                    font-family: 'Cinzel', serif; color: #5A1B1B; font-weight: 900;
+                    margin-top: 24px; margin-bottom: 12px;
+                    border-bottom: 1px solid rgba(207,185,145,0.6);
+                    padding-bottom: 4px;
                 }
 
                 .dnd-markdown blockquote {
-                    background: linear-gradient(135deg, rgba(207,185,145,0.12), rgba(207,185,145,0.25));
-                    border: 2px solid #CFB991; border-radius: 4px;
-                    padding: 14px 16px; margin: 12px 0;
-                    box-shadow: inset 0 0 15px rgba(0,0,0,0.04), 0 3px 8px rgba(0,0,0,0.08);
+                    background: linear-gradient(135deg, rgba(207,185,145,0.15), rgba(207,185,145,0.3));
+                    border: none; border-radius: 4px;
+                    padding: 16px 20px; margin: 20px 0;
+                    box-shadow: inset 0 0 20px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.1);
                     position: relative;
                 }
                 .dnd-markdown blockquote::before {
-                    content: ''; position: absolute; top: -3px; left: -3px;
-                    width: 14px; height: 14px;
-                    border-top: 2px solid #5A1B1B; border-left: 2px solid #5A1B1B;
-                }
-                .dnd-markdown blockquote::after {
-                    content: ''; position: absolute; bottom: -3px; right: -3px;
-                    width: 14px; height: 14px;
-                    border-bottom: 2px solid #5A1B1B; border-right: 2px solid #5A1B1B;
+                    content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 4px;
+                    background: #5A1B1B; border-radius: 4px 0 0 4px;
                 }
                 .dnd-markdown blockquote p {
-                    margin-bottom: 0; font-style: italic; font-size: 13px;
+                    margin-bottom: 0; font-style: italic; font-size: 14px; color: #3a2a1a;
                 }
-                .dnd-markdown ul, .dnd-markdown ol { margin-bottom: 12px; padding-left: 20px; }
-                .dnd-markdown li { margin-bottom: 4px; }
-                .dnd-markdown strong { color: #111; }
-                .dnd-markdown em { color: #5A1B1B; }
+                .dnd-markdown ul, .dnd-markdown ol { margin-bottom: 16px; padding-left: 24px; }
+                .dnd-markdown li { margin-bottom: 6px; }
+                .dnd-markdown strong { color: #000; font-weight: 700; }
+                .dnd-markdown em { color: #5A1B1B; font-weight: 500; }
 
                 .dnd-markdown table {
-                    width: 100%; border-collapse: collapse; margin: 8px 0;
-                    font-size: 13px;
+                    width: 100%; border-collapse: separate; border-spacing: 0; margin: 16px 0;
+                    font-size: 14px; border-radius: 6px; overflow: hidden;
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
                 }
                 .dnd-markdown th, .dnd-markdown td {
-                    border: 1px solid #8b7355; padding: 8px 10px; text-align: left;
+                    border: 1px solid rgba(139,115,85,0.4); padding: 10px 14px; text-align: left;
                 }
                 .dnd-markdown th {
-                    background: rgba(90,27,27,0.08);
-                    font-family: 'Cinzel', serif; font-size: 12px;
-                    color: #5A1B1B; font-weight: 700;
+                    background: linear-gradient(to bottom, rgba(207,185,145,0.4), rgba(139,115,85,0.4));
+                    font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 1px;
+                    color: #5A1B1B; font-weight: 900; text-transform: uppercase;
                 }
-                .dnd-markdown td { background: rgba(255,255,255,0.3); }
+                .dnd-markdown td { background: rgba(255,255,255,0.4); }
 
-                .toc-page { font-size: 13px; }
+                .toc-page { font-size: 15px; }
                 .toc-page ul { list-style: none; padding: 0; }
-                .toc-page li { padding: 3px 0; border-bottom: 1px dotted rgba(139,115,85,0.3); }
-                .toc-page a { color: #5A1B1B; text-decoration: none; }
-                .toc-page li li { padding-left: 20px; border-bottom: none; font-size: 12px; }
+                .toc-page li { padding: 6px 0; border-bottom: 1px dotted rgba(139,115,85,0.5); }
+                .toc-page a { color: #5A1B1B; text-decoration: none; font-weight: 500; transition: color 0.2s; }
+                .toc-page a:hover { color: #8b7355; }
+                .toc-page li li { padding-left: 24px; border-bottom: none; font-size: 14px; margin-top: 4px; }
 
                 .audio-bar {
-                    margin-top: 12px; padding: 10px 24px;
-                    width: 100%; max-width: 1400px;
-                    background: rgba(15,12,8,0.9);
-                    border: 1px solid rgba(207,185,145,0.4);
-                    border-radius: 6px;
+                    margin-top: 20px; padding: 12px 30px;
+                    width: 100%; max-width: 1500px;
+                    background: linear-gradient(to right, rgba(20,15,10,0.95), rgba(30,20,15,0.95), rgba(20,15,10,0.95));
+                    border: 1px solid rgba(207,185,145,0.5); border-radius: 8px;
                     display: flex; align-items: center; justify-content: space-between;
-                    box-shadow: 0 8px 16px rgba(0,0,0,0.4); z-index: 50;
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.6), inset 0 0 15px rgba(207,185,145,0.1);
+                    z-index: 50; position: relative;
                 }
-                .nav-group { display: flex; gap: 16px; align-items: center; }
+                .audio-bar::before {
+                    content: ''; position: absolute; top: -1px; left: 10%; right: 10%; height: 1px;
+                    background: linear-gradient(to right, transparent, rgba(207,185,145,0.8), transparent);
+                }
+                .nav-group { display: flex; gap: 20px; align-items: center; }
                 .nav-btn {
                     background: transparent; border: none;
-                    color: #CFB991; font-family: 'Cinzel', serif;
-                    font-weight: 700; font-size: 13px;
-                    cursor: pointer; transition: all 0.2s; outline: none;
+                    color: #CFB991; font-family: 'Cinzel', serif; text-transform: uppercase;
+                    font-weight: 900; font-size: 14px; letter-spacing: 1px;
+                    cursor: pointer; transition: all 0.3s; outline: none; padding: 8px 16px;
+                    border-radius: 4px;
                 }
-                .nav-btn:hover:not(.nav-btn--disabled) { color: #fff; }
+                .nav-btn:hover:not(.nav-btn--disabled) { color: #fff; background: rgba(207,185,145,0.1); }
                 .nav-btn--disabled { opacity: 0.3; cursor: default; }
                 .play-btn {
-                    font-size: 14px; padding: 8px 24px;
-                    background: linear-gradient(to bottom, #4a3a2a, #2a2015);
+                    font-size: 15px; padding: 10px 30px; letter-spacing: 2px;
+                    background: linear-gradient(to bottom, #5A1B1B, #3A0B0B);
                     color: #f4ebd8; border-radius: 4px;
-                    border: 1px solid #CFB991;
-                    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-                    font-family: 'Cinzel', serif; font-weight: 700;
-                    cursor: pointer; transition: all 0.2s;
+                    border: 1px solid #CFB991; outline: 2px solid rgba(207,185,145,0.2);
+                    box-shadow: 0 6px 12px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.1);
+                    font-family: 'Cinzel', serif; font-weight: 900;
+                    cursor: pointer; transition: all 0.2s; text-transform: uppercase;
                 }
-                .play-btn:hover { background: linear-gradient(to bottom, #5a4a3a, #3a3025); }
+                .play-btn:hover:not(.play-btn--disabled) { 
+                    background: linear-gradient(to bottom, #6A2B2B, #4A1B1B); 
+                    box-shadow: 0 8px 16px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.2);
+                    transform: translateY(-1px);
+                }
+                .play-btn:active:not(.play-btn--disabled) { transform: translateY(1px); box-shadow: 0 2px 4px rgba(0,0,0,0.4); }
                 .play-btn--disabled {
-                    background: rgba(40,30,20,0.4); color: #8b7355;
-                    cursor: default; border-color: rgba(207,185,145,0.3);
+                    background: linear-gradient(to bottom, rgba(40,30,20,0.6), rgba(20,15,10,0.6)); 
+                    color: rgba(139,115,85,0.6);
+                    cursor: default; border-color: rgba(139,115,85,0.3); outline: none;
                 }
                 .speed-group {
-                    display: flex; gap: 6px;
-                    border-left: 1px solid rgba(139,115,85,0.4);
-                    padding-left: 16px;
+                    display: flex; gap: 8px;
+                    border-left: 1px solid rgba(207,185,145,0.3);
+                    padding-left: 20px;
                 }
                 .speed-btn {
-                    background: transparent; border: 1px solid rgba(139,115,85,0.5);
-                    color: #CFB991; padding: 4px 10px; font-size: 12px;
+                    background: rgba(0,0,0,0.3); border: 1px solid rgba(139,115,85,0.4);
+                    color: #CFB991; padding: 6px 12px; font-size: 13px; font-weight: 600;
                     cursor: pointer; font-family: 'Inter', sans-serif;
-                    border-radius: 3px; outline: none; transition: all 0.2s;
+                    border-radius: 4px; outline: none; transition: all 0.2s;
                 }
+                .speed-btn:hover:not(.speed-btn--active) { background: rgba(207,185,145,0.1); }
                 .speed-btn--active {
-                    background: #CFB991; color: #111; border-color: #CFB991;
-                }
+                    background: linear-gradient(to bottom, #CFB991, #b59b6c); 
+                    color: #111; border-color: #CFB991; font-weight: 700;
+                    box-shadow: 0 2px 8px rgba(207,185,145,0.4);
             `}} />
         </div>
     );

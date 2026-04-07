@@ -101,7 +101,7 @@ pub async fn trinity_chat(
     if !inference::check_health(&llm_url).await {
         return Err((
             StatusCode::SERVICE_UNAVAILABLE,
-            "LLM server not reachable. Start llama-server on :8080".to_string(),
+            "LLM server not reachable. Start vLLM on :8001".to_string(),
         ));
     }
 

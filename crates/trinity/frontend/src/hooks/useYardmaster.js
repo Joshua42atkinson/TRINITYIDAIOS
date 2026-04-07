@@ -178,7 +178,7 @@ export function useYardmaster() {
 
       if (!res.ok) {
         logActivity(`Agent error: ${res.status}`, 'error');
-        setMessages((prev) => prev.map((m) => m.id === aiId ? { ...m, role: 'error', content: "🚫 THE FURNACE IS COLD! The Great Recycler cannot speak while the firebox sleeps. Ignite LM Studio on port 1234 or click [🔥 IGNITE FURNACE] to light the coal yourself!" } : m));
+        setMessages((prev) => prev.map((m) => m.id === aiId ? { ...m, role: 'error', content: "🚫 THE FURNACE IS COLD! The Great Recycler cannot speak while the firebox sleeps. Start vLLM on port 8001 or click [🔥 IGNITE FURNACE] to light the coal yourself!" } : m));
         setSending(false);
         return;
       }
@@ -217,7 +217,7 @@ export function useYardmaster() {
           // Route based on event type
           if (currentEvent === 'llm_offline' || currentEvent === 'error') {
             logActivity(`Agent error: ${payload}`, 'error');
-            setMessages((prev) => prev.map((m) => m.id === aiId ? { ...m, role: 'error', content: "🚫 THE FURNACE IS COLD! The Great Recycler cannot speak while the firebox sleeps. Ignite LM Studio on port 1234 or click [🔥 IGNITE FURNACE] to light the coal yourself!" } : m));
+            setMessages((prev) => prev.map((m) => m.id === aiId ? { ...m, role: 'error', content: "🚫 THE FURNACE IS COLD! The Great Recycler cannot speak while the firebox sleeps. Start vLLM on port 8001 or click [🔥 IGNITE FURNACE] to light the coal yourself!" } : m));
             setSending(false);
             return;
           }
@@ -335,6 +335,26 @@ export function useYardmaster() {
                 },
               ]);
               logActivity(`🖼️ Image generated: ${imgData.filename}`, 'success');
+            } catch { }
+            currentEvent = '';
+            continue;
+          }
+
+          // Audio generation events
+          if (currentEvent === 'audio' && payload.startsWith('{')) {
+            try {
+              const audData = JSON.parse(payload);
+              setMessages((prev) => [
+                ...prev,
+                {
+                  role: 'audio',
+                  filename: audData.filename,
+                  url: audData.url,
+                  base64: audData.base64,
+                  content: `🎵 Generated: ${audData.filename}`,
+                },
+              ]);
+              logActivity(`🎵 Audio generated: ${audData.filename}`, 'success');
             } catch { }
             currentEvent = '';
             continue;

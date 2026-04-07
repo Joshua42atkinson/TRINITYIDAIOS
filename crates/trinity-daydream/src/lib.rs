@@ -38,6 +38,9 @@ pub mod daydream;
 pub mod python_bridge;
 
 #[cfg(feature = "desktop")]
+pub mod iron_road_ui;
+
+#[cfg(feature = "desktop")]
 pub mod hud;
 #[cfg(feature = "desktop")]
 pub mod train_car;

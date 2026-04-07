@@ -1,9 +1,6 @@
 # **ASK PETE FIELD MANUAL: THE BOILERMAKER’S GUIDE TO COGNITIVE LOGISTICS AND SELF-ARCHITECTURE**
 
-![Pete — The Conductor of the Iron Road](/images/pete_conductor.png)
-
-*(Cover Art: Trinity AI OS — First Autonomous Generation — Iron Road Steampunk Teacher)*  
-![Steampunk Victorian Teacher](/home/joshua/.gemini/antigravity/brain/56acf803-0af8-4eac-8131-b34968a99672/steampunk_victorian_teacher_1775409717320.png)
+![Field Manual Cover](/images/field_manual/cover.jpg)
 
 Property of the Department of Cognitive Logistics | West Lafayette Node  
 System Status: ONLINE  
@@ -14,6 +11,8 @@ Narrator: Pete (The Operating System)
 # **SECTION 0: SYSTEM INITIALIZATION (THE GENESIS LOGIC)**
 
 ### **0.1 The Heavilon Algorithm: Reframing Catastrophe as Data**
+
+![Heavilon Tower Collapse](/images/field_manual/heavilon_tower_collapse.jpg)
 
 System Timestamp: January 23, 1894  
 Location: Purdue University, West Lafayette Node  
@@ -90,6 +89,9 @@ Getty Images
 
 ### **1.2 The N=1 Protocol (The Poison Squad)**
 
+![The Poison Squad](/images/field_manual/poison_squad_laboratory.jpg)
+
+
 The Anchor:  
 In 1902, Purdue’s first chemistry professor and future FDA founder Harvey Wiley established the "Poison Squad." At the time, the food industry claimed that additives like Borax, Formaldehyde, and Copper Sulfate were safe. Wiley refused to accept the "Industry Standard" or the marketing brochures. He gathered volunteers—students—and fed them these preservatives in the campus cafeteria to generate raw, empirical data on what is toxic and what is fuel. He risked the status quo for the truth.  
 The Operator's Lesson: You are the Chief Chemist  
@@ -139,6 +141,9 @@ Suffering is the delta (difference) between your Prediction and the Input.
 * *The Master Operator:* Updates the Map. They treat the pain not as a failure, but as **Telemetry**. The warning light is not a judgment; it is data indicating a need for a course correction. "My prediction was wrong. I need to update my model of how to study for this class."
 
 ### **2.2 The Gemini Protocol (The Spin)**
+
+![Gemini Death Spin](/images/field_manual/gemini_death_spin.jpg)
+
 
 The Anchor:  
 On March 16, 1966, Purdue alumnus Neil Armstrong piloted Gemini 8 to the first successful docking in space. It was a triumph of engineering. Moments later, the mission turned into a catastrophe. A single thruster (OAMS 8\) stuck open, firing continuously. The spacecraft entered a violent, accelerating roll—a Death Spin reaching 60 revolutions per minute. The vision blurred. The structural limits of the craft and the crew were being exceeded. Structural failure was imminent.  
@@ -233,6 +238,9 @@ Do not repress your aggression or ambition. Give it a Chassis.
 * *The Law:* Energy must be directed, or it will destroy the container. The Outlaw needs a job. Give him a race to win.
 
 ### **3.4 The Ghost Train (The Shadow Protocol)**
+
+![The Ghost Train](/images/field_manual/ghost_train.jpg)
+
 
 The Phenomenon:
 There is a train that runs the Iron Network at night. You have heard it. You have *felt* it. It runs without a schedule, without a conductor, without lights. It appears on the track ahead of you when you are alone, when it is dark, when the boiler pressure is dropping and the coal is running low. It is the Ghost Train.
@@ -375,6 +383,9 @@ Anchor: The Purdue "All-American" Marching Drum (The World's Largest Drum)
 Concept: Feedback Loops as "Rhythm" and Synchronization rather than "Correction."
 
 ### **6.1 The Big Bass Drum Protocol (The Sonic Weapon)**
+
+![The Big Bass Drum](/images/field_manual/big_bass_drum.jpg)
+
 
 The Myth: "The heartbeat of the University."  
 The Reality:  

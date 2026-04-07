@@ -7,13 +7,82 @@
 .iron-road-layout {
   display: grid;
   grid-template-columns: var(--chapter-rail-width) 1fr var(--hud-width);
-  grid-template-rows: var(--nav-height) 1fr var(--footer-height);
+  grid-template-rows: var(--nav-height) 1fr auto var(--footer-height);
   height: 100vh;
-  gap: 0;
+  overflow: hidden;
 }
 
-.iron-road-layout > .nav    { grid-column: 1 / -1; }
-.iron-road-layout > .footer { grid-column: 1 / -1; }
+.iron-road-layout.zen-mode {
+  grid-template-columns: 1fr;
+}
+
+.iron-road-layout > .phase-workspace-wrapper {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.iron-road-layout.zen-mode > .phase-workspace-wrapper {
+  grid-column: 1 / -1;
+}
+
+.iron-road-layout.zen-mode .book-stage {
+  align-items: center;
+  background-image: url('/images/living_textbook_bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.iron-road-layout.zen-mode .book-stage::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  background: rgba(6, 10, 20, 0.4);
+  z-index: 0;
+}
+
+.iron-road-layout.zen-mode .narrative-scroll {
+  width: 100%;
+  max-width: var(--reading-width, 900px);
+  padding-left: var(--sp-md);
+  padding-right: var(--sp-md);
+  z-index: 1;
+}
+
+.metrics-drawer {
+  position: absolute;
+  top: var(--nav-height, 60px);
+  right: 0;
+  width: var(--hud-width, 320px);
+  height: calc(100vh - var(--nav-height, 60px) - var(--footer-height, 40px));
+  z-index: 20;
+  pointer-events: none;
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px;
+}
+
+.metrics-drawer .game-hud {
+  pointer-events: auto;
+  border-left: 1px solid rgba(207, 185, 145, 0.1);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  width: 100%;
+  max-height: 100%;
+}
+
+
+
+.iron-road-layout > .nav          { grid-column: 1 / -1; grid-row: 1; }
+.iron-road-layout > .activity-bar { grid-column: 1 / -1; grid-row: 3; }
+.iron-road-layout > .footer       { grid-column: 1 / -1; grid-row: 4; z-index: 10; }
 
 /* ── Chapter Rail (Left) ── */
 .chapter-rail {
@@ -27,9 +96,9 @@
 
 /* ── Book Center Stage ── */
 .book-stage {
-  grid-row: 2;
   display: flex;
   flex-direction: column;
+  flex: 1; /* Stretch vertically in wrapper */
   overflow: hidden;
   background: var(--bg-page);
   position: relative;
@@ -345,11 +414,18 @@
 
 /* ── Journal Input (bottom of book) ── */
 .journal-input {
-  padding: 14px var(--sp-2xl);
-  border-top: 2px solid rgba(207, 185, 145, 0.1);
+  padding: 14px var(--sp-xl);
+  border-top: 1px solid rgba(207, 185, 145, 0.15);
   display: flex;
   gap: 10px;
-  background: linear-gradient(180deg, rgba(207, 185, 145, 0.015), var(--bg-surface));
+  background: var(--bg-surface);
+  border-radius: var(--r-md);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  margin-bottom: var(--sp-md);
+}
+.iron-road-layout.zen-mode .journal-input {
+  width: 100%;
+  max-width: var(--reading-width, 900px);
 }
 
 .journal-input .chat-input {
@@ -804,7 +880,8 @@
    ═══════════════════════════════════════════════ */
 
 .phase-workspace {
-  grid-row: 2;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1268,7 +1345,8 @@
    ═══════════════════════════════════════════════ */
 
 .phase-workspace {
-  grid-row: 2;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;

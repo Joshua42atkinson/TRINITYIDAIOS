@@ -3,61 +3,50 @@
    ═══════════════════════════════════════════════ */
 
 :root {
-  /* ── Purdue / Trinity Palette ── */
-  --gold:         #CFB991;
-  --gold-dark:    #8E7744;
-  --gold-bright:  #E8D5A3;
-  --black:        #0C0B09;
-  --bg:           #131210;
-  --bg-surface:   #1A1916;
-  --bg-card:      rgba(24, 22, 18, 0.88);
-  --bg-glass:     rgba(24, 22, 18, 0.72);
+  /* ── Purdue / Trinity LitRPG Palette ── */
+  --gold:         #FACC15;  /* Glowing Energy Gold */
+  --gold-dark:    #CA8A04;  /* Deep Molten Gold */
+  --gold-bright:  #FEF08A;  /* Laser Gold */
+  --black:        #020408;  /* True Void */
+  --bg:           #060A14;  /* Deep Socratic Navy */
+  --bg-surface:   #0F1626;  /* Elevated Command Plate */
+  --bg-card:      rgba(15, 22, 38, 0.85); /* Holo Glass */
+  --bg-glass:     rgba(10, 15, 26, 0.75);
 
-  /* ── Book Texture ── */
-  --bg-parchment: #16140F;
-  --bg-page:      linear-gradient(
-    180deg,
-    rgba(207, 185, 145, 0.06) 0%,
-    rgba(18, 17, 14, 1) 20%,
-    rgba(16, 15, 12, 1) 80%,
-    rgba(207, 185, 145, 0.04) 100%
-  );
-  --bg-vellum:    rgba(207, 185, 145, 0.035);
-  --border-spine: linear-gradient(180deg,
-    rgba(207, 185, 145, 0.05),
-    rgba(207, 185, 145, 0.2) 20%,
-    rgba(207, 185, 145, 0.2) 80%,
-    rgba(207, 185, 145, 0.05)
-  );
+  /* ── Digital Canvas (Replaces Paper) ── */
+  --bg-parchment: #080D18;
+  --bg-page:      radial-gradient(ellipse at top, #111A30 0%, #060A14 80%);
+  --bg-vellum:    rgba(250, 204, 21, 0.05); /* Lit Gold Wash */
+  --border-spine: linear-gradient(180deg, rgba(250, 204, 21, 0.05), rgba(250, 204, 21, 0.3) 50%, rgba(250, 204, 21, 0.05));
 
   /* ── Semantic Colors ── */
   --green:        #10B981;
-  --red:          #EF4444;
+  --red:          #F43F5E;  /* Neon Crimson */
   --blue:         #3B82F6;
-  --accent:       #4EC9B0;
+  --accent:       #06B6D4;
   --purple:       #A78BFA;
 
-  /* ── ADDIECRAPEYE Group Accents ── */
-  --group-addie:  #CFB991;   /* Gold — Instructional Design */
-  --group-crap:   #4EC9B0;   /* Teal — Visual Design */
+  /* ── ADDIECRAPEYE Group Accents (PEARL) ── */
+  --group-addie:  #10B981;   /* Emerald — Instructional Design */
+  --group-crap:   #06B6D4;   /* Cyan — Visual Design */
   --group-eye:    #A78BFA;   /* Violet — Metacognition */
 
   /* ── Text ── */
-  --text:         #E2E8F0;
-  --text-dim:     #6B7280;
-  --text-muted:   #4B5563;
-  --text-pete:    #D4C9B8;   /* Warm parchment text for Pete's prose */
+  --text:         #F8FAFC;
+  --text-dim:     #94A3B8;
+  --text-muted:   #475569;
+  --text-pete:    #E2E8F0;   /* Clean holo text for Pete */
 
   /* ── Borders ── */
-  --border:       #1F2937;
-  --border-glass: rgba(207, 185, 145, 0.15);
-  --border-gold:  rgba(207, 185, 145, 0.3);
+  --border:       #1E293B;
+  --border-glass: rgba(250, 204, 21, 0.2);
+  --border-gold:  rgba(250, 204, 21, 0.45);
 
   /* ── Typography ── */
   --font-display:     'Cinzel', serif;
   --font-decorative:  'Cinzel Decorative', 'Cinzel', serif;
-  --font-body:        'Crimson Text', serif;
-  --font-ui:          'Inter', sans-serif;
+  --font-body:        'Inter', sans-serif; /* Clean modern body instead of old serif */
+  --font-ui:          'Roboto', sans-serif;
   --font-mono:        'JetBrains Mono', monospace;
 
   /* ── Type Scale (modular, 1.25 ratio) ── */

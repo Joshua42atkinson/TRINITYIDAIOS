@@ -15,7 +15,8 @@
 set -uo pipefail
 
 AXUM_URL="http://localhost:3000"
-LLAMA_URL="http://localhost:8080"
+RECYCLER_URL="http://localhost:8001"
+PETE_URL="http://localhost:8002"
 MAX_LEVEL="${1:-7}"
 PASSED=0
 FAILED=0
@@ -54,24 +55,26 @@ else
     fail "PostgreSQL not connected"
 fi
 
-# llama-server
-LLAMA_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" "$LLAMA_URL/health" 2>/dev/null || echo "000")
-if [ "$LLAMA_HEALTH" = "200" ]; then
-    pass "llama-server responding on port 8080"
+# vLLM Recycler
+RECYCLER_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" "$RECYCLER_URL/v1/models" 2>/dev/null || echo "000")
+if [ "$RECYCLER_HEALTH" = "200" ]; then
+    pass "Great Recycler (vLLM) responding on port 8001"
 else
-    fail "llama-server not responding (HTTP $LLAMA_HEALTH)"
-    echo -e "${RED}LLM offline. Levels 2+ require inference. Exiting.${NC}"
-    echo -e "Passed: $PASSED / Failed: $FAILED"
-    exit 1
+    fail "Great Recycler not responding (HTTP $RECYCLER_HEALTH)"
 fi
 
-# Dual KV slots
-SLOTS=$(curl -s "$LLAMA_URL/slots" 2>/dev/null || echo "[]")
-SLOT_COUNT=$(echo "$SLOTS" | grep -o '"id"' | wc -l)
-if [ "$SLOT_COUNT" = "2" ]; then
-    pass "Dual KV cache: $SLOT_COUNT slots active (Recycler + Pete)"
+# vLLM Pete
+PETE_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" "$PETE_URL/v1/models" 2>/dev/null || echo "000")
+if [ "$PETE_HEALTH" = "200" ]; then
+    pass "Programmer Pete (vLLM) responding on port 8002"
 else
-    fail "Expected 2 KV slots, got $SLOT_COUNT"
+    fail "Programmer Pete not responding (HTTP $PETE_HEALTH)"
+fi
+
+if [ "$RECYCLER_HEALTH" != "200" ] && [ "$PETE_HEALTH" != "200" ]; then
+    echo -e "${RED}All LLMs offline. Levels 2+ require inference. Exiting.${NC}"
+    echo -e "Passed: $PASSED / Failed: $FAILED"
+    exit 1
 fi
 
 [ "$MAX_LEVEL" -le 1 ] && { echo -e "\nPassed: $PASSED / Failed: $FAILED"; exit 0; }
@@ -81,8 +84,8 @@ fi
 # ═══════════════════════════════════════════════════════════════════════════════
 header 2 "BASIC INFERENCE"
 
-# Direct llama-server chat completion
-RESPONSE=$(curl -s "$LLAMA_URL/v1/chat/completions" \
+# Direct vLLM chat completion (Recycler)
+RESPONSE=$(curl -s "$RECYCLER_URL/v1/chat/completions" \
   -H "Content-Type: application/json" \
   -d '{
     "messages": [{"role": "user", "content": "Reply with exactly: TRINITY ONLINE"}],
@@ -96,23 +99,6 @@ if echo "$RESPONSE" | grep -qi "trinity\|online\|content"; then
 else
     fail "LLM did not return expected response"
     info "Raw: $(echo "$RESPONSE" | head -c 200)"
-fi
-
-# Test slot pinning (Slot 0 = Recycler)
-SLOT_RESPONSE=$(curl -s "$LLAMA_URL/v1/chat/completions" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [{"role": "user", "content": "Say: slot zero active"}],
-    "max_tokens": 20,
-    "temperature": 0.0,
-    "id_slot": 0
-  }' 2>/dev/null || echo '{"error": "timeout"}')
-
-if echo "$SLOT_RESPONSE" | grep -q '"content"'; then
-    pass "KV slot pinning works (id_slot: 0) — response received"
-else
-    fail "KV slot pinning failed"
-    info "Raw: $(echo "$SLOT_RESPONSE" | head -c 200)"
 fi
 
 [ "$MAX_LEVEL" -le 2 ] && { echo -e "\nPassed: $PASSED / Failed: $FAILED"; exit 0; }

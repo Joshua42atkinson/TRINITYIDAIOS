@@ -10,7 +10,7 @@
 //   1. Client sends Binary frames (WAV/PCM audio chunks)
 //   2. Server routes audio → STT (Whisper ONNX)
 //   3. Server routes transcript → LLM (Pete, via inference_router)
-//   4. Server routes response → TTS (Supertonic-2 or Omni)
+//   4. Server routes response → TTS (Kokoro or Omni)
 //   5. Server sends Binary frames (WAV audio) back to client
 //
 //   Text frames carry JSON control messages:
@@ -276,7 +276,7 @@ async fn process_audio_frame(
         .await
         .map_err(|e| anyhow::anyhow!("LLM failed: {}", e))?;
 
-    // ── Step 3: TTS — Omni (if available) or Supertonic-2 (fallback) ──
+    // ── Step 3: TTS — Omni (if available) or Kokoro (fallback) ──
     let response_audio = synthesize_response(&response_text, &session.voice, state).await
         .unwrap_or_else(|e| {
             warn!("📞 TTS failed (sending text only): {}", e);
@@ -287,13 +287,13 @@ async fn process_audio_frame(
 }
 
 /// Synthesize response text via best available TTS
-async fn synthesize_response(text: &str, voice: &str, state: &AppState) -> anyhow::Result<Vec<u8>> {
-    // Try Omni first (highest quality)
+/// Priority: Kokoro (:8200, Apache 2.0) → silent fallback
+async fn synthesize_response(text: &str, voice: &str, _state: &AppState) -> anyhow::Result<Vec<u8>> {
+    // Kokoro is our primary TTS — it's live on :8200 via omni_synthesize
     if crate::voice::check_omni_audio_health().await {
         return crate::voice::omni_synthesize(text, voice, "wav").await;
     }
-
-    return Err(anyhow::anyhow!("Supertonic TTS removed. Use native vllm omni"));
+    Err(anyhow::anyhow!("No TTS available (Kokoro :8200 unreachable)"))
 }
 
 /// Build a voice-optimized system prompt for the Telephone Line
@@ -331,9 +331,9 @@ fn build_telephone_system_prompt(persona: &str, mode: &str) -> String {
 /// Detect which voice pipeline is active
 async fn detect_voice_pipeline() -> String {
     if crate::voice::check_omni_audio_health().await {
-        "omni".to_string()
+        "kokoro".to_string()
     } else {
-        "supertonic".to_string()
+        "unavailable".to_string()
     }
 }
 

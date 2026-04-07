@@ -81,12 +81,12 @@ cargo test --workspace && cargo run -p trinity --release
 
 ### Priority 4: Video/Media Pipeline
 
-**Problem:** Video generation returns "coming soon." Image generation works (ComfyUI) but needs to be part of the GDD workflow.
+**Problem:** Video generation returns "coming soon." Image generation works (vLLM Omni) but needs to be part of the GDD workflow.
 
 **Realistic Approach:**
-- Wire ComfyUI image generation into GDD compilation — auto-generate concept art for each game scene
+- Wire vLLM Omni image generation into GDD compilation — auto-generate concept art for each game scene
 - For video: add screen recording of the Bevy scaffold running as a "preview" — don't need AI video gen for MVP
-- Alternative: Generate animated GIFs from sprite sheets (ComfyUI can do this)
+- Alternative: Generate animated GIFs from sprite sheets
 
 **Files:** `creative.rs`, `quests.rs` (GDD compile step), UI integration
 

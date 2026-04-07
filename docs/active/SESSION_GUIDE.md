@@ -106,8 +106,8 @@ cargo check -p trinity 2>&1 | head -20
 │   ├── ADDIECRAPEYE orchestration (conductor_leader.rs)
 │   ├── Bevy game scaffolding (templates/)
 │   └── VAAM alignment (vocabulary weights → system prompts)
-├── ComfyUI SDXL Turbo (~2GB on :8188, optional)
-├── Voice Pipeline (~2GB on :7777, optional)
+├── vLLM Omni Pipeline (Text + Image inside :8000)
+├── Kokoro TTS Voice Pipeline (~1GB on :8200)
 └── System (~10GB)
 ```
 

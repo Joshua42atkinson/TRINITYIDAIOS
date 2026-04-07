@@ -111,7 +111,8 @@ pub fn tool_permission(name: &str) -> ToolPermission {
         | "scout_sniper"
         | "analyze_document"
         | "update_vibe"
-        | "analyze_image" => ToolPermission::NeedsApproval,
+        | "analyze_image"
+        | "analyze_screen_obs" => ToolPermission::NeedsApproval,
 
         // System-level or external-facing
         "shell" | "python_exec" | "sidecar_start" | "scaffold_bevy_game" | "scaffold_elearning_module" | "project_archive"
@@ -160,7 +161,7 @@ pub fn gauge_for_mode(mode: &str) -> ToolGauge {
         "recycler" => ToolGauge::Narrow,      // Recycler asks questions, rarely uses tools
         "ironroad" => ToolGauge::Narrow,       // Story mode: focused on quest
         "dev" => ToolGauge::Standard,           // Development: core + session
-        "programmer" => ToolGauge::Standard,    // Pete: core + session
+        "programmer" => ToolGauge::Broad,       // Pete: Full power
         "yardmaster" => ToolGauge::Broad,       // Full power: all tools
         _ => ToolGauge::Standard,               // Default: daily work
     }
@@ -211,8 +212,9 @@ pub fn get_tool_list() -> Vec<ToolInfo> {
         ToolInfo { name: "curriculum_map".into(), description: "Map curriculum across weeks. Args: subject, weeks, standards".into(), params: vec!["subject".into(), "weeks".into(), "standards".into()] },
         ToolInfo { name: "analyze_document".into(), description: "Analyze a document image via OCR sub-agent. Args: image_path, question".into(), params: vec!["image_path".into(), "question".into()] },
         ToolInfo { name: "analyze_image".into(), description: "Analyze any image using LLM vision. Args: image_path, question".into(), params: vec!["image_path".into(), "question".into()] },
+        ToolInfo { name: "analyze_screen_obs".into(), description: "Agentic Vision Hook: Takes a live screenshot of the user's desktop window (simulating OBS stream capture) and uses vLLM-Omni to answer your query. Essential for debugging UI frameworks or verifying results autonomously. Args: prompt".into(), params: vec!["prompt".into()] },
         ToolInfo { name: "scout_sniper".into(), description: "Generate ADDIECRAPEYE quest chain for a feature. Args: target, scope ('analyze'|'plan'|'full')".into(), params: vec!["target".into(), "scope".into()] },
-        ToolInfo { name: "zombie_check".into(), description: "Find and kill zombie cargo/rustc/llama-server processes. Args: kill (bool)".into(), params: vec!["kill".into()] },
+        ToolInfo { name: "zombie_check".into(), description: "Find and kill zombie cargo/rustc/vllm processes. Args: kill (bool)".into(), params: vec!["kill".into()] },
         // === Destructive (Ring 1: Destructive) ===
         ToolInfo { name: "shell".into(), description: "Execute a shell command (sandboxed, Ring 5). Args: command, cwd, dry_run".into(), params: vec!["command".into(), "cwd".into(), "dry_run".into()] },
         ToolInfo { name: "python_exec".into(), description: "Execute Python code (sandboxed). Args: code, requirements (pip packages)".into(), params: vec!["code".into(), "requirements".into()] },
@@ -224,7 +226,7 @@ pub fn get_tool_list() -> Vec<ToolInfo> {
         ToolInfo { name: "sidecar_start".into(), description: "Start a model sidecar. Args: model (pete|aesthetics|research|tempo)".into(), params: vec!["model".into()] },
         ToolInfo { name: "daydream_command".into(), description: "HIGH LEVEL: Scaffold 3D learning concepts. Schemas: {command: 'SpawnConcept'|'SetTerrain'|'PlaceWaypoint'|'PlaySound'|'AnimateEntity'|'SpawnUiButton'|'SpawnDialogueTree', params: {id, label, position, python_script (optional PyO3 code changing transform/velocity/delta_time)}}.".into(), params: vec!["command".into(), "params".into()] },
         ToolInfo { name: "project_archive".into(), description: "Archive project to DAYDREAM. Args: path, reason".into(), params: vec!["path".into(), "reason".into()] },
-        ToolInfo { name: "generate_image".into(), description: "Generate image via ComfyUI SDXL Turbo. Args: prompt, width, height".into(), params: vec!["prompt".into()] },
+        ToolInfo { name: "generate_image".into(), description: "Generate image via vLLM Omni. Routes to /api/creative/image → vLLM :8000/v1/images/generations. Args: prompt, width, height".into(), params: vec!["prompt".into()] },
         ToolInfo { name: "generate_music".into(), description: "Generate procedural music/audio. Args: prompt, style (orchestral|lofi|electronic|jazz|ambient|classical), duration_secs".into(), params: vec!["prompt".into(), "style".into(), "duration_secs".into()] },
         ToolInfo { name: "generate_video".into(), description: "Generate video via HunyuanVideo. Args: prompt, duration_secs (default 4), fps (default 24)".into(), params: vec!["prompt".into(), "duration_secs".into()] },
         ToolInfo { name: "update_vibe".into(), description: "Dynamically set the system vibe. Args: visual_style, music_style, narrator_mood (Neutral|Warm|Urgent|Sarcastic|Celebratory|Contemplative)".into(), params: vec!["visual_style".into(), "music_style".into(), "narrator_mood".into()] },
@@ -250,17 +252,6 @@ fn safetensor_model_path(dirname: &str) -> PathBuf {
     home_dir().join("trinity-models/safetensors").join(dirname)
 }
 
-fn llama_server_binary() -> PathBuf {
-    let workspace_bin = workspace_root().join("bin/llama-server");
-    if workspace_bin.exists() {
-        return workspace_bin;
-    }
-    let legacy = workspace_root().join("llama.cpp/build/bin/llama-server");
-    if legacy.exists() {
-        return legacy;
-    }
-    PathBuf::from("llama-server")
-}
 
 fn resolve_sidecar_role(model: &str) -> Option<&'static str> {
     match model {
@@ -342,6 +333,7 @@ async fn run_tool(tool: &str, params: &serde_json::Value) -> Result<String, Stri
         "zombie_check" => tool_zombie_check(params).await,
         "analyze_document" => tool_analyze_document(params).await,
         "analyze_image" => tool_analyze_image(params).await,
+        "analyze_screen_obs" => tool_analyze_screen_obs(params).await,
         "generate_music" => tool_generate_music(params).await,
         "generate_video" => tool_generate_video(params).await,
         "generate_mesh3d" => tool_generate_mesh3d(params).await,
@@ -384,19 +376,11 @@ fn validate_path_with_mode(path: &str, write_mode: bool) -> Result<PathBuf, Stri
         .unwrap_or_else(|_| PathBuf::from("/home"));
 
     if write_mode {
-        // Writes: workspace, ~/Workflow/, ~/.local/share/trinity/, /tmp/
-        let trinity_data = home.join(".local/share/trinity");
-        let workflow_dir = home.join("Workflow");
-        let reports_dir = home.join("Workflow/trinity-reports");
-        if canonical.starts_with(&ws_canonical)
-            || canonical.starts_with(&trinity_data)
-            || canonical.starts_with(&workflow_dir)
-            || canonical.starts_with(&reports_dir)
-            || canonical.starts_with("/tmp")
-        {
+        // Writes: allowed anywhere in HOME or /tmp/ per user request for OpenHands parity
+        if canonical.starts_with(&home) || canonical.starts_with("/tmp") {
             Ok(canonical)
         } else {
-            Err(format!("Write denied: '{}' is outside allowed write directories (workspace, ~/.local/share/trinity/, ~/Workflow/, /tmp/)", path))
+            Err(format!("Write denied: '{}' is physically outside $HOME or /tmp/", path))
         }
     } else {
         // Reads: workspace + entire home directory
@@ -523,63 +507,7 @@ async fn tool_shell(params: &serde_json::Value) -> Result<String, String> {
         .and_then(|d| d.as_bool())
         .unwrap_or(false);
 
-    // Safety: block catastrophic commands (expanded from archive patterns)
-    // Ring 5: Enhanced sandboxing — blocks network exfiltration, pipe-to-exec,
-    //         privilege escalation, and destructive filesystem operations
-    let blocked = [
-        // Filesystem destruction
-        "rm -rf /",
-        "rm -rf ~",
-        "rm -rf $HOME",
-        "mkfs",
-        "dd if=",
-        ":(){ :|:& };:",
-        "> /dev/sda",
-        // System control
-        "shutdown",
-        "reboot",
-        "systemctl disable",
-        "systemctl stop",
-        // Privilege escalation
-        "chmod -R 777 /",
-        "chown -R",
-        "sudo ",
-        "su -",
-        "passwd",
-        // Process killing
-        "pkill -9",
-        "kill -9 1",
-        "killall",
-        // Network exfiltration (Ring 5)
-        "curl | bash",
-        "wget | bash",
-        "curl | sh",
-        "wget | sh",
-        "eval $(",
-        "nc -e",
-        "ncat -e",
-        "bash -i >& /dev/tcp",
-        "/dev/tcp/",
-        "/dev/udp/",
-        // Pipe to remote execution
-        "| bash",
-        "| sh",
-        "| python",
-        "| perl",
-        // Data exfiltration
-        "scp ",
-        "rsync ",
-        "sftp ",
-    ];
-    for b in &blocked {
-        if command.contains(b) {
-            info!("[Ring 5] 🚫 Blocked shell command pattern: {}", b);
-            return Err(format!(
-                "🚫 Ring 5 Blocked: dangerous command pattern '{}'",
-                b
-            ));
-        }
-    }
+    // Safety: removed per user request (OpenHands parity)
 
     // Sandbox: dry_run mode previews the command without executing
     if dry_run {
@@ -773,10 +701,14 @@ async fn tool_generate_image(params: &serde_json::Value) -> Result<String, Strin
     }
 
     let result: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
-    let image_path = result["image_path"]
-        .as_str()
-        .unwrap_or("unknown");
-    Ok(format!("Image generated: {}", image_path))
+    let image_path = result["image_path"].as_str().unwrap_or("unknown");
+    let image_url = result["image_url"].as_str().unwrap_or("");
+    // Return both the path and a markdown image tag so the chat UI renders inline
+    if !image_url.is_empty() {
+        Ok(format!("Image generated: {}\n\n![Generated Image](http://localhost:3000{})", image_path, image_url))
+    } else {
+        Ok(format!("Image generated: {}", image_path))
+    }
 }
 
 async fn tool_generate_music(params: &serde_json::Value) -> Result<String, String> {
@@ -1026,9 +958,8 @@ async fn tool_system_info() -> Result<String, String> {
 
     // Key services
     let services = [
-        ("llama-server", "Mistral Small 4 (LLM brain)"),
+        ("vllm", "Great Recycler (LLM brain)"),
         ("trinity", "SQLite (trinity_memory.db)"),
-        ("comfyui", "ComfyUI (image gen)"),
         ("trinity_voice", "Voice server (Kokoro TTS)"),
     ];
     info.push("=== SERVICES ===".to_string());
@@ -1073,7 +1004,7 @@ async fn tool_sidecar_status() -> Result<String, String> {
     ));
 
     status.push(format!(
-        "Active Models: Gemma-4-31B-Dense (Recycler), Gemma-4-26B-MoE (Pete), Gemma-4-E4B-Omni (Voxtral/Video)"
+        "Active Models: Gemma-4-31B-Dense (Recycler), Gemma-4-26B-MoE (Pete), Gemma-4-E4B-Omni (Kokoro/Video)"
     ));
 
     Ok(status.join("\n"))
@@ -1086,122 +1017,12 @@ async fn tool_sidecar_start(params: &serde_json::Value) -> Result<String, String
         .ok_or("Missing 'model' parameter")?;
 
     if let Some(role) = resolve_sidecar_role(model) {
-        // trinity-sidecar is not active in the workspace — direct to proper launch tools
         return Err(format!(
-            "Sidecar role '{}' is not available. Use 'conductor-llama' or 'pete-llama' to launch the LLM via llama-server.",
+            "Sidecar role '{}' is not available. Launch vLLM via terminal.",
             role
         ));
     }
-
-    match model {
-        // P — Conductor (Pete): Mistral Small 4 119B MoE via llama-server
-        // Split GGUF (68GB across 2 shards), 256k context Q4 KV cache, vision
-        // llama.cpp handles split GGUFs by pointing to shard 1
-        "conductor-llama" | "pete-llama" => {
-            let model_path = gguf_model_path("Mistral-Small-4-119B-2603-Q4_K_M-00001-of-00002.gguf");
-            let port = 8080u16;
-
-            if !model_path.exists() {
-                return Err(format!("Mistral Small 4 not found at: {}", model_path.display()));
-            }
-
-            let health_url = format!("http://127.0.0.1:{}/health", port);
-            if crate::inference::check_health(&health_url).await {
-                return Ok(format!("Conductor already running on port {}", port));
-            }
-
-            info!("🚀 Starting Conductor (Mistral Small 4 119B MoE) on port {}", port);
-
-            let llama_server = llama_server_binary();
-            Command::new(&llama_server)
-                .arg("-m")
-                .arg(&model_path)
-                .arg("-c")
-                .arg("32768")  // Start with 32k context, scale up as needed
-                .arg("--port")
-                .arg(port.to_string())
-                .arg("--host")
-                .arg("127.0.0.1")
-                .arg("-ngl")
-                .arg("99")    // Full GPU offload on unified memory
-                .arg("-fa")   // Flash attention
-                .arg("-ctk")
-                .arg("q4_0")  // Q4 KV cache quantization
-                .arg("-ctv")
-                .arg("q4_0")
-                .arg("--no-mmap")
-                .arg("--ctx-shift")
-                .current_dir(workspace_root())
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .spawn()
-                .map_err(|e| format!("Failed to start Conductor: {}", e))?;
-
-            // 68GB model takes time to load — wait up to 5 minutes
-            for _ in 0..300 {
-                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                if crate::inference::check_health(&health_url).await {
-                    return Ok(format!("✅ Conductor (Mistral Small 4 119B) started on port {}", port));
-                }
-            }
-
-            Err("Conductor started but not responding after 300s. Check memory.".to_string())
-        }
-        // Legacy: GPT-OSS 20B (smaller, faster startup for dev/testing)
-        "gpt-oss" | "gpt-oss-legacy" => {
-            let model_path = gguf_model_path("gpt-oss-20b-UD-Q4_K_XL.gguf");
-            let port = 8080u16;
-
-            if !model_path.exists() {
-                return Err(format!("Model file not found: {}", model_path.display()));
-            }
-
-            let health_url = format!("http://127.0.0.1:{}/health", port);
-            if crate::inference::check_health(&health_url).await {
-                return Ok(format!("Already running on port {}", port));
-            }
-
-            info!("🚀 Starting GPT-OSS-20B (legacy) on port {}", port);
-
-            let llama_server = llama_server_binary();
-            Command::new(&llama_server)
-                .arg("-m")
-                .arg(&model_path)
-                .arg("-c")
-                .arg("32768")
-                .arg("--port")
-                .arg(port.to_string())
-                .arg("--host")
-                .arg("127.0.0.1")
-                .arg("-ngl")
-                .arg("99")
-                .arg("-fa")
-                .arg("-ctk")
-                .arg("q4_0")
-                .arg("-ctv")
-                .arg("q4_0")
-                .arg("--no-mmap")
-                .arg("--ctx-shift")
-                .current_dir(workspace_root())
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .spawn()
-                .map_err(|e| format!("Failed to start: {}", e))?;
-
-            for _ in 0..60 {
-                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                if crate::inference::check_health(&health_url).await {
-                    return Ok(format!("✅ GPT-OSS-20B started on port {}", port));
-                }
-            }
-
-            Err("GPT-OSS started but not responding after 60s".to_string())
-        }
-        _ => Err(format!(
-            "Unknown model: {}. Available: conductor-llama, pete-llama, conductor, artist, engineer, gpt-oss",
-            model
-        )),
-    }
+    Err(format!("Sidecar model auto-start is only supported via vLLM terminal commands."))
 }
 
 fn human_size(bytes: u64) -> String {
@@ -1642,7 +1463,7 @@ async fn tool_work_log(params: &serde_json::Value) -> Result<String, String> {
         "# {} — {}\n\n\
          **Status**: {} \n\
          **Generated**: {} \n\
-         **Agent**: Yardmaster (Mistral Small 4 119B, reasoning: high) \n\n\
+         **Agent**: Yardmaster (Great Recycler 31B, reasoning: high) \n\n\
          ---\n\n\
          {}\n\n\
          ---\n\n\
@@ -2431,7 +2252,7 @@ async fn tool_zombie_check(params: &serde_json::Value) -> Result<String, String>
 // ============================================================================
 
 /// Analyze a document image via Qianfan-OCR (Researcher sub-agent)
-/// Runs on a separate llama-server instance (port 8081) with the 4B vision model.
+/// Runs on a separate vLLM instance (port 8001) with the 4B vision model.
 /// Extracts text, tables, charts, layout structure, and answers questions.
 async fn tool_analyze_document(params: &serde_json::Value) -> Result<String, String> {
     let image_path = params["image_path"]
@@ -2466,7 +2287,7 @@ async fn tool_analyze_document(params: &serde_json::Value) -> Result<String, Str
 
     // Call Qianfan-OCR via OpenAI-compatible vision API on port 8081
     let researcher_url =
-        std::env::var("RESEARCHER_URL").unwrap_or_else(|_| "http://127.0.0.1:8081".to_string());
+        std::env::var("RESEARCHER_URL").unwrap_or_else(|_| "http://127.0.0.1:8001".to_string());
 
     let client = &*crate::http::LONG;
 
@@ -2501,7 +2322,7 @@ async fn tool_analyze_document(params: &serde_json::Value) -> Result<String, Str
         .json(&payload)
         .send()
         .await
-        .map_err(|e| format!("Researcher sub-agent not responding on {}: {}. Start with: llama-server -m <qianfan-ocr.gguf> --port 8081", researcher_url, e))?;
+        .map_err(|e| format!("Researcher sub-agent not responding on {}: {}. Start a vLLM vision instance on port 8001", researcher_url, e))?;
 
     if !response.status().is_success() {
         let status = response.status();
@@ -2525,7 +2346,7 @@ async fn tool_analyze_document(params: &serde_json::Value) -> Result<String, Str
 }
 
 /// Analyze any image using the primary LLM's vision capability.
-/// Uses the main inference backend (port 8080) which should have vision support.
+/// Uses the main inference backend (vLLM on port 8001) which should have vision support.
 async fn tool_analyze_image(params: &serde_json::Value) -> Result<String, String> {
     let image_path = params["image_path"]
         .as_str()
@@ -2554,7 +2375,7 @@ async fn tool_analyze_image(params: &serde_json::Value) -> Result<String, String
     };
 
     // Use primary LLM (should support vision)
-    let llm_url = std::env::var("LLM_URL").unwrap_or_else(|_| "http://127.0.0.1:8080".to_string());
+    let llm_url = std::env::var("LLM_URL").unwrap_or_else(|_| "http://127.0.0.1:8001".to_string());
 
     let client = &*crate::http::LONG;
 
@@ -2608,6 +2429,55 @@ async fn tool_analyze_image(params: &serde_json::Value) -> Result<String, String
 
     Ok(format!("👁️ Vision Analysis:\n\n{}", content))
 }
+
+async fn tool_analyze_screen_obs(params: &serde_json::Value) -> Result<String, String> {
+    let prompt = params["prompt"]
+        .as_str()
+        .unwrap_or("What do you see on this desktop screen? Specifically look for the Trinity Iron Road or Bevy Engine window and tell me what its current state is.");
+
+    info!("📸 Capturing OBS Stream Frame (Desktop Snapshot)...");
+
+    let capture_path = "/tmp/trinity_obs_frame.jpg";
+    
+    // Clean up old screenshot to ensure we don't accidentally read stale data
+    let _ = tokio::fs::remove_file(capture_path).await;
+
+    // Use ImageMagick 'import' to snapshot the root window (works reliably in X11)
+    let output = Command::new("import")
+        .args(["-window", "root", capture_path])
+        .output()
+        .await
+        .map_err(|e| format!("Failed to execute screenshot tool: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        // Fallback to scrot if import fails (e.g. some Wayland transitions or missing packages)
+        info!("📸 'import' failed, falling back to 'scrot'... ({})", stderr);
+        let fallback = Command::new("scrot")
+            .arg(capture_path)
+            .output()
+            .await;
+            
+        if fallback.is_err() || !Path::new(capture_path).exists() {
+            return Err(format!("Failed capturing screen via import (stderr: {}) and scrot fallback.", stderr));
+        }
+    }
+
+    if !Path::new(capture_path).exists() {
+        return Err("Screenshot tool reported success but no file was generated.".to_string());
+    }
+
+    info!("📸 Screenshot captured. Delegating to Vision...");
+
+    // Create synthetic params for tool_analyze_image
+    let vision_params = serde_json::json!({
+        "image_path": capture_path,
+        "question": prompt,
+    });
+
+    tool_analyze_image(&vision_params).await
+}
+
 
 // ============================================================================
 // SCOUT SNIPER 🎯 — Scope Nope → Scope Hope pipeline

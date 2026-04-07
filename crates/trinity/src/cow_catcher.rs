@@ -319,7 +319,7 @@ mod tests {
         assert!(!cc.should_restart());
 
         // LLMTimeout has severity 7 (not critical)
-        cc.report_timeout("step_1", 310, "mistral"); 
+        cc.report_timeout("step_1", 310, "recycler"); 
         assert!(!cc.should_restart());
         
         // SidecarCrash has severity 10 (critical)

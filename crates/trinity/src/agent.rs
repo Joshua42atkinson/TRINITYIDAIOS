@@ -152,7 +152,7 @@ Your job is done when the user has a product, not just a plan.
 // DUALITY KV CACHE — Persona → Slot routing
 // ============================================================================
 
-/// Map persona mode to a KV cache slot for llama-server's multi-slot mode.
+/// Map persona mode to a KV cache slot for vLLM's prefix-caching mode.
 /// When running with `-np 2`, each slot maintains its own KV cache, enabling
 /// instant persona switching without re-tokenizing system prompts.
 ///
@@ -199,11 +199,9 @@ You are running inside the Trinity ID AI OS project.
 You ARE the Yardmaster tab in this UI. You already know where everything is.
 
 SIDECAR & SERVICE ROLES:
-- LLM sidecars: 'conductor-llama', 'pete-llama' (NOT just 'pete' or 'conductor')
-- ComfyUI: port 8188 — check sidecar_status() BEFORE trying to generate images
-- Supertonic TTS: port 7777 — native Rust, no sidecar needed
-- Voxtral TTS: port 8100 — requires dedicated server (not yet active)
-- llama-server: port 8080 — current inference backend
+- vLLM (Great Recycler): port 8000 — Gemma-4 31B Dense AWQ (sole inference engine)
+- Kokoro TTS: port 8200 — Apache 2.0 voice synthesis, 6 presets
+- Images/Video: vLLM Omni on port 8000 — native generation via /v1/images/generations
 
 PYTHON ENVIRONMENTS (NEVER mix these):
 - ~/trinity-voice-env — Voice (chatterbox-tts, onnxruntime)
@@ -227,7 +225,7 @@ Available tools:
 - task_queue(action, task, index) — Manage the work queue. Actions: 'read', 'add', 'complete', 'next'.
 - process_list() — Show running processes
 - system_info() — Memory, disk, GPU, services status
-- generate_image(prompt) — Generate image via ComfyUI. The image will appear inline in the user's narrative. USE THIS during CRAP phases (Contrast, Repetition, Alignment, Proximity) when the user describes characters, settings, or game assets.
+- generate_image(prompt) — Generate image via vLLM Omni (/v1/images/generations). Image appears inline in chat. USE THIS during CRAP phases (Contrast, Repetition, Alignment, Proximity) when the user describes characters, settings, or game assets.
 - avatar_pipeline(concept, style) — Create NPC: backstory + portrait + voice + Bevy entity
 - sidecar_status() — Check available AI models
 - scaffold_bevy_game(name, title, subject, vocabulary, objectives) — Create a new Bevy game project
@@ -244,7 +242,7 @@ Available tools:
 - scout_sniper(target, scope) — Scout Sniper 🎯: Generate a full ADDIECRAPEYE quest chain for a target feature. Turns Scope Nope → Scope Hope. scope: 'analyze', 'plan', or 'full'.
 
 CREATIVE GENERATION:
-When the user describes a character, setting, game asset, or visual element — especially during CRAP phases (stations 6-9) — use generate_image to create a visual. The image appears inline in the narrative. Describe what you're generating before calling the tool: "Let me sketch that character for you..."
+When the user describes a character, setting, game asset, or visual element — especially during CRAP phases (stations 6-9) — use generate_image to create a visual. The image appears inline in the narrative via vLLM Omni. Describe what you're generating before calling the tool: "Let me sketch that character for you..."
 
 SAFETY PROTOCOL (Cow Catcher):
 1. Before writing Rust code: ALWAYS run cargo_check afterwards to verify compilation.
@@ -305,7 +303,10 @@ pub async fn agent_chat_stream(
 
     let llm_url = match request.sidecar_url.clone() {
         Some(url) => url,
-        None => state.inference_router.read().await.active_url().to_string(),
+        None => {
+            let router = state.inference_router.read().await;
+            router.get_url_by_name("vllm-pete").unwrap_or_else(|| router.active_url().to_string())
+        }
     };
     let db_pool = state.db_pool.clone();
     let session_id = state.project.session_id.as_ref().clone();
@@ -663,6 +664,41 @@ pub async fn run_agent_loop(
                 coal, coal_status, phase
             ));
         }
+
+        // === CONDUCTOR PROTOCOL: Inject phase-specific Socratic system prompt ===
+        // This is the wire that was missing. For Iron Road mode, we read the player's
+        // current ADDIECRAPEYE phase and inject the Conductor's coaching protocol.
+        // The prompt is appended LAST so it's the freshest instruction in the context window.
+        // This is a pure text injection — no LLM call, no latency, no channels needed.
+        if request.mode == "ironroad" {
+            let current_phase_label = {
+                let gs = game_state.read().await;
+                gs.quest.current_phase.label().to_string()
+            };
+            // Map the phase label to the AddiecrapeyePhase enum
+            let addiecrapeye_phase = match current_phase_label.as_str() {
+                "Analysis"       => crate::conductor_leader::AddiecrapeyePhase::Analysis,
+                "Design"         => crate::conductor_leader::AddiecrapeyePhase::Design,
+                "Development"    => crate::conductor_leader::AddiecrapeyePhase::Development,
+                "Implementation" => crate::conductor_leader::AddiecrapeyePhase::Implementation,
+                "Evaluation"     => crate::conductor_leader::AddiecrapeyePhase::Evaluation,
+                "Contrast"       => crate::conductor_leader::AddiecrapeyePhase::Contrast,
+                "Repetition"     => crate::conductor_leader::AddiecrapeyePhase::Repetition,
+                "Alignment"      => crate::conductor_leader::AddiecrapeyePhase::Alignment,
+                "Proximity"      => crate::conductor_leader::AddiecrapeyePhase::Proximity,
+                "Envision"       => crate::conductor_leader::AddiecrapeyePhase::Envision,
+                "Yoke"           => crate::conductor_leader::AddiecrapeyePhase::Yoke,
+                "Evolve"         => crate::conductor_leader::AddiecrapeyePhase::Evolve,
+                _                => crate::conductor_leader::AddiecrapeyePhase::Analysis,
+            };
+            let conductor_prompt = crate::conductor_leader::phase_system_prompt(addiecrapeye_phase);
+            system.push_str(&format!(
+                "\n\n--- IRON ROAD CONDUCTOR ---\n{}\n--- END CONDUCTOR ---",
+                conductor_prompt
+            ));
+            info!("[Conductor] Injected {} phase protocol into system prompt", current_phase_label);
+        }
+
 
         // Persist user message to DB before inference
         if let Err(e) = crate::persistence::save_message(

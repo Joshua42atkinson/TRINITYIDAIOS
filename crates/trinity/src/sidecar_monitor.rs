@@ -22,7 +22,7 @@
 // maintaining the Socratic learning loop and keeping drift at bay.
 //
 // ARCHITECTURE:
-//   • Periodically checks the actual sidecars: ComfyUI (:8188), Voice (:7777),
+//   • Periodically checks the actual sidecars: ComfyUI (:8188), Voice (:8200),
 //     Researcher (:8081)
 //   • Only reports to CowCatcher if a sidecar was previously healthy and
 //     then went down — avoids false obstacles from optional/uninstalled services
@@ -58,7 +58,7 @@ pub async fn monitor_sidecars(cow_catcher: Arc<RwLock<CowCatcher>>) {
         },
         SidecarTarget {
             name: "voice",
-            url: "http://127.0.0.1:7777/api/health",
+            url: "http://127.0.0.1:8200/api/health",
             was_healthy: false,
         },
         SidecarTarget {

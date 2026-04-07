@@ -125,7 +125,7 @@ pub async fn health_check(
     let model_hint = router
         .active_backend()
         .and_then(|b| b.model_name.clone())
-        .unwrap_or_else(|| "Mistral-Small-4-119B".to_string());
+        .unwrap_or_else(|| "Great_Recycler".to_string());
     let backends_available = router.backends.iter().filter(|b| b.healthy).count();
     drop(router);
 
@@ -142,7 +142,7 @@ pub async fn health_check(
         .unwrap_or(false);
 
     let musicgpt_ok = crate::http::check_health("http://127.0.0.1:8189").await;
-    let voice_ok = crate::http::check_health("http://127.0.0.1:7777").await;
+    let voice_ok = crate::http::check_health("http://127.0.0.1:8200").await;
 
     let cc = state.cow_catcher.read().await;
     let obstacle_count = cc.get_obstacles().len();
@@ -188,7 +188,7 @@ pub async fn health_check(
         },
         voice: VoiceHealth {
             connected: voice_ok,
-            url: "http://127.0.0.1:7777".to_string(),
+            url: "http://127.0.0.1:8200".to_string(),
         },
         cow_catcher: CowCatcherHealth {
             obstacle_count,

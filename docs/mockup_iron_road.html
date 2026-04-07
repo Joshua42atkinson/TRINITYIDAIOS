@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Iron Road - Native LitRPG</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Fira+Code&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Palette */
+            --bg-void: #0b0907;
+            --desk-wood: #1c130d;
+            
+            --paper-light: #f7f3e8;
+            --paper-mid: #eaddc5;
+            --paper-dark: #cfae85;
+            --leather: #331710;
+            --leather-dark: #1f0b06;
+            
+            --ink: #2a1f1a;
+            --ink-fade: #5c473a;
+            
+            --magic-gold: #d4af37;
+            --magic-red: #8b1e1e;
+            --magic-blue: #2e5984;
+            --magic-green: #2e844a;
+            
+            /* Typography */
+            --font-title: 'Cinzel', serif;
+            --font-body: 'Crimson Text', serif;
+            --font-code: 'Fira Code', monospace;
+        }
+
+        body {
+            background: radial-gradient(circle at center, var(--desk-wood) 0%, var(--bg-void) 100%);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-body);
+            color: var(--ink);
+            overflow: hidden;
+            /* Atmospheric fog */
+            background-image: 
+                url('data:image/svg+xml;utf8,<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg"><filter id="f"><feTurbulence type="fractalNoise" baseFrequency="0.01" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23f)" opacity="0.03"/></svg>');
+        }
+
+        /* ─── THE TOME ─── */
+        .the-tome {
+            display: flex;
+            width: 1400px;
+            max-width: 95vw;
+            height: 85vh;
+            perspective: 2000px;
+            position: relative;
+        }
+
+        /* The cover backing extending slightly past pages */
+        .cover-backing {
+            position: absolute;
+            top: -15px; bottom: -15px; left: -15px; right: -15px;
+            background: var(--leather);
+            border-radius: 15px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8), inset 0 0 40px rgba(0,0,0,0.9);
+            z-index: 1;
+            /* Faux leather texture */
+            background-image: radial-gradient(circle, transparent 20%, var(--leather-dark) 100%);
+        }
+
+        .spine-center {
+            position: absolute;
+            top: -15px; bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            background: linear-gradient(to right, var(--leather-dark), var(--leather) 20%, var(--leather) 80%, var(--leather-dark));
+            z-index: 2;
+            border-left: 2px solid rgba(255,255,255,0.05);
+            border-right: 2px solid rgba(255,255,255,0.05);
+            box-shadow: inset 0 0 20px rgba(0,0,0,1);
+        }
+
+        /* Binding bands */
+        .spine-band {
+            position: absolute;
+            width: 100%;
+            height: 15px;
+            background: var(--leather-dark);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.6);
+        }
+
+        .page-container {
+            flex: 1;
+            position: relative;
+            z-index: 5;
+            background: var(--paper-light);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: inset 0 0 60px var(--paper-dark);
+        }
+
+        /* Page textures */
+        .page-container::before {
+            content: '';
+            position: absolute;
+            top:0; left:0; right:0; bottom:0;
+            opacity: 0.4;
+            pointer-events: none;
+            background-image: 
+                url('data:image/svg+xml;utf8,<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.6" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)"/></svg>');
+        }
+
+        /* Page Stacks Depth */
+        .page-left {
+            border-radius: 8px 0 0 8px;
+            box-shadow: 
+                -4px 2px 0 var(--paper-mid),
+                -8px 4px 0 var(--paper-dark),
+                inset -30px 0 40px rgba(0,0,0,0.15); /* Center fold shadow */
+            border-right: 1px solid rgba(0,0,0,0.2);
+        }
+
+        .page-right {
+            border-radius: 0 8px 8px 0;
+            box-shadow: 
+                4px 2px 0 var(--paper-mid),
+                8px 4px 0 var(--paper-dark),
+                inset 30px 0 40px rgba(0,0,0,0.15); /* Center fold shadow */
+        }
+
+        /* Page Content Wrapping */
+        .page-content {
+            flex: 1;
+            padding: 40px 60px;
+            overflow-y: auto;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.3); }
+
+        /* ─── LEFT PAGE: THE GREAT RECYCLER ─── */
+        
+        .station-header {
+            text-align: center;
+            border-bottom: 2px solid var(--ink);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .station-title {
+            font-family: var(--font-title);
+            font-size: 2.2rem;
+            color: var(--ink);
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .station-subtitle {
+            font-size: 1.1rem;
+            color: var(--magic-red);
+            font-style: italic;
+            margin-top: 5px;
+        }
+
+        /* 12-Phase ADDIECRAPEYE Tracker */
+        .tracker {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0 40px 0;
+            position: relative;
+        }
+
+        .tracker::before {
+            content: '';
+            position: absolute;
+            top: 50%; left: 0; right: 0;
+            height: 2px;
+            background: rgba(0,0,0,0.1);
+            z-index: 1;
+        }
+
+        .tracker-node {
+            position: relative;
+            z-index: 2;
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            background: var(--paper-mid);
+            border: 2px solid var(--ink-fade);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-title);
+            font-weight: 800;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tracker-node.done {
+            background: var(--ink);
+            color: var(--paper-light);
+            border-color: var(--ink);
+        }
+
+        .tracker-node.active {
+            background: var(--magic-red);
+            color: var(--paper-light);
+            border-color: var(--magic-red);
+            box-shadow: 0 0 15px rgba(139, 30, 30, 0.6);
+            transform: scale(1.2);
+        }
+
+        .tracker-node .tooltip {
+            position: absolute;
+            bottom: 40px;
+            background: var(--ink);
+            color: var(--paper-light);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-family: var(--font-body);
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.2s;
+            font-size: 1rem;
+        }
+        
+        .tracker-node:hover .tooltip { opacity: 1; }
+
+        /* The Narrative Flow */
+        .narrative-stream {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .msg-ai {
+            font-size: 1.25rem;
+            line-height: 1.6;
+        }
+
+        /* Emulate drop caps and elegant prose */
+        .msg-ai p { margin: 0 0 15px 0; }
+        .msg-ai p:first-of-type::first-letter {
+            float: left;
+            font-size: 4rem;
+            line-height: 0.8;
+            padding-right: 8px;
+            font-family: var(--font-title);
+            color: var(--magic-red);
+        }
+
+        .msg-user {
+            align-self: flex-end;
+            background: rgba(0,0,0,0.04);
+            padding: 15px 20px;
+            border-radius: 4px;
+            font-family: var(--font-code);
+            font-size: 0.95rem;
+            border-left: 4px solid var(--magic-blue);
+            width: 80%;
+        }
+
+        /* ─── RIGHT PAGE: THE PLAYER HANDBOOK ─── */
+        
+        /* Navigation Tabs */
+        .tab-bar {
+            display: flex;
+            border-bottom: 2px solid var(--ink);
+            margin-bottom: 25px;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            font-family: var(--font-title);
+            font-weight: 600;
+            padding: 10px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            border-bottom: none;
+            color: var(--ink-fade);
+            transition: 0.2s;
+        }
+
+        .tab:hover { color: var(--ink); }
+        .tab.active {
+            color: var(--ink);
+            border-color: var(--ink);
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+            background: rgba(0,0,0,0.02);
+            position: relative;
+            transform: translateY(2px);
+            background: var(--paper-light);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Economy & Resources */
+        .resource-deck {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .resource {
+            flex: 1;
+            padding: 15px;
+            border: 1px solid rgba(0,0,0,0.15);
+            border-radius: 4px;
+            background: rgba(0,0,0,0.02);
+            text-align: center;
+            position: relative;
+        }
+
+        .resource-title {
+            font-family: var(--font-title);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .resource-val {
+            font-size: 2.2rem;
+            font-family: var(--font-code);
+            font-weight: bold;
+        }
+
+        .resource-bar-bg { width: 100%; height: 6px; background: rgba(0,0,0,0.1); margin-top: 10px; border-radius: 3px; overflow: hidden; }
+        .resource-bar-fill { height: 100%; }
+
+        /* Cargo / Objectives */
+        .section-header {
+            font-family: var(--font-title);
+            font-size: 1.3rem;
+            border-bottom: 1px dashed var(--ink-fade);
+            padding-bottom: 5px;
+            margin: 0 0 15px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .objective {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: 0.2s;
+        }
+
+        .objective:hover { background: rgba(0,0,0,0.03); }
+
+        .checkbox {
+            width: 20px; height: 20px;
+            border: 2px solid var(--ink);
+            border-radius: 3px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--paper-light);
+            font-weight: bold;
+        }
+        
+        .objective.done { color: rgba(0,0,0,0.4); text-decoration: line-through; }
+        .objective.done .checkbox { background: var(--ink); }
+
+        /* Encounters / Scope Creep (Seamless Integration) */
+        .encounter-box {
+            background: linear-gradient(135deg, rgba(139, 30, 30, 0.05), rgba(139, 30, 30, 0.01));
+            border: 1px solid var(--magic-red);
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .encounter-box::before {
+            content: '!';
+            position: absolute;
+            top: -15px; left: -15px;
+            width: 30px; height: 30px;
+            background: var(--magic-red);
+            color: #fff;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-title);
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(139,30,30,0.5);
+        }
+
+        .encounter-title { font-family: var(--font-title); color: var(--magic-red); font-size: 1.1rem; margin-bottom: 10px; }
+        .encounter-desc { font-style: italic; margin-bottom: 15px; }
+        
+        .btn-group { display: flex; gap: 10px; }
+        .btn {
+            padding: 8px 15px;
+            font-family: var(--font-title);
+            font-weight: 600;
+            background: transparent;
+            border: 1px solid var(--ink);
+            color: var(--ink);
+            cursor: pointer;
+            border-radius: 3px;
+            transition: 0.2s;
+            font-size: 0.9rem;
+        }
+        .btn:hover { background: var(--ink); color: var(--paper-light); }
+        .btn-magic { border-color: var(--magic-blue); color: var(--magic-blue); }
+        .btn-magic:hover { background: var(--magic-blue); color: #fff; box-shadow: 0 0 10px rgba(46,89,132,0.5); }
+
+        /* The Scribe Input / Inkwell */
+        .scribe-area {
+            position: absolute;
+            bottom: 40px; left: 60px; right: 60px;
+            background: rgba(255,255,255,0.4);
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 8px;
+            padding: 5px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+        }
+
+        .scribe-textarea {
+            width: 100%;
+            height: 80px;
+            background: transparent;
+            border: none;
+            outline: none;
+            resize: none;
+            font-family: var(--font-code);
+            font-size: 1rem;
+            color: var(--ink);
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .scribe-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px dashed rgba(0,0,0,0.1);
+            padding-top: 5px;
+            padding-left: 10px;
+        }
+
+        .scribe-info { font-size: 0.8rem; font-style: italic; color: rgba(0,0,0,0.5); }
+        .scribe-button { background: var(--ink); color: #fff; border: none; padding: 10px 20px; font-family: var(--font-title); border-radius: 4px; cursor: pointer; }
+        .scribe-button:hover { background: var(--magic-gold); color: var(--ink); font-weight: bold; }
+
+        /* Bestiary / Vocabulary Layout */
+        .vocab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .vocab-card { border: 1px solid rgba(0,0,0,0.15); padding: 10px; border-radius: 4px; }
+        .vocab-word { font-family: var(--font-title); font-weight: 600; color: var(--magic-green); font-size: 1.1rem; }
+        .vocab-def { font-size: 0.9rem; margin-top: 5px; font-style: italic; opacity: 0.8; }
+        .vocab-lvl { float: right; font-family: var(--font-code); color: rgba(0,0,0,0.5); font-size: 0.8rem; }
+
+        /* Grimoire Hooks */
+        .hook-card { display: flex; gap: 15px; padding: 15px; border: 1px solid var(--magic-blue); border-radius: 6px; margin-bottom: 10px; background: rgba(46,89,132,0.05); }
+        .hook-icon { font-size: 2rem; }
+        .hook-details h4 { margin: 0 0 5px 0; font-family: var(--font-title); color: var(--magic-blue); }
+        .hook-details p { margin: 0; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+<div class="the-tome">
+    <div class="cover-backing"></div>
+    <div class="spine-center">
+        <div class="spine-band" style="top: 15%"></div>
+        <div class="spine-band" style="top: 50%"></div>
+        <div class="spine-band" style="top: 85%"></div>
+    </div>
+
+    <!-- 📖 LEFT PAGE: THE GREAT RECYCLER -->
+    <div class="page-container page-left">
+        <div class="page-content">
+            
+            <div class="station-header">
+                <h1 class="station-title">Chapter 3: Refusal of the Call</h1>
+                <div class="station-subtitle">Station 3: Development (Apply)</div>
+            </div>
+
+            <!-- ADDIECRAPEYE Tracker -->
+            <div class="tracker">
+                <div class="tracker-node done">1<div class="tooltip">Analysis</div></div>
+                <div class="tracker-node done">2<div class="tooltip">Design</div></div>
+                <div class="tracker-node active">3<div class="tooltip">Development</div></div>
+                <div class="tracker-node">4<div class="tooltip">Implementation</div></div>
+                <div class="tracker-node">5<div class="tooltip">Evaluation</div></div>
+                <div class="tracker-node">6<div class="tooltip">Contrast</div></div>
+                <div class="tracker-node">7<div class="tooltip">Repetition</div></div>
+                <div class="tracker-node">8<div class="tooltip">Alignment</div></div>
+                <div class="tracker-node">9<div class="tooltip">Proximity</div></div>
+                <div class="tracker-node">10<div class="tooltip">Envision</div></div>
+                <div class="tracker-node">11<div class="tooltip">Yoke</div></div>
+                <div class="tracker-node">12<div class="tooltip">Evolve</div></div>
+            </div>
+
+            <!-- The Narrative Flow -->
+            <div class="narrative-stream">
+                <div class="msg-ai">
+                    <p>The locomotive’s furnace groans, seeking fuel. You have analyzed your learners and mapped the architecture, but now the raw materials must be forged in the fire.</p>
+                    <p>Development is fraught with scope creep and endless tinkering. The Iron Road demands focus. What is the very first programmatic asset you intend to build for this module, and how does it directly tie to the pedagogical objectives we cemented in the Design Station?</p>
+                </div>
+
+                <div class="msg-user">
+                    > I will begin by scripting the Player Movement boundaries. This serves the goal of ensuring interactive, spatial feedback.
+                </div>
+
+                <div class="msg-ai">
+                    <p>A wise starting point. By anchoring the player's spatial context immediately, you allow the cognitive load to shift toward exploration rather than navigation.</p>
+                    <p>However, I sense a disturbance in your plans. A shadow lurks in the periphery of your code window...</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 📖 RIGHT PAGE: THE PLAYER HANDBOOK -->
+    <div class="page-container page-right">
+        <div class="page-content">
+
+            <!-- Nav Tabs -->
+            <div class="tab-bar">
+                <div class="tab active" onclick="switchTab(1)">Stat & Quest</div>
+                <div class="tab" onclick="switchTab(2)">The Grimoire</div>
+                <div class="tab" onclick="switchTab(3)">Bestiary</div>
+            </div>
+
+            <!-- TAB 1: Quests and Stats -->
+            <div id="tab-1" class="tab-content active" style="padding-bottom: 120px;">
+                
+                <!-- Resources -->
+                <div class="resource-deck">
+                    <div class="resource">
+                        <div class="resource-title" style="color: var(--ink);">Coal (Mana)</div>
+                        <div class="resource-val">87</div>
+                        <div class="resource-bar-bg"><div class="resource-bar-fill" style="width: 87%; background: var(--ink);"></div></div>
+                        <div style="font-size:0.7rem; margin-top:5px; opacity:0.6;">Drains when speaking</div>
+                    </div>
+                    <div class="resource">
+                        <div class="resource-title" style="color: var(--magic-red);">Steam (HP)</div>
+                        <div class="resource-val" style="color: var(--magic-red);">45</div>
+                        <div class="resource-bar-bg"><div class="resource-bar-fill" style="width: 45%; background: var(--magic-red);"></div></div>
+                        <div style="font-size:0.7rem; margin-top:5px; opacity:0.6;">Gatekeeper to next Phase</div>
+                    </div>
+                    <div class="resource">
+                        <div class="resource-title" style="color: var(--magic-gold);">Traction</div>
+                        <div class="resource-val" style="color: var(--magic-gold);">04</div>
+                        <div style="font-size:0.7rem; margin-top:10px; opacity:0.6;">System Maturity Level</div>
+                    </div>
+                </div>
+
+                <!-- Scope Creep Encounter (Gracefully solved by Right Page) -->
+                <div class="encounter-box">
+                    <div class="encounter-title">A WILD ANOMALY APPEARED: "Procedural Generation"</div>
+                    <div class="encounter-desc">"Pete suggests procedural maps instead of static. This could infinitely expand playtime, but drains project focus."</div>
+                    <div class="btn-group">
+                        <button class="btn btn-magic">Cast "Focus Lens" (10 Steam)</button>
+                        <button class="btn">Leave Wild (Gain 5 Coal)</button>
+                    </div>
+                </div>
+
+                <!-- Active Objectives (Resolves C4 YAML bug) -->
+                <h3 class="section-header">Cargo Manifest (Phase Objectives) <span style="font-size: 0.9rem; opacity:0.5;">0/3 Completed</span></h3>
+                <div class="objective" onclick="this.classList.toggle('done')">
+                    <div class="checkbox"></div>
+                    <div>Draft the prototype boundaries script</div>
+                </div>
+                <div class="objective" onclick="this.classList.toggle('done')">
+                    <div class="checkbox"></div>
+                    <div>Integrate one (1) external Rust dependency</div>
+                </div>
+                <div class="objective" onclick="this.classList.toggle('done')">
+                    <div class="checkbox"></div>
+                    <div>Yield to Programmer Pete for code review</div>
+                </div>
+
+            </div>
+
+            <!-- TAB 2: Grimoire / Hook Deck -->
+            <div id="tab-2" class="tab-content">
+                <h3 class="section-header">Hook Deck <span style="font-size: 0.9rem; opacity:0.5;">Equipped Spells</span></h3>
+                
+                <div class="hook-card">
+                    <div class="hook-icon">✨</div>
+                    <div class="hook-details">
+                        <h4>Focus Lens (Lv.2)</h4>
+                        <p>Costs 10 Steam. Instantly collapses a wildly expanding idea into a minimum viable feature. Generates +10 Traction.</p>
+                    </div>
+                </div>
+
+                <div class="hook-card" style="border-color: var(--magic-green); background: rgba(46,132,74,0.05);">
+                    <div class="hook-icon">🛡️</div>
+                    <div class="hook-details">
+                        <h4 style="color: var(--magic-green);">Warding Sigil (Lv.1)</h4>
+                        <p>Costs 5 Coal. Silences the Great Recycler's critique on aesthetics, forcing the Socratic engine to focus strictly on pedagogical engineering.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: Bestiary (VAAM Integration P1) -->
+            <div id="tab-3" class="tab-content">
+                <h3 class="section-header">The Bestiary <span style="font-size: 0.9rem; opacity:0.5;">Captured Vocabulary</span></h3>
+                
+                <div class="vocab-grid">
+                    <div class="vocab-card">
+                        <div class="vocab-lvl">Lv.2</div>
+                        <div class="vocab-word">Extrinsic Load</div>
+                        <div class="vocab-def">Distractions that impede learning.</div>
+                        <div style="font-size:0.7rem; margin-top:8px; opacity:0.5;">Mastery: 2/5 (Logos)</div>
+                    </div>
+                    <div class="vocab-card">
+                        <div class="vocab-lvl">Lv.1</div>
+                        <div class="vocab-word">Intrinsic Load</div>
+                        <div class="vocab-def">The inherent difficulty of the subject.</div>
+                        <div style="font-size:0.7rem; margin-top:8px; opacity:0.5;">Mastery: 1/5 (Logos)</div>
+                    </div>
+                    <div class="vocab-card">
+                        <div class="vocab-lvl">MAX</div>
+                        <div class="vocab-word" style="color: var(--magic-gold);">Scaffolding</div>
+                        <div class="vocab-def">Temporary support bridging gaps.</div>
+                        <div style="font-size:0.7rem; margin-top:8px; color: var(--magic-gold); opacity:0.8;">Full Mastery Applied</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- The Pen & Ink Input -->
+            <div class="scribe-area">
+                <textarea class="scribe-textarea" placeholder="Dip your quill in the inkwell and scribe your response..."></textarea>
+                <div class="scribe-controls">
+                    <div class="scribe-info">Uses 2 Coal per invocation.</div>
+                    <button class="scribe-button">Inscribe</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchTab(idx) {
+        document.querySelectorAll('.tab').forEach((el, i) => {
+            el.classList.toggle('active', i === (idx - 1));
+        });
+        document.querySelectorAll('.tab-content').forEach((el, i) => {
+            el.classList.toggle('active', i === (idx - 1));
+        });
+    }
+</script>
+
+</body>
+</html>

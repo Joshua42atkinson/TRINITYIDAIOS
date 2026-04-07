@@ -76,7 +76,6 @@ pub mod http;
 mod inference;
 mod inference_router;
 mod jobs;
-mod gpu_guard;
 mod journal;
 mod music_streamer;
 mod narrative;
@@ -86,6 +85,7 @@ mod quality_scorecard;
 mod authenticity_scorecard;
 mod quests;
 mod rag;
+mod vllm_fleet;
 mod scope_creep;
 mod sidecar_monitor;
 mod skills;
@@ -182,7 +182,7 @@ pub struct AppState {
     pub vaam_bridge: Arc<vaam_bridge::VaamBridge>,
 
     // ── Ignition State Machine (server-side, survives tab switches) ──
-    /// Tracks LM Studio boot: idle | launching | daemon_up | server_starting | polling | loading_model | ready | failed
+    /// Tracks vLLM boot: idle | launching | daemon_up | server_starting | polling | loading_model | ready | failed
     pub ignition_status: Arc<RwLock<String>>,
 
     // ── Background Job Queue ──
@@ -390,7 +390,7 @@ async fn get_hardware_status(State(state): State<AppState>) -> Json<SystemStatus
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     health::mark_startup();
     tracing_subscriber::fmt()
-        .with_env_filter("trinity_server=info,tower_http=info")
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env().add_directive(tracing::Level::INFO.into()))
         .init();
 
     info!("╔══════════════════════════════════════════════════════════════╗");
@@ -446,115 +446,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     inference_router.auto_detect().await;
 
         if !inference_router.any_healthy() {
-            // ═══════════════════════════════════════════════════════════
-            // HOTEL STARTUP PROTOCOL — Hardware-Safe GPU Loading
-            // ═══════════════════════════════════════════════════════════
-            // Rule: One Heavyweight at a Time. Never double-load the GPU.
-            // Three guards: port check, process check, memory budget.
-            // If llama-server is already running → connect, don't spawn.
-
-            let decision = gpu_guard::pre_launch_check(8080, 70.0);
-
-            match decision {
-                gpu_guard::LaunchDecision::AlreadyRunning { .. } => {
-                    // llama-server is alive — just re-probe to connect
-                    inference_router.auto_detect().await;
-                }
-                gpu_guard::LaunchDecision::StillLoading { pid } => {
-                    // Process exists but model not loaded yet — wait for it
-                    info!("⏳ Waiting for existing llama-server (pid {}) to finish loading...", pid);
-                    let start_time = std::time::Instant::now();
-                    loop {
-                        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-                        if inference::check_health("http://127.0.0.1:8080").await {
-                            info!("✅ llama-server (pid {}) is now healthy!", pid);
-                            inference_router.auto_detect().await;
-                            break;
-                        }
-                        if start_time.elapsed() >= std::time::Duration::from_secs(120) {
-                            warn!("⚠️ llama-server (pid {}) didn't become healthy in 120s", pid);
-                            info!("   Background health loop will keep trying.");
-                            break;
-                        }
-                    }
-                }
-                gpu_guard::LaunchDecision::InsufficientMemory { available_gb, required_gb } => {
-                    warn!("🏨 Hotel Guard: Not enough memory to load model");
-                    warn!("   Available: {:.1} GB, Required: {:.1} GB", available_gb, required_gb);
-                    warn!("   Skipping auto-launch. Start llama-server manually when resources are free.");
-                }
-                gpu_guard::LaunchDecision::SafeToLaunch => {
-                    // All guards pass — safe to spawn
-                    let server_bin = gpu_guard::find_llama_server_binary();
-                    let gguf_model = gpu_guard::find_gguf_model();
-
-                    if server_bin.is_none() || gguf_model.is_none() {
-                        if server_bin.is_none() {
-                            warn!("⚠️ No llama-server binary found.");
-                        }
-                        if gguf_model.is_none() {
-                            warn!("⚠️ No GGUF model found in ~/trinity-models/gguf/");
-                        }
-                    } else if let (Some(bin), Some(model)) = (server_bin, gguf_model) {
-                        info!("🏨 Hotel: Launching llama-server (Gear P — Conductor)");
-                        info!("   Binary: {}", bin.display());
-                        info!("   Model:  {}", model.display());
-
-                        let model_str = model.to_string_lossy().to_string();
-                        let bin_str = bin.to_string_lossy().to_string();
-                        let bin_dir = bin
-                            .parent()
-                            .map(|p| p.to_string_lossy().to_string())
-                            .unwrap_or_default();
-                        match std::process::Command::new(&bin_str)
-                            .env("LD_LIBRARY_PATH", &bin_dir)
-                            .args([
-                                "--model", &model_str,
-                                "--port", "8080",
-                                "--host", "127.0.0.1",
-                                "--ctx-size", "262144",
-                                "--n-gpu-layers", "99",
-                                "--flash-attn", "on",
-                                "--jinja",
-                                "--parallel", "2",
-                            ])
-                            .stdout(std::process::Stdio::null())
-                            .stderr(std::process::Stdio::piped())
-                            .spawn()
-                        {
-                            Ok(child) => {
-                                gpu_guard::write_pid_file(child.id());
-                                info!("⏳ Waiting for llama-server (pid {}) to start...", child.id());
-                                let start_time = std::time::Instant::now();
-                                loop {
-                                    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-                                    if inference::check_health("http://127.0.0.1:8080").await {
-                                        info!("✅ llama-server auto-launched successfully!");
-                                        inference_router.auto_detect().await;
-                                        break;
-                                    }
-                                    if start_time.elapsed() >= std::time::Duration::from_secs(120) {
-                                        warn!("⚠️ llama-server launched but didn't become healthy in 120s.");
-                                        info!("   Background health loop will keep trying.");
-                                        break;
-                                    }
-                                }
-                            }
-                            Err(e) => {
-                                warn!("⚠️ Failed to launch llama-server: {}", e);
-                            }
-                        }
-                    }
-                }
-            }
-
-            if !inference_router.any_healthy() {
-                warn!("⚠️ No inference backend available.");
-                warn!("   Option 1: Set LLM_URL=http://your-server:port (HTTP)");
-                warn!("   Option 2: Download LM Studio, Ollama, or llama-server");
-                info!("   Background health loop will auto-connect when a server appears.");
-            }
+            warn!("⚠️ No active inference backend detected locally.");
+            info!("   Background health loop will auto-connect when servers appear.");
         }
+
+    // ── Auto-Start Multi-Sidecar vLLM Fleet (Accordion) ──
+    vllm_fleet::start_fleet().await;
 
     info!(
         "🔧 Active inference backend: {} at {}",
@@ -562,37 +459,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         inference_router.active_url()
     );
 
-    // ── Auto-Start Creative Sidecars (Phase 5A) ──
-    // ComfyUI for image generation
-    {
-        let comfyui_healthy = creative::check_comfyui_health_quick().await;
-        if !comfyui_healthy {
-            let comfyui_dirs = [
-                dirs::home_dir().unwrap_or_default().join("ComfyUI"),
-                dirs::home_dir()
-                    .unwrap_or_default()
-                    .join("Workflow/ComfyUI"),
-            ];
-            if let Some(dir) = comfyui_dirs.iter().find(|d| d.join("main.py").exists()) {
-                info!("🖼️ Auto-launching ComfyUI from {}...", dir.display());
-                match std::process::Command::new("python")
-                    .args(["main.py", "--port", "8188", "--listen", "127.0.0.1"])
-                    .current_dir(dir)
-                    .stdout(std::process::Stdio::null())
-                    .stderr(std::process::Stdio::null())
-                    .spawn()
-                {
-                    Ok(_) => info!("   ComfyUI sidecar spawned (port 8188)"),
-                    Err(e) => warn!("   ⚠️ Failed to start ComfyUI: {}", e),
-                }
-            } else {
-                info!("   ComfyUI not installed — image generation unavailable");
-            }
-        } else {
-            info!("🖼️ ComfyUI already running on :8188");
-        }
-    }
-    // Voice sidecar (Whisper STT + Supertonic-2 TTS)
+    // Voice sidecar (Whisper STT + Kokoro TTS)
     {
         let voice_healthy = voice::check_voice_sidecar_health().await;
         if !voice_healthy {
@@ -785,8 +652,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tokio::spawn(sidecar_monitor::monitor_sidecars(cow_catcher.clone()));
 
     // ── Background Inference Health Loop ──
-    // Re-probes the inference router so it picks up llama-server once it
-    // finishes loading the model (119B takes time). Checks every 15s until
+    // Re-probes the inference router so it picks up vLLM once it
+    // finishes loading the model (31B takes time). Checks every 15s until
     // healthy, then every 60s to detect crashes/restarts.
     {
         let router = state.inference_router.clone();
@@ -1377,7 +1244,7 @@ Joshua Atkinson is a graduate student in Learning Design and Technology (LDT) at
 
 ## ABOUT TRINITY ID AI OS
 Trinity is a local-first AI operating system that transforms instructional design into a structured, game-theoretically balanced ecosystem. Key facts:
-- Built with Rust (backend), React (frontend), and local LLMs (Mistral Small 4 119B)
+- Built with Rust (backend), React (frontend), and local LLMs (Great Recycler & Programmer Pete)
 - 100% FERPA/COPPA compliant by architecture, not policy — no data leaves the machine
 - Runs on a single 128GB AMD Strix Halo workstation
 - 37 Rust modules, 18 React views, 73 API routes, 12 quest phases
@@ -1427,7 +1294,9 @@ async fn portfolio_chat_stream(
 ) -> Sse<impl Stream<Item = Result<sse::Event, std::convert::Infallible>>> {
     let (tx, mut rx) = tokio::sync::mpsc::channel::<String>(100);
 
-    let llm_url = state.inference_router.read().await.active_url().to_string();
+    let router = state.inference_router.read().await;
+    let llm_url = router.get_url_by_name("vllm-recycler").unwrap_or_else(|| router.active_url().to_string());
+    drop(router);
     tokio::spawn(async move {
         // Build messages: system prompt + conversation history + new message
         let mut messages = vec![ChatMessage {
@@ -1747,7 +1616,9 @@ When all objectives for {phase_label} are complete, narrate the station being cl
     });
 
     // Call inference — HTTP fallback
-    let url = state.inference_router.read().await.active_url().to_string();
+    let router = state.inference_router.read().await;
+    let url = router.get_url_by_name("vllm-recycler").unwrap_or_else(|| router.active_url().to_string());
+    drop(router);
     let response = inference::chat_completion_with_effort(
         &url,
         &messages,
@@ -1807,7 +1678,7 @@ When all objectives for {phase_label} are complete, narrate the station being cl
     }))
 }
 
-/// Native TTS — Voxtral-4B (primary) → Supertonic-2 ONNX (fallback)
+/// Native TTS — Kokoro TTS (primary) → vLLM Omni E4B (future fallback)
 async fn tts_proxy(
     State(state): State<AppState>,
     Json(body): Json<serde_json::Value>,
@@ -1836,7 +1707,7 @@ async fn tts_proxy(
         .unwrap_or("wav")
         .to_string();
 
-    // Try Voxtral-4B via vLLM-Omni first
+    // Try Kokoro via vLLM-Omni first
     if voice::check_omni_audio_health().await {
         match voice::omni_synthesize(&text, &voice, &format).await {
             Ok(audio_bytes) => {
@@ -1850,7 +1721,7 @@ async fn tts_proxy(
                 return axum::response::Response::builder()
                     .status(StatusCode::OK)
                     .header("Content-Type", content_type)
-                    .header("X-TTS-Backend", "voxtral-4b")
+                    .header("X-TTS-Backend", "kokoro")
                     .header("X-Latency-Ms", latency_ms.to_string())
                     .header("X-Voice", voice::persona_to_omni_voice(&voice))
                     .body(axum::body::Body::from(audio_bytes))
@@ -1860,14 +1731,14 @@ async fn tts_proxy(
                     ));
             }
             Err(e) => {
-                tracing::warn!("Voxtral TTS failed, falling back to Supertonic-2: {}", e);
+                tracing::warn!("Kokoro TTS failed, no fallback available: {}", e);
             }
         }
     }
 
     return Err((
         StatusCode::SERVICE_UNAVAILABLE,
-        "Supertonic-2 TTS deprecated. Use Omni E4B natively via vLLM over pure API".to_string(),
+        "No TTS backend available. Start Kokoro sidecar on :8200 or enable vLLM Omni E4B".to_string(),
     ));
 }
 
@@ -1880,11 +1751,12 @@ async fn chat_stream(
     let (response_tx, mut response_rx) = tokio::sync::mpsc::channel::<String>(1);
 
     // Dual-model Hotel pattern: route zen mode to the dedicated storyteller (:8081),
-    // everything else to the primary LLM (Crow 9B on :8080).
+    // everything else to the primary LLM (Great Recycler on :8001).
     let llm_url = if request.mode == "zen" {
         "http://127.0.0.1:8081".to_string()
     } else {
-        state.inference_router.read().await.active_url().to_string()
+        let r = state.inference_router.read().await;
+        r.get_url_by_name("vllm-recycler").unwrap_or_else(|| r.active_url().to_string())
     };
     let db_pool = state.db_pool.clone();
     let history = state.project.conversation_history.clone();
@@ -2339,7 +2211,9 @@ CURRENT OBJECTIVES:
                 );
 
                 if !lenses.is_empty() {
-                    let llm_url = perspective_router.read().await.active_url().to_string();
+                    let router = perspective_router.read().await;
+                    let llm_url = router.get_url_by_name("vllm-recycler").unwrap_or_else(|| router.active_url().to_string());
+                    drop(router);
                     let perspective_set =
                         perspective::evaluate(&llm_url, &full_response, &lenses).await;
                     if !perspective_set.perspectives.is_empty() {
@@ -2393,7 +2267,7 @@ CURRENT OBJECTIVES:
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // The Director → Storyteller pipeline:
-//   1. Director (Crow/Mistral :8080, Slot 0) interprets user text → structured JSON
+//   1. Director (Great Recycler, Port 8001) interprets user text → structured JSON
 //   2. Storyteller (:8081) narrates with Director's interpretation + game state
 //   3. SSE events: "interpretation" (JSON) and "narration" (tokens)
 //
@@ -2518,35 +2392,6 @@ async fn backend_start(
                 let mut router = inference_router.write().await;
                 router.auto_detect().await;
                 info!("🔥 ═══ IGNITION COMPLETE — vLLM Omni is ONLINE ═══");
-            });
-        },
-        "ollama" => {
-            set_ignition(&ignition, "launching").await;
-            info!("🔥 Ignition: Starting Ollama server");
-            let ignition_bg = ignition.clone();
-            let inference_router = state.inference_router.clone();
-            tokio::spawn(async move {
-                let _ = tokio::process::Command::new("ollama").arg("serve").spawn();
-                // Wait for Ollama to respond
-                let client = reqwest::Client::new();
-                for attempt in 1..=30 {
-                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                    if let Ok(resp) = client.get("http://127.0.0.1:11434/api/tags")
-                        .timeout(std::time::Duration::from_secs(2))
-                        .send().await
-                    {
-                        if resp.status().is_success() {
-                            set_ignition(&ignition_bg, "ready").await;
-                            let mut router = inference_router.write().await;
-                            router.auto_detect().await;
-                            return;
-                        }
-                    }
-                    if attempt % 10 == 0 {
-                        info!("🔥 Waiting for Ollama... ({}s)", attempt);
-                    }
-                }
-                set_ignition(&ignition_bg, "failed").await;
             });
         },
         _ => {
@@ -2687,7 +2532,9 @@ async fn zen_chat_stream(
         // ══════════════════════════════════════════════
         // STEP 1: Director Call (non-streaming)
         // ══════════════════════════════════════════════
-        let director_url = inference_router.read().await.active_url().to_string();
+        let router = inference_router.read().await;
+        let director_url = router.get_url_by_name("vllm-recycler").unwrap_or_else(|| router.active_url().to_string());
+        drop(router);
         let director_prompt = format!(
             r#"You are the Director — the analytical mind behind the Iron Road game engine.
 Extract structured design elements from the user's text. Return ONLY valid JSON.
@@ -2726,7 +2573,7 @@ Return this JSON (use null for unknowns):
 
         // 8-second timeout: Crow's forced <think> block can take 30s+
         // If Director is slow, skip interpretation and go straight to narration.
-        // When Mistral replaces Crow, this timeout will rarely trigger.
+        // With the Great Recycler, this timeout will rarely trigger.
         let interpretation = match tokio::time::timeout(
             std::time::Duration::from_secs(8),
             inference::chat_completion_with_effort(
@@ -3174,7 +3021,7 @@ async fn model_status(State(state): State<AppState>) -> Json<serde_json::Value> 
 /// Switch the active inference backend at runtime
 #[derive(Debug, Deserialize)]
 struct SwitchModelRequest {
-    /// Backend name (e.g. "llama-server", "ollama") OR URL
+    /// Backend name (e.g. "vllm-omni", "vllm-recycler") OR URL
     #[serde(default)]
     url: String,
     #[serde(default)]
@@ -3355,7 +3202,7 @@ async fn ingest_document(
 
 /// MCP Proxy endpoint - forwards requests to trinity-mcp-server
 /// This allows the web UI to call MCP tools without direct MCP server connection
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct McpRequest {
     pub method: String,
     pub params: serde_json::Value,
@@ -3365,38 +3212,42 @@ async fn mcp_proxy(
     State(_state): State<AppState>,
     Json(request): Json<McpRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    // For now, we implement quest tools directly here
-    // In production, this would forward to a running trinity-mcp-server process
+    // Forward to the running trinity-mcp-server process via TCP on port 8080
+    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
-    match request.method.as_str() {
-        "tools/call" => {
-            let tool_name = request.params["name"]
-                .as_str()
-                .ok_or_else(|| (StatusCode::BAD_REQUEST, "Missing tool name".to_string()))?;
-
-            match tool_name {
-                "quest_start" | "quest_context" | "quest_verify" => {
-                    // These tools need MCP server - return helpful error
-                    Ok(Json(serde_json::json!({
-                        "error": "MCP server not connected. Start trinity-mcp-server for full quest context support.",
-                        "hint": "For now, use the sidecar quest execution on :8090"
-                    })))
-                }
-                _ => Ok(Json(serde_json::json!({
-                    "error": format!("Unknown MCP tool: {}", tool_name)
-                }))),
-            }
+    let mut stream = match tokio::net::TcpStream::connect("127.0.0.1:8080").await {
+        Ok(s) => s,
+        Err(e) => {
+            tracing::error!("Failed to connect to MCP server on 8080: {}", e);
+            return Ok(Json(serde_json::json!({
+                "error": "MCP server not connected. Ensure trinity-mcp-server is running on port 8080.",
+                "details": e.to_string(),
+                "hint": "Check distrobox or run `cargo run -p trinity-mcp-server`"
+            })));
         }
-        "tools/list" => Ok(Json(serde_json::json!({
-            "tools": [
-                {"name": "quest_start", "description": "Load quest context files into MCP"},
-                {"name": "quest_context", "description": "Search MCP for relevant context"},
-                {"name": "quest_verify", "description": "Get quest verify commands"}
-            ]
-        }))),
-        _ => Ok(Json(serde_json::json!({
-            "error": format!("Unknown MCP method: {}", request.method)
-        }))),
+    };
+
+    let mut request_json = serde_json::to_string(&request).unwrap_or_default();
+    request_json.push('\n');
+
+    if let Err(e) = stream.write_all(request_json.as_bytes()).await {
+        return Ok(Json(serde_json::json!({ "error": format!("Failed to send MCP request: {}", e) })));
+    }
+
+    let mut reader = BufReader::new(stream);
+    let mut response_line = String::new();
+    
+    if let Err(e) = reader.read_line(&mut response_line).await {
+        return Ok(Json(serde_json::json!({ "error": format!("Failed to read MCP response: {}", e) })));
+    }
+
+    if response_line.is_empty() {
+        return Ok(Json(serde_json::json!({ "error": "Empty response from MCP server" })));
+    }
+
+    match serde_json::from_str::<serde_json::Value>(&response_line) {
+        Ok(parsed) => Ok(Json(parsed)),
+        Err(e) => Ok(Json(serde_json::json!({ "error": format!("Failed to parse MCP response: {}", e) })))
     }
 }
 
@@ -3665,7 +3516,10 @@ async fn eye_compile(
     State(state): State<AppState>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let game = state.project.game_state.read().await;
-    let container = eye_container::compile_container(&game);
+    let vocab_db = state.vaam_bridge.vaam.database.read().await;
+    let all_vocab: Vec<trinity_protocol::VocabularyWord> = vocab_db.all_words().into_iter().cloned().collect();
+    drop(vocab_db);
+    let container = eye_container::compile_container(&game, &all_vocab);
     let json = serde_json::to_value(&container).map_err(|e| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -3673,8 +3527,9 @@ async fn eye_compile(
         )
     })?;
     info!(
-        "👁️ EYE container compiled: {} objectives, {} assets",
+        "👁️ EYE container compiled: {} objectives, {} vocab, {} assets",
         container.objectives.len(),
+        container.vocabulary.len(),
         container.assets.len()
     );
     Ok(Json(serde_json::json!({
@@ -3686,18 +3541,24 @@ async fn eye_compile(
 /// Preview the compiled EYE container as JSON.
 async fn eye_preview(State(state): State<AppState>) -> Json<serde_json::Value> {
     let game = state.project.game_state.read().await;
-    let container = eye_container::compile_container(&game);
+    let vocab_db = state.vaam_bridge.vaam.database.read().await;
+    let all_vocab: Vec<trinity_protocol::VocabularyWord> = vocab_db.all_words().into_iter().cloned().collect();
+    drop(vocab_db);
+    let container = eye_container::compile_container(&game, &all_vocab);
     Json(serde_json::to_value(&container).unwrap_or_default())
 }
 
 /// Export the EYE container as a downloadable HTML5 file.
-/// Query params: ?format=html5_quiz | html5_adventure | raw_json
+/// Query params: ?format=html5_quiz | html5_adventure | raw_json | docx_portfolio | zip_portfolio
 async fn eye_export(
     State(state): State<AppState>,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> Result<axum::response::Response, (StatusCode, String)> {
     let game = state.project.game_state.read().await;
-    let container = eye_container::compile_container(&game);
+    let vocab_db = state.vaam_bridge.vaam.database.read().await;
+    let all_vocab: Vec<trinity_protocol::VocabularyWord> = vocab_db.all_words().into_iter().cloned().collect();
+    drop(vocab_db);
+    let container = eye_container::compile_container(&game, &all_vocab);
 
     let format = params
         .get("format")
@@ -3992,7 +3853,9 @@ async fn generate_narrative_endpoint(State(state): State<AppState>) -> Json<serd
         current_quest_flavor: Some("journey".to_string()),
     };
 
-    let llm_url = state.inference_router.read().await.active_url().to_string();
+    let router = state.inference_router.read().await;
+    let llm_url = router.get_url_by_name("vllm-recycler").unwrap_or_else(|| router.active_url().to_string());
+    drop(router);
 
     match narrative::generate_narrative(&llm_url, &context).await {
         Some(prose) => {
@@ -4506,8 +4369,19 @@ async fn stt_transcribe(
     let part = reqwest::multipart::Part::bytes(body.to_vec())
         .file_name("audio.wav")
         .mime_str("audio/wav").unwrap();
+        
+    let fallback_model = "Gemma-4-E2B-Omni".to_string();
+    let model_name = match client.get("http://127.0.0.1:8000/v1/models").send().await {
+        Ok(res) => {
+            if let Ok(json) = res.json::<serde_json::Value>().await {
+                json["data"][0]["id"].as_str().unwrap_or(&fallback_model).to_string()
+            } else { fallback_model.clone() }
+        },
+        Err(_) => fallback_model.clone(),
+    };
+
     let form = reqwest::multipart::Form::new()
-        .text("model", "Gemma-4-E4B-Omni")
+        .text("model", model_name)
         .part("file", part);
         
     let response = match client.post("http://127.0.0.1:8000/v1/audio/transcriptions").multipart(form).send().await {
@@ -4626,8 +4500,7 @@ async fn setup_config(
 ) -> impl axum::response::IntoResponse {
     let url = match config.backend.as_str() {
         "vllm-omni" => "http://127.0.0.1:8000/v1/chat/completions",
-        "ollama" => "http://127.0.0.1:11434/v1/chat/completions",
-        _ => config.custom_url.as_deref().unwrap_or("http://127.0.0.1:11434/v1/chat/completions"),
+        _ => config.custom_url.as_deref().unwrap_or("http://127.0.0.1:8000/v1/chat/completions"),
     };
 
     // Test the connection BEFORE acknowledging setup is complete

@@ -36,7 +36,7 @@ function tagClass(tag) {
   const t = (tag || '').toUpperCase();
   if (['SUCCESS', 'COMPLETE', 'DONE'].includes(t)) return 'beast-tag--success';
   if (['ERROR', 'FAILED', 'CRITICAL'].includes(t)) return 'beast-tag--error';
-  if (t === 'COMFYUI') return 'beast-tag--comfyui';
+  if (t === 'COMFYUI') return 'beast-tag--comfyui'; // legacy — kept for log compatibility
   if (t === 'ACE_STEP') return 'beast-tag--ace';
   if (t === 'AVATAR') return 'beast-tag--avatar';
   if (t === 'FORGE' || t === 'YARD') return 'beast-tag--forge';
@@ -79,9 +79,25 @@ function renderYmMarkdown(text) {
   const cleaned = cleanToolCalls(text);
   if (!cleaned) return '';
 
+  // Step 0: Convert markdown images BEFORE any escaping
+  // Pattern: ![alt text](url) → <img> with inline style
+  // We handle this first so the URL isn't mangled by HTML-escaping
+  const imageTokens = [];
+  let withImageTokens = cleaned.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
+    const idx = imageTokens.length;
+    const safeUrl = url.replace(/"/g, '&quot;');
+    const safeAlt = alt.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    if (safeUrl.match(/\.(mp3|wav|ogg)$/i)) {
+      imageTokens.push(`<div class="ym-audio-container"><audio controls src="${safeUrl}" style="width:100%; max-width:400px; margin:8px 0; display:block;" /><div class="ym-image-caption">${safeAlt || 'Audio clip'}</div></div>`);
+    } else {
+      imageTokens.push(`<div class="ym-image-container"><img src="${safeUrl}" alt="${safeAlt}" class="ym-inline-image" loading="lazy" style="max-width:100%;border-radius:8px;margin:8px 0;display:block;" /><div class="ym-image-caption">${safeAlt || 'Generated image'}</div></div>`);
+    }
+    return `__IMGTOKEN_${idx}__`;
+  });
+
   // Step 1: Extract fenced code blocks into placeholders
   const codeBlocks = [];
-  let withPlaceholders = cleaned.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+  let withPlaceholders = withImageTokens.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
     const idx = codeBlocks.length;
     // Escape HTML inside code blocks separately
     const escaped = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -96,6 +112,9 @@ function renderYmMarkdown(text) {
 
   // Step 3: Apply markdown formatting
   html = html
+    .replace(/^### (.+)$/gm, '<h3 class="ym-h3">$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2 class="ym-h2">$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1 class="ym-h1">$1</h1>')
     .replace(/`([^`]+)`/g, '<code class="ym-inline-code">$1</code>')
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -107,13 +126,18 @@ function renderYmMarkdown(text) {
   html = html.split(/\n{2,}/).map(block => {
     const t = block.trim();
     if (!t) return '';
-    if (t.startsWith('<pre') || t.startsWith('<ul') || t.startsWith('<ol') || t.startsWith('<h') || t.startsWith('__CODEBLOCK_')) return t;
+    if (t.startsWith('<pre') || t.startsWith('<ul') || t.startsWith('<ol') || t.startsWith('<h') || t.startsWith('__CODEBLOCK_') || t.startsWith('__IMGTOKEN_')) return t;
     return `<p>${t.replace(/\n/g, '<br/>')}</p>`;
   }).join('');
 
   // Step 4: Reinsert code blocks
   codeBlocks.forEach((block, i) => {
     html = html.replace(`__CODEBLOCK_${i}__`, block);
+  });
+
+  // Step 5: Reinsert image tokens
+  imageTokens.forEach((block, i) => {
+    html = html.replace(`__IMGTOKEN_${i}__`, block);
   });
 
   return html;
@@ -197,11 +221,11 @@ export default function Yardmaster() {
 
   // Phase labels for human-readable display
   const phaseLabels = {
-    launching: '🚀 Launching LM Studio...',
+    launching: '🚀 Connecting to vLLM...',
     daemon_up: '⚙️ Daemon active...',
     server_starting: '🔧 Starting API server...',
     polling: '📡 Waiting for server...',
-    loading_model: '🧠 Loading Mistral 119B...',
+    loading_model: '🧠 Loading Great Recycler...',
     ready: '🟢 FURNACE ONLINE',
     failed: '❌ Ignition Failed — Click to Retry',
   };
@@ -491,7 +515,7 @@ export default function Yardmaster() {
           {/* Chat Messages */}
           <div className="ym-messages" ref={chatRef}>
             {messages.map((msg, i) => (
-              <div key={i} className={`chat-msg ${msg.role === 'user' ? 'ym-msg-user' : msg.role === 'image' ? 'ym-msg-image' : msg.role === 'error' ? 'ym-msg-error' : 'ym-msg-ai'}`}>
+              <div key={i} className={`chat-msg ${msg.role === 'user' ? 'ym-msg-user' : msg.role === 'image' || msg.role === 'audio' ? 'ym-msg-image' : msg.role === 'error' ? 'ym-msg-error' : 'ym-msg-ai'}`}>
                 {msg.speaker && (
                   <div className="ym-speaker">{msg.speaker}</div>
                 )}
@@ -501,6 +525,15 @@ export default function Yardmaster() {
                       src={msg.url || `data:image/png;base64,${msg.base64}`}
                       alt={msg.filename || 'Generated image'}
                       className="ym-inline-image"
+                    />
+                    <div className="ym-image-caption">{msg.content}</div>
+                  </div>
+                ) : msg.role === 'audio' ? (
+                  <div className="ym-msg-body ym-audio-container">
+                    <audio 
+                      controls 
+                      src={msg.url || `data:audio/wav;base64,${msg.base64}`} 
+                      style={{ width: '100%', height: '32px', borderRadius: '4px' }} 
                     />
                     <div className="ym-image-caption">{msg.content}</div>
                   </div>
@@ -592,7 +625,7 @@ export default function Yardmaster() {
                   onClick={async (e) => {
                     if (isIgniting || isOnline) return;
                     try {
-                      const st = JSON.parse(localStorage.getItem('trinitySetupState') || '{"engine":"lm_studio"}');
+                      const st = JSON.parse(localStorage.getItem('trinitySetupState') || '{"engine":"vllm"}');
                       await fetch('/api/system/backend-start', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
@@ -601,7 +634,7 @@ export default function Yardmaster() {
                     } catch(e) { /* fallback */ }
                   }}
                   disabled={isIgniting && ignitionStatus !== 'failed'}
-                  title="Starts LM Studio or Ollama and boots Mistral Small 4"
+                  title="Connects to vLLM on port 8001"
                 >
                   {isOnline
                     ? '🟢 FURNACE ONLINE'

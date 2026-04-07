@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import PerspectiveSidebar from './PerspectiveSidebar';
 import JournalViewer from './JournalViewer';
 import MicButton from './MicButton';
+import GameHUD from './GameHUD';
 
 // ─── Phase Data ────────────────────────────────────────────────────────────────
 const PHASE_DATA = {
@@ -30,13 +31,16 @@ const CHAPTER_TITLES = [
 const PHASE_NAMES = Object.keys(PHASE_DATA);
 
 
-// ─── Simple Markdown → HTML ────────────────────────────────────────────────────
-function renderMarkdown(text) {
+// ─── Advanced Markdown & VAAM Renderer ─────────────────────────────────────────
+function renderMarkdown(text, bestiary = {}) {
   if (!text) return '';
   let html = text
     .replace(/^### (.+)$/gm, '<h3>$1</h3>')
     .replace(/^## (.+)$/gm, '<h2>$1</h2>')
     .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/!\[(.*?)\]\((.*?\.(?:mp3|wav|ogg))\)/gi, '<div class="narrative-audio-panel" style="margin: 10px 0;"><audio controls src="$2" style="width: 100%;"></audio></div>') // Audio support
+    .replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" style="max-width:100%; border-radius: 8px; margin: 10px 0; border: 1px solid rgba(207,185,145,0.2);" />') // Image support
+    .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: var(--blue); text-decoration: underline;">$1</a>') // Link support
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
@@ -44,11 +48,23 @@ function renderMarkdown(text) {
     .replace(/^[*-] (.+)$/gm, '<li>$1</li>')
     .replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
 
+  // VAAM Inline Highlighting
+  if (bestiary && Object.keys(bestiary).length > 0) {
+    const sortedWords = Object.keys(bestiary).sort((a,b) => b.length - a.length); // match longest first
+    for (const word of sortedWords) {
+      const creep = bestiary[word];
+      if (creep.state === 'Tamed' || creep.state === 'Evolved') {
+        const regex = new RegExp(`\\b(${word})\\b`, 'gi');
+        html = html.replace(regex, `<span class="vaam-highlight" style="color: var(--gold); border-bottom: 1px dashed var(--gold); cursor: help;" title="${creep.element} ${creep.role}">${word}</span>`);
+      }
+    }
+  }
+
   html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
   html = html.split(/\n{2,}/).map(block => {
     const trimmed = block.trim();
     if (!trimmed) return '';
-    if (trimmed.startsWith('<h') || trimmed.startsWith('<ul') || trimmed.startsWith('<ol')) return trimmed;
+    if (trimmed.startsWith('<h') || trimmed.startsWith('<ul') || trimmed.startsWith('<ol') || trimmed.startsWith('<img') || trimmed.startsWith('<div class="narrative-audio-panel"')) return trimmed;
     return `<p>${trimmed.replace(/\n/g, '<br/>')}</p>`;
   }).join('');
 
@@ -206,13 +222,14 @@ function ScopeCreepModal({ creep, onHope, onNope }) {
 }
 
 // ─── Main PhaseWorkspace (Narrative-First LitRPG) ──────────────────────────────
-export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRefetch, viewPhase, allPhases, onClearView }) {
+export default function PhaseWorkspace({ quest, bestiary, sseEvents, onDismissEvent, onRefetch, viewPhase, allPhases, onClearView }) {
   const [message, setMessage] = useState('');
   const [narrative, setNarrative] = useState([]); // { role, content, speaker? }
   const [isStreaming, setIsStreaming] = useState(false);
   const [transition, setTransition] = useState(null);
   const [creepModal, setCreepModal] = useState(null);
-  const [objectivesOpen, setObjectivesOpen] = useState(true);
+  const [objectivesOpen, setObjectivesOpen] = useState(false);
+  const [mechanicsOpen, setMechanicsOpen] = useState(false);
   const [sessionZero, setSessionZero] = useState({ step: 0, answers: {} });
   const [lowCoalWarned, setLowCoalWarned] = useState(false);
   const [journalOpen, setJournalOpen] = useState(false);
@@ -261,7 +278,7 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
       }
     } catch { /* Fallthrough to browser */ }
     
-    // Fallback if Supertonic sidecar fails
+    // Fallback if Kokoro sidecar fails
     if (window.speechSynthesis) {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = 1.0;
@@ -272,7 +289,15 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
         isPlayingRef.current = false;
         processAudioQueue();
     }
-  }, [voiceOn]);
+  }, [voiceOn, voicePreset]);
+
+  // Ensure queue resumes if voice is turned on later
+  useEffect(() => {
+    if (voiceOn && !isPlayingRef.current && audioQueueRef.current.length > 0) {
+      processAudioQueue();
+    }
+  }, [voiceOn, processAudioQueue]);
+
 
   const enqueueSentence = React.useCallback((text) => {
     const clean = text.trim();
@@ -691,7 +716,7 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
   // ── Render ──
 
   return (
-    <>
+    <div className="phase-workspace-wrapper">
       {transition && (
         <PhaseTransition
           fromPhase={transition.fromPhase} toPhase={transition.toPhase}
@@ -736,8 +761,14 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
             <button
               id="audio-toggle-btn"
               className="gdd-export-btn"
-              style={voiceOn ? { background: 'var(--accent)', color: '#fff', borderColor: 'var(--accent)' } : {}}
-              onClick={() => setVoiceOn(v => !v)}
+              onClick={() => {
+                if (!voiceOn) {
+                  // Silent 1-frame WAV buffer to unlock Web Audio API within the user gesture
+                  const unlocker = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+                  unlocker.play().catch(() => {});
+                }
+                setVoiceOn(v => !v);
+              }}
               title="Toggle Socratic Voice Narration"
             >
               {voiceOn ? '🔊 VOICE ON' : '🔈 VOICE OFF'}
@@ -765,6 +796,15 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
             )}
 
             <button
+              id="mechanics-toggle"
+              className="gdd-export-btn"
+              onClick={() => setMechanicsOpen(m => !m)}
+              title="Toggle LitRPG Mechanics"
+            >
+              {mechanicsOpen ? '▾' : '▸'} ⚙️ MECHANICS
+            </button>
+
+            <button
               id="objectives-toggle"
               className="gdd-export-btn"
               onClick={() => setObjectivesOpen(o => !o)}
@@ -784,6 +824,19 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
             </button>
           </div>
         </div>
+
+        {/* ── LitRPG Mechanics Dropdown ── */}
+        {mechanicsOpen && (
+          <div className="mechanics-dropdown-panel" style={{
+            position: 'absolute', top: 'var(--nav-height, 60px)', right: '1rem',
+            width: '320px', maxHeight: '80vh', overflowY: 'auto',
+            background: 'rgba(6, 10, 20, 0.95)', border: '1px solid var(--border)',
+            borderRadius: '12px', padding: '1rem', zIndex: 100,
+            boxShadow: '0 10px 30px rgba(0,0,0,0.5), 0 0 20px rgba(207, 185, 145, 0.1)'
+          }}>
+            <GameHUD quest={quest} bestiary={bestiary} onRefetch={onRefetch} sseEvents={sseEvents} />
+          </div>
+        )}
 
         {/* ── Collapsible Quest Objectives ── */}
         {objectivesOpen && (
@@ -930,7 +983,7 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
                 return (
                   <div key={i} className="msg msg-narrator">
                     <div className="narrator-label">🔮 THE GREAT RECYCLER <span className="slot-badge slot-badge--0">slot 0</span></div>
-                    <div dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }} />
+                    <div dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content, bestiary) }} />
                   </div>
                 );
               }
@@ -949,6 +1002,20 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
                 );
               }
 
+              if (msg.role === 'audio') {
+                return (
+                  <div key={i} className="msg msg-narrator narrative-audio-panel">
+                    <div className="narrator-label">🎵 AUDIO STREAM</div>
+                    <audio 
+                      controls 
+                      src={msg.url || `data:audio/wav;base64,${msg.base64}`} 
+                      style={{ width: '100%', margin: '0.5rem 0' }} 
+                    />
+                    {msg.content && <p className="image-caption" style={{ opacity: 0.7, fontSize: '0.85rem', fontStyle: 'italic', margin: '0.25rem 0 0' }}>{msg.content}</p>}
+                  </div>
+                );
+              }
+
               if (msg.role === 'user') {
                 return (
                   <div key={i} className="msg msg-user">
@@ -960,7 +1027,7 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
               return (
                 <div key={i} className="msg msg-ai">
                   <div className="speaker">⚙️ {msg.speaker || 'PETE'} <span className="slot-badge slot-badge--1">slot 1</span></div>
-                  <div dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }} />
+                  <div dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content, bestiary) }} />
                 </div>
               );
             })}
@@ -1050,6 +1117,6 @@ export default function PhaseWorkspace({ quest, sseEvents, onDismissEvent, onRef
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

@@ -1,26 +1,35 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════════════════════
-# TRINITY ID AI OS — Kokoro TTS Sidecar (Replaces Piper/Moshi)
-# Expressive Narrator for Zen Mode
+# TRINITY ID AI OS — Kokoro TTS Sidecar (Apache 2.0)
+# Expressive AI Narrator — port 8200
+# Voices: af_heart, af_bella, am_adam, am_echo, am_michael, am_fenrir
 # ═══════════════════════════════════════════════════════════════════════════════
-set -e
 
-VENV="${HOME}/trinity-vllm-env"
 PORT="8200"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SIDECAR="${SCRIPT_DIR}/kokoro_sidecar.py"
 
-if [ ! -d "$VENV" ]; then
-    echo "ERROR: Python venv not found at $VENV"
-    echo "Please create it and 'pip install kokoro soundfile numpy fastapi uvicorn'"
+# Pick whichever venv has kokoro-onnx installed
+for VENV in "${HOME}/trinity-vllm-env" "${HOME}/trinity-ai-env" "${HOME}/trinity-voice-env"; do
+    if [ -d "$VENV" ] && "$VENV/bin/python3" -c "import kokoro_onnx" 2>/dev/null; then
+        PYTHON="$VENV/bin/python3"
+        echo "✅ Using venv: $VENV"
+        break
+    fi
+done
+
+if [ -z "$PYTHON" ]; then
+    echo "ERROR: Could not find a venv with kokoro-onnx installed."
+    echo "Run: pip install kokoro-onnx scipy fastapi uvicorn"
     exit 1
 fi
 
-source "$VENV/bin/activate"
+echo "═══════════════════════════════════════════════════"
+echo "  🎤 Kokoro TTS Sidecar (Apache 2.0)"
+echo "  Port:    $PORT"
+echo "  Models:  ~/trinity-models/tts/kokoro/"
+echo "  Voices:  af_heart, af_bella, am_adam, am_echo, am_michael, am_fenrir"
+echo "  Health:  http://localhost:$PORT/health"
+echo "═══════════════════════════════════════════════════"
 
-echo "═══════════════════════════════════════"
-echo "  Kokoro Voice Sidecar (Narrator)"
-echo "  Port: $PORT"
-echo "  Engine: Kokoro (Chatterbox Architecture)"
-echo "  Status: http://localhost:$PORT/health"
-echo "═══════════════════════════════════════"
-
-exec python "$HOME/Workflow/desktop_trinity/trinity-genesis/scripts/launch/kokoro_sidecar.py"
+exec "$PYTHON" "$SIDECAR"

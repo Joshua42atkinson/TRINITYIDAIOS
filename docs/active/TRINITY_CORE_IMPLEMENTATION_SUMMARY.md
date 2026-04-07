@@ -33,7 +33,7 @@ trinity-genesis/
 | `main.rs` | 1,584 | Axum server, routes, AppState, startup |
 | `tools.rs` | 1,017 | 12 agentic tools (shell, files, scaffold, archive) |
 | `agent.rs` | 580 | Agent chat loop with tool-calling + persistence |
-| `creative.rs` | 738 | ComfyUI + MusicGPT integration |
+| `creative.rs` | 738 | vLLM Omni text and image integration |
 | `conductor_leader.rs` | 447 | ADDIECRAPEYE orchestration (Lone Wolf mode) |
 | `persistence.rs` | 395 | SQLite sessions, messages, projects, DAYDREAM |
 | `rag.rs` | 195 | ONNX vector semantic search + text fallback |

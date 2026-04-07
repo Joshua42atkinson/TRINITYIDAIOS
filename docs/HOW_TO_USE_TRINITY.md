@@ -234,9 +234,9 @@ Click the **ART Studio** tab to access Trinity's creative pipeline:
 
 | Tool | What It Does |
 |------|-------------|
-| **Image Generation** | Create visuals for your learning experience (SDXL Turbo via ComfyUI) |
+| **Image Generation** | Create visuals for your learning experience (vLLM Omni) |
 | **Music Composition** | Generate original music for modules, soundtracks, or presentations |
-| **Voice Narration** | Have Pete read content aloud (Supertonic-2 TTS, 10 voices) |
+| **Voice Narration** | Have Pete read content aloud (Kokoro TTS, 6 voices) |
 | **Video Generation** | Create short instructional videos from text or images |
 
 > 💡 These features require optional sidecars. If they're not running, Trinity gracefully disables them — the core experience works without any creative tools.

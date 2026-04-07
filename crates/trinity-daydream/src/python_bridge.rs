@@ -84,11 +84,32 @@ impl PyVelocity {
     }
 }
 
+/// A Python-accessible wrapper for LitRPG Player State (Coal/Steam).
+#[pyclass]
+#[derive(Clone, Debug, Default)]
+pub struct PyLitRpgState {
+    #[pyo3(get, set)]
+    pub coal: u32,
+    #[pyo3(get, set)]
+    pub steam: u32,
+}
+
+#[pymethods]
+impl PyLitRpgState {
+    fn consume_coal(&mut self, amount: u32) {
+        self.coal = self.coal.saturating_sub(amount);
+    }
+    fn consume_steam(&mut self, amount: u32) {
+        self.steam = self.steam.saturating_sub(amount);
+    }
+}
+
 // ─── The Bevy ECS System ──────────────────────────────────────────────────
 
 /// Executes Python scripts attached to entities.
 fn run_python_scripts(
     time: Res<Time>,
+    mut lit_rpg_state: ResMut<crate::iron_road_ui::LitRpgState>,
     // We query optionally for LinearVelocity so scripts can manipulate physics if it exists
     mut query: Query<(Entity, &mut Transform, Option<&mut LinearVelocity>, &PythonScript)>,
 ) {
@@ -117,6 +138,12 @@ fn run_python_scripts(
                 py_vel.z = vel.z;
             }
 
+            // Expose the global LitRPG constraints
+            let mut py_litrpg = PyLitRpgState {
+                coal: lit_rpg_state.coal,
+                steam: lit_rpg_state.steam,
+            };
+
             // Setup a secure, isolated context for each script
             let locals = PyDict::new_bound(py);
             
@@ -125,6 +152,7 @@ fn run_python_scripts(
             if opt_vel.is_some() {
                 locals.set_item("velocity", py_vel.clone().into_py(py)).unwrap();
             }
+            locals.set_item("litrpg", py_litrpg.clone().into_py(py)).unwrap();
             
             // Expose standard temporal data
             locals.set_item("delta_time", delta).unwrap();
@@ -153,6 +181,12 @@ fn run_python_scripts(
                     vel.y = mutated_vel.y;
                     vel.z = mutated_vel.z;
                 }
+            }
+
+            // Extract mutated LitRPG state
+            if let Ok(mutated_litrpg) = locals.get_item("litrpg").unwrap().unwrap().extract::<PyLitRpgState>() {
+                lit_rpg_state.coal = mutated_litrpg.coal;
+                lit_rpg_state.steam = mutated_litrpg.steam;
             }
         }
     });

@@ -6,6 +6,7 @@ export default defineConfig({
   base: './',
   server: {
     port: 5173,
+    allowedHosts: true,
     proxy: {
       '/api': 'http://localhost:3000',
       '/assets': 'http://localhost:3000',

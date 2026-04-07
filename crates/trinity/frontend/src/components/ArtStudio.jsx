@@ -29,9 +29,27 @@ function fmtSize(bytes) {
 }
 
 // ─── Simple Markdown → HTML ────────────────────────────────────────────────────
+// Handles: headings, bold, italic, code, lists, AND markdown images from tool results.
 function renderMarkdown(text) {
   if (!text) return '';
-  let html = text
+
+  // Extract markdown images before HTML-escaping
+  const imageTokens = [];
+  let processed = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
+    const idx = imageTokens.length;
+    const safeUrl = url.replace(/"/g, '&quot;');
+    const safeAlt = (alt || 'Generated image').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    imageTokens.push(
+      `<div style="margin:12px 0;text-align:center;">` +
+      `<img src="${safeUrl}" alt="${safeAlt}" loading="lazy" ` +
+      `style="max-width:100%;max-height:400px;border-radius:8px;border:1px solid rgba(52,211,153,0.2);display:block;margin:0 auto;" />` +
+      `<div style="font-size:11px;color:rgba(52,211,153,0.5);margin-top:4px;font-style:italic;">${safeAlt}</div>` +
+      `</div>`
+    );
+    return `__IMGTOKEN_${idx}__`;
+  });
+
+  let html = processed
     .replace(/^### (.+)$/gm, '<h3>$1</h3>')
     .replace(/^## (.+)$/gm, '<h2>$1</h2>')
     .replace(/^# (.+)$/gm, '<h1>$1</h1>')
@@ -46,9 +64,13 @@ function renderMarkdown(text) {
   html = html.split(/\n{2,}/).map(block => {
     const trimmed = block.trim();
     if (!trimmed) return '';
-    if (trimmed.startsWith('<h') || trimmed.startsWith('<ul') || trimmed.startsWith('<ol')) return trimmed;
+    if (trimmed.startsWith('<h') || trimmed.startsWith('<ul') || trimmed.startsWith('<ol') || trimmed.startsWith('__IMGTOKEN_')) return trimmed;
     return `<p>${trimmed.replace(/\n/g, '<br/>')}</p>`;
   }).join('');
+
+  imageTokens.forEach((block, i) => {
+    html = html.replace(`__IMGTOKEN_${i}__`, block);
+  });
 
   return html;
 }
@@ -466,7 +488,7 @@ export default function ArtStudio() {
       if (!res.ok) {
         setNarrative(n => {
           const copy = [...n];
-          copy[copy.length - 1] = { role: 'error', speaker: 'SYSTEM', content: "🚫 THE FURNACE IS COLD! The Great Recycler cannot speak while the firebox sleeps. Ignite LM Studio on port 1234 or click [🔥 IGNITE FURNACE] to light the coal yourself!" };
+          copy[copy.length - 1] = { role: 'error', speaker: 'SYSTEM', content: "🚫 THE FURNACE IS COLD! The Great Recycler cannot speak while the firebox sleeps. Start vLLM on port 8001 or click [🔥 IGNITE FURNACE] to light the coal yourself!" };
           return copy;
         });
         setIsStreaming(false);
@@ -495,7 +517,7 @@ export default function ArtStudio() {
             if (currentEvent === 'llm_offline' || currentEvent === 'error') {
                setNarrative(n => {
                  const copy = [...n];
-                 copy[copy.length - 1] = { role: 'error', speaker: 'SYSTEM', content: "🚫 THE FURNACE IS COLD! The Great Recycler cannot speak while the firebox sleeps. Ignite LM Studio on port 1234 or click [🔥 IGNITE FURNACE] to light the coal yourself!" };
+                 copy[copy.length - 1] = { role: 'error', speaker: 'SYSTEM', content: "🚫 THE FURNACE IS COLD! The Great Recycler cannot speak while the firebox sleeps. Start vLLM on port 8001 or click [🔥 IGNITE FURNACE] to light the coal yourself!" };
                  return copy;
                });
                setIsStreaming(false);
@@ -552,7 +574,7 @@ export default function ArtStudio() {
         <div className="premium-status-bar__title">✦ ART · Window to the Imagination</div>
         <div className="premium-status-badges">
           <StatusBadge label="Daydream" icon="🔮" active={forgeRef.current?.getState?.() === 'ready'} />
-          <StatusBadge label="ComfyUI" icon="🖼️" sidecar={status.comfyui} />
+          <StatusBadge label="vLLM Omni" icon="🎨" sidecar={status.vllm} />
           <StatusBadge label="MusicGPT" icon="🎵" sidecar={status.musicgpt} />
         </div>
       </div>

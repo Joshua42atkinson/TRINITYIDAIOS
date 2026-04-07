@@ -5,6 +5,7 @@ import TrainStatus from './TrainStatus';
 
 export default function GameHUD({ quest, bestiary, onRefetch, sseEvents }) {
   const [character, setCharacter] = useState(null);
+  const [mechanicsOpen, setMechanicsOpen] = useState(false);
 
   // Fetch character sheet data (for Session Zero display)
   useEffect(() => {
@@ -51,14 +52,29 @@ export default function GameHUD({ quest, bestiary, onRefetch, sseEvents }) {
 
   return (
     <div className="game-hud">
-      {/* ── Journey ── */}
       <div className="hud-section">
         <div className="hud-section__header">JOURNEY</div>
         <PearlCard pearl={quest?.pearl} onRefetch={onRefetch} />
-        <TrainStatus quest={quest} character={character} />
+        <CircuitryCard />
       </div>
 
-      {/* ── Identity ── */}
+      <div style={{ textAlign: 'center', margin: '16px 0', borderTop: '1px dashed rgba(207,185,145,0.2)', paddingTop: '16px' }}>
+        <button 
+          onClick={() => setMechanicsOpen(o => !o)}
+          className="gdd-export-btn"
+          style={{ width: '100%', justifyContent: 'center', opacity: mechanicsOpen ? 0.7 : 1 }}
+        >
+          {mechanicsOpen ? '▼ HIDE GAME MECHANICS' : '▶ VIEW GAME MECHANICS'}
+        </button>
+      </div>
+
+      {mechanicsOpen && (
+        <>
+          <div className="hud-section">
+            <TrainStatus quest={quest} character={character} />
+          </div>
+
+          {/* ── Identity ── */}
       <div className="hud-section">
         <div className="hud-section__header">IDENTITY</div>
         <div className="card">
@@ -143,12 +159,11 @@ export default function GameHUD({ quest, bestiary, onRefetch, sseEvents }) {
         {/* VAAM Vocabulary Activity Feed */}
         <VaamActivityFeed sseEvents={sseEvents} />
 
-        {/* Sacred Circuitry — wired to live backend data */}
-        <CircuitryCard />
-
         {/* Book of the Bible — only when content exists */}
         <BookSection />
       </div>
+      </>
+      )}
     </div>
   );
 }

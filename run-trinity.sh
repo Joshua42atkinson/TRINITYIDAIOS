@@ -45,29 +45,18 @@ fi
 echo -n "Checking for LLM backend... "
 LLM_FOUND=false
 
-# Check LM Studio (port 1234)
-if curl -s --connect-timeout 2 http://127.0.0.1:1234/v1/models > /dev/null 2>&1; then
-    echo -e "${GREEN}✅ LM Studio detected on port 1234${NC}"
-    LLM_FOUND=true
-# Check Ollama (port 11434)
-elif curl -s --connect-timeout 2 http://127.0.0.1:11434/api/tags > /dev/null 2>&1; then
-    echo -e "${GREEN}✅ Ollama detected on port 11434${NC}"
-    LLM_FOUND=true
-# Check llama-server (port 8080)
-elif curl -s --connect-timeout 2 http://127.0.0.1:8080/health > /dev/null 2>&1; then
-    echo -e "${GREEN}✅ llama-server detected on port 8080${NC}"
+# Check vLLM (Great Recycler on port 8001)
+if curl -s --connect-timeout 2 http://127.0.0.1:8001/health > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ vLLM detected on port 8001${NC}"
     LLM_FOUND=true
 fi
 
 if [ "$LLM_FOUND" = false ]; then
-    echo -e "${YELLOW}⚠️  No LLM backend detected${NC}"
+    echo -e "${YELLOW}⚠️  No vLLM backend detected${NC}"
     echo ""
-    echo -e "   Trinity needs an AI brain to function. Please start one of:"
-    echo -e "   ${BLUE}• LM Studio${NC} — Open the app, load a model, and start the server"
-    echo -e "   ${BLUE}• Ollama${NC}    — Run: ollama serve && ollama run mistral-small"
-    echo -e "   ${BLUE}• llama-server${NC} — Run: llama-server -m MODEL.gguf --port 8080"
-    echo ""
-    echo -e "   See ${BLUE}LM_STUDIO_SETUP.md${NC} for detailed instructions."
+    echo -e "   Trinity needs the vLLM Great Recycler to function."
+    echo -e "   Please start the fleet via:"
+    echo -e "   ${BLUE}./scripts/start_vllm_fleet.sh${NC}"
     echo ""
     read -p "Start Trinity anyway? (y/N) " -n 1 -r
     echo

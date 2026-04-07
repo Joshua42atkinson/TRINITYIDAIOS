@@ -110,7 +110,13 @@ pub enum ExportFormat {
 ///
 /// This is the "Great Recycler" at work — it takes the raw quest state
 /// and transforms it into a structured artifact ready for export.
-pub fn compile_container(game_state: &GameState) -> EyeContainer {
+///
+/// `extra_vocab` — words from the VAAM database to include in the glossary.
+/// Pass an empty slice when the VAAM bridge is unavailable (e.g. in tests).
+pub fn compile_container(
+    game_state: &GameState,
+    extra_vocab: &[trinity_protocol::VocabularyWord],
+) -> EyeContainer {
     let quest = &game_state.quest;
 
     // Build metadata
@@ -153,8 +159,23 @@ pub fn compile_container(game_state: &GameState) -> EyeContainer {
         })
         .collect();
 
-    // Vocabulary from bestiary/VAAM (placeholder — will integrate with VAAM bridge)
-    let vocabulary = vec![];
+    // Vocabulary from VAAM bridge database — words the learner has encountered.
+    // Filter to only words that have a definition, de-duplicate, and sort A→Z.
+    let mut seen = std::collections::HashSet::new();
+    let mut vocabulary: Vec<VocabEntry> = extra_vocab
+        .iter()
+        .filter_map(|w| {
+            let def = w.definition.as_deref().unwrap_or("").trim();
+            if def.is_empty() || !seen.insert(w.word.to_lowercase()) {
+                return None;
+            }
+            Some(VocabEntry {
+                word: w.word.clone(),
+                definition: def.to_string(),
+            })
+        })
+        .collect();
+    vocabulary.sort_by(|a, b| a.word.to_lowercase().cmp(&b.word.to_lowercase()));
 
     let quest_summary = QuestSummary {
         total_xp: game_state.stats.total_xp,
@@ -212,7 +233,7 @@ mod tests {
     #[test]
     fn test_compile_container_default() {
         let gs = GameState::default();
-        let container = compile_container(&gs);
+        let container = compile_container(&gs, &[]);
         assert_eq!(container.quest_summary.total_phases, 12);
         assert_eq!(container.quest_summary.phases_completed, 0);
         assert!(!container.objectives.is_empty());
@@ -223,7 +244,7 @@ mod tests {
         let mut gs = GameState::default();
         gs.quest = trinity_quest::state::QuestState::new("Photosynthesis");
         gs.stats.total_xp = 250;
-        let container = compile_container(&gs);
+        let container = compile_container(&gs, &[]);
         assert_eq!(container.metadata.subject, "Photosynthesis");
         assert_eq!(container.quest_summary.total_xp, 250);
         assert!(container.pearl_summary.contains("Photosynthesis"));

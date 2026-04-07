@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // FILE:        rag.rs
-// PURPOSE:     RAG (Retrieval-Augmented Generation) — native ONNX vector semantic + text search
+// PURPOSE:     RAG (Retrieval-Augmented Generation) — vLLM vector semantic + text search
 //
 // 🪟 THE LIVING CODE TEXTBOOK (P-ART-Y Gear R: Research):
 // This file is the memory cortex of the OS. It is designed to be read, modified, 
@@ -12,7 +12,7 @@
 // ACTION: Edit `search_documents()` to adjust semantic similarity thresholds.
 //
 // 📖 THE HOOK BOOK CONNECTION:
-// This file powers the 'Vector Database' Hook. It uses native ONNX embeddings to turn natural 
+// This file powers the 'Vector Database' Hook. It uses vLLM embeddings to turn natural 
 // language into mathematical meaning. You can use this engine to build your own 
 // AI search apps! For a full catalogue of capabilities, see: docs/HOOK_BOOK.md
 //
@@ -23,9 +23,9 @@
 //
 // ARCHITECTURE:
 //   • SQLite + in-memory cosine similarity for semantic search
-//   • Native Rust ONNX (all-MiniLM-L6-v2) for semantic search (cosine similarity)
+//   • vLLM Nomic-embed (768-dim) for semantic search (cosine similarity)
 //   • ILIKE as last-resort fallback
-//   • Embedding generation via llama-server /v1/embeddings
+//   • Embedding generation via vLLM /v1/embeddings (Nomic-embed or compatible)
 //   •   → Falls back to hash-based embedding if server unavailable
 //   • 128K context allocation: CRITICAL/ACTIVE/REFERENCE/LEGACY buckets
 //

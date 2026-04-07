@@ -142,14 +142,14 @@ curl http://localhost:3000/api/health
 These are optional services for creative features:
 
 ```bash
-# Image generation (ComfyUI with SDXL Turbo)
-cd ~/ComfyUI && python main.py --port 8188
+# General AI and Media Engine (vLLM Omni handles Text + Images)
+# Already integrated via InferenceRouter if running on port 8000.
 
 # Document intelligence (Qianfan-OCR)
 llama-server -m ~/trinity-models/gguf/Qianfan-OCR-Q4_K_M.gguf --port 8081 --ctx-size 32768
 
-# Voice pipeline (Whisper STT + Kokoro TTS)
-python scripts/voice_sidecar.py  # Port 7777
+# Voice pipeline (Kokoro TTS - Apache 2.0)
+./scripts/launch/start_kokoro_sidecar.sh  # Starts on port 8200
 ```
 
 ---

@@ -321,7 +321,7 @@ pub async fn creative_status() -> Json<CreativeStatus> {
 
 async fn check_vllm_creative() -> SidecarStatus {
     let running = crate::http::QUICK
-        .get("http://127.0.0.1:8000/v1/models")
+        .get("http://127.0.0.1:8010/health")
         .send()
         .await
         .map(|r| r.status().is_success())
@@ -329,11 +329,11 @@ async fn check_vllm_creative() -> SidecarStatus {
 
     SidecarStatus {
         running,
-        endpoint: "http://127.0.0.1:8000".to_string(),
+        endpoint: "http://127.0.0.1:8010".to_string(),
         message: if running {
-            "vLLM Omni creative pipeline running".to_string()
+            "LongCat wrapper proxy running".to_string()
         } else {
-            "vLLM Omni down. Start the unified inference sidecar.".to_string()
+            "LongCat proxy down. Start start_longcat_server.py".to_string()
         },
     }
 }
@@ -380,7 +380,7 @@ pub async fn generate_image(
     let full_prompt = format!("{}, {}", request.prompt, style_suffix);
 
     info!(
-        "Generating image via vLLM Omni: {} ({}x{})",
+        "Generating image via LongCat Proxy: {} ({}x{})",
         full_prompt, request.width, request.height
     );
 
@@ -393,15 +393,15 @@ pub async fn generate_image(
     });
 
     let response = client
-        .post("http://127.0.0.1:8000/v1/images/generations")
+        .post("http://127.0.0.1:8010/v1/images/generations")
         .json(&payload)
         .send()
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("vLLM Omni unreachable: {}", e)))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("LongCat Server unreachable: {}", e)))?;
 
     if !response.status().is_success() {
         let body = response.text().await.unwrap_or_default();
-        return Err((StatusCode::INTERNAL_SERVER_ERROR, format!("vLLM Omni generation failed: {}", body)));
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, format!("LongCat generation failed: {}", body)));
     }
 
     let result: serde_json::Value = response.json().await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;

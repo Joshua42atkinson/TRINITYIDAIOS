@@ -15,7 +15,6 @@ import FieldManualViewer from './components/FieldManualViewer';
 import JournalViewer from './components/JournalViewer';
 import PortfolioView from './components/PortfolioView';
 import ActivityBar from './components/ActivityBar';
-import SetupWizard from './components/SetupWizard';
 import { useQuest } from './hooks/useQuest';
 import { useBestiary } from './hooks/useBestiary';
 import { useSSE } from './hooks/useSSE';
@@ -246,14 +245,14 @@ export default function App() {
 
   if (!setupComplete) {
     return (
-      <SetupWizard onComplete={() => {
-        setSetupComplete(true);
-      }} />
+      <div style={{ height: '100vh', width: '100vw', background: '#090a0f', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B3C2D1', fontFamily: '"Inter", sans-serif', fontSize: '1.2rem', letterSpacing: '2px' }}>
+        AWAITING VLLM CONNECTION...
+      </div>
     );
   }
 
   return (
-    <div className="iron-road-layout">
+    <div className={`iron-road-layout ${activeTab === 'ironroad' ? 'zen-mode' : ''}`}>
       <NavBar
         quest={quest}
         activeTab={activeTab}
@@ -311,28 +310,15 @@ export default function App() {
 
           {activeTab === 'ironroad' && (
             <>
-              <ChapterRail
-                phases={phases}
-                currentPhaseIndex={currentPhaseIndex}
-                completedPhases={quest?.completed_phases}
-                onPhaseClick={handlePhaseClick}
-              />
-
               <PhaseWorkspace
                 quest={quest}
+                bestiary={bestiary}
                 sseEvents={events}
                 onDismissEvent={dismissEvent}
                 onRefetch={refetch}
                 viewPhase={viewPhase}
                 allPhases={phases}
                 onClearView={clearViewPhase}
-              />
-
-              <GameHUD
-                quest={quest}
-                bestiary={bestiary}
-                onRefetch={refetch}
-                sseEvents={events}
               />
             </>
           )}

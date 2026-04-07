@@ -17,7 +17,7 @@ TRINITY ID AI OS is a self-hosted, offline-first AI operating system that combin
 
 **The "True Trinity" Architecture:**
 1.  **Pete (Instructional Designer / Mentor):** The only characterized identity in the system. Pete is the system's Conductor. Pete enforces the **12-station ADDIECRAPEYE lifecycle** (combining ADDIE methodology with C.R.A.P. design principles). Pete ensures all generated content aligns with Bloom's Taxonomy, IBSTPI competencies, and the QM Higher Ed Rubric. Pete guides, questions, and teaches the user.
-2.  **ART (Aesthetics & Research Tempo):** The creative sidecar using ComfyUI and Python to generate visual assets, music, and UI components that strictly adhere to accessibility and branding guidelines.
+2.  **ART (Aesthetics & Research Tempo):** The creative sidecar using vLLM Omni and Python to generate visual assets, music, and UI components that strictly adhere to accessibility and branding guidelines.
 3.  **Yardmaster (The User / Orchestrator):** The user acts as the Yardmaster. Trinity uses a gamified "LitRPG" interface to teach the Yardmaster Instructional Design principles *while* they build their product. 
 
 ### 5. Theoretical Frameworks Applied

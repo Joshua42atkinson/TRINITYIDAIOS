@@ -7,8 +7,8 @@
 //
 // ARCHITECTURE:
 //   • Engine-agnostic: works with ANY OpenAI-compatible server
-//   • llama-server (:8080) — Mistral Small 4 119B GGUF (primary brain)
-//   • Any OpenAI-compatible server (:8000)
+//   • vLLM (:8001) — Great Recycler (primary brain, served-model-name)
+//   • Any OpenAI-compatible server
 //   • FastFlowLM (NPU)   — ONNX models via AMD XDNA 2
 //   • All engines share /v1/chat/completions protocol
 //   • PersonaPlex audio-to-audio uses separate ONNX path (see voice.rs)
@@ -37,10 +37,10 @@ struct CompletionRequest {
     max_tokens: Option<u32>,
     temperature: f32,
     stream: bool,
-    /// Mistral Small 4 reasoning effort: "high" for deep thinking, "none" for fast responses
+    /// Reasoning effort: "high" for deep thinking, "none" for fast responses
     #[serde(skip_serializing_if = "Option::is_none")]
     reasoning_effort: Option<String>,
-    /// OpenAI-compatible tool definitions (requires --jinja flag on llama-server)
+    /// OpenAI-compatible tool definitions (vLLM supports natively)
     #[serde(skip_serializing_if = "Option::is_none")]
     tools: Option<Vec<ToolDefinition>>,
 }
@@ -176,7 +176,7 @@ pub async fn chat_completion_stream(
         .collect();
 
     let request = CompletionRequest {
-        model: "mistral".to_string(), // Default proxy name for local LLM routing
+        model: "Great_Recycler".to_string(), // Default proxy name for local LLM routing
         messages: api_messages,
         max_tokens: None, // Let inference backend auto-calculate to prevent context length errors
         temperature: 0.7,
@@ -295,7 +295,7 @@ pub async fn chat_completion_with_effort(
         .collect();
 
     let request = CompletionRequest {
-        model: "mistral".to_string(),
+        model: "Great_Recycler".to_string(),
         messages: api_messages,
         max_tokens: None, // Let inference backend auto-calculate to prevent context length errors
         temperature: 0.7,
@@ -415,7 +415,7 @@ pub async fn chat_completion_with_tools(
         .collect();
 
     let request = CompletionRequest {
-        model: "mistral".to_string(),
+        model: "Great_Recycler".to_string(),
         messages: api_messages,
         max_tokens: None, // Let inference backend auto-calculate to prevent context length errors
         temperature: 0.7,

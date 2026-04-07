@@ -22,7 +22,7 @@ const mockHookState = {
     stats: { coal_reserves: 45, total_xp: 1500 }
   },
   turnInfo: { turn: 0, maxTurns: 65, continuations: 0 },
-  modelInfo: { name: 'Mistral Small 4 119B', reasoning: 'high', context: '256K', active_experts: 'embedded', status: 'mounted' },
+  modelInfo: { name: 'Great Recycler', reasoning: 'high', context: '256K', active_experts: 'embedded', status: 'mounted' },
   toggleFocus: mockToggleFocus,
   sendMessage: mockSendMessage,
   cancelRequest: vi.fn(),
@@ -39,7 +39,7 @@ describe('Yardmaster Interface Tests', () => {
     render(<Yardmaster />);
     
     // Model Status HUD
-    expect(screen.getByText('Mistral Small 4 119B')).toBeInTheDocument();
+    expect(screen.getByText('Great Recycler')).toBeInTheDocument();
     expect(screen.getByText('reasoning: high')).toBeInTheDocument();
     expect(screen.getByText('256K ctx')).toBeInTheDocument();
     

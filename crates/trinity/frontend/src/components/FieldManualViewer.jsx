@@ -169,39 +169,43 @@ export default function FieldManualViewer({ onBack }) {
                     grid-column: 1 / -1; grid-row: 2;
                     display: flex; flex-direction: column;
                     align-items: center; justify-content: center;
-                    background: #0a0a0a;
+                    background: radial-gradient(circle at center, #1a1510 0%, #050403 100%);
                     height: 100%; width: 100%; overflow: hidden;
                     padding: 16px; position: relative;
                 }
 
                 .stow-btn {
-                    position: absolute; top: 16px; left: 32px; z-index: 50;
-                    padding: 8px 16px; background: rgba(15,12,8,0.9);
+                    position: absolute; top: 24px; left: 40px; z-index: 50;
+                    padding: 10px 20px; background: rgba(15,12,8,0.95);
                     border: 1px solid #CFB991; color: #CFB991;
-                    font-family: 'Cinzel', serif; font-size: 13px; cursor: pointer;
-                    border-radius: 4px; transition: all 0.2s;
+                    font-family: 'Cinzel', serif; font-size: 14px; font-weight: 700; cursor: pointer;
+                    border-radius: 4px; transition: all 0.3s ease;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.5), inset 0 0 10px rgba(207,185,145,0.1);
                 }
-                .stow-btn:hover { background: rgba(207,185,145,0.15); }
+                .stow-btn:hover { background: rgba(207,185,145,0.2); box-shadow: 0 4px 20px rgba(207,185,145,0.2), inset 0 0 15px rgba(207,185,145,0.3); }
                 .page-counter {
-                    position: absolute; top: 16px; right: 32px; z-index: 50;
-                    color: #CFB991; font-family: 'Inter', sans-serif; font-size: 13px;
-                    background: rgba(15,12,8,0.9); padding: 6px 16px;
-                    border-radius: 4px; border: 1px solid rgba(207,185,145,0.3);
+                    position: absolute; top: 24px; right: 40px; z-index: 50;
+                    color: #CFB991; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600;
+                    background: rgba(15,12,8,0.95); padding: 8px 20px;
+                    border-radius: 4px; border: 1px solid rgba(207,185,145,0.4);
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
                 }
 
                 .book-spread {
-                    display: flex; width: 100%; max-width: 1400px; height: calc(100% - 80px);
-                    background: #2a2015; 
-                    box-shadow: 0 30px 60px rgba(0,0,0,0.8), inset 0 0 80px rgba(139,115,85,0.2);
-                    border-radius: 4px 8px 8px 4px; border: 2px solid #5a4b3c;
-                    position: relative; overflow: hidden; transition: opacity 0.6s ease, transform 0.6s ease;
+                    display: flex; width: 100%; max-width: 1500px; height: calc(100% - 90px);
+                    background: #2a2015; /* Base for empty pages */
+                    box-shadow: 0 40px 80px rgba(0,0,0,0.9), inset 0 0 100px rgba(139,115,85,0.3), 0 0 0 4px #5a4b3c, 0 0 0 6px #111;
+                    border-radius: 6px 12px 12px 6px;
+                    position: relative; overflow: hidden;
+                    transition: opacity 0.7s cubic-bezier(0.4, 0.0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0.0, 0.2, 1);
                 }
-                .flip-forward { opacity: 0; transform: translateX(80px); }
-                .flip-backward { opacity: 0; transform: translateX(-80px); }
+                .flip-forward { opacity: 0; transform: perspective(2000px) rotateY(-10deg) translateX(50px); }
+                .flip-backward { opacity: 0; transform: perspective(2000px) rotateY(10deg) translateX(-50px); }
 
                 .book-spine {
-                    position: absolute; top: 0; bottom: 0; left: 50%; width: 40px; margin-left: -20px;
-                    background: linear-gradient(to right, rgba(0,0,0,0.4), rgba(0,0,0,0.8) 50%, rgba(0,0,0,0.4));
+                    position: absolute; top: 0; bottom: 0; left: 50%; width: 60px; margin-left: -30px;
+                    background: linear-gradient(to right, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.9) 40%, rgba(30,20,10,1) 50%, rgba(0,0,0,0.9) 60%, rgba(0,0,0,0.6) 100%);
+                    box-shadow: inset 0 0 20px rgba(0,0,0,1);
                     z-index: 10; pointer-events: none;
                 }
 
@@ -211,105 +215,103 @@ export default function FieldManualViewer({ onBack }) {
                 }
                 
                 .left-page {
-                    padding: 36px 52px 28px 44px;
-                    box-shadow: inset -25px 0 25px rgba(0,0,0,0.15);
+                    padding: 50px 60px 40px 50px; 
+                    box-shadow: inset -40px 0 40px -10px rgba(0,0,0,0.5), inset 0 0 60px rgba(139,115,85,0.1);
                 }
                 
                 .right-page {
-                    padding: 36px 44px 28px 52px;
-                    box-shadow: inset 25px 0 25px rgba(0,0,0,0.15);
+                    padding: 50px 50px 40px 60px;
+                    box-shadow: inset 40px 0 40px -10px rgba(0,0,0,0.5), inset 0 0 60px rgba(139,115,85,0.1);
                 }
                 
                 .content-bg {
-                    background: linear-gradient(135deg, #f4ebd8 0%, #ede2cc 60%, #e8d9bf 100%);
+                    background: linear-gradient(135deg, #f4ebd8 0%, #ebddc5 40%, #e0ceae 100%);
+                    background-image: radial-gradient(rgba(139,115,85,0.05) 1px, transparent 1px), radial-gradient(rgba(139,115,85,0.05) 1px, transparent 1px);
+                    background-size: 20px 20px;
+                    background-position: 0 0, 10px 10px;
                 }
 
                 .page-watermark-left {
-                    position: absolute; bottom: 12px; left: 20px;
-                    font-family: 'Cinzel', serif; font-size: 14px; color: rgba(139,115,85,0.4);
+                    position: absolute; bottom: 20px; left: 30px;
+                    font-family: 'Cinzel', serif; font-size: 16px; font-weight: 700; color: rgba(139,115,85,0.6);
                 }
                 .page-watermark-right {
-                    position: absolute; bottom: 12px; right: 20px;
-                    font-family: 'Cinzel', serif; font-size: 14px; color: rgba(139,115,85,0.4);
+                    position: absolute; bottom: 20px; right: 30px;
+                    font-family: 'Cinzel', serif; font-size: 16px; font-weight: 700; color: rgba(139,115,85,0.6);
                 }
 
                 .dnd-markdown {
                     font-family: 'Inter', sans-serif;
-                    color: #2a2015; font-size: 14px; line-height: 1.6;
+                    color: #1a1510; font-size: 15px; line-height: 1.7;
                 }
                 .dnd-markdown > div > p:first-of-type::first-letter {
-                    font-family: 'Cinzel', serif; font-size: 3.2em;
-                    float: left; margin: 6px 6px 0 -2px;
+                    font-family: 'Cinzel', serif; font-size: 3.5em;
+                    float: left; margin: 8px 8px 0 -4px;
                     line-height: 0.8; color: #5A1B1B;
-                    text-shadow: 1px 1px 2px rgba(0,0,0,0.15);
+                    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
                 }
                 
                 .title-page-markdown > div > p:first-of-type::first-letter {
                     font-size: inherit; float: none; margin: 0; line-height: inherit; text-shadow: none;
                 }
 
-                .dnd-markdown p { margin-bottom: 12px; text-align: justify; }
+                .dnd-markdown p { margin-bottom: 16px; text-align: justify; }
                 .dnd-markdown h1, .dnd-markdown h2, .dnd-markdown h3 {
-                    font-family: 'Cinzel', serif; color: #5A1B1B;
-                    margin-top: 16px; margin-bottom: 8px;
-                    border-bottom: 1px solid rgba(207,185,145,0.4);
+                    font-family: 'Cinzel', serif; color: #5A1B1B; font-weight: 900;
+                    margin-top: 24px; margin-bottom: 12px;
+                    border-bottom: 1px solid rgba(207,185,145,0.6);
+                    padding-bottom: 4px;
                 }
 
                 .dnd-markdown img {
-                    max-width: 100%; border-radius: 4px;
-                    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-                    margin: 16px auto; display: block;
-                    border: 2px solid #CFB991;
+                    max-width: 100%; border-radius: 4px; border: 8px solid #1a120b; outline: 2px solid #CFB991; outline-offset: -2px; box-shadow: inset 0 0 50px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.5); margin: 16px auto; display: block;
                 }
 
                 .dnd-markdown blockquote {
-                    background: linear-gradient(135deg, rgba(207,185,145,0.12), rgba(207,185,145,0.25));
-                    border: 2px solid #CFB991; border-radius: 4px;
-                    padding: 14px 16px; margin: 12px 0;
-                    box-shadow: inset 0 0 15px rgba(0,0,0,0.04), 0 3px 8px rgba(0,0,0,0.08);
+                    background: linear-gradient(135deg, rgba(207,185,145,0.15), rgba(207,185,145,0.3));
+                    border: none; border-radius: 4px;
+                    padding: 16px 20px; margin: 20px 0;
+                    box-shadow: inset 0 0 20px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.1);
                     position: relative;
                 }
                 .dnd-markdown blockquote::before {
-                    content: ''; position: absolute; top: -3px; left: -3px;
-                    width: 14px; height: 14px;
-                    border-top: 2px solid #5A1B1B; border-left: 2px solid #5A1B1B;
+                    content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 4px;
+                    background: #5A1B1B; border-radius: 4px 0 0 4px;
                 }
-                .dnd-markdown blockquote::after {
-                    content: ''; position: absolute; bottom: -3px; right: -3px;
-                    width: 14px; height: 14px;
-                    border-bottom: 2px solid #5A1B1B; border-right: 2px solid #5A1B1B;
-                }
-                .dnd-markdown ul, .dnd-markdown ol { margin-bottom: 12px; padding-left: 20px; }
+                .dnd-markdown ul, .dnd-markdown ol { margin-bottom: 16px; padding-left: 24px; }
                 .dnd-markdown table {
-                    width: 100%; border-collapse: collapse; margin: 8px 0;
-                    font-size: 13px;
+                    width: 100%; border-collapse: separate; border-spacing: 0; margin: 16px 0;
+                    font-size: 14px; border-radius: 6px; overflow: hidden;
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
                 }
                 .dnd-markdown th, .dnd-markdown td {
-                    border: 1px solid #8b7355; padding: 8px 10px; text-align: left;
+                    border: 1px solid rgba(139,115,85,0.4); padding: 10px 14px; text-align: left;
                 }
                 .dnd-markdown th {
-                    background: rgba(90,27,27,0.08);
-                    font-family: 'Cinzel', serif; font-size: 12px;
-                    color: #5A1B1B; font-weight: 700;
+                    background: linear-gradient(to bottom, rgba(207,185,145,0.4), rgba(139,115,85,0.4));
+                    font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 1px;
+                    color: #5A1B1B; font-weight: 900; text-transform: uppercase;
                 }
-                .dnd-markdown td { background: rgba(255,255,255,0.3); }
+                .dnd-markdown td { background: rgba(255,255,255,0.4); }
 
                 .audio-bar {
-                    margin-top: 12px; padding: 10px 24px;
-                    width: 100%; max-width: 1400px;
-                    background: rgba(15,12,8,0.9);
-                    border: 1px solid rgba(207,185,145,0.4);
-                    border-radius: 6px; display: flex; align-items: center; justify-content: space-between;
-                    box-shadow: 0 8px 16px rgba(0,0,0,0.4); z-index: 50;
+                    margin-top: 20px; padding: 12px 30px;
+                    width: 100%; max-width: 1500px;
+                    background: linear-gradient(to right, rgba(20,15,10,0.95), rgba(30,20,15,0.95), rgba(20,15,10,0.95));
+                    border: 1px solid rgba(207,185,145,0.5); border-radius: 8px;
+                    display: flex; align-items: center; justify-content: space-between;
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.6), inset 0 0 15px rgba(207,185,145,0.1);
+                    z-index: 50; position: relative;
                 }
-                .nav-group { display: flex; gap: 16px; align-items: center; }
+                .nav-group { display: flex; gap: 20px; align-items: center; }
                 .nav-btn {
                     background: transparent; border: none;
-                    color: #CFB991; font-family: 'Cinzel', serif;
-                    font-weight: 700; font-size: 13px;
-                    cursor: pointer; transition: all 0.2s; outline: none;
+                    color: #CFB991; font-family: 'Cinzel', serif; text-transform: uppercase;
+                    font-weight: 900; font-size: 14px; letter-spacing: 1px;
+                    cursor: pointer; transition: all 0.3s; outline: none; padding: 8px 16px;
+                    border-radius: 4px;
                 }
-                .nav-btn:hover:not(.nav-btn--disabled) { color: #fff; }
+                .nav-btn:hover:not(.nav-btn--disabled) { color: #fff; background: rgba(207,185,145,0.1); }
                 .nav-btn--disabled { opacity: 0.3; cursor: default; }
             `}} />
         </div>

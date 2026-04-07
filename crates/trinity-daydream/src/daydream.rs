@@ -126,6 +126,8 @@ impl Plugin for DaydreamPlugin {
             .add_plugins(crate::train_car::IsomorphicTrainPlugin)
             // Yardmaster Dashboard
             .add_plugins(crate::yardmaster_ui::YardmasterUiPlugin)
+            // Iron Road Native UI (The Tome)
+            .add_plugins(crate::iron_road_ui::IronRoadUiPlugin)
             // SAO Dropdown Menu & Hook Deck
             .add_plugins(crate::sao_menu::SaoMenuPlugin)
             // Voice Integration TTS
@@ -254,12 +256,11 @@ fn setup_daydream_shell(
         metallic: 0.8,
         ..default()
     });
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(Plane3d::default().mesh().size(2000.0, 2000.0)),
-        material: floor_mat,
-        transform: Transform::from_xyz(0.0, -0.5, 0.0), // slightly below the origin to not clip standard entities
-        ..default()
-    });
+    commands.spawn((
+        Mesh3d(meshes.add(Plane3d::default().mesh().size(2000.0, 2000.0))),
+        MeshMaterial3d(floor_mat),
+        Transform::from_xyz(0.0, -0.5, 0.0), // slightly below the origin to not clip standard entities
+    ));
 
     // ── The Astral Rings (Dream aesthetics) ──
     // Giant floating geometric rings that give a sci-fi / LitRPG "Dream" vibe
@@ -269,12 +270,11 @@ fn setup_daydream_shell(
         emissive: CYAN_ACCENT.into(),
         ..default()
     });
-    commands.spawn(PbrBundle {
-        mesh: ring_mesh1,
-        material: ring_mat1,
-        transform: Transform::from_xyz(0.0, 50.0, -150.0).with_rotation(Quat::from_rotation_x(1.2)),
-        ..default()
-    });
+    commands.spawn((
+        Mesh3d(ring_mesh1),
+        MeshMaterial3d(ring_mat1),
+        Transform::from_xyz(0.0, 50.0, -150.0).with_rotation(Quat::from_rotation_x(1.2)),
+    ));
     
     let ring_mesh2 = meshes.add(Torus::new(60.0, 2.0));
     let ring_mat2 = materials.add(StandardMaterial {
@@ -282,12 +282,11 @@ fn setup_daydream_shell(
         emissive: OLD_GOLD.into(),
         ..default()
     });
-    commands.spawn(PbrBundle {
-        mesh: ring_mesh2,
-        material: ring_mat2,
-        transform: Transform::from_xyz(0.0, 50.0, -150.0).with_rotation(Quat::from_rotation_z(0.5).mul_quat(Quat::from_rotation_x(1.2))),
-        ..default()
-    });
+    commands.spawn((
+        Mesh3d(ring_mesh2),
+        MeshMaterial3d(ring_mat2),
+        Transform::from_xyz(0.0, 50.0, -150.0).with_rotation(Quat::from_rotation_z(0.5).mul_quat(Quat::from_rotation_x(1.2))),
+    ));
 
     // ── Dream Orbs (Floating Wisps) ──
     // Scatter a field of gently glowing spheres to give the void some scale
@@ -308,12 +307,11 @@ fn setup_daydream_shell(
         let y = (i as f32 * 11.0 % 80.0) + 5.0;
         let z = (i as f32 * 37.0 % 400.0) - 200.0;
         
-        commands.spawn(PbrBundle {
-            mesh: orb_mesh.clone(),
-            material: if i % 3 == 0 { orb_mat_gold.clone() } else { orb_mat_white.clone() },
-            transform: Transform::from_xyz(x, y, z),
-            ..default()
-        });
+        commands.spawn((
+            Mesh3d(orb_mesh.clone()),
+            MeshMaterial3d(if i % 3 == 0 { orb_mat_gold.clone() } else { orb_mat_white.clone() }),
+            Transform::from_xyz(x, y, z),
+        ));
     }
 
     info!("🌙 DAYDREAM shell ready — Dream Aesthetic Initialized");

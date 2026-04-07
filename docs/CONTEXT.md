@@ -145,8 +145,8 @@ distrobox enter vllm -- vllm serve ~/trinity-models/vllm/gemma-4-E2B-it \
 ### Priority Tasks (Next Session Focus)
 - [ ] **Testing and Integration**: Run end-to-end tests for the Ascension Architecture integration and prepare to record demonstration videos of Trinity's pedagogical efficacy.
 - [ ] **Demonstrate Graduation**: Verify that Trinity can effectively teach the "user/player" how to graduate from the IRON ROAD phase through actual mechanics.
-- [ ] **ComfyUI / ORT Permanent Integration**: Ensure offline image generation operations work effectively.
-- [ ] **Audio Conversation Pipeline**: Ensure Supertonic TTS + Whisper STT are functioning for bidirectional real-time audio.
+- [ ] **vLLM Omni Permanent Integration**: Ensure offline image generation operations via Omni work effectively.
+- [ ] **Audio Conversation Pipeline**: Ensure Kokoro TTS + Gemma-4 E2B STT are functioning for bidirectional real-time audio.
 
 ### Quick Wins (< 30 min each)
 - [x] **Express Mode Button Labels**: 🚂 ⚡ 🔧 buttons now show text labels (Iron Road, Express, Workshop).

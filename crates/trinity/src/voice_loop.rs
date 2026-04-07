@@ -1,11 +1,11 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// TRINITY ID AI OS — Voice Loop (Legacy Stub)
+// TRINITY ID AI OS — Voice Loop
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // FILE:        voice_loop.rs
 // BIBLE CAR:   Car 11 — YOKE (ART Pipeline & Creative Tools)
 // HOOK SCHOOL: 🎨 Creation
-// PURPOSE:     Legacy voice loop endpoint — now delegated to Supertonic-2 TTS
+// PURPOSE:     Status endpoint for the voice pipeline (Kokoro TTS :8200)
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -17,11 +17,13 @@ use tracing::info;
 pub async fn start_voice_loop(
     State(_state): State<AppState>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    // Voice loop is now handled by Python sidecar - this is a stub
-    info!("Voice loop endpoint called (now handled by Python sidecar)...");
+    info!("Voice loop queried. Reporting Kokoro status.");
+    
+    let is_kokoro_healthy = crate::voice::check_omni_audio_health().await;
 
     Ok(Json(serde_json::json!({
-        "status": "delegated",
-        "message": "Voice loop is now handled by Python sidecar process."
+        "status": if is_kokoro_healthy { "healthy" } else { "offline" },
+        "pipeline": "kokoro_tts",
+        "message": "Voice loop is live. Please connect via WebSocket /api/telephone for real-time STT/TTS."
     })))
 }

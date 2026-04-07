@@ -49,14 +49,28 @@ if [ -d "$MODEL_DIR/gemma-4-31B-it-AWQ-4bit" ] && [ -d "$MODEL_DIR/gemma-4-E2B-i
     # To avoid JSON quote escaping issues across distrobox boundaries, we write the command first
     cat << EOF > /tmp/run_vllm_31b.sh
 #!/bin/bash
-vllm serve "$HOME/trinity-models/vllm/gemma-4-31B-it-AWQ-4bit" --port 8001 \\
-    --gpu-memory-utilization 0.40 --max-model-len 16384 \\
+vllm serve "$HOME/trinity-models/vllm/gemma-4-31B-it-AWQ-4bit" --port 8001 \
+    --gpu-memory-utilization 0.35 --max-model-len 16384 \
     --served-model-name "Great_Recycler"
 EOF
     dbox bash /tmp/run_vllm_31b.sh &
     sleep 15
 else
     echo "❌ Missing weights for Gemma 31B or E2B. Please configure models."
+fi
+
+# 2. Programmer Pete (Execution) - Gemma 4 27B MoE AWQ
+if [ -d "$MODEL_DIR/gemma-4-27B-MoE-AWQ" ]; then
+    cat << EOF > /tmp/run_vllm_27b_moe.sh
+#!/bin/bash
+vllm serve "$HOME/trinity-models/vllm/gemma-4-27B-MoE-AWQ" --port 8002 \
+    --gpu-memory-utilization 0.25 --max-model-len 32768 \
+    --served-model-name "Programmer_Pete"
+EOF
+    dbox bash /tmp/run_vllm_27b_moe.sh &
+    sleep 15
+else
+    echo "❌ Missing weights for Gemma 27B MoE. Please configure models."
 fi
 
 # 5. Embeddings - nomic-embed-text-v1.5 (137M params, tiny footprint)

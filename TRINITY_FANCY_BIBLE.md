@@ -19,13 +19,13 @@
 
 | Feature | Status | Evidence |
 |---------|--------|----------|
-| **Inference Router (Agnostic HTTP)** | `Verified` | `inference_router.rs` — LM Studio / Ollama / llama-server auto-detect |
+| **Inference Router (vLLM-Only)** | `Verified` | `inference_router.rs` — vLLM Omni exclusive, primary port 8001 |
 | **Quality Scorecard** | `Verified` | `quality_scorecard.rs`, unit tests pass |
 | **Socratic Protocol & Agent Tools** | `Verified` | `conductor_leader.rs`, `tools.rs`, 30 available tools |
 | **LDT Portfolio HUD** | `Verified` | `CharacterSheet.jsx`, `character_api.rs` |
 | **App Modes (Iron Road, Express, Yardmaster)** | `Verified` | `AppMode` enum natively integrated into Bevy Train Consist |
 | **Creative Pipeline (Images, Music, Video, 3D)** | `Verified` | `creative.rs`, `useCreative.js` — ComfyUI/MusicGPT/Hunyuan |
-| **Voice Pipeline (Supertonic-2 TTS)** | `Verified` | `supertonic.rs`, native ONNX — browser fallback auto-detect |
+| **Voice Pipeline (Kokoro TTS)** | `Verified` | `voice.rs`, Kokoro sidecar on port 8200 — Apache 2.0, 6 presets |
 | **DAYDREAM (Native Bevy Sidecar)** | `Verified` | `trinity-daydream` crate — Pure Rust Bevy 0.18.1 3D LitRPG, no JS |
 | **ADDIECRAPEYE Phase Navigation** | `Verified` | Vertical 12-tab sidebar, phase-aware input & badge |
 | **EYE Export** | `Verified` | `/api/eye/export` → download button |
@@ -325,22 +325,57 @@ Trinity is designed explicitly for the unified memory architecture of the **AMD 
 | Component | Specification | Trinity Uses For |
 |-----------|--------------|-----------------|
 | **CPU** | Ryzen AI Max+ 395 (16C/32T Zen 5) | Server, I/O, Python Server orchestration |
-| **GPU** | Radeon 8060S (40 CUs RDNA 3.5) | vLLM Omni proxy inference backend (ROCm) |
+| **GPU** | Radeon 8060S (40 CUs RDNA 3.5, gfx1151) | vLLM Omni inference backend (ROCm) |
 | **NPU** | XDNA 2 (50 TOPS) | Planned: speculative decoding, rapid STT/TTS |
 | **Memory** | 128 GB unified LPDDR5x-8000 | Shared across CPU+GPU+NPU — zero copy overhead |
 
-**Why this matters**: A traditional PCIe GPU maxes out at 24GB. The unified 128GB memory allows an impossible deployment on a single machine: running the *entire P.A.R.T.Y. cluster simultaneously*. 
+**Why this matters**: A traditional PCIe GPU maxes out at 24GB. The unified 128GB memory allows an impossible deployment on a single machine: running the *entire P.A.R.T.Y. cluster simultaneously*.
 
-**vLLM Omni Proxy Architecture**: Trinity uses a highly parallelized `vLLM` proxy on port `:8000` to dispatch workloads perfectly to purpose-fit cognitive models.
-- **Port 8001**: For deep analytical instruction routing, the Dense `Gemma-4-31B-AWQ` serves as the Recycler.
-- **Port 8002**: For rapid software execution and tools, the MoE `Gemma-4-26B-A4B-AWQ` drives Programmer Pete.
-- **Port 8003**: The 3GB `Gemma-4-E4B-it` drives Omni_NPC.
-- **Port 8004, 8006, 8007**: Direct FastAPI nodes serving the Aesthetics models (Flux.1, CogVideoX, TripoSR).
+#### vLLM Omni Architecture (April 2026)
 
-Because the inference backend processes requests dynamically across independent server nodes, no single massive monolithic model dictates the speed or memory boundary. The result is a highly responsive multimodal operating system taking up exactly **~96% of the 128GB budget**.
+Trinity uses **vLLM exclusively** as its inference engine. All legacy backends (LM Studio, Ollama, llama-server) have been **permanently purged**. Under the new Linux 7 architecture, Trinity runs an ensemble of specialized Apache 2.0 models across different ports to natively provide an Omni pipeline without python wrapper hacks.
 
-> 📍 `main.rs:L287-335` — `installed_model_inventory()`: all models with sizes and paths
-> 📍 `scripts/launch/start_vllm_omni.sh` — Bootloader mapping the entire 6-node physical architecture
+| Port | Service | Model (Apache 2.0) | Status |
+|------|---------|---------------------|---------|
+| **8001** | Socratic Brain & Ears | Gemma-4-31B-it (Target) + E2B (Draft) | Primary 256K context + Native Audio Receiver |
+| **8002** | Programmer Pete | Gemma-4-27B-MoE-AWQ | IDE execution agent & Vision orchestration |
+| **8200** | Audio Sidecar | Kokoro TTS | Apache 2.0, 6 voice presets |
+| **3000** | Trinity Server | Axum + React | Main application |
+
+#### Distrobox & Linux 7 Execution Environment
+
+vLLM runs inside a **distrobox** container, mapping ports to `127.0.0.1`. Crucially, Trinity requires **Linux kernel 7.0+** because it resolves legacy HSA (Heterogeneous System Architecture) mapping bugs, allowing the Linux kernel to properly expose the entire 128GB LPDDR5X unified memory pool dynamically via `PagedAttention`. 
+* Ensure BIOS UMA Frame Buffer is set to `512MB` so the kernel dynamically allocates the rest.
+
+- **Image**: `docker.io/kyuz0/vllm-therock-gfx1151:latest`
+- **vLLM Version**: `0.19.1rc1.dev1`
+- **GPU target**: gfx1151 (RDNA 3.5, Strix Halo)
+- **ROCm SDK**: `7.13.0`
+
+#### ⚠️ Known vLLM Issues on Strix Halo (gfx1151)
+
+> **RESOLVED (April 6, 2026):** The KV cache crash affecting ALL models was caused by `turboquant-vllm` — an NVIDIA-only package that patches vLLM with CUDA layouts. Uninstalling it restored normal operation on AMD ROCm. **Never reinstall this package.**
+
+> **CRITICAL RULE**: To ingest massive textbooks, vLLM must be launched with `--enable-prefix-caching` and `--enable-chunked-prefill`. 
+> 📍 `docs/VLLM_LESSONS_LEARNED.md` — Full debugging history, package versions, env vars, launch commands
+
+#### Static VRAM Budget Goal
+
+The target architecture is a **fixed, predictable VRAM allocation** carved out via strict `--gpu-memory-utilization` flags. By using 4-bit AWQ weights combined with unquantized 16-bit (`auto`) KV Caches, we avoid AMD 4-bit KV Cache instability.
+
+| Slot | Model | VRAM Target | Purpose |
+|------|-------|-------------|---------|
+| Recycler (8001) | Gemma-4-31B-AWQ (Target) | ~55 GiB (`0.45`) | Deep Socratic Director, 256K Text ingest |
+| | + Gemma-4-E2B-it (Speculative) | | Zero-Bubble Omni Audio draft decoder |
+| Pete (8002) | Gemma-4-27B-MoE-AWQ | ~38 GiB (`0.30`) | Sparse MoE for IDE & Omni Media Generation |
+| Voice (8200) | Kokoro TTS | ~2 GiB | Apache 2.0 voice synthesis |
+| **Total** | | **~95 GiB** | of 128 GiB unified memory |
+
+This leaves ~40 GiB safe headroom for OS overhead, Trinity DB operations, and future media models. The unified memory architecture means zero-copy between CPU and GPU — no PCIe bottleneck.
+
+> 📍 `configs/runtime/default.toml` — Runtime backend configuration (primary = vllm-recycler)
+> 📍 `crates/trinity/src/inference_router.rs` — Multi-backend router (default primary = vllm-recycler on 8001)
+> 📍 `crates/trinity/src/health.rs` — Voice health check on port 8200
 
 ### 1.10 The Frontend (The Accordion Train)
 

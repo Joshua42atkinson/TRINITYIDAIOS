@@ -36,6 +36,7 @@ pub enum BackendKind {
     LlamaServer,
     Ollama,
     LmStudio,
+    LongCat,
     Custom,
 }
 
@@ -47,6 +48,7 @@ impl BackendKind {
             BackendKind::LlamaServer => 8080,
             BackendKind::Ollama => 11434,
             BackendKind::LmStudio => 1234,
+            BackendKind::LongCat => 8010,
             BackendKind::Custom => 8080,
         }
     }
@@ -58,6 +60,7 @@ impl BackendKind {
             BackendKind::LlamaServer => "llama-server",
             BackendKind::Ollama => "Ollama",
             BackendKind::LmStudio => "LM Studio",
+            BackendKind::LongCat => "LongCat-Next",
             BackendKind::Custom => "Custom",
         }
     }
@@ -523,6 +526,22 @@ impl InferenceRouter {
             .get(self.active)
             .map(|b| b.healthy)
             .unwrap_or(false)
+    }
+
+    /// Get a backend's base URL by its exact name
+    pub fn get_url_by_name(&self, name: &str) -> Option<String> {
+        self.backends
+            .iter()
+            .find(|b| b.name == name)
+            .map(|b| b.base_url.clone())
+    }
+
+    /// Get a backend's base URL by its kind
+    pub fn get_url_by_kind(&self, kind: BackendKind) -> Option<String> {
+        self.backends
+            .iter()
+            .find(|b| b.kind == kind)
+            .map(|b| b.base_url.clone())
     }
 
     // ── Manual Control ──

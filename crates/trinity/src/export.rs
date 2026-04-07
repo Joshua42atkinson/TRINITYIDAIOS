@@ -553,7 +553,7 @@ mod tests {
     #[test]
     fn test_export_quiz_produces_html() {
         let gs = trinity_quest::state::GameState::default();
-        let container = compile_container(&gs);
+        let container = compile_container(&gs, &[]);
         let (filename, bytes, content_type) = export(&container, &ExportFormat::Html5Quiz);
         assert!(filename.ends_with("_quiz.html"));
         assert_eq!(content_type, "text/html");
@@ -565,7 +565,7 @@ mod tests {
     #[test]
     fn test_export_adventure_produces_html() {
         let gs = trinity_quest::state::GameState::default();
-        let container = compile_container(&gs);
+        let container = compile_container(&gs, &[]);
         let (filename, bytes, content_type) = export(&container, &ExportFormat::Html5Adventure);
         assert!(filename.ends_with("_adventure.html"));
         assert_eq!(content_type, "text/html");
@@ -577,7 +577,7 @@ mod tests {
     #[test]
     fn test_export_json() {
         let gs = trinity_quest::state::GameState::default();
-        let container = compile_container(&gs);
+        let container = compile_container(&gs, &[]);
         let (filename, bytes, content_type) = export(&container, &ExportFormat::RawJson);
         assert!(filename.ends_with("_export.json"));
         assert_eq!(content_type, "application/json");

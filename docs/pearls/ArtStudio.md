@@ -14,7 +14,7 @@ This document defines the quality gates for the **Art Studio** UI interface (`Ar
 - **Backend Bindings (Rust):**
   - **`crate::trinity_api::trinity_chat`**: The unified inference router that drives the conversational stream in the left pane.
   - **`crate::vaam_bridge::*`**: Intercepts chat messages and scans for vocabulary usage, rewarding Coal metrics.
-  - **`crate::creative::get_image` & `get_audio`**: Exposes proxy generation endpoints to ComfyUI/MusicGPT.
+  - **`crate::creative::get_image` & `get_audio`**: Exposes proxy generation endpoints to vLLM Omni.
   - **`crate::narrative::narrator_stream`**: Translates simple generation requests into Great Recycler dynamic prose responses.
   - **`crate::health::check_sidecar_health`**: Real-time SSE polling for `StatusBadge` neon activity indicators.
 - **Dependencies:** 
@@ -32,7 +32,7 @@ This document defines the quality gates for the **Art Studio** UI interface (`Ar
 *What data informs this design? How does it align with the Fancy Bible?*
 - **Pedagogical Alignment:** Anchors the "Aesthetic" and "Yield" steps of the ADDIECRAPEYE lifecycle. The "Creative Flow" relies on low-friction conversational chat (`media-chat`) instead of high-cognitive-load dropdowns.
 - **Isomorphism:** The Holy Trinity logic pipeline connects `crate::quests` (content parsing), `crate::trinity_api` (Socratic guide), and `crate::creative` (asset generation) directly to the right-pane Daydream scene graph synchronization `sync-scene`.
-- **Hardware Limitations:** The Strix Halo NPU offloads whisper/TTS leaving the 120GB GPU fully saturated for the simultaneous Mistral context windows and ComfyUI generation bursts.
+- **Hardware Limitations:** The Strix Halo NPU offloads STT/TTS (Kokoro) leaving the 120GB GPU fully saturated for the simultaneous large context windows and vLLM Omni media generation bursts.
 
 ### L - Layout (C.R.A.P. Methodology)
 *How does this view use Contrast, Repetition, Alignment, and Proximity?*
@@ -47,5 +47,5 @@ This document defines the quality gates for the **Art Studio** UI interface (`Ar
 
 ### HOW IT WORKS (User Action)
 *The Presentation \How\: What the user actually does.*
-- **Action:** Click the ART Studio tab to access ComfyUI/MusicGPT. Use this when you need an image or audio component for your lesson. Type a prompt, hit generate, and watch the coal/steam economy fuel the render.
+- **Action:** Click the ART Studio tab to access the creative suite. Use this when you need an image or audio component for your lesson. Type a prompt, hit generate, and watch the coal/steam economy fuel the render.
 - **Why:** This demystifies the theoretical \why\ into a direct, clickable interaction that drives the system forward.

@@ -3,10 +3,11 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 #
 # INFERENCE ARCHITECTURE (April 2026):
-#   Primary:  vLLM Omni sidecar (ROCm GPU) — unified LLM + vision + audio + images
-#   Fallback: llama-server, LM Studio, Ollama, or any OpenAI-compatible server
+#   vLLM Omni — exclusive inference backend (ROCm GPU, distrobox)
+#   Single brain: Gemma-4 31B Dense AWQ on port 8001
+#   Pete and Great Recycler are system-prompt personas, not separate models.
 #
-# The InferenceRouter auto-detects servers on known ports at startup.
+# The InferenceRouter auto-detects vLLM on startup.
 # Set LLM_URL env var to override with a specific endpoint.
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -14,52 +15,41 @@
 type = "Auto"  # Auto-detect Brain/Body
 
 [inference]
-primary = "vllm-omni"
+primary = "vllm-recycler"
 auto_detect = true
-ctx_size = 262144
+ctx_size = 32768
 max_tokens = 16384
 
-# Multi-agent architecture via vLLM multi-model serving:
-# Great Recycler = orchestrator (large dense model, Socratic reasoning)
-# Programmer Pete = sub-agent (fast coding model)
-# ART Studio = sub-agent (image/creative model)
-[inference.agents]
-recycler_model = "default"   # Populated when Gemma 4 model is selected
-pete_model = "default"       # Can be same model or specialized
-art_model = "default"        # Image generation model
+# ── vLLM Omni Backends (exclusive) ──
 
-# ── Backends ──
-
-[inference.backends.vllm-omni]
-url = "http://127.0.0.1:8000"
+[inference.backends.vllm-recycler]
+url = "http://127.0.0.1:8001"
 supports_tools = true
 supports_vision = true
 
-[inference.backends.llama-server]
-url = "http://127.0.0.1:8080"
-supports_tools = true
-supports_vision = true
-
-[inference.backends.lm-studio]
-url = "http://127.0.0.1:1234"
-supports_tools = true
-supports_vision = true
-
-[inference.backends.ollama]
-url = "http://127.0.0.1:11434"
+[inference.backends.vllm-pete]
+url = "http://127.0.0.1:8002"
 supports_tools = true
 supports_vision = false
 
+[inference.backends.vllm-omni]
+url = "http://127.0.0.1:8003"
+supports_tools = false
+supports_vision = true
+
+
+
 [model]
-model_dir = "~/trinity-models"
-default_model = "Mistral-Small-4-119B-2603-Q4_K_M-00001-of-00002.gguf"
+model_dir = "~/trinity-models/vllm"
+default_model = "gemma-4-31B-it-AWQ-4bit"
 n_gpu_layers = -1  # Full offload
-context_size = 262144
+context_size = 32768
 batch_size = 512
 n_threads = 16
 
 [creative]
-comfyui_url = "http://127.0.0.1:8188"
+# ComfyUI deprecated — vLLM Omni handles image generation natively
+# comfyui_url = "http://127.0.0.1:8188"  # ARCHIVED: use vLLM /v1/images/generations
 musicgpt_url = "http://127.0.0.1:8189"
 hunyuan3d_url = "http://127.0.0.1:7860"
 auto_launch = false
