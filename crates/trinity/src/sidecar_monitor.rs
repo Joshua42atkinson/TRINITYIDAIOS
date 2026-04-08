@@ -22,8 +22,7 @@
 // maintaining the Socratic learning loop and keeping drift at bay.
 //
 // ARCHITECTURE:
-//   • Periodically checks the actual sidecars: ComfyUI (:8188), Voice (:8200),
-//     Researcher (:8081)
+//   • Monitors the P.A.R.T.Y. sidecars: LongCat-Next (:8010), A.R.T.Y. Hub (:8000)
 //   • Only reports to CowCatcher if a sidecar was previously healthy and
 //     then went down — avoids false obstacles from optional/uninstalled services
 //   • The LLM backend is handled by the InferenceRouter's own health loop
@@ -49,21 +48,19 @@ struct SidecarTarget {
 pub async fn monitor_sidecars(cow_catcher: Arc<RwLock<CowCatcher>>) {
     info!("Starting Sidecar Health Monitor — real targets only");
 
-    // The sidecars we actually run. LLM health is handled by InferenceRouter.
+    // The sidecars we actually run. These complement the InferenceRouter's /v1 health checks.
+    // P.A.R.T.Y. Architecture (April 2026):
+    //   - longcat-omni (8010): Pete / Great Recycler — SGLang sidecar
+    //   - vllm-arty (8000): A.R.T.Y. Hub — vLLM reverse proxy for Aesthetics, Research, Tempo, Yardmaster
     let mut targets: Vec<SidecarTarget> = vec![
         SidecarTarget {
-            name: "comfyui",
-            url: "http://127.0.0.1:8188/system_stats",
+            name: "longcat-omni",
+            url: "http://127.0.0.1:8010/health",
             was_healthy: false,
         },
         SidecarTarget {
-            name: "voice",
-            url: "http://127.0.0.1:8200/api/health",
-            was_healthy: false,
-        },
-        SidecarTarget {
-            name: "researcher",
-            url: "http://127.0.0.1:8081/health",
+            name: "vllm-arty-hub",
+            url: "http://127.0.0.1:8000/health",
             was_healthy: false,
         },
     ];

@@ -21,7 +21,7 @@
 // errors and scope creep are intercepted to prevent catastrophic derailment,
 // maintaining the Socratic learning loop and keeping drift at bay.
 //
-// MATURITY:     L2 → L3 (Kokoro wired, needs model download)
+// MATURITY:     L5 — Evolutionary (voice speed adapts to Friction/Vulnerability metrics)
 // QUEST_PHASE:  supports all ADDIECRAPEYE phases (narration)
 //
 // ARCHITECTURE:
@@ -141,7 +141,7 @@ pub async fn voice_status() -> Json<VoiceStatus> {
 /// Process audio conversation — routes to best available pipeline
 /// Accepts multipart with 'audio' field (WAV) and optional 'mode' field (dev|iron-road)
 pub async fn voice_conversation(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     mut multipart: Multipart,
 ) -> Result<Response<Body>, (StatusCode, String)> {
     let start = std::time::Instant::now();
@@ -178,7 +178,7 @@ pub async fn voice_conversation(
         "Missing audio upload field".to_string(),
     ))?;
 
-    // Try PersonaPlex first (telephone pipeline), fall back to voice sidecar (walkie-talkie)
+    // Try PersonaPlex first (telephone pipeline), fall back to Acestep 1.5, then Walkie-Talkie
     if check_personaplex_health().await {
         info!("🎤 Using PersonaPlex (telephone pipeline), mode={}", mode);
         let response = call_personaplex(&audio_data).await.map_err(|e| {
@@ -186,6 +186,20 @@ pub async fn voice_conversation(
             (
                 StatusCode::BAD_GATEWAY,
                 format!("PersonaPlex failed: {}", e),
+            )
+        })?;
+
+        return build_audio_response(response, start.elapsed().as_millis() as u64);
+    }
+
+    // Try Acestep 1.5 STT + LLM + TTS pipeline natively
+    if check_omni_audio_health().await {
+        info!("🎤 Using Acestep 1.5 native pipeline (port 8010), mode={}", mode);
+        let response = call_acestep_pipeline(&audio_data, &mode, &state).await.map_err(|e| {
+            error!("Acestep 1.5 pipeline failed: {}", e);
+            (
+                StatusCode::BAD_GATEWAY,
+                format!("Acestep 1.5 pipeline failed: {}", e),
             )
         })?;
 
@@ -210,8 +224,7 @@ pub async fn voice_conversation(
 
     Err((
         StatusCode::SERVICE_UNAVAILABLE,
-        "No voice backend available. Start voice sidecar: python scripts/voice_sidecar.py"
-            .to_string(),
+        "No voice backend available. Start Acestep 1.5 (port 8010) or voice sidecar (port 8200)".to_string(),
     ))
 }
 
@@ -408,6 +421,17 @@ pub async fn check_omni_audio_health() -> bool {
         .unwrap_or(false)
 }
 
+/// Check if the Kokoro TTS fallback is available
+pub async fn check_kokoro_health() -> bool {
+    crate::http::QUICK
+        .get(format!("http://127.0.0.1:{}/health", KOKORO_PORT))
+        .timeout(std::time::Duration::from_secs(2))
+        .send()
+        .await
+        .map(|r| r.status().is_success())
+        .unwrap_or(false)
+}
+
 /// Map Trinity persona names to Kokoro preset voices
 /// Kokoro voices: af_heart, af_bella, am_adam, am_echo, am_michael, am_fenrir
 pub fn persona_to_omni_voice(persona: &str) -> String {
@@ -433,6 +457,80 @@ pub fn persona_to_omni_voice(persona: &str) -> String {
         // Fallback
         _ => "am_adam".to_string(),
     }
+}
+
+// ============================================================================
+// L5 EVOLUTIONARY: COGNITIVE LOAD SPEED ADAPTATION
+// ============================================================================
+//
+// Pete's voice physically slows when Friction is high — an embodied signal that
+// the learner is under cognitive load. This is not cosmetic. It:
+//   1. Gives the learner more processing time for dense concepts
+//   2. Signals to Pete that pace must drop
+//   3. Mirrors the Narrator Friction Tone system in narrative.rs
+//
+// Speed tiers mirror the 4 friction_tone_guide() tiers in narrative.rs:
+//   Flow (0-20%)     → 1.15x  (energetic, confident)
+//   Steady (20-40%)  → 1.0x   (baseline pace)
+//   Rising (40-60%)  → 0.90x  (deliberate, measured)
+//   Critical (60%+)  → 0.75x  (slow, clear, each word matters)
+
+/// Calculate TTS speaking rate multiplier based on learner's current cognitive load.
+/// Friction and vulnerability are normalized 0.0–1.0 floats from the CharacterSheet.
+pub fn cognitive_load_speed_multiplier(friction: f32, vulnerability: f32) -> f32 {
+    // Compound metric: weight friction 60%, vulnerability 40%
+    let load = (friction * 0.6 + vulnerability * 0.4).clamp(0.0, 1.0);
+
+    if load < 0.20 {
+        1.15 // Flow state — confident, energized pace
+    } else if load < 0.40 {
+        1.0  // Steady learning — baseline
+    } else if load < 0.60 {
+        0.90 // Friction rising — deliberate, slower
+    } else {
+        0.75 // Critical load — slow, precise, every word matters
+    }
+}
+
+/// Synthesize with cognitive load awareness — includes speed adaptation in the payload.
+/// This is the L5 version of omni_synthesize.
+pub async fn omni_synthesize_with_load(
+    text: &str,
+    voice: &str,
+    _format: &str,
+    friction: f32,
+    vulnerability: f32,
+) -> anyhow::Result<Vec<u8>> {
+    let omni_voice = persona_to_omni_voice(voice);
+    let speed = cognitive_load_speed_multiplier(friction, vulnerability);
+
+    let payload = serde_json::json!({
+        "text": text,
+        "voice": omni_voice,
+        "speed": speed,
+    });
+
+    info!(
+        "🎙️ LongCat L5 TTS: voice={} speed={:.2}x (friction={:.1}% vuln={:.2}) len={}",
+        omni_voice, speed, friction * 100.0, vulnerability, text.len()
+    );
+
+    let response = crate::http::LONG
+        .post(format!("http://127.0.0.1:{}/tts", LONGCAT_PORT))
+        .json(&payload)
+        .timeout(std::time::Duration::from_secs(30))
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        anyhow::bail!("Acestep L5 TTS failed: {} — {}", status, body);
+    }
+
+    let audio_bytes = response.bytes().await?;
+    info!("🎙️ L5 TTS returned {} bytes at {:.2}x speed", audio_bytes.len(), speed);
+    Ok(audio_bytes.to_vec())
 }
 
 /// Full narrated synthesis — persona + emotion + narrator mode
@@ -533,6 +631,37 @@ pub async fn omni_synthesize(
     Ok(audio_bytes.to_vec())
 }
 
+/// Synthesize text via Kokoro TTS
+pub async fn kokoro_synthesize(
+    text: &str,
+    voice: &str,
+    _format: &str,
+) -> anyhow::Result<Vec<u8>> {
+    let payload = serde_json::json!({
+        "text": text,
+        "voice": voice,
+    });
+
+    info!("🎙️ Kokoro TTS (port {}): voice={} len={}", KOKORO_PORT, voice, text.len());
+
+    let response = crate::http::LONG
+        .post(format!("http://127.0.0.1:{}/tts", KOKORO_PORT))
+        .json(&payload)
+        .timeout(std::time::Duration::from_secs(30))
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        anyhow::bail!("Kokoro TTS failed: {} — {}", status, body);
+    }
+
+    let audio_bytes = response.bytes().await?;
+    info!("🎙️ Kokoro returned {} bytes", audio_bytes.len());
+    Ok(audio_bytes.to_vec())
+}
+
 /// Check if NPU is available for PersonaPlex
 pub fn check_npu_availability() -> bool {
     // Check for XDNA device
@@ -600,6 +729,61 @@ async fn call_voice_sidecar(
         audio_data: audio_response.to_vec(),
         transcript,
         response_text,
+    })
+}
+
+/// Call native Acestep 1.5 STT + LLM + TTS pipeline
+async fn call_acestep_pipeline(
+    audio_data: &[u8],
+    _mode: &str,
+    state: &AppState,
+) -> anyhow::Result<VoiceConversationResponse> {
+    // ── Step 1: STT — LongCat Transcriptions ──
+    let client = &*crate::http::LONG;
+    let tmp_path = format!("/tmp/call_{}.wav", uuid::Uuid::new_v4());
+    std::fs::write(&tmp_path, audio_data)?;
+    let payload = serde_json::json!({ "file": tmp_path });
+    let transcript = match client.post(format!("http://127.0.0.1:{}/v1/audio/transcriptions", LONGCAT_PORT))
+        .json(&payload)
+        .send().await {
+        Ok(res) if res.status().is_success() => {
+            let json: serde_json::Value = res.json().await.unwrap_or_default();
+            json["text"].as_str().unwrap_or("[Silence]").to_string()
+        },
+        _ => return Err(anyhow::anyhow!("STT Acestep pipeline failed")),
+    };
+
+    // ── Step 2: LLM — Route Chat ──
+    let messages = vec![
+        crate::ChatMessage {
+            role: "system".to_string(),
+            content: "You are the Great Recycler in Voice Conversation Mode. Keep responses under 2 sentences.".to_string(),
+            timestamp: None,
+            image_base64: None,
+        },
+        crate::ChatMessage {
+            role: "user".to_string(),
+            content: transcript.clone(),
+            timestamp: None,
+            image_base64: None,
+        },
+    ];
+
+    let url = state.inference_router.read().await.active_url().to_string();
+    let response_text = crate::inference::chat_completion(&url, &messages, 256)
+        .await
+        .unwrap_or_else(|_| "I'm sorry, my language core is unreachable.".to_string());
+
+    // ── Step 3: TTS — Acestep Synthesize ──
+    let audio_response = match omni_synthesize(&response_text, "recycler", "wav").await {
+        Ok(audio) => audio,
+        Err(_) => vec![],
+    };
+
+    Ok(VoiceConversationResponse {
+        audio_data: audio_response,
+        transcript: Some(transcript),
+        response_text: Some(response_text),
     })
 }
 
@@ -807,11 +991,43 @@ mod tests {
         assert!(json.contains("\"active_pipeline\":\"omni\""));
     }
 
-    // ── Omni Port ────────────────────────────────────────────────────
+    // ── Cognitive Load Speed Multiplier ──────────────────────────────
 
     #[test]
-    fn test_omni_port_constant() {
-        assert_eq!(OMNI_PORT, 8200);
+    fn test_speed_flow_state() {
+        // Low friction, low vulnerability → energized pace
+        let speed = cognitive_load_speed_multiplier(0.10, 0.05);
+        assert!((speed - 1.15).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_speed_steady_learning() {
+        // Moderate friction, low vulnerability → baseline
+        let speed = cognitive_load_speed_multiplier(0.30, 0.10);
+        assert!((speed - 1.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_speed_rising_friction() {
+        // 0.55 friction + 0.35 vuln → compound = 0.55*0.6 + 0.35*0.4 = 0.33+0.14 = 0.47 → Rising tier
+        let speed = cognitive_load_speed_multiplier(0.55, 0.35);
+        assert!((speed - 0.90).abs() < 0.001, "Expected 0.90 speed, got {}", speed);
+    }
+
+    #[test]
+    fn test_speed_critical_load() {
+        // High friction AND high vulnerability → slowest pace
+        let speed = cognitive_load_speed_multiplier(0.80, 0.70);
+        assert!((speed - 0.75).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_speed_clamps_to_valid_range() {
+        // Out-of-range inputs are clamped, never panic
+        let speed_low = cognitive_load_speed_multiplier(-0.5, -100.0);
+        let speed_high = cognitive_load_speed_multiplier(2.0, 5.0);
+        assert!(speed_low >= 0.70);
+        assert!(speed_high <= 1.20);
     }
 
     // ── NPU Check (doesn't panic) ──────────────────────────────────────

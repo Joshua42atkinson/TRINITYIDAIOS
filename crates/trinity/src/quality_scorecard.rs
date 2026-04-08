@@ -459,6 +459,51 @@ fn generate_recommendations(
     recs
 }
 
+/// L5 Sprint 6: Convert a low-scoring scorecard into quest remediation objectives.
+/// When a document scores D or F, these objectives are injected into the active quest board
+/// so the system *evaluates* the work and *evolves* the learner's next steps.
+pub fn scorecard_to_remediation_objectives(scorecard: &QualityScorecard) -> Vec<String> {
+    let mut objectives = Vec::new();
+
+    if scorecard.blooms_coverage < 0.5 {
+        objectives.push(
+            "📚 Remediation: Add higher-order Bloom's activities (Analyze, Evaluate, Create) \
+             to your document — current coverage is below 50%."
+                .to_string(),
+        );
+    }
+    if scorecard.addie_alignment < 0.5 {
+        objectives.push(
+            "🎯 Remediation: Annotate your Analysis, Design, and Evaluation sections explicitly — \
+             ADDIE phase language is missing or weak."
+                .to_string(),
+        );
+    }
+    if scorecard.engagement < 0.5 {
+        objectives.push(
+            "🔥 Remediation: Add at least 3 discussion questions or collaborative activities — \
+             engagement score is below threshold."
+                .to_string(),
+        );
+    }
+    if scorecard.assessment_clarity < 0.5 {
+        objectives.push(
+            "📋 Remediation: Add a rubric with measurable criteria (points, proficiency levels, benchmarks) — \
+             assessment clarity needs improvement."
+                .to_string(),
+        );
+    }
+    if scorecard.accessibility < 0.5 {
+        objectives.push(
+            "♿ Remediation: Break long paragraphs, add heading hierarchy (#, ##), and use \
+             bullet points for key information to improve readability."
+                .to_string(),
+        );
+    }
+
+    objectives
+}
+
 // ============================================================================
 // TESTS
 // ============================================================================

@@ -42,6 +42,9 @@ pub struct BackgroundJob {
     pub output_path: Option<String>,
     pub log: Vec<String>,
     pub final_response: Option<String>,
+    /// L5 Sprint 4: cargo check result for coding jobs
+    /// None = not a coding job | Some("✅ PASS") | Some("❌ FAIL — ...")
+    pub validation_result: Option<String>,
 }
 
 /// Thread-safe job queue
@@ -94,6 +97,7 @@ pub async fn load_jobs(pool: &sqlx::SqlitePool) -> anyhow::Result<JobQueue> {
             final_response: r.8,
             created_at: r.9,
             completed_at: r.10,
+            validation_result: None, // Legacy jobs pre-Sprint 4 have no validation
         });
     }
     
@@ -184,6 +188,7 @@ pub async fn submit_job(
         output_path: None,
         log: vec![format!("Job submitted: {}", req.message)],
         final_response: None,
+        validation_result: None,
     };
 
     // Add to queue and save to DB
@@ -256,6 +261,7 @@ pub async fn job_status(
             "output_path": job.output_path,
             "log": job.log,
             "final_response": job.final_response,
+            "validation_result": job.validation_result,
         }))
     } else {
         Json(serde_json::json!({
@@ -299,6 +305,73 @@ pub async fn cancel_job(
 // ═══════════════════════════════════════════════════
 // Background Job Executor
 // ═══════════════════════════════════════════════════
+
+/// L5 Sprint 4: Post-job validation for coding work.
+/// If the agent touched Rust files during the job, run `cargo check` and return pass/fail string.
+/// This closes the agent accountability loop — Pete is responsible for compile correctness.
+async fn validate_job_output(
+    queue: &JobQueue,
+    pool: &sqlx::SqlitePool,
+    job_id: &str,
+    tools: &[String],
+) -> String {
+    // Only validate if the agent called file-write or cargo-related tools
+    let touched_rust = tools.iter().any(|t| {
+        t.contains("write_file")
+            || t.contains("edit_file")
+            || t.contains("cargo")
+            || t.contains("bash")
+    });
+
+    if !touched_rust {
+        return "⬜ No Rust files modified — validation skipped.".to_string();
+    }
+
+    let workspace = crate::tools::workspace_root();
+    info!("[Sprint 4] Running cargo check after coding job {} ...", job_id);
+
+    match tokio::process::Command::new("cargo")
+        .args(["check", "--message-format=short"])
+        .current_dir(&workspace)
+        .output()
+        .await
+    {
+        Ok(output) => {
+            if output.status.success() {
+                append_job_log(
+                    queue,
+                    pool,
+                    job_id,
+                    "✅ [L5] cargo check PASSED — code compiles cleanly.".to_string(),
+                )
+                .await;
+                "✅ PASS — cargo check clean".to_string()
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                let preview = stderr
+                    .lines()
+                    .filter(|l| l.contains("error") || l.contains("warning"))
+                    .take(8)
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                let summary = format!("❌ FAIL — {}", stderr.lines().next().unwrap_or("compile error"));
+                append_job_log(
+                    queue,
+                    pool,
+                    job_id,
+                    format!("❌ [L5] cargo check FAILED:\n{}", preview),
+                )
+                .await;
+                summary
+            }
+        }
+        Err(e) => {
+            let msg = format!("⚠️ cargo check could not run: {}", e);
+            append_job_log(queue, pool, job_id, msg.clone()).await;
+            msg
+        }
+    }
+}
 
 /// Run a background job by spawning the standard agent loop and consuming its output.
 /// The agent loop is UNCHANGED — we just read from its channel and log to disk.
@@ -417,6 +490,16 @@ async fn run_background_job(
         }
     }
 
+    // === SPRINT 4: Validate output for coding jobs (L3 → L5) ===
+    // If the agent touched Rust files, run cargo check automatically.
+    // This closes the evaluation loop: the agent is accountable for compile correctness.
+    let validation = validate_job_output(
+        &state.job_queue,
+        &state.db_pool,
+        &job_id,
+        &tools,
+    ).await;
+
     // === Job Complete: Write report and update status ===
     let now = chrono::Local::now();
     let report_filename = format!(
@@ -445,7 +528,8 @@ async fn run_background_job(
          **Started**: {}  \n\
          **Completed**: {}  \n\
          **Turns Used**: {}  \n\
-         **Tools Called**: {} ({})  \n\n\
+         **Tools Called**: {} ({})  \n\
+         **Validation**: {}  \n\n\
          ---\n\n\
          ## Agent Response\n\n\
          {}\n\n\
@@ -461,6 +545,7 @@ async fn run_background_job(
         turns,
         tools.len(),
         tools.join(", "),
+        validation,
         response_preview,
     );
 
@@ -485,6 +570,7 @@ async fn run_background_job(
             } else {
                 response_text
             });
+            job.validation_result = Some(validation);
             job.log.push("✅ Job complete. Report written.".to_string());
             
             // Save final state to DB

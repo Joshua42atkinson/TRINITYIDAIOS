@@ -120,7 +120,7 @@ To avoid cognitive overload, TRINITY dynamically engages logic engines (models) 
 | System | Port | Status | Notes |
 |--------|------|--------|-------|
 | **Trinity Rust Backend** | 3000 | ✅ Compiles & Serves | 73+ API routes, all Chariot viewers |
-| **React Frontend** | 3001 | ✅ Vite Dev | Iron Road, Yardmaster, Art Studio, Handbook |
+| **Trinity React UI** | 3000 (/trinity/*) | ✅ Built | Iron Road, Yardmaster, Art Studio, Handbook |
 | **LongCat-Next Omni** | 8010 | ✅ Model Loaded | Text + Image gen confirmed, TTS + STT ready |
 | **SQLite Persistence** | — | ✅ Working | Sessions, jobs, chat history, character sheet |
 | **ADDIECRAPEYE Quest Engine** | — | ✅ Working | 12 phases, objectives, game mechanics |
@@ -197,8 +197,8 @@ distrobox enter sglang-engine -- bash ./longcat_omni_sidecar/launch_engine.sh
 # 3. Start Trinity server
 cargo run --release -p trinity  # port 3000
 
-# 4. Start frontend dev server (for development)
-cd LDTAtkinson/client && npm run dev -- --port 3001
+# Trinity serves both UIs as static files from port 3000.
+# No separate frontend dev server needed in production.
 ```
 
 ---

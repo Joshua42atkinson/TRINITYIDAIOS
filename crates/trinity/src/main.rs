@@ -1287,7 +1287,7 @@ async fn portfolio_chat_stream(
     let (tx, mut rx) = tokio::sync::mpsc::channel::<String>(100);
 
     let router = state.inference_router.read().await;
-    let llm_url = router.get_url_by_name("vllm-recycler").unwrap_or_else(|| router.active_url().to_string());
+    let llm_url = router.get_url_by_name("longcat-omni").unwrap_or_else(|| router.active_url().to_string());
     drop(router);
     tokio::spawn(async move {
         // Build messages: system prompt + conversation history + new message
@@ -1548,7 +1548,7 @@ When all objectives for {phase_label} are complete, narrate the station being cl
         drop(game); // Release read lock before acquiring bestiary write lock
 
         let mut bestiary = state.player.bestiary.write().await;
-        let events = bestiary.scan_text(&request.message, Some(phase_idx), Some(quadrant), 0.5);
+        let events = bestiary.scan_text(&request.message, Some(phase_idx), Some(quadrant), 0.1);
         // Persist bestiary to disk after every scan
         if !events.is_empty() {
             if let Err(e) = character_sheet::save_bestiary(&bestiary) {
@@ -1609,7 +1609,7 @@ When all objectives for {phase_label} are complete, narrate the station being cl
 
     // Call inference — HTTP fallback
     let router = state.inference_router.read().await;
-    let url = router.get_url_by_name("vllm-recycler").unwrap_or_else(|| router.active_url().to_string());
+    let url = router.get_url_by_name("longcat-omni").unwrap_or_else(|| router.active_url().to_string());
     drop(router);
     let response = inference::chat_completion_with_effort(
         &url,
@@ -1713,7 +1713,7 @@ async fn tts_proxy(
                 return axum::response::Response::builder()
                     .status(StatusCode::OK)
                     .header("Content-Type", content_type)
-                    .header("X-TTS-Backend", "kokoro")
+                    .header("X-TTS-Backend", "acestep-1.5")
                     .header("X-Latency-Ms", latency_ms.to_string())
                     .header("X-Voice", voice::persona_to_omni_voice(&voice))
                     .body(axum::body::Body::from(audio_bytes))
@@ -1779,7 +1779,7 @@ async fn chat_stream(
             drop(game);
 
             let mut best = bestiary.write().await;
-            let events = best.scan_text(&request.message, Some(phase_idx), Some(quadrant), 0.5);
+            let events = best.scan_text(&request.message, Some(phase_idx), Some(quadrant), 0.1);
             if !events.is_empty() {
                 if let Err(e) = character_sheet::save_bestiary(&best) {
                     tracing::warn!("Failed to save bestiary: {}", e);
@@ -2192,6 +2192,36 @@ CURRENT OBJECTIVES:
                 .await;
 
             // ═══════════════════════════════════════════════
+            // RING 3/4: Track Friction & Engine Diagnostics
+            // ═══════════════════════════════════════════════
+            // Calculate if Pete matched the user's focus, adjust metrics
+            {
+                let game = perspective_game_state.read().await;
+                let current_phase = game.quest.current_phase.label().to_string();
+                drop(game);
+
+                let alignment = trinity_protocol::scan_ai_alignment(&full_response, &current_phase);
+                let mut sheet = perspective_character.write().await;
+                
+                if alignment.on_circuit {
+                    sheet.track_friction = (sheet.track_friction - 1.0).max(0.0);
+                } else {
+                    sheet.track_friction = (sheet.track_friction + 3.0).min(100.0);
+                }
+                sheet.recalculate_vulnerability();
+                crate::character_sheet::save_character_sheet(&sheet).ok();
+
+                let char_update = serde_json::json!({
+                    "track_friction": sheet.track_friction,
+                    "vulnerability": sheet.vulnerability,
+                    "shadow_status": format!("{:?}", sheet.shadow_status),
+                    "consecutive_negatives": sheet.consecutive_negatives,
+                    "current_steam": sheet.current_steam,
+                });
+                let _ = perspective_book_updates.send(format!("character_update:{}", char_update));
+            }
+
+            // ═══════════════════════════════════════════════
             // RING 6: Perspective Engine — evaluate Pete's response
             // ═══════════════════════════════════════════════
             // Fire perspective lenses in parallel after Pete responds.
@@ -2234,7 +2264,7 @@ CURRENT OBJECTIVES:
 
                 if !lenses.is_empty() {
                     let router = perspective_router.read().await;
-                    let llm_url = router.get_url_by_name("vllm-recycler").unwrap_or_else(|| router.active_url().to_string());
+                    let llm_url = router.get_url_by_name("longcat-omni").unwrap_or_else(|| router.active_url().to_string());
                     drop(router);
                     let perspective_set =
                         perspective::evaluate(&llm_url, &full_response, &lenses).await;
@@ -2464,7 +2494,7 @@ async fn zen_chat_stream(
             drop(game);
 
             let mut best = bestiary.write().await;
-            let events = best.scan_text(&request.message, Some(phase_idx), Some(quadrant), 0.5);
+            let events = best.scan_text(&request.message, Some(phase_idx), Some(quadrant), 0.1);
             if !events.is_empty() {
                 if let Err(e) = character_sheet::save_bestiary(&best) {
                     tracing::warn!("Failed to save bestiary: {}", e);
@@ -2555,7 +2585,7 @@ async fn zen_chat_stream(
         // STEP 1: Director Call (non-streaming)
         // ══════════════════════════════════════════════
         let router = inference_router.read().await;
-        let director_url = router.get_url_by_name("vllm-recycler").unwrap_or_else(|| router.active_url().to_string());
+        let director_url = router.get_url_by_name("longcat-omni").unwrap_or_else(|| router.active_url().to_string());
         drop(router);
         let director_prompt = format!(
             r#"You are the Director — the analytical mind behind the Iron Road game engine.
@@ -3074,7 +3104,7 @@ async fn model_status(State(state): State<AppState>) -> Json<serde_json::Value> 
 /// Switch the active inference backend at runtime
 #[derive(Debug, Deserialize)]
 struct SwitchModelRequest {
-    /// Backend name (e.g. "vllm-omni", "vllm-recycler") OR URL
+    /// Backend name (e.g. "vllm-omni", "longcat-omni") OR URL
     #[serde(default)]
     url: String,
     #[serde(default)]
@@ -3905,10 +3935,13 @@ async fn generate_narrative_endpoint(State(state): State<AppState>) -> Json<serd
         appearance: Some("standard".to_string()),
         backstory: Some("unknown".to_string()),
         current_quest_flavor: Some("journey".to_string()),
+        // L5 Sprint 1: wire cognitive load into narrator tone
+        friction: sheet.track_friction / 100.0,
+        vulnerability: sheet.vulnerability,
     };
 
     let router = state.inference_router.read().await;
-    let llm_url = router.get_url_by_name("vllm-recycler").unwrap_or_else(|| router.active_url().to_string());
+    let llm_url = router.get_url_by_name("longcat-omni").unwrap_or_else(|| router.active_url().to_string());
     drop(router);
 
     match narrative::generate_narrative(&llm_url, &context).await {
@@ -3989,6 +4022,10 @@ async fn book_stream(
                         yield Ok(sse::Event::default()
                             .event("perspective")
                             .data(perspective_json));
+                    } else if let Some(char_json) = entry.strip_prefix("character_update:") {
+                        yield Ok(sse::Event::default()
+                            .event("character_update")
+                            .data(char_json));
                     } else {
                         // Standard book update
                         let json = serde_json::to_string(&entry)?;
@@ -4194,8 +4231,46 @@ async fn score_document_endpoint(
     };
 
     let scorecard = quality_scorecard::score_document(&text, &doc_id);
+
+    // ═══ L5 Sprint 6: Scorecard → Quest Remediation ════════════════════════════
+    // If the document scores below C (70%), auto-inject remediation objectives
+    // into the active quest board so the system EVOLVES the learner's next steps.
+    if scorecard.overall < 0.70 {
+        let remediation = quality_scorecard::scorecard_to_remediation_objectives(&scorecard);
+        if !remediation.is_empty() {
+            info!(
+                "[L5-S6] Grade {} on '{}' — injecting {} remediation objectives into quest board",
+                scorecard.grade,
+                doc_id,
+                remediation.len()
+            );
+            let mut game = state.project.game_state.write().await;
+            for obj_text in &remediation {
+                let obj = trinity_quest::Objective {
+                    id: format!("remediation-{}", uuid::Uuid::new_v4()),
+                    description: obj_text.clone(),
+                    completed: false,
+                };
+                game.quest.phase_objectives.push(obj);
+            }
+            let _ = trinity_quest::save_game_state(&state.db_pool, "default", &game).await;
+            drop(game);
+
+            // Fire SSE so the quest board updates in real-time
+            let event = serde_json::json!({
+                "type": "remediation_objectives_added",
+                "grade": scorecard.grade,
+                "document_id": doc_id,
+                "objectives_added": remediation.len(),
+            });
+            let _ = state.project.book_updates.send(event.to_string());
+        }
+    }
+    // ═══════════════════════════════════════════════════════════════════════════
+
     Ok(Json(scorecard))
 }
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Journal API — chapter milestones, weekly reflections, portfolio export

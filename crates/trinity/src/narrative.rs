@@ -54,6 +54,11 @@ pub struct NarrativeContext {
     pub alignment: Option<String>,
     /// Current narrative personal goal
     pub current_quest_flavor: Option<String>,
+    /// Cognitive friction level (0.0 = flow state, 1.0 = critical overload)
+    /// Sourced from CharacterSheet.track_friction / 100.0
+    pub friction: f32,
+    /// Compound vulnerability index — drives narrator tone shift
+    pub vulnerability: f32,
 }
 
 impl Default for NarrativeContext {
@@ -71,6 +76,8 @@ impl Default for NarrativeContext {
             backstory: None,
             alignment: None,
             current_quest_flavor: None,
+            friction: 0.0,
+            vulnerability: 0.0,
         }
     }
 }
@@ -91,6 +98,29 @@ pub struct NarrativeEntry {
     pub genre: Genre,
     /// Station number (1-12)
     pub station: u8,
+}
+
+/// Friction-based tone directive for the narrator.
+/// L5 EVOLUTION: narrator adapts encouragement vs. challenge based on cognitive load.
+pub fn friction_tone_guide(friction: f32) -> &'static str {
+    match (friction * 100.0) as u32 {
+        0..=20 => {
+            "TONE: The Architect is in FLOW STATE. Challenge them harder. Ask deeper questions. \
+             Push for Bloom's higher levels (Analyze, Evaluate, Create). Raise the stakes."
+        }
+        21..=50 => {
+            "TONE: Steady engagement. Maintain the current narrative arc. \
+             Balance challenge with affirmation."
+        }
+        51..=75 => {
+            "TONE: Friction rising — SHIFT to encouraging mode. Celebrate every small win. \
+             Simplify objectives. Remind them how far they've come."
+        }
+        _ => {
+            "TONE: CRITICAL LOAD. SIMPLIFY EVERYTHING. One step. One question. One breath. \
+             Do not overwhelm. Anchor them to what they already know. You've got this, Architect."
+        }
+    }
 }
 
 /// Genre-specific style guide for narrative generation
@@ -166,9 +196,11 @@ pub fn station_description(stage: HeroStage) -> &'static str {
 }
 
 /// Build the Great Recycler system prompt
+/// L5 EVOLUTION: Friction signal drives tone — encouraging vs. challenging narrator stance.
 pub fn build_narrative_system_prompt(context: &NarrativeContext) -> String {
     let style = genre_style_guide(context.genre);
     let station = station_description(context.hero_stage);
+    let tone = friction_tone_guide(context.friction);
 
     format!("You are the Great Recycler, narrator of the Iron Road LitRPG.
 
@@ -184,11 +216,15 @@ PLAYER CHARACTER SHEET:
 - Coal (energy reserves): {:.1}
 - Steam (momentum): {:.1}  
 - XP earned: {}
+- Cognitive Friction: {:.0}% | Vulnerability Index: {:.2}
+
+{}
 
 Write ONE paragraph (2-4 sentences) of LitRPG prose describing the current moment.
 Match the genre's sensory aesthetic exactly.
 Integrate the player's backstory, appearance, and alignment naturally if provided.
 End with a hook or question that prompts the next action.
+Honor the TONE DIRECTIVE above — it overrides aesthetic if the learner is struggling.
 
 STYLE: Evocative, immersive, second-person perspective. The player IS the Architect.",
         context.genre,
@@ -205,6 +241,9 @@ STYLE: Evocative, immersive, second-person perspective. The player IS the Archit
         context.coal,
         context.steam,
         context.xp,
+        context.friction * 100.0,
+        context.vulnerability,
+        tone,
     )
 }
 

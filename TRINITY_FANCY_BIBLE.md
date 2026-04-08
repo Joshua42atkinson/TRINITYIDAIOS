@@ -19,7 +19,7 @@
 
 | Feature | Status | Evidence |
 |---------|--------|----------|
-| **Inference Router (vLLM-Only)** | `Verified` | `inference_router.rs` — vLLM Omni exclusive, primary port 8001 |
+| **Inference Router (Dual Brain)** | `Verified` | `inference_router.rs` — Pete (SGLang 8010) + A.R.T.Y. Hub (vLLM 8000) |
 | **Quality Scorecard** | `Verified` | `quality_scorecard.rs`, unit tests pass |
 | **Socratic Protocol & Agent Tools** | `Verified` | `conductor_leader.rs`, `tools.rs`, 30 available tools |
 | **LDT Portfolio HUD** | `Verified` | `CharacterSheet.jsx`, `character_api.rs` |
@@ -152,21 +152,19 @@ Every design decision in Trinity serves exactly three audiences:
 
 ### 1.3 The P.A.R.T.Y. Framework
 
-Trinity's AI is clustered across specialized sidecars operating isomorphically across the 128GB unified APU matrix. The "Dual Brain" architecture splits work between the Omni-Brain (SGLang) and the Support Hub (vLLM). This framework maps to the **P.A.R.T.Y.** protocol:
+Trinity's AI is organized into 5 roles across 2 sidecars — the **Dual Brain** architecture splits work between Pete's Omni-Brain (SGLang) and the A.R.T.Y. Support Hub (vLLM). This framework maps to the **P.A.R.T.Y.** protocol:
 
 | Agent | Full Name | Role | Backend Sidecar |
-|-------|-----------|------|----------------|
-| Agent | Full Name | Role | Backend Sidecar |
-|-------|-----------|------|----------------|
-| **P** (Pete) | Programmer Pete | Action-focused Executive. Code, tools, lesson building. The Exhale. | LongCat-Next 74B MoE · SGLang (Port 8010) |
-| **A** (Aesthetics)| The Artist Triad | Complete visual and spatial realization via hotloaded models. | FLUX.1-schnell, CogVideoX-2B, TripoSR · vLLM (Port 8000) |
-| **R** (Recycler) | The Great Recycler | Socratic mentor, LitRPG world builder, and deep reflection. The Inhale. | LongCat-Next 74B MoE · SGLang (Port 8010) |
-| **T** (Tempo) | Acestep 1.5 | Voice-to-text document filling, narration, and music vibe station settings. Handled by Pete utilizing native audio settings. | LongCat-Next 74B MoE · SGLang (Port 8010) |
-| **Y** (Yardmaster)| RUST REAP / OS | The unified Rust host system and the Qwen subagent backend serving Pete. | Qwen3-Coder-REAP-25B · vLLM (Port 8000) |
+|-------|-----------|------|-----------------|
+| **P** (Pete) | Pete — Instructional Designer | The Great Recycler. DM of the Iron Road. Socratic mentor, LitRPG narrator, DiNA image gen. Pete does the majority of Trinity's work. **Pete is NOT a software engineer.** He breaks character as "Programmer Pete" to get things done, but delegates real engineering to Y. | LongCat-Next 74B MoE · SGLang (Port 8010) · **Parallel 2 KV cache** (2× 156K MLA) |
+| **A** (Aesthetics) | The Artist Triad | Support visual and spatial models. Complete visual realization via hotloaded creative generators. | FLUX.1-schnell, CogVideoX-2B, TripoSR · vLLM (Port 8000) |
+| **R** (Research) | The Researcher | Embeddings & permanence. Balances Aesthetics (A) and Tempo (T) so that the information Pete delivers is balanced between visual and audio. | RAG embeddings (nomic-embed), vector storage · vLLM (Port 8000) |
+| **T** (Tempo) | Acestep 1.5 | Audio & music generation. The audio counterpart to Aesthetics. Voice narration, music vibe station settings. | Acestep 1.5 · vLLM (Port 8000) |
+| **Y** (Yardmaster) | RUST REAP | Software engineering subagent. The engineer that Pete is NOT. Writes Rust, builds React, runs cargo check. | Qwen3-Coder-REAP-25B · vLLM (Port 8000) |
 
 > 📍 `main.rs:L220-268` — `installed_model_inventory()` lists all loaded models dynamically routing through EdgeGuard
 
-The **P.A.R.T.Y.** mnemonic establishes structural parity. The Great Recycler and Pete represent the dual-role Inhale/Exhale nature of the single LongCat-Next Omni-Brain. The Yardmaster represents the mechanical engine supporting them. The architecture *is* the pedagogy.
+The **P.A.R.T.Y.** mnemonic establishes structural parity. Pete IS the Great Recycler — the inhale (reflection) and exhale (execution) are two modes of the same LongCat brain, routed via parallel KV cache slots. The A.R.T.Y. Hub on vLLM handles everything Pete can't do: visual generation, audio, embeddings, and software engineering. The architecture *is* the pedagogy.
 
 ### 1.4 The Three Operating Modes
 

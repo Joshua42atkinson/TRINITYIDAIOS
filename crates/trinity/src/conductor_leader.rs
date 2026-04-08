@@ -261,7 +261,7 @@ pub struct BookUpdate {
 /// Configuration for the Conductor Party Leader
 #[derive(Debug, Clone)]
 pub struct ConductorConfig {
-    /// Path to the Conductor model (Great Recycler - LongCat-Next 74B MoE)
+    /// Path to the Conductor model (Pete / Great Recycler - LongCat-Next 74B MoE)
     pub model_path: PathBuf,
     /// Context size (default: 256000 with TurboQuant)
     pub context_size: u32,
@@ -501,28 +501,34 @@ impl ConductorLeader {
     /// NOTE: In Lone Wolf mode (Phase 4), this is log-only — single LongCat-Next brain,
     /// no model hot-swapping. The gear mapping is preserved for future multi-model support.
     async fn manage_hotel_sidecars(&self, phase: AddiecrapeyePhase) -> Result<()> {
-        // CRUISING MODE BATCHING: We group the 12 phases into the 4 P-ART gears
+        // CRUISING MODE BATCHING: We group the 12 phases into the P.A.R.T.Y gears
         // to prevent thrashing the VRAM every single node.
+        //
+        // P = Pete (LongCat SGLang 8010) — Instructional Designer, Great Recycler, DM
+        // A = Aesthetics (vLLM 8000) — FLUX, CogVideoX, TripoSR visual models
+        // R = Research (vLLM 8000) — Embeddings & permanence, balances A and T
+        // T = Tempo (vLLM 8000) — Acestep 1.5 audio/music generation
+        // Y = Yardmaster (vLLM 8000) — Qwen3-Coder REAP, software engineering
         let target_role = match phase {
-            // Gear P: Pete — Socratic Mirror (permanent resident)
+            // Gear P: Pete — Socratic Mirror (permanent resident on SGLang)
             AddiecrapeyePhase::Analysis | AddiecrapeyePhase::Envision => {
                 "pete" // Socratic questioning, meta-awareness
             }
-            // Gear A: Aesthetics — The Visionary (CRAP design)
+            // Gear A: Aesthetics — Visual models (CRAP design phases)
             AddiecrapeyePhase::Design
             | AddiecrapeyePhase::Contrast
             | AddiecrapeyePhase::Proximity => {
-                "aesthetics" // Visual hierarchy, ComfyUI, UI boundaries
+                "aesthetics" // Visual hierarchy, FLUX images, UI boundaries
             }
-            // Gear R: Research — The Brakeman (QM, tests, audits)
+            // Gear R: Research — Embeddings & permanence (evaluation phases)
             AddiecrapeyePhase::Evaluation | AddiecrapeyePhase::Alignment => {
-                "research" // QM rubrics, test gen, scope pruning
+                "research" // RAG embeddings, QM rubrics, scope pruning
             }
-            // Gear T: Tempo — The Engineer (code gen, momentum)
+            // Gear T: Tempo — Audio/music generation (build phases)
             AddiecrapeyePhase::Development
             | AddiecrapeyePhase::Implementation
             | AddiecrapeyePhase::Repetition => "tempo",
-            // Full P-ART swarm for coupling + shipping
+            // Full P.A.R.T.Y swarm for coupling + shipping
             AddiecrapeyePhase::Yoke | AddiecrapeyePhase::Evolve => "pete", // Pete leads the final assembly
         };
 

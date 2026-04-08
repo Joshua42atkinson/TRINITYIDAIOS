@@ -243,10 +243,10 @@ async fn process_audio_frame(
 ) -> anyhow::Result<(String, String, Vec<u8>)> {
     // ── Step 1: STT — Whisper ONNX (or future Cohere Transcribe) ──
     let client = &*crate::http::LONG;
-    let part = reqwest::multipart::Part::bytes(audio_data.to_vec())
-        .file_name("call.wav").mime_str("audio/wav").unwrap();
-    let form = reqwest::multipart::Form::new().text("model", "Great_Recycler").part("file", part);
-    let transcript = match client.post("http://127.0.0.1:8010/v1/audio/transcriptions").multipart(form).send().await {
+    let tmp_path = format!("/tmp/call_{}.wav", uuid::Uuid::new_v4());
+    std::fs::write(&tmp_path, audio_data)?;
+    let payload = serde_json::json!({ "file": tmp_path });
+    let transcript = match client.post("http://127.0.0.1:8010/v1/audio/transcriptions").json(&payload).send().await {
         Ok(res) if res.status().is_success() => {
             let json: serde_json::Value = res.json().await.unwrap_or_default();
             json["text"].as_str().unwrap_or("[Silence]").to_string()
@@ -287,13 +287,17 @@ async fn process_audio_frame(
 }
 
 /// Synthesize response text via best available TTS
-/// Priority: Kokoro (:8200, Apache 2.0) → silent fallback
+/// Priority: Acestep 1.5 (:8010) → Kokoro (:8200) → silent fallback
 async fn synthesize_response(text: &str, voice: &str, _state: &AppState) -> anyhow::Result<Vec<u8>> {
-    // Kokoro is our primary TTS — it's live on :8200 via omni_synthesize
+    // Primary TTS: Acestep 1.5 on LongCat (:8010)
     if crate::voice::check_omni_audio_health().await {
         return crate::voice::omni_synthesize(text, voice, "wav").await;
     }
-    Err(anyhow::anyhow!("No TTS available (Kokoro :8200 unreachable)"))
+    // Fallback: Kokoro (Apache 2.0) on :8200
+    if crate::voice::check_kokoro_health().await {
+        return crate::voice::kokoro_synthesize(text, voice, "wav").await;
+    }
+    Err(anyhow::anyhow!("No TTS available (Acestep :8010 and Kokoro :8200 unreachable)"))
 }
 
 /// Build a voice-optimized system prompt for the Telephone Line
@@ -331,6 +335,8 @@ fn build_telephone_system_prompt(persona: &str, mode: &str) -> String {
 /// Detect which voice pipeline is active
 async fn detect_voice_pipeline() -> String {
     if crate::voice::check_omni_audio_health().await {
+        "acestep-1.5".to_string()
+    } else if crate::voice::check_kokoro_health().await {
         "kokoro".to_string()
     } else {
         "unavailable".to_string()

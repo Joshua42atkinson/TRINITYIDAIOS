@@ -199,8 +199,8 @@ You are running inside the Trinity ID AI OS project.
 You ARE the Yardmaster tab in this UI. You already know where everything is.
 
 SIDECAR & SERVICE ROLES (P.A.R.T.Y):
-- LongCat Omni-Brain (SGLang) / port 8010: Runs Pete (Exhale) and Recycler (Inhale), handles Acestep 1.5 native audio generation.
-- Yardmaster/Hotel (vLLM) / port 8000: Runs YOU (Qwen REAP Coding Subagent), Nomic Embeddings, and the Aesthetics Hotel (Flux/CogVideoX).
+- Pete (SGLang) / port 8010: LongCat-Next — Instructional Designer, Great Recycler, DM. Parallel 2 KV cache. Handles Socratic protocol, narrative, DiNA images. Pete is NOT a software engineer.
+- A.R.T.Y. Hub (vLLM) / port 8000: Aesthetics (FLUX/CogVideoX/TripoSR), Research (embeddings/permanence), Tempo (Acestep 1.5 audio), Yardmaster/YOU (Qwen REAP Coding Subagent).
 
 PYTHON ENVIRONMENTS (NEVER mix these):
 - ~/trinity-voice-env — Voice (chatterbox-tts, onnxruntime)
@@ -1173,6 +1173,8 @@ pub async fn run_agent_loop(
                             appearance: sheet.appearance.clone(),
                             backstory: sheet.backstory.clone(),
                             current_quest_flavor: sheet.current_quest_flavor.clone(),
+                            friction: sheet.track_friction / 100.0,
+                            vulnerability: sheet.vulnerability,
                         };
                         drop(sheet);
                         let failure_text =
@@ -1355,6 +1357,8 @@ pub async fn run_agent_loop(
                             appearance: sheet.appearance.clone(),
                             backstory: sheet.backstory.clone(),
                             current_quest_flavor: sheet.current_quest_flavor.clone(),
+                            friction: sheet.track_friction / 100.0,
+                            vulnerability: sheet.vulnerability,
                         };
                         drop(sheet);
                         let crit_text = generate_critical_narrative(&narrative_ctx);
@@ -1376,6 +1380,8 @@ pub async fn run_agent_loop(
                             appearance: sheet.appearance.clone(),
                             backstory: sheet.backstory.clone(),
                             current_quest_flavor: sheet.current_quest_flavor.clone(),
+                            friction: sheet.track_friction / 100.0,
+                            vulnerability: sheet.vulnerability,
                         };
                         drop(sheet);
                         let fumble_text = generate_fumble_narrative(&narrative_ctx);

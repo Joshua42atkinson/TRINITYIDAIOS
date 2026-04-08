@@ -35,11 +35,17 @@ export function useSSE() {
       } catch { /* skip malformed */ }
     });
 
-    // Ring 6: Perspective Engine events
     source.addEventListener('perspective', (e) => {
       try {
         const data = JSON.parse(e.data);
         setEvents((prev) => [...prev, { type: 'perspective', ...data, id: Date.now() }]);
+      } catch { /* skip malformed */ }
+    });
+
+    source.addEventListener('character_update', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        setEvents((prev) => [...prev, { type: 'character_update', ...data, id: Date.now() }]);
       } catch { /* skip malformed */ }
     });
 

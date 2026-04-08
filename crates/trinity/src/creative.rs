@@ -36,6 +36,7 @@
 //   - trinity_sidecar_engineer — ComfyUI client re-export
 //
 // CHANGES:
+//   2026-04-08  Cascade  Sprint 3 L5: auto_generate_phase_scene() — context-aware scene art
 //   2026-03-16  Cascade  Migrated to §17 comment standard
 //
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1294,3 +1295,203 @@ mod tests {
     }
 }
 
+// ============================================================================
+// L5 EVOLUTIONARY: AUTO PHASE-SCENE GENERATION
+// ============================================================================
+//
+// When the Conductor transitions to a new ADDIECRAPEYE phase, this function
+// is called to generate an Iron Road scene image that visualizes the learning
+// station. This is the Creative Pipeline's L5 capability: it EVALUATES the
+// current context (phase name) and EVOLVES the environment (generates art).
+//
+// The generated image is saved to the assets directory and broadcast via SSE
+// so the frontend Iron Road panel updates automatically.
+
+/// Map each ADDIECRAPEYE phase to a rich atmospheric prompt for the Iron Road scene.
+/// These prompts describe the Iron Road station that corresponds to each phase.
+pub fn phase_to_scene_prompt(phase: &str) -> &'static str {
+    match phase {
+        "Analysis" | "analysis" => 
+            "A foggy Victorian train station at dawn, passengers waiting in mist with heavy leather suitcases, \
+             lantern light casting amber pools on cobblestones, steam curling from locomotives, \
+             steampunk aesthetic, painterly illustration, wide shot",
+        "Design" | "design" =>
+            "An illuminated drafting table covered in blueprint scrolls and compass tools, \
+             gears and cogs on shelves, warm candlelight, a Golem's skull with glowing eyes \
+             studying the plans, steampunk engineer's workshop",
+        "Development" | "development" =>
+            "A massive foundry forge at full blast, iron sparks flying, a mechanical Golem skeleton \
+             being assembled on chains, molten metal flows in channels, heroic industrial scale, \
+             steampunk, dramatic chiaroscuro lighting",
+        "Implementation" | "implementation" =>
+            "A gleaming steam locomotive surging forward at full power, iron wheels spinning, \
+             engineer at the helm, smoke billowing in heroic plumes, iron track stretching \
+             into misty horizon, epic scale, steampunk photorealism",
+        "Evaluation" | "evaluation" =>
+            "A wise oracle in bronze mechanical robes holding gilded scales above a cliff edge, \
+             weighing parchment scrolls, sacred geometry patterns, observatory dome above, \
+             mystical and precise, steampunk",
+        "Contrast" | "contrast" =>
+            "A train car interior in dramatic chiaroscuro lighting, some walls brilliantly lit \
+             showing artwork, others in deep shadow, light and dark dancing in strong visual rhythm, \
+             steampunk stained glass windows, high contrast",
+        "Repetition" | "repetition" =>
+            "Iron rail tracks stretching to the horizon in perfect parallel lines, rhythmic wooden \
+             sleepers creating a mesmerizing pattern, warm amber light, mathematical precision, \
+             steampunk aesthetic, sense of reliable rhythm",
+        "Alignment" | "alignment" =>
+            "A train engineer removing excess cargo from the caboose at a sharp mountain curve, \
+             balance scales visible, minimalist cargo remains, mountain mist, elegant simplicity, \
+             steampunk illustration",
+        "Proximity" | "proximity" =>
+            "A train compartment being reorganized by a mechanical hand, similar items grouped \
+             together — brass instruments here, leather-bound books there, logical spatial harmony, \
+             warm gaslight, cozy",
+        "Envision" | "envision" =>
+            "A traveler standing on the caboose looking back down the iron road into receding mist, \
+             the entire journey visible behind, stars above, golden light ahead, reflective and \
+             panoramic, steampunk epic final scene",
+        "Yoke" | "yoke" =>
+            "Massive iron coupling mechanisms connecting ornate steampunk train cars, precision \
+             gears interlocking perfectly, copper and brass connectors glowing, engineering \
+             achievement, industrial beauty",
+        "Evolve" | "evolve" =>
+            "A magnificent steampunk locomotive emerging through rolling fog into bright golden \
+             valley of light and flowers, celebration fireworks and steam, crew cheering, \
+             triumphant and epic, warm palette, journey complete",
+        _ =>
+            "An atmospheric Iron Road station, steampunk Victorian setting, warm amber gaslight, \
+             mechanical Golem presence, epic fantasy illustration",
+    }
+}
+
+/// Automatically generate a scene image when the Conductor enters a new ADDIECRAPEYE phase.
+/// This is a fire-and-forget async fn — call with tokio::spawn for non-blocking execution.
+/// Returns the image URL path on success, or None if the image backend is unavailable.
+pub async fn auto_generate_phase_scene(
+    phase: &str,
+) -> Option<String> {
+    use base64::Engine;
+    let start = std::time::Instant::now();
+
+    // Check LongCat image generation availability
+    let available = crate::http::QUICK
+        .get("http://127.0.0.1:8010/health")
+        .send()
+        .await
+        .map(|r| r.status().is_success())
+        .unwrap_or(false);
+
+    if !available {
+        info!("\u{1f3a8} Phase scene generation skipped — LongCat not available (phase: {})", phase);
+        return None;
+    }
+
+    let prompt = phase_to_scene_prompt(phase);
+    let full_prompt = format!("{}, masterpiece, epic scale, highly detailed", prompt);
+
+    info!("\u{1f3a8} Auto-generating phase scene for: {} ({} chars)", phase, full_prompt.len());
+
+    let payload = serde_json::json!({
+        "model": "LongCat-Next",
+        "prompt": full_prompt,
+        "n": 1,
+        "size": "1024x576",
+        "response_format": "b64_json"
+    });
+
+    let response = match crate::http::LONG
+        .post("http://127.0.0.1:8010/v1/images/generations")
+        .json(&payload)
+        .send()
+        .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            tracing::warn!("\u{1f3a8} Phase scene generation failed for {}: {}", phase, e);
+            return None;
+        }
+    };
+
+    if !response.status().is_success() {
+        tracing::warn!("\u{1f3a8} LongCat rejected scene for phase {}: {}", phase, response.status());
+        return None;
+    }
+
+    let result: serde_json::Value = match response.json().await {
+        Ok(v) => v,
+        Err(e) => {
+            tracing::warn!("\u{1f3a8} Failed to parse scene response for {}: {}", phase, e);
+            return None;
+        }
+    };
+
+    let b64_data = result["data"][0]["b64_json"].as_str()?;
+    let bytes = base64::prelude::BASE64_STANDARD.decode(b64_data).ok()?;
+
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+    let scene_dir = std::path::PathBuf::from(&home)
+        .join(".local/share/trinity/workspace/assets/scenes");
+    let _ = std::fs::create_dir_all(&scene_dir);
+
+    let filename = format!("scene_{}.png", phase.to_lowercase());
+    let path = scene_dir.join(&filename);
+    if let Err(e) = std::fs::write(&path, bytes) {
+        tracing::warn!("\u{1f3a8} Failed to save scene image: {}", e);
+        return None;
+    }
+
+    let url = format!("/api/creative/scenes/{}", filename);
+    info!(
+        "\u{1f3a8} Phase scene generated in {}ms: {} → {}",
+        start.elapsed().as_millis(), phase, url
+    );
+    Some(url)
+}
+
+#[cfg(test)]
+#[allow(dead_code)]
+mod phase_scene_tests {
+    use super::*;
+
+    #[test]
+    fn test_all_addiecrapeye_phases_have_prompts() {
+        let phases = [
+            "Analysis", "Design", "Development", "Implementation",
+            "Evaluation", "Contrast", "Repetition", "Alignment",
+            "Proximity", "Envision", "Yoke", "Evolve",
+        ];
+        for phase in &phases {
+            let prompt = phase_to_scene_prompt(phase);
+            assert!(!prompt.is_empty(), "Phase {} has empty prompt", phase);
+            assert!(prompt.len() > 30, "Phase {} prompt too short", phase);
+        }
+    }
+
+    #[test]
+    fn test_unknown_phase_returns_fallback_prompt() {
+        let prompt = phase_to_scene_prompt("UnknownPhaseXYZ");
+        assert!(!prompt.is_empty());
+        assert!(prompt.contains("Iron Road"));
+    }
+
+    #[test]
+    fn test_lowercase_phase_names_work() {
+        // Case-insensitive matching for robustness
+        let upper = phase_to_scene_prompt("Analysis");
+        let lower = phase_to_scene_prompt("analysis");
+        assert_eq!(upper, lower);
+    }
+
+    #[test]
+    fn test_evolve_scene_is_triumphant() {
+        let prompt = phase_to_scene_prompt("Evolve");
+        assert!(prompt.contains("triumph") || prompt.contains("celebration") || prompt.contains("golden"));
+    }
+
+    #[test]
+    fn test_analysis_scene_is_foggy_station() {
+        let prompt = phase_to_scene_prompt("Analysis");
+        assert!(prompt.contains("fog") || prompt.contains("mist") || prompt.contains("station"));
+    }
+}

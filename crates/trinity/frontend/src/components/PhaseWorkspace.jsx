@@ -542,6 +542,14 @@ export default function PhaseWorkspace({ quest, bestiary, sseEvents, onDismissEv
       content: '「 COAL -2 」 The firebox dims as your attention is spent.',
     }]);
 
+    try {
+      fetch('/api/quest/economy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coal_delta: 2, steam_delta: 0 }),
+      }).then(() => { if (onRefetch) onRefetch(); }).catch(() => {});
+    } catch (e) { }
+
     // Session Zero: capture character creation answers
     if (sessionZero.step >= 1 && sessionZero.step <= 3) {
       const fieldMap = { 1: 'experience', 2: 'audience', 3: 'success_vision' };
@@ -689,6 +697,14 @@ export default function PhaseWorkspace({ quest, bestiary, sseEvents, onDismissEv
       role: 'system',
       content: '「 STEAM +5 」 Momentum builds — the wheels catch the rail.',
     }]);
+
+    try {
+      fetch('/api/quest/economy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coal_delta: 0, steam_delta: 5 }),
+      }).then(() => { if (onRefetch) onRefetch(); }).catch(() => {});
+    } catch (e) { }
 
     // Session Zero: Pete asks the next character-creation question
     if (sessionZero.step === 2) {

@@ -2,10 +2,11 @@
 # Trinity ID AI OS — Runtime Configuration
 # ═══════════════════════════════════════════════════════════════════════════════
 #
-# INFERENCE ARCHITECTURE (April 7, 2026):
-#   LongCat-Next 74B MoE — Omni-Brain (text + images + audio) on port 8010. Handles Pete and Great Recycler.
-#   Qwen3-Coder REAP 25B — Yardmaster Subagent on port 8000. Handles coding and vLLM embeddings.
-#   Pete and Great Recycler are system-prompt personas routed to LongCat via SGLang.
+# INFERENCE ARCHITECTURE (April 8, 2026 — P.A.R.T.Y. Framework):
+#   SGLang (8010): LongCat-Next 74B MoE — Pete (P). Instructional Designer + Great Recycler.
+#                  Parallel 2 KV cache (2× 156K MLA). Handles Socratic, narrative, DiNA images.
+#   vLLM  (8000): A.R.T.Y. Hub — Aesthetics (FLUX/CogVideoX/TripoSR), Research (embeddings),
+#                  Tempo (Acestep 1.5 audio), Yardmaster (Qwen3-Coder REAP).
 #
 # The InferenceRouter auto-detects backends on startup.
 # Set LLM_URL env var to override with a specific endpoint.
@@ -20,20 +21,20 @@ auto_detect = true
 ctx_size = 131072
 max_tokens = 16384
 
-# ── LongCat Omni-Brain (GPU — The Great Recycler) ──
-# LongCat-Next 74B MoE loaded via transformers + bitsandbytes NF4
+# ── Pete (SGLang GPU — LongCat-Next 74B MoE) ──
+# Pete IS the Great Recycler. Instructional designer, DM, narrator.
 # Served by FastAPI sidecar inside sglang-engine distrobox container
-# Capabilities: text, image_generation, tts, audio_understanding
+# Capabilities: text, image_generation (DiNA), tts (CosyVoice), audio_understanding
 
 [inference.backends.longcat-omni]
 url = "http://127.0.0.1:8010"
 supports_tools = true
 supports_vision = true
 
-# ── Yardmaster / OS (vLLM — Qwen REAP Coding Subagent) ──
-# Qwen3-Coder-REAP-25B-A3B-Rust via vLLM
-# Dedicated purely to background coding and embeddings
-# Not yet serving — uncomment vLLM in boot order when ready
+# ── Yardmaster (Y) — Qwen3-Coder REAP via vLLM ──
+# Part of the A.R.T.Y. Hub on port 8000
+# The engineer that Pete is NOT. Writes Rust, builds React, runs cargo check.
+# Not yet serving — start vLLM on 8000 when ready
 
 [inference.backends.yardmaster-reap]
 url = "http://127.0.0.1:8000"

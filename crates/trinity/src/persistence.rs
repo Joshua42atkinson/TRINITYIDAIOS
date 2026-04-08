@@ -1,9 +1,398 @@
-// ═══════════════════════════════════════════════════════════════════════════════
-// TRINITY ID AI OS — trinity-server
-// ═══════════════════════════════════════════════════════════════════════════════
+// ============================================================================
+// L5 EVOLUTIONARY: SESSION DRIFT TRACKING (Somatic Layer)
+// ============================================================================
 //
-// FILE:        persistence.rs
-// PURPOSE:     Conversation & project persistence — nothing is ever lost
+// The Somatic Layer stores data but previously had no ability to evaluate
+// drift over time. This module adds session-over-session comparison:
+//
+//   1. snapshot_session()            — captures end-of-session metrics
+//   2. load_session_snapshots(n)     — loads past N session snapshots
+//   3. compare_session_drift(snaps)  — detects stagnation and returns DriftReport
+//
+// Storage: ~/.local/share/trinity/session_snapshots.json
+// Separate from the SQLite DB so it can be read without an active pool.
+
+/// A snapshot of key learning metrics at the end of a session.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SessionSnapshot {
+    /// RFC3339 timestamp of when this snapshot was taken
+    pub timestamp: String,
+    /// Session ID from the DB
+    pub session_id: String,
+    /// Current Coal percentage (0-100)
+    pub coal_pct: f32,
+    /// Current Steam (motivation) percentage (0-100)
+    pub steam_pct: f32,
+    /// Friction percentage (0-100)
+    pub friction_pct: f32,
+    /// ADDIECRAPEYE phase active at end of session
+    pub active_phase: String,
+    /// Number of VAAM vocabulary words confirmed this session
+    pub vaam_words_session: u32,
+    /// Total vocabulary words ever confirmed (cumulative)
+    pub vaam_words_total: u32,
+    /// XP earned this session
+    pub xp_session: u32,
+}
+
+/// Drift analysis report comparing recent sessions to historical baseline.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct DriftReport {
+    /// True if the learner's Coal accumulation rate is falling below threshold
+    pub coal_stagnation: bool,
+    /// True if vocabulary growth rate is below threshold (mastery plateau)
+    pub vocab_stagnation: bool,
+    /// True if friction has been stuck above 60% for 3+ sessions
+    pub friction_sustained_high: bool,
+    /// True if steam has been falling consistently
+    pub motivation_declining: bool,
+    /// Human-readable summary of the drift state
+    pub summary: String,
+    /// Number of sessions analyzed
+    pub sessions_analyzed: usize,
+}
+
+impl DriftReport {
+    /// Returns true if any drift signal is detected
+    pub fn has_drift(&self) -> bool {
+        self.coal_stagnation
+            || self.vocab_stagnation
+            || self.friction_sustained_high
+            || self.motivation_declining
+    }
+}
+
+/// Path to the session snapshots file
+fn snapshots_path() -> Option<PathBuf> {
+    std::env::var_os("HOME").map(|home| {
+        PathBuf::from(&home)
+            .join(".local")
+            .join("share")
+            .join("trinity")
+            .join("session_snapshots.json")
+    })
+}
+
+/// Save a session snapshot at the end of a session. Keeps up to 30 (FIFO).
+pub fn snapshot_session(snapshot: SessionSnapshot) -> Result<(), String> {
+    let path = snapshots_path().ok_or("Cannot determine home directory")?;
+
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+
+    let mut snapshots: Vec<SessionSnapshot> = if path.exists() {
+        std::fs::read_to_string(&path)
+            .ok()
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or_default()
+    } else {
+        Vec::new()
+    };
+
+    snapshots.push(snapshot);
+
+    // FIFO — keep max 30 session snapshots
+    if snapshots.len() > 30 {
+        let drain_count = snapshots.len() - 30;
+        snapshots.drain(0..drain_count);
+    }
+
+    let json = serde_json::to_string_pretty(&snapshots).map_err(|e| e.to_string())?;
+    std::fs::write(&path, json).map_err(|e| e.to_string())?;
+
+    info!("📸 Session snapshot saved ({} snapshots total)", snapshots.len());
+    Ok(())
+}
+
+/// Load the N most recent session snapshots (newest first) for drift analysis.
+pub fn load_session_snapshots(limit: usize) -> Vec<SessionSnapshot> {
+    let path = match snapshots_path() {
+        Some(p) => p,
+        None => return Vec::new(),
+    };
+
+    if !path.exists() {
+        return Vec::new();
+    }
+
+    let mut snapshots: Vec<SessionSnapshot> = std::fs::read_to_string(&path)
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default();
+
+    snapshots.reverse(); // Newest first
+    snapshots.truncate(limit);
+    snapshots
+}
+
+/// Analyze session snapshots to detect learning drift/stagnation.
+/// Requires at least 2 sessions to produce meaningful signals.
+pub fn compare_session_drift(sessions: &[SessionSnapshot]) -> DriftReport {
+    if sessions.len() < 2 {
+        return DriftReport {
+            coal_stagnation: false,
+            vocab_stagnation: false,
+            friction_sustained_high: false,
+            motivation_declining: false,
+            summary: format!(
+                "Insufficient data: {} session(s) recorded. Need at least 2 for drift analysis.",
+                sessions.len()
+            ),
+            sessions_analyzed: sessions.len(),
+        };
+    }
+
+    let n = sessions.len();
+    let recent = &sessions[0]; // Most recent (already sorted newest-first)
+    let oldest = &sessions[n - 1];
+
+    // ── Coal stagnation: total coal increase < 5% over window (3+ sessions) ──
+    let coal_delta = recent.coal_pct - oldest.coal_pct;
+    let coal_stagnation = coal_delta < 5.0 && n >= 3;
+
+    // ── Vocabulary stagnation: fewer than 2 new words per session avg ──
+    let vocab_growth = if n > 1 {
+        let total_growth = recent.vaam_words_total as f32 - oldest.vaam_words_total as f32;
+        total_growth / (n - 1) as f32
+    } else {
+        999.0 // Not enough data — skip flag
+    };
+    let vocab_stagnation = vocab_growth < 2.0 && n >= 3;
+
+    // ── Sustained high friction: >60% for 3 consecutive sessions ──
+    let high_friction_count = sessions.iter().filter(|s| s.friction_pct > 60.0).count();
+    let friction_sustained_high = high_friction_count >= 3;
+
+    // ── Motivation declining: steam dropping in each of the last 3 sessions ──
+    let motivation_declining = if n >= 3 {
+        sessions[0].steam_pct < sessions[1].steam_pct
+            && sessions[1].steam_pct < sessions[2].steam_pct
+    } else {
+        false
+    };
+
+    // ── Generate human-readable summary ──
+    let mut signals = Vec::new();
+    if coal_stagnation {
+        signals.push(format!("⚠️ Coal stagnation: only +{:.1}% over {} sessions", coal_delta, n));
+    }
+    if vocab_stagnation {
+        signals.push(format!("⚠️ Vocabulary plateau: {:.1} new words/session avg", vocab_growth));
+    }
+    if friction_sustained_high {
+        signals.push(format!("🔥 Friction crisis: {}/{} sessions above 60%", high_friction_count, n));
+    }
+    if motivation_declining {
+        signals.push(format!(
+            "📉 Steam declining: {:.0}% → {:.0}% → {:.0}%",
+            sessions[2].steam_pct, sessions[1].steam_pct, sessions[0].steam_pct
+        ));
+    }
+
+    let summary = if signals.is_empty() {
+        format!(
+            "✅ Healthy trajectory: +{:.1}% Coal, {:.1} words/session avg over {} sessions",
+            coal_delta, vocab_growth, n
+        )
+    } else {
+        signals.join(" | ")
+    };
+
+    DriftReport {
+        coal_stagnation,
+        vocab_stagnation,
+        friction_sustained_high,
+        motivation_declining,
+        summary,
+        sessions_analyzed: n,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_split_simple_statements() {
+        let sql = "CREATE TABLE foo (id INT); CREATE INDEX idx ON foo(id);";
+        let stmts = split_sql_statements(sql);
+        assert_eq!(stmts.len(), 2);
+        assert!(stmts[0].starts_with("CREATE TABLE"));
+        assert!(stmts[1].starts_with("CREATE INDEX"));
+    }
+
+    #[test]
+    fn test_split_dollar_quoted_function() {
+        let sql = r#"
+CREATE TABLE test (id INT);
+
+CREATE OR REPLACE FUNCTION update_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER test_trigger
+    BEFORE UPDATE ON test
+    FOR EACH ROW
+    EXECUTE FUNCTION update_timestamp();
+"#;
+        let stmts = split_sql_statements(sql);
+        assert_eq!(
+            stmts.len(),
+            3,
+            "Should find CREATE TABLE, CREATE FUNCTION, CREATE TRIGGER"
+        );
+        // The function body should be kept intact (not split on internal `;`)
+        assert!(
+            stmts[1].contains("BEGIN"),
+            "Function body should be preserved"
+        );
+        assert!(
+            stmts[1].contains("RETURN NEW"),
+            "Function body should include RETURN"
+        );
+    }
+
+    #[test]
+    fn test_split_with_comments() {
+        let sql = "-- This is a comment\nCREATE TABLE t (id INT);\n-- Another comment\nINSERT INTO t VALUES (1);";
+        let stmts = split_sql_statements(sql);
+        assert_eq!(stmts.len(), 2);
+    }
+
+    #[test]
+    fn test_split_empty_input() {
+        let stmts = split_sql_statements("");
+        assert!(stmts.is_empty());
+    }
+
+    #[test]
+    fn test_split_migration_004_pattern() {
+        // This is the pattern that caused the "cannot insert multiple commands" error
+        let sql = r#"
+CREATE TABLE IF NOT EXISTS quest_state (
+    id SERIAL PRIMARY KEY,
+    player_id TEXT NOT NULL DEFAULT 'default',
+    UNIQUE(player_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_quest_state_player ON quest_state(player_id);
+
+INSERT INTO quest_state (player_id) VALUES ('default') ON CONFLICT DO NOTHING;
+"#;
+        let stmts = split_sql_statements(sql);
+        assert_eq!(
+            stmts.len(),
+            3,
+            "Should split into CREATE TABLE, CREATE INDEX, INSERT"
+        );
+    }
+
+    // ── Drift Analysis Tests ──────────────────────────────────────────────
+
+    fn make_snapshot(coal: f32, steam: f32, friction: f32, vocab_total: u32) -> SessionSnapshot {
+        SessionSnapshot {
+            timestamp: "2026-04-08T00:00:00Z".to_string(),
+            session_id: "test".to_string(),
+            coal_pct: coal,
+            steam_pct: steam,
+            friction_pct: friction,
+            active_phase: "Analysis".to_string(),
+            vaam_words_session: 3,
+            vaam_words_total: vocab_total,
+            xp_session: 10,
+        }
+    }
+
+    #[test]
+    fn test_drift_insufficient_data_one_session() {
+        let sessions = vec![make_snapshot(50.0, 80.0, 20.0, 10)];
+        let report = compare_session_drift(&sessions);
+        assert!(!report.has_drift());
+        assert!(report.summary.contains("Insufficient"));
+    }
+
+    #[test]
+    fn test_drift_healthy_trajectory() {
+        // Coal growing, vocab growing, friction low
+        // Steam must NOT be declining (sessions newest-first: [0]=newest)
+        let sessions = vec![
+            make_snapshot(80.0, 80.0, 15.0, 30), // most recent — steam stable
+            make_snapshot(70.0, 80.0, 20.0, 25),
+            make_snapshot(60.0, 80.0, 25.0, 20), // oldest
+        ];
+        let report = compare_session_drift(&sessions);
+        assert!(!report.has_drift(), "Healthy trajectory should not show drift: {}", report.summary);
+        assert!(report.summary.contains("\u{2705}"));
+    }
+
+    #[test]
+    fn test_drift_coal_stagnation_detected() {
+        // Coal barely moving over 3 sessions
+        let sessions = vec![
+            make_snapshot(42.0, 60.0, 30.0, 15), // most recent
+            make_snapshot(41.0, 62.0, 32.0, 13),
+            make_snapshot(40.0, 65.0, 28.0, 11), // oldest
+        ];
+        let report = compare_session_drift(&sessions);
+        assert!(report.coal_stagnation, "Should detect coal stagnation: coal delta = 2%");
+    }
+
+    #[test]
+    fn test_drift_friction_crisis() {
+        // All 3 sessions above 60% friction
+        let sessions = vec![
+            make_snapshot(55.0, 40.0, 75.0, 6),
+            make_snapshot(52.0, 45.0, 72.0, 5),
+            make_snapshot(50.0, 48.0, 68.0, 4),
+        ];
+        let report = compare_session_drift(&sessions);
+        assert!(report.friction_sustained_high);
+    }
+
+    #[test]
+    fn test_drift_motivation_declining() {
+        // Steam dropping in 3 consecutive sessions (newest first)
+        let sessions = vec![
+            make_snapshot(65.0, 40.0, 35.0, 20), // steam dropping
+            make_snapshot(63.0, 55.0, 33.0, 18),
+            make_snapshot(60.0, 70.0, 30.0, 15),
+        ];
+        let report = compare_session_drift(&sessions);
+        assert!(report.motivation_declining, "Steam 70→55→40 should be declining");
+    }
+
+    #[test]
+    fn test_drift_report_has_drift_false_when_healthy() {
+        let report = DriftReport {
+            coal_stagnation: false,
+            vocab_stagnation: false,
+            friction_sustained_high: false,
+            motivation_declining: false,
+            summary: "✅ All good".to_string(),
+            sessions_analyzed: 3,
+        };
+        assert!(!report.has_drift());
+    }
+
+    #[test]
+    fn test_drift_report_has_drift_true_when_any_flag_set() {
+        let report = DriftReport {
+            coal_stagnation: true,
+            vocab_stagnation: false,
+            friction_sustained_high: false,
+            motivation_declining: false,
+            summary: "⚠️ Coal stagnation".to_string(),
+            sessions_analyzed: 3,
+        };
+        assert!(report.has_drift());
+    }
+}
+
 //
 // ARCHITECTURE:
 //   • SQLite tables for sessions, messages, and projects
@@ -667,87 +1056,3 @@ pub async fn list_community_templates(pool: &SqlitePool) -> anyhow::Result<Vec<P
         .collect())
 }
 
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_split_simple_statements() {
-        let sql = "CREATE TABLE foo (id INT); CREATE INDEX idx ON foo(id);";
-        let stmts = split_sql_statements(sql);
-        assert_eq!(stmts.len(), 2);
-        assert!(stmts[0].starts_with("CREATE TABLE"));
-        assert!(stmts[1].starts_with("CREATE INDEX"));
-    }
-
-    #[test]
-    fn test_split_dollar_quoted_function() {
-        let sql = r#"
-CREATE TABLE test (id INT);
-
-CREATE OR REPLACE FUNCTION update_timestamp()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
-CREATE TRIGGER test_trigger
-    BEFORE UPDATE ON test
-    FOR EACH ROW
-    EXECUTE FUNCTION update_timestamp();
-"#;
-        let stmts = split_sql_statements(sql);
-        assert_eq!(
-            stmts.len(),
-            3,
-            "Should find CREATE TABLE, CREATE FUNCTION, CREATE TRIGGER"
-        );
-        // The function body should be kept intact (not split on internal `;`)
-        assert!(
-            stmts[1].contains("BEGIN"),
-            "Function body should be preserved"
-        );
-        assert!(
-            stmts[1].contains("RETURN NEW"),
-            "Function body should include RETURN"
-        );
-    }
-
-    #[test]
-    fn test_split_with_comments() {
-        let sql = "-- This is a comment\nCREATE TABLE t (id INT);\n-- Another comment\nINSERT INTO t VALUES (1);";
-        let stmts = split_sql_statements(sql);
-        assert_eq!(stmts.len(), 2);
-    }
-
-    #[test]
-    fn test_split_empty_input() {
-        let stmts = split_sql_statements("");
-        assert!(stmts.is_empty());
-    }
-
-    #[test]
-    fn test_split_migration_004_pattern() {
-        // This is the pattern that caused the "cannot insert multiple commands" error
-        let sql = r#"
-CREATE TABLE IF NOT EXISTS quest_state (
-    id SERIAL PRIMARY KEY,
-    player_id TEXT NOT NULL DEFAULT 'default',
-    UNIQUE(player_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_quest_state_player ON quest_state(player_id);
-
-INSERT INTO quest_state (player_id) VALUES ('default') ON CONFLICT DO NOTHING;
-"#;
-        let stmts = split_sql_statements(sql);
-        assert_eq!(
-            stmts.len(),
-            3,
-            "Should split into CREATE TABLE, CREATE INDEX, INSERT"
-        );
-    }
-}
