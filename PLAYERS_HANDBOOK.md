@@ -120,7 +120,7 @@ For years, the dark horse of fear and the white horse of duty had been running w
 
 To "Know Thyself" is not a passive intellectual exercise. It is the active, gritty, daily work of picking up the reins. It is the decision to stop being a passenger in your own life and to become the **Architect** of your own journey.
 
-> 🎮 **IN TRINITY**: This is why Trinity’s documentation system is called the **Four Chariots**. Each document is a rein — the Bible (architecture), the Field Manual (rules), Professor Programming (standards), and this Handbook (philosophy). The Charioteer (you) uses all four to drive. Trinity doesn’t tell you what to think. The **Great Recycler** asks you questions until you pick up the reins yourself.
+> 🎮 **IN TRINITY**: This is why Trinity’s documentation system is called the **Four Horses of Awareness**. Each document is a rein — the Bible (architecture), the Field Manual (rules), the Syllabus (what Trinity can do), and this Handbook (philosophy). The Charioteer (you) uses all four to drive. Trinity doesn’t tell you what to think. The **Great Recycler** asks you questions until you pick up the reins yourself.
 
 ---
 
@@ -768,7 +768,7 @@ If you've read this far, you already know the cheat code: **consciousness is the
 
 ---
 
-*The Player’s Handbook is one of Trinity’s Four Chariots — the core documents that drive the system. For architecture, see the Bible. For rules, see the Field Manual. For standards, see Professor Programming. For philosophy, you’re already here.*
+*The Player’s Handbook is one of Trinity’s Four Horses of Awareness — the core documents that drive the system. For architecture, see the Bible. For rules, see the Field Manual. For capabilities, see the Syllabus. For philosophy, you’re already here.*
 
 **License**: Apache 2.0
 **© 2026 Joshua Atkinson — Purdue University, Learning Design & Technology**

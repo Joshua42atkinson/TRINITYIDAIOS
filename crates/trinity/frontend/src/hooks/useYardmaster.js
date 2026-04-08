@@ -178,7 +178,7 @@ export function useYardmaster() {
 
       if (!res.ok) {
         logActivity(`Agent error: ${res.status}`, 'error');
-        setMessages((prev) => prev.map((m) => m.id === aiId ? { ...m, role: 'error', content: "🚫 THE FURNACE IS COLD! The Great Recycler cannot speak while the firebox sleeps. Start vLLM on port 8001 or click [🔥 IGNITE FURNACE] to light the coal yourself!" } : m));
+        setMessages((prev) => prev.map((m) => m.id === aiId ? { ...m, role: 'error', content: "🚫 THE FURNACE IS COLD! The Great Recycler cannot speak while the firebox sleeps. Start vLLM on port 8010 or click [🔥 IGNITE FURNACE] to light the coal yourself!" } : m));
         setSending(false);
         return;
       }
@@ -217,7 +217,7 @@ export function useYardmaster() {
           // Route based on event type
           if (currentEvent === 'llm_offline' || currentEvent === 'error') {
             logActivity(`Agent error: ${payload}`, 'error');
-            setMessages((prev) => prev.map((m) => m.id === aiId ? { ...m, role: 'error', content: "🚫 THE FURNACE IS COLD! The Great Recycler cannot speak while the firebox sleeps. Start vLLM on port 8001 or click [🔥 IGNITE FURNACE] to light the coal yourself!" } : m));
+            setMessages((prev) => prev.map((m) => m.id === aiId ? { ...m, role: 'error', content: "🚫 THE FURNACE IS COLD! The Great Recycler cannot speak while the firebox sleeps. Start vLLM on port 8010 or click [🔥 IGNITE FURNACE] to light the coal yourself!" } : m));
             setSending(false);
             return;
           }

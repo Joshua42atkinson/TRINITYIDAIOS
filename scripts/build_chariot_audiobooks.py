@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Trinity AI OS - Chariot Compiler
+Trinity AI OS - Four Horses Compiler
 ---------------------------------
 This script fulfills the user requirement: "ask trinity to take our two documents and to make two products with them."
-It automatically ingests the Four Chariots (Player Handbook, Field Manual, Syllabus, Bible), chunks them by chapter,
+It automatically ingests the Four Horses of Awareness (Player Handbook, Field Manual, Syllabus, Bible), chunks them by chapter,
 and asks the local running Trinity AI infrastructure to:
   1. Generate professional Socratic Sprints (Narration) via vLLM-Omni
   2. Generate Chapter Art via the local Stable Diffusion (Flux/Hunyuan) endpoint

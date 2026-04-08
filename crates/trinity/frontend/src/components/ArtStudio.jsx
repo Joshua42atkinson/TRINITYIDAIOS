@@ -488,7 +488,7 @@ export default function ArtStudio() {
       if (!res.ok) {
         setNarrative(n => {
           const copy = [...n];
-          copy[copy.length - 1] = { role: 'error', speaker: 'SYSTEM', content: "🚫 THE FURNACE IS COLD! The Great Recycler cannot speak while the firebox sleeps. Start vLLM on port 8001 or click [🔥 IGNITE FURNACE] to light the coal yourself!" };
+          copy[copy.length - 1] = { role: 'error', speaker: 'SYSTEM', content: "🚫 THE FURNACE IS COLD! The Great Recycler cannot speak while the firebox sleeps. Start vLLM on port 8010 or click [🔥 IGNITE FURNACE] to light the coal yourself!" };
           return copy;
         });
         setIsStreaming(false);
@@ -517,7 +517,7 @@ export default function ArtStudio() {
             if (currentEvent === 'llm_offline' || currentEvent === 'error') {
                setNarrative(n => {
                  const copy = [...n];
-                 copy[copy.length - 1] = { role: 'error', speaker: 'SYSTEM', content: "🚫 THE FURNACE IS COLD! The Great Recycler cannot speak while the firebox sleeps. Start vLLM on port 8001 or click [🔥 IGNITE FURNACE] to light the coal yourself!" };
+                 copy[copy.length - 1] = { role: 'error', speaker: 'SYSTEM', content: "🚫 THE FURNACE IS COLD! The Great Recycler cannot speak while the firebox sleeps. Start vLLM on port 8010 or click [🔥 IGNITE FURNACE] to light the coal yourself!" };
                  return copy;
                });
                setIsStreaming(false);

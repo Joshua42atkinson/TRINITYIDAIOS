@@ -25,9 +25,58 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 
+use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use tracing::{info, warn};
+
+// ═══════════════════════════════════════════════════
+// Acestep 1.5 - Accordion Project Isolation Paths
+// ═══════════════════════════════════════════════════
+
+/// Get the base directory for isolated player storage (Accordion)
+pub fn player_storage_dir(player_id: &str) -> Option<PathBuf> {
+    std::env::var_os("HOME").map(|home| {
+        PathBuf::from(&home)
+            .join(".local")
+            .join("share")
+            .join("trinity")
+            .join("players")
+            .join(player_id)
+    })
+}
+
+/// Get the SQLite database path for a specific project/sidecar
+pub fn project_db_path(player_id: &str, project_id: &str) -> Option<PathBuf> {
+    player_storage_dir(player_id).map(|dir| {
+        dir.join("projects")
+           .join(project_id)
+           .join("acestep.db")
+    })
+}
+
+/// Create and get a SqlitePool for a specific project
+pub async fn get_project_pool(player_id: &str, project_id: &str) -> anyhow::Result<SqlitePool> {
+    let db_path = project_db_path(player_id, project_id)
+        .ok_or_else(|| anyhow::anyhow!("Could not determine home directory for Acestep path"))?;
+
+    if let Some(parent) = db_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
+    let database_url = format!("sqlite://{}?mode=rwc", db_path.display());
+    
+    let pool = sqlx::sqlite::SqlitePoolOptions::new()
+        .max_connections(5)
+        .connect(&database_url)
+        .await?;
+
+    // Ensure the baseline schema exists within this isolated container
+    ensure_persistence_tables(&pool).await?;
+
+    info!("🪗 Accordion unlocked: Acestep DB connected for player {} project {}", player_id, project_id);
+    Ok(pool)
+}
 
 /// Run all SQL migration files from the migrations/ directory.
 ///

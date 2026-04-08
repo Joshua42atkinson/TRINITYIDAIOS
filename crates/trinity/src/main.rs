@@ -182,7 +182,7 @@ pub struct AppState {
     pub vaam_bridge: Arc<vaam_bridge::VaamBridge>,
 
     // ── Ignition State Machine (server-side, survives tab switches) ──
-    /// Tracks vLLM boot: idle | launching | daemon_up | server_starting | polling | loading_model | ready | failed
+    /// Tracks LLM boot: idle | launching | daemon_up | server_starting | polling | loading_model | ready | failed
     pub ignition_status: Arc<RwLock<String>>,
 
     // ── Background Job Queue ──
@@ -293,24 +293,16 @@ fn safetensors_model_path(repo: &str) -> PathBuf {
 fn installed_model_inventory() -> Vec<(&'static str, PathBuf)> {
     vec![
         (
-            "🔮 Great Recycler: Gemma-4-31B-Dense-AWQ [~18GB]",
-            safetensors_model_path("gemma-4-31B-it-AWQ-4bit"),
+            "🔮 Great Recycler: LongCat-Next-74B-MoE [~84GB NF4]",
+            home_dir().join("trinity-models/sglang/LongCat-Next/config.json"),
         ),
         (
-            "⚙️ Programmer Pete: Gemma-4-26B-MoE-AWQ [~15GB]",
-            safetensors_model_path("gemma-4-26B-A4B-it-AWQ-4bit"),
-        ),
-        (
-            "🎵 Tempo Engine: Gemma-4-E4B-AWQ (ASR/Pacing) [~3GB]",
-            safetensors_model_path("gemma-4-E4B-it-AWQ-4bit"),
+            "⚙️ Programmer Pete: Qwen3-Coder-REAP-25B-A3B [Q4_K_M GGUF]",
+            gguf_model_path("Qwen3-Coder-REAP-25B-A3B-Rust-Q4_K_M.gguf"),
         ),
         (
             "🎤 Voice Narration: Kokoro TTS (Apache 2.0)",
             home_dir().join("trinity-models/tts/kokoro/config.json"),
-        ),
-        (
-            "🎨 ART Studio: HunyuanImage-vLLM [~20GB]",
-            safetensors_model_path("HunyuanImage"),
         ),
     ]
 }
@@ -1750,13 +1742,12 @@ async fn chat_stream(
     // Channel to collect the full response for saving to history
     let (response_tx, mut response_rx) = tokio::sync::mpsc::channel::<String>(1);
 
-    // Dual-model Hotel pattern: route zen mode to the dedicated storyteller (:8081),
-    // everything else to the primary LLM (Great Recycler on :8001).
+    // Route to the active inference backend (LongCat Omni-Brain on :8010).
     let llm_url = if request.mode == "zen" {
-        "http://127.0.0.1:8081".to_string()
+        "http://127.0.0.1:8010".to_string() // Zen mode also uses LongCat
     } else {
         let r = state.inference_router.read().await;
-        r.get_url_by_name("vllm-recycler").unwrap_or_else(|| r.active_url().to_string())
+        r.get_url_by_name("longcat-omni").unwrap_or_else(|| r.active_url().to_string())
     };
     let db_pool = state.db_pool.clone();
     let history = state.project.conversation_history.clone();
@@ -2129,6 +2120,37 @@ CURRENT OBJECTIVES:
                 full_response.push_str(&token);
                 let _ = token_tx2.send(token).await;
             }
+
+            // Generate SSE multimedia events from parsed markers
+            // Find [IMG: url]
+            let mut start = 0;
+            while let Some(idx) = full_response[start..].find("[IMG: ") {
+                let abs_start = start + idx;
+                if let Some(end_idx) = full_response[abs_start..].find(']') {
+                    let url = full_response[abs_start + 6 .. abs_start + end_idx].trim();
+                    let msg = format!("event: image\ndata: {{\"url\": \"{}\"}}", url);
+                    let _ = token_tx2.send(msg).await;
+                    start = abs_start + end_idx + 1;
+                } else {
+                    break;
+                }
+            }
+
+            // Find [VOICE: text]
+            let mut start_v = 0;
+            while let Some(idx) = full_response[start_v..].find("[VOICE: ") {
+                let abs_start = start_v + idx;
+                if let Some(end_idx) = full_response[abs_start..].find(']') {
+                    let text = full_response[abs_start + 8 .. abs_start + end_idx].trim();
+                    let safe_text = text.replace("\"", "\\\"");
+                    let msg = format!("event: audio\ndata: {{\"text\": \"{}\"}}", safe_text);
+                    let _ = token_tx2.send(msg).await;
+                    start_v = abs_start + end_idx + 1;
+                } else {
+                    break;
+                }
+            }
+
             let _ = token_rx.send(full_response).await;
         });
 
@@ -2267,7 +2289,7 @@ CURRENT OBJECTIVES:
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // The Director → Storyteller pipeline:
-//   1. Director (Great Recycler, Port 8001) interprets user text → structured JSON
+//   1. Director (Great Recycler, LongCat-Next on port 8010) interprets user text → structured JSON
 //   2. Storyteller (:8081) narrates with Director's interpretation + game state
 //   3. SSE events: "interpretation" (JSON) and "narration" (tokens)
 //
@@ -2325,12 +2347,12 @@ async fn backend_start(
                 
                 // ═══ Phase 1: Fast-path check
                 let mut server_already_up = false;
-                match client.get("http://127.0.0.1:8000/v1/models")
+                match client.get("http://127.0.0.1:8010/v1/models")
                     .timeout(std::time::Duration::from_secs(2))
                     .send().await
                 {
                     Ok(resp) if resp.status().is_success() => {
-                        info!("🔥 Fast-path: vLLM Omni API server is already running on :8000");
+                        info!("🔥 Fast-path: vLLM Omni API server is already running on :8010");
                         server_already_up = true;
                     }
                     _ => {}
@@ -2360,12 +2382,12 @@ async fn backend_start(
                         }
                     }
 
-                    // ═══ Phase 2: Poll :8000 until the server is healthy (up to 300s since models are huge)
+                    // ═══ Phase 2: Poll :8010 until the server is healthy (up to 300s since models are huge)
                     set_ignition(&ignition_bg, "polling").await;
                     let mut server_ready = false;
                     for attempt in 1..=300 {
                         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                        match client.get("http://127.0.0.1:8000/v1/models")
+                        match client.get("http://127.0.0.1:8010/v1/models")
                             .timeout(std::time::Duration::from_secs(2))
                             .send().await
                         {
@@ -2704,7 +2726,7 @@ Return this JSON (use null for unknowns):
         if !rag_chunks.is_empty() {
             let mut ctx = String::new();
             for chunk in &rag_chunks {
-                if ctx.len() + chunk.len() > 8000 { break; }
+                if ctx.len() + chunk.len() > 8010 { break; }
                 if !ctx.is_empty() { ctx.push_str("\n---\n"); }
                 ctx.push_str(chunk);
             }
@@ -2810,6 +2832,37 @@ Use state as flavor, not as a list. If coal is high, describe warmth and light. 
         ).await;
 
         let full_narration = narration_collector.await.unwrap_or_default();
+
+        // Synthesize Narration Audio via LongCat (TTS)
+        let tx_narration_audio = tx.clone();
+        let narration_text = full_narration.clone();
+        tokio::spawn(async move {
+            let clean_text = narration_text.replace("*", "").replace("#", "").trim().to_string();
+            let text_to_speak = if let Some(start) = clean_text.find("[VOICE:") {
+                if let Some(end) = clean_text[start..].find("]") {
+                    clean_text[start + 7..start + end].trim().to_string()
+                } else { clean_text.clone() }
+            } else { clean_text.clone() };
+            
+            if text_to_speak.is_empty() { return; }
+            match crate::voice::omni_synthesize(&text_to_speak, "joshua", "wav").await {
+                Ok(audio_bytes) => {
+                    let assets_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                        .parent()
+                        .unwrap()
+                        .join("assets");
+                    let _ = std::fs::create_dir_all(&assets_dir);
+                    let filename = format!("narration_{}.wav", chrono::Utc::now().timestamp_millis());
+                    let filepath = assets_dir.join(&filename);
+                    if let Ok(_) = tokio::fs::write(&filepath, audio_bytes).await {
+                        let url = format!("/api/creative/assets/{}", filename);
+                        let _ = tx_narration_audio.send(("audio".to_string(), url)).await;
+                        tracing::info!("[Zen TTS] Narration audio delivered");
+                    }
+                }
+                Err(e) => tracing::warn!("[Zen TTS] Failed to synthesize narration: {}", e),
+            }
+        });
 
         // ══════════════════════════════════════════════
         // STEP 3: Scene Image + Ambient Audio (non-blocking)
@@ -3331,6 +3384,7 @@ async fn orchestrate_quest(
             .as_ref()
             .map(|p| p.prompt_summary())
             .unwrap_or_default(),
+        mode: Default::default(),
     };
 
     match conductor.orchestrate(orch_request).await {
@@ -4371,7 +4425,7 @@ async fn stt_transcribe(
         .mime_str("audio/wav").unwrap();
         
     let fallback_model = "Gemma-4-E2B-Omni".to_string();
-    let model_name = match client.get("http://127.0.0.1:8000/v1/models").send().await {
+    let model_name = match client.get("http://127.0.0.1:8010/v1/models").send().await {
         Ok(res) => {
             if let Ok(json) = res.json::<serde_json::Value>().await {
                 json["data"][0]["id"].as_str().unwrap_or(&fallback_model).to_string()
@@ -4384,7 +4438,7 @@ async fn stt_transcribe(
         .text("model", model_name)
         .part("file", part);
         
-    let response = match client.post("http://127.0.0.1:8000/v1/audio/transcriptions").multipart(form).send().await {
+    let response = match client.post("http://127.0.0.1:8010/v1/audio/transcriptions").multipart(form).send().await {
         Ok(r) => r,
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": format!("STT failed: {}", e) }))).into_response()
     };
@@ -4414,8 +4468,8 @@ async fn stt_status(
 ) -> Json<serde_json::Value> {
     Json(serde_json::json!({
         "loaded": true,
-        "model": "Gemma-4-E4B-Omni",
-        "backend": "vllm-omni",
+        "model": "LongCat-Next-74B",
+        "backend": "longcat-omni",
     }))
 }
 
@@ -4499,8 +4553,8 @@ async fn setup_config(
     Json(config): Json<SetupConfig>,
 ) -> impl axum::response::IntoResponse {
     let url = match config.backend.as_str() {
-        "vllm-omni" => "http://127.0.0.1:8000/v1/chat/completions",
-        _ => config.custom_url.as_deref().unwrap_or("http://127.0.0.1:8000/v1/chat/completions"),
+        "vllm-omni" => "http://127.0.0.1:8010/v1/chat/completions",
+        _ => config.custom_url.as_deref().unwrap_or("http://127.0.0.1:8010/v1/chat/completions"),
     };
 
     // Test the connection BEFORE acknowledging setup is complete

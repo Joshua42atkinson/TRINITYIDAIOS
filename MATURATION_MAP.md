@@ -4,9 +4,7 @@
 > **Purpose**: Single source of truth. What works, what doesn't, what "finished" means.
 > **Use this document** to see where Trinity is _right now_ and how far each system is from done.
 >
-> **Architecture**: SGLang/vLLM is the _only_ inference engine orchestrating LongCat-Next (DiNA architecture). 
-> All legacy multi-agent frameworks (Gemma-4 Recycler, Kokoro, ComfyUI) have been superseded by the Omni system.
-> Strix Halo APU shares compute between GPU/NPU — everything runs through SGLang on the GPU.
+> **Architecture**: **Dual Brain Sidecar Model (128GB Strix Halo APU)**. \n> 1. **LongCat-Next (SGLang)** runs on Port 8010. It is the core Omni-Brain. It handles **Pete (Exhale)**, the **Great Recycler (Inhale)**, and **Tempo (Acestep 1.5)** for all chat, LitRPG world-building, inline images, and TTS natively.\n> 2. **vLLM (+ Hotel)** runs on Port 8000. It acts as the mechanical engine, handling **Yardmaster (RUST REAP)** coding, Nomic Embeddings (Acestep 1.5 persistence), and hotloaded P.A.R.T.Y Hotel **Aesthetics** (Flux Schnell, CogVideoX, Tripo).
 
 ---
 
@@ -51,9 +49,9 @@ These are L3+ and work today when you `cargo run` + launch vLLM:
 
 | System | Level | What's Missing | "Finished" |
 |--------|-------|---------------|-----------|
-| **Kokoro TTS** | Deprecated | Overridden by LongCat | Legacy python logic preserved in archive, now handled by LongCat `longcat_audiogen_start` |
-| **Image Gen (Omni)** | L2 | Rerouted to Port 8010 | The python proxy intercepts and translates DiNA image strings back to Rust. |
-| **Separated Agent Pete** | Deprecated | Replaced by DiNA Omni | LongCat handles coding, aesthetics, and recycling in single memory footprint. |
+| **Kokoro TTS Sidecar** | Deprecated | Overridden by LongCat | Legacy python logic targeting port 8200 preserved in archive, now handled via Pete's **Acestep 1.5** pipeline on LongCat `longcat_audiogen_start`. |
+| **Image Gen (Aesthetics)** | L2 | Wired to Port 8000 | The python proxy intercepts and maps Aesthetic image generation requests to the vLLM Hotel. |
+| **Legacy Fragmented Agents** | Deprecated | Replaced by Dual Brain | Single LongCat Omni-Brain dynamically handles Pete (Exhale) and Recycler (Inhale) in unified shared cache. Aesthetics bound to vLLM. |
 
 ---
 
@@ -85,11 +83,11 @@ These are L3+ and work today when you `cargo run` + launch vLLM:
 
 ## Priority Stack (What to Do Next)
 
-### Tier 1: LongCat Omni Unified Shift (Current Focus)
+### Tier 1: Dual Brain Architecture (Current Focus)
 1. ✅ **Proxy Scaffold Complete** — Python API proxy built `scripts/launch/start_longcat_server.py`.
 2. ✅ **SGLang Launcher** — Built `start_sglang_omni.sh` with `bitsandbytes` APU compression.
-3. ☐ **DiNA Research & Implementation** — Research internal Meituan DiNA decoding structure and inject translation bridging logic into wrapper.
-4. ☐ **P.A.R.T.Y. Collapse Refactor** — Erase explicit model routing logic in `inference_router.rs` and `conductor_leader.rs`, funneling all P.A.R.T.Y gears into Port 8010.
+3. 🔄 **Dual Brain Integration** — Separating Omni tasks to SGLang (:8010) and Embeddings/REAP/Hotel (Flux/CogVideoX) to vLLM (:8000).
+4. 🔄 **Acestep 1.5 Persistence** — Accordion architecture. Per-project/player sidecar SQLite databases driven by vLLM embeddings.
 
 ### Tier 2: Multi-player persistence
 5. ✅ **EYE Container Export** — DONE. `export.rs` generates real HTML5 quizzes and bundles.
@@ -136,8 +134,8 @@ These are L3+ and work today when you `cargo run` + launch vLLM:
 #### Identity, Persistence & System (20+ routes — all wired ✅)
 Sessions, character sheet, projects, health, hardware, tools, telemetry, journal, RLHF, analytics — all functional.
 
-#### Voice & TTS (6 routes — ✅ Kokoro sidecar live on :8200)
-`/api/voice/*`, `/api/tts`, `/api/telephone` — Kokoro TTS live. `voice.rs` code-complete. PhaseWorkspace voice toggle wired to `/api/tts`.
+#### Voice & TTS (6 routes — ✅ Transitioning to Acestep 1.5 on :8010)
+`/api/voice/*`, `/api/tts`, `/api/telephone` — Transitioning from Kokoro legacy to native LongCat audio decoding. PhaseWorkspace voice toggle wires to Pete's native audio settings.
 
 #### Creative (8 routes — ✅ rerouted to vLLM Omni)
 `/api/creative/*` — `creative.rs` routes to vLLM `:8000/v1/images/generations`. ComfyUI dependency purged from agent prompts and tool descriptions.
@@ -211,7 +209,7 @@ Supporting modules:
 
 | Module | Lines | Purpose | Status |
 |--------|-------|---------|--------|
-| `voice.rs` | 822 | Kokoro TTS + voice pipelines | ✅ Kokoro live on :8200 |
+| `voice.rs` | 822 | Audio Generation + voice pipelines | ✅ Acestep 1.5 live on :8010 |
 | `inference_router.rs` | 721 | Multi-backend auto-detect + failover | ✅ |
 | `persistence.rs` | 704 | SQLite sessions/messages/projects | ✅ |
 | `export.rs` | 597 | EYE export container | ✅ HTML5 quiz/adventure/DOCX/ZIP |
@@ -257,11 +255,31 @@ Supporting modules:
 | **Overall** | **171** | **157 (92%)** | **14 (8%)** | **0 (0%)** |
 
 **Biggest remaining leverage points**:
-1. `telephone.rs` + `voice_loop.rs` — WebSocket audio-to-audio (needs ASR sidecar)
+1. `telephone.rs` + `voice_loop.rs` — Need refactoring away from ASR sidecar to send/receive audio strings transparently via the LongCat Acestep 1.5 pipeline.
 2. Creative media tools — `generate_music`, `generate_video`, `generate_mesh3d` need future vLLM audio/video models
 3. VAAM word definitions — enrich vocabulary packs so EYE exports include a real glossary
 
 **ComfyUI is deprecated.** vLLM Omni handles all media generation.
+
+---
+
+## 📚 The Living Code Textbook Standard
+Every core Rust module in `crates/trinity/src/` features a standardized pedagogical header comprising:
+- Purpose and Architectural function
+- Hook Book connection for instructional design
+- Cow Catcher telemetry status
+- Formal Maturity Level mapping
+
+## 🏆 Definition of Maturity ("L5 Shippable")
+With the recovery and successful linking of our `trinity-mcp-server` integration, the 3 Core Deliverables (Book, Product, and HTML EYE Portfolio), and the complete standard header implementation, the core engine has achieved **L5 Shippable**. All new and existing modules track maturity via this matrix:
+
+| Level | Name | Criteria |
+|---|---|---|
+| **L1** | Concept / Stubs | Idea exists in documentation or code stub. No implementation. |
+| **L2** | Scaffolding | Basic HTTP routes and structs exist, mock data returned. |
+| **L3** | Isolated Execution | Capable of executing tasks but disconnected from the gamified ADDIECRAPEYE lifecycle or persistence layer. |
+| **L4** | Integrated Loop | Component runs, feeds data back to the gamified ecosystem, and appropriately impacts Steam/Coal/Resonance tracking. |
+| **L5** | Shippable Textbook | Highly performant, fault-tolerant (Cow Catcher), fully integrated, and features the Top 30-Line Pedagogical Header. |
 
 ---
 
@@ -279,8 +297,8 @@ Supporting modules:
 
 ## Architecture Principles (non-negotiable)
 
-1. **vLLM is the only inference engine.** No ONNX, no ORT, no ComfyUI, no llama-server.
-2. **Strix Halo is an APU.** GPU and NPU share compute. No NPU offload strategy needed.
+1. **Dual Brain Engines.** SGLang (Port 8010) and vLLM (Port 8000) coexist. No ComfyUI, no raw llama-server for core tasks, though embedded llama.cpp is allowed for CPU fallback.
+2. **Strix Halo is an APU (128GB).** GPU and NPU share compute. We maximize RAM by allocating specific model operations between the two sidecars.
 3. **Don't delete code.** Move to archive if deprecated. Update labels and references.
-4. **One brain for now (Lone Wolf).** Great Recycler serves all personas via system prompts until multi-model Hotel is activated.
-5. **Port 3000** is the web UI. Port 8001 is the primary LLM. Port 8002/8003 are reserved for future Pete/Tempo instances.
+4. **P.A.R.T.Y System via Dual Brain.** SGLang (Port 8010) runs **P**ete, the Great **R**ecycler, and **T**empo (Acestep 1.5). vLLM (Port 8000) runs **A**esthetics (Hotel models) and **Y**ardmaster (Qwen REAP).
+5. **Ports:** Port 3000 is the web UI. Port 8010 is LongCat Omni. Port 8000 is vLLM (Embeddings, REAP, Hotel).

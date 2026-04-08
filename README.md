@@ -171,13 +171,15 @@ Each station maps to a Bloom's Taxonomy level and a Hero's Journey chapter. The 
 
 Apache 2.0 — Users own all content created with Trinity. See [LICENSE](LICENSE).
 
-## Research Context
+## 🐎 The Four Horses of Awareness (System Documentation)
+Trinity is the **Chariot**—an autonomous engine designed to bring about the death of the false "self". To pull it forward, we rely on four core documents—our sci-fi Four Horses of the Apocalypse. They exist to strip away ego and enforce the core tenet: *Be the student you want to teach, remove the ego, and become the teacher.*
 
-This is a graduate research project at Purdue University exploring AI-augmented instructional design. For detailed architecture documentation, see:
+1. **[PLAYERS_HANDBOOK.md](PLAYERS_HANDBOOK.md)** *(Conquest / Who You Are)*: Focuses on the user—philosophy, conscious learning, and identity. It conquers the ego.
+2. **[ASK_PETE_FIELD_MANUAL.md](ASK_PETE_FIELD_MANUAL.md)** *(War / Who Pete Is)*: AI Pedagogy, the Socratic battle against cognitive shortcuts, and system philosophy. It wages war on lazy thinking.
+3. **[TRINITY_FANCY_BIBLE.md](TRINITY_FANCY_BIBLE.md)** *(Famine / What The System Is)*: Deep architectural specs, memory pipelines, and technical integration. It starves the system of bloat and enforces the raw dual-brain reality.
+4. **[TRINITY_SYLLABUS.md](TRINITY_SYLLABUS.md)** *(Death / What Trinity Can Do)*: Your compass for navigating Trinity's usefulness and the 12-Station Iron Road. The death of your old workflows, making way for the rebirth of the Master Architect.
 
-- [CONTEXT.md](CONTEXT.md) — Full research bible and session context
-- [TRINITY_FANCY_BIBLE.md](TRINITY_FANCY_BIBLE.md) — Iron Road design bible (lore + mechanics + pedagogy)
-- [INSTALL.md](INSTALL.md) — Step-by-step build & run guide for evaluators
+*(Note: Technical session tracking for AI agents happens in `context.md`, and `MATURATION_MAP.md` is the component maturity tracker.)*
 
 ## Links
 

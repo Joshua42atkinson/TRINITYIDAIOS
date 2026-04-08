@@ -1,3 +1,31 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — trinity-server
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:        authenticity_scorecard.rs
+// PURPOSE:     Subsystem Logic
+//
+// 🪟 THE LIVING CODE TEXTBOOK:
+// This file is part of the Trinity ID AI OS. It is designed to be read, 
+// modified, and authored by YOU. As you transition from LEARNING to WORK, 
+// this is where the logic lives. 
+//
+// 📖 THE HOOK BOOK CONNECTION:
+// For a full catalogue of system capabilities, see: docs/HOOK_BOOK.md
+//
+// 🛡️ THE COW CATCHER & AUTOPOIESIS:
+// All files operate under the autonomous Cow Catcher telemetry system. Runtime
+// errors and scope creep are intercepted to prevent catastrophic derailment,
+// maintaining the Socratic learning loop and keeping drift at bay.
+//
+// MATURITY:     L5 → Shippable
+// QUEST_PHASE:  Integration
+//
+// CHANGES:
+//   2026-04-08  Cascade  Migrated to §17 comment standard
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
 use serde::{Deserialize, Serialize};
 use trinity_protocol::CharacterSheet;
 

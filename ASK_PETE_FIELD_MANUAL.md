@@ -516,15 +516,15 @@ Open the throttle to maximum.
 Hammer Down.  
 ---
 
-### The Four Chariots
+### The Four Horses of Awareness
 
 This Field Manual is one of four root documents that define Trinity:
 
-| Chariot | Document | Reader |
+| Horse | Document | Reader |
 |---------|----------|--------|
 | 📖 **The Bible** | [TRINITY_FANCY_BIBLE.md](TRINITY_FANCY_BIBLE.md) | Developers — full technical reference |
 | 🤝 **Field Manual** | [ASK_PETE_FIELD_MANUAL.md](ASK_PETE_FIELD_MANUAL.md) *(this file)* | Educators — Pete's operating philosophy |
-| 🎓 **Professor Programming** | [PROFESSOR.md](PROFESSOR.md) | Stakeholders — standards & institutional evaluation |
+| 🎓 **The Syllabus** | [TRINITY_SYLLABUS.md](TRINITY_SYLLABUS.md) | Stakeholders — standards & institutional evaluation |
 | 🎮 **Player's Handbook** | [PLAYERS_HANDBOOK.md](PLAYERS_HANDBOOK.md) | Players — philosophy, identity & conscious learning |
 
 ---

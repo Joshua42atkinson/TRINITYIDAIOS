@@ -634,7 +634,7 @@ export default function Yardmaster() {
                     } catch(e) { /* fallback */ }
                   }}
                   disabled={isIgniting && ignitionStatus !== 'failed'}
-                  title="Connects to vLLM on port 8001"
+                  title="Connects to vLLM on port 8010"
                 >
                   {isOnline
                     ? '🟢 FURNACE ONLINE'

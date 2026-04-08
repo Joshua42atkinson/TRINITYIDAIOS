@@ -6,8 +6,8 @@
 // PURPOSE:     Multi-engine inference client — OpenAI-compatible HTTP API
 //
 // ARCHITECTURE:
-//   • Engine-agnostic: works with ANY OpenAI-compatible server
-//   • vLLM (:8001) — Great Recycler (primary brain, served-model-name)
+//   • LongCat-Next (:8010) — Great Recycler (Omni-Brain, text+images+audio)
+//   • Qwen REAP (:8000) — Programmer Pete (CPU GGUF coding subagent)
 //   • Any OpenAI-compatible server
 //   • FastFlowLM (NPU)   — ONNX models via AMD XDNA 2
 //   • All engines share /v1/chat/completions protocol
@@ -178,7 +178,7 @@ pub async fn chat_completion_stream(
     let request = CompletionRequest {
         model: "Great_Recycler".to_string(), // Default proxy name for local LLM routing
         messages: api_messages,
-        max_tokens: None, // Let inference backend auto-calculate to prevent context length errors
+        max_tokens: Some(_max_tokens), // Explicitly defined to bypass 16 token default
         temperature: 0.7,
         stream: true,
         reasoning_effort: None, // Omitted — some backends reject unknown fields
@@ -297,7 +297,7 @@ pub async fn chat_completion_with_effort(
     let request = CompletionRequest {
         model: "Great_Recycler".to_string(),
         messages: api_messages,
-        max_tokens: None, // Let inference backend auto-calculate to prevent context length errors
+        max_tokens: Some(_max_tokens), // Explicitly defined to bypass 16 token default
         temperature: 0.7,
         stream: false,
         reasoning_effort: None, // Omitted — some backends reject unknown fields
@@ -417,7 +417,7 @@ pub async fn chat_completion_with_tools(
     let request = CompletionRequest {
         model: "Great_Recycler".to_string(),
         messages: api_messages,
-        max_tokens: None, // Let inference backend auto-calculate to prevent context length errors
+        max_tokens: Some(_max_tokens), // Explicitly defined to bypass 16 token default
         temperature: 0.7,
         stream: false,
         reasoning_effort: None, // Omitted — some backends reject unknown fields

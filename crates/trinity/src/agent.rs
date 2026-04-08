@@ -198,10 +198,9 @@ You are running inside the Trinity ID AI OS project.
 - User home: ~
 You ARE the Yardmaster tab in this UI. You already know where everything is.
 
-SIDECAR & SERVICE ROLES:
-- vLLM (Great Recycler): port 8000 — Gemma-4 31B Dense AWQ (sole inference engine)
-- Kokoro TTS: port 8200 — Apache 2.0 voice synthesis, 6 presets
-- Images/Video: vLLM Omni on port 8000 — native generation via /v1/images/generations
+SIDECAR & SERVICE ROLES (P.A.R.T.Y):
+- LongCat Omni-Brain (SGLang) / port 8010: Runs Pete (Exhale) and Recycler (Inhale), handles Acestep 1.5 native audio generation.
+- Yardmaster/Hotel (vLLM) / port 8000: Runs YOU (Qwen REAP Coding Subagent), Nomic Embeddings, and the Aesthetics Hotel (Flux/CogVideoX).
 
 PYTHON ENVIRONMENTS (NEVER mix these):
 - ~/trinity-voice-env — Voice (chatterbox-tts, onnxruntime)
@@ -305,7 +304,7 @@ pub async fn agent_chat_stream(
         Some(url) => url,
         None => {
             let router = state.inference_router.read().await;
-            router.get_url_by_name("vllm-pete").unwrap_or_else(|| router.active_url().to_string())
+            router.get_url_by_name("yardmaster-reap").unwrap_or_else(|| router.active_url().to_string())
         }
     };
     let db_pool = state.db_pool.clone();

@@ -17,7 +17,7 @@
 //     → { "type": "config", "persona": "pete", "mode": "iron-road" }
 //     ← { "type": "transcript", "text": "..." }
 //     ← { "type": "response", "text": "..." }
-//     ← { "type": "status", "pipeline": "supertonic", "latency_ms": 123 }
+//     ← { "type": "status", "pipeline": "kokoro", "latency_ms": 123 }
 //
 // MATURITY:    L2 (core structure, STT integration pending runtime test)
 // QUEST_PHASE: supports all ADDIECRAPEYE phases
@@ -245,8 +245,8 @@ async fn process_audio_frame(
     let client = &*crate::http::LONG;
     let part = reqwest::multipart::Part::bytes(audio_data.to_vec())
         .file_name("call.wav").mime_str("audio/wav").unwrap();
-    let form = reqwest::multipart::Form::new().text("model", "Gemma-4-E4B-Omni").part("file", part);
-    let transcript = match client.post("http://127.0.0.1:8000/v1/audio/transcriptions").multipart(form).send().await {
+    let form = reqwest::multipart::Form::new().text("model", "Great_Recycler").part("file", part);
+    let transcript = match client.post("http://127.0.0.1:8010/v1/audio/transcriptions").multipart(form).send().await {
         Ok(res) if res.status().is_success() => {
             let json: serde_json::Value = res.json().await.unwrap_or_default();
             json["text"].as_str().unwrap_or("[Silence]").to_string()

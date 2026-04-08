@@ -385,7 +385,7 @@ pub async fn generate_image(
     );
 
     let payload = serde_json::json!({
-        "model": "FLUX.1-schnell",
+        "model": "LongCat-Next",
         "prompt": full_prompt,
         "n": 1,
         "size": format!("{}x{}", request.width, request.height),
@@ -456,7 +456,7 @@ pub async fn generate_tempo(
     let client = &*crate::http::STANDARD;
     let mut context_arg = "concept_introduction".to_string(); // default fallback
 
-    if let Ok(vibe_res) = client.post("http://127.0.0.1:8003/v1/chat/completions")
+    if let Ok(vibe_res) = client.post("http://127.0.0.1:8010/v1/chat/completions")
         .json(&vibe_payload)
         .send().await 
     {

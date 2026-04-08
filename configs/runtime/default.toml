@@ -2,12 +2,12 @@
 # Trinity ID AI OS — Runtime Configuration
 # ═══════════════════════════════════════════════════════════════════════════════
 #
-# INFERENCE ARCHITECTURE (April 2026):
-#   vLLM Omni — exclusive inference backend (ROCm GPU, distrobox)
-#   Single brain: Gemma-4 31B Dense AWQ on port 8001
-#   Pete and Great Recycler are system-prompt personas, not separate models.
+# INFERENCE ARCHITECTURE (April 7, 2026):
+#   LongCat-Next 74B MoE — Omni-Brain (text + images + audio) on port 8010. Handles Pete and Great Recycler.
+#   Qwen3-Coder REAP 25B — Yardmaster Subagent on port 8000. Handles coding and vLLM embeddings.
+#   Pete and Great Recycler are system-prompt personas routed to LongCat via SGLang.
 #
-# The InferenceRouter auto-detects vLLM on startup.
+# The InferenceRouter auto-detects backends on startup.
 # Set LLM_URL env var to override with a specific endpoint.
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -15,41 +15,45 @@
 type = "Auto"  # Auto-detect Brain/Body
 
 [inference]
-primary = "vllm-recycler"
+primary = "longcat-omni"
 auto_detect = true
-ctx_size = 32768
+ctx_size = 131072
 max_tokens = 16384
 
-# ── vLLM Omni Backends (exclusive) ──
+# ── LongCat Omni-Brain (GPU — The Great Recycler) ──
+# LongCat-Next 74B MoE loaded via transformers + bitsandbytes NF4
+# Served by FastAPI sidecar inside sglang-engine distrobox container
+# Capabilities: text, image_generation, tts, audio_understanding
 
-[inference.backends.vllm-recycler]
-url = "http://127.0.0.1:8001"
+[inference.backends.longcat-omni]
+url = "http://127.0.0.1:8010"
 supports_tools = true
 supports_vision = true
 
-[inference.backends.vllm-pete]
-url = "http://127.0.0.1:8002"
+# ── Yardmaster / OS (vLLM — Qwen REAP Coding Subagent) ──
+# Qwen3-Coder-REAP-25B-A3B-Rust via vLLM
+# Dedicated purely to background coding and embeddings
+# Not yet serving — uncomment vLLM in boot order when ready
+
+[inference.backends.yardmaster-reap]
+url = "http://127.0.0.1:8000"
 supports_tools = true
 supports_vision = false
 
-[inference.backends.vllm-omni]
-url = "http://127.0.0.1:8003"
-supports_tools = false
-supports_vision = true
-
-
 
 [model]
-model_dir = "~/trinity-models/vllm"
-default_model = "gemma-4-31B-it-AWQ-4bit"
+model_dir = "~/trinity-models/sglang/LongCat-Next"
+default_model = "LongCat-Next-74B-MoE-NF4"
 n_gpu_layers = -1  # Full offload
-context_size = 32768
+context_size = 131072
 batch_size = 512
 n_threads = 16
 
 [creative]
-# ComfyUI deprecated — vLLM Omni handles image generation natively
-# comfyui_url = "http://127.0.0.1:8188"  # ARCHIVED: use vLLM /v1/images/generations
+# ComfyUI deprecated — LongCat DiNA handles image generation natively
+# comfyui_url = "http://127.0.0.1:8188"  # ARCHIVED
+longcat_image_url = "http://127.0.0.1:8010/v1/images/generations"
+longcat_tts_url = "http://127.0.0.1:8010/tts"
 musicgpt_url = "http://127.0.0.1:8189"
 hunyuan3d_url = "http://127.0.0.1:7860"
 auto_launch = false

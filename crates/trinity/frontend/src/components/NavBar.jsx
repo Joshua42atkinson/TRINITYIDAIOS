@@ -80,7 +80,7 @@ export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) 
             className="nav-link"
             onClick={() => setHelpOpen(!helpOpen)}
             style={{ fontSize: '16px', cursor: 'pointer', padding: '4px 8px' }}
-            title="The Four Chariots — Documentation"
+            title="The Four Horses — Documentation"
           >
             📚
           </button>
@@ -108,7 +108,7 @@ export default function NavBar({ quest, activeTab, onTabChange, onNewJourney }) 
                 marginBottom: '10px', paddingBottom: '8px',
                 borderBottom: '1px solid rgba(207, 185, 145, 0.1)',
               }}>
-                The Four Chariots
+                The Four Horses
               </div>
               {chariots.map((c) => (
                 <button

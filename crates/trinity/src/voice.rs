@@ -29,7 +29,7 @@
 //     - 6 preset voices, American English, low-latency
 //     - POST /tts endpoint returning WAV audio
 //   • "Walkie-Talkie" (FALLBACK): Whisper STT + Piper TTS via voice sidecar (:8200)
-//     - STT/TTS run on NPU, leaving 100% GPU for Gemma-4-31B
+//     - STT/TTS run on NPU, leaving 100% GPU for LongCat-Next 74B MoE
 //   • "Kokoro" (ALWAYS-ON): Native ONNX TTS (66M params, CPU-capable)
 //   • "Telephone" (FUTURE): PersonaPlex/Moshi audio-to-audio on GPU
 //   • Two modes: DEV (production agent) and IRON ROAD (gamified roleplay)
@@ -107,8 +107,8 @@ pub async fn voice_status() -> Json<VoiceStatus> {
 
     let (pipeline, message) = if omni_available {
         (
-            "kokoro",
-            "Kokoro TTS ready (Apache 2.0, 6 voices, low-latency)".to_string(),
+            "acestep-1.5",
+            "Acestep 1.5 native audio generation via LongCat SGLang".to_string(),
         )
     } else if personaplex_available {
         (
@@ -122,8 +122,8 @@ pub async fn voice_status() -> Json<VoiceStatus> {
         )
     } else {
         (
-            "supertonic",
-            "Kokoro native TTS (always-on fallback)".to_string(),
+            "acestep-native",
+            "Acestep 1.5 native (always-on fallback)".to_string(),
         )
     };
 
@@ -340,8 +340,10 @@ async fn check_personaplex_health() -> bool {
 // Built and ready — activates when kokoro_sidecar.py goes live on :8200.
 // Suppress dead_code warnings for the entire subsystem until then.
 
-/// LongCat proxy port — FastAPI translation layer
-const OMNI_PORT: u16 = 8010;
+/// LongCat proxy port — CosyVoice TTS (future, currently returns mock audio)
+const LONGCAT_PORT: u16 = 8010;
+/// Kokoro TTS sidecar port — PRIMARY working TTS (Apache 2.0)
+const KOKORO_PORT: u16 = 8200;
 
 /// Voice acting emotion — detected from text content
 // VoiceEmotion and detect_emotion have been relocated to trinity_protocol::character_sheet
@@ -394,10 +396,11 @@ fn dm_voice_cue() -> &'static str {
     "Pausing story mode. "
 }
 
-/// Check if Kokoro TTS is available
+/// Check if the Acestep 1.5 LongCat backend is available
 pub async fn check_omni_audio_health() -> bool {
+    // Primary: LongCat Acestep 1.5 on port 8010
     crate::http::QUICK
-        .get(format!("http://127.0.0.1:{}/health", OMNI_PORT))
+        .get(format!("http://127.0.0.1:{}/health", LONGCAT_PORT))
         .timeout(std::time::Duration::from_secs(2))
         .send()
         .await
@@ -418,8 +421,8 @@ pub fn persona_to_omni_voice(persona: &str) -> String {
     match lower.as_str() {
         // Pete — warm, confident, mentor
         "pete" | "conductor" | "m1" | "causal_male" => "am_adam".to_string(),
-        // Great Recycler — authoritative narrator (DM voice)
-        "recycler" | "narrator" | "alloy" | "dm" => "am_fenrir".to_string(),
+        // Great Recycler — authoritative narrator (DM voice) using Custom User Clone
+        "recycler" | "narrator" | "alloy" | "dm" => "joshua".to_string(),
         // NPCs — varied voices
         "npc" | "default" | "echo" => "am_echo".to_string(),
         // Youser feedback — encouraging, warm
@@ -434,7 +437,7 @@ pub fn persona_to_omni_voice(persona: &str) -> String {
 
 /// Full narrated synthesis — persona + emotion + narrator mode
 /// This is the main entry point for voice-acted TTS.
-#[allow(dead_code)] // Activates with Gemma Omni
+#[allow(dead_code)] // Activates with LongCat CosyVoice
 pub async fn omni_synthesize_narrated(
     text: &str,
     persona: &str,
@@ -481,7 +484,7 @@ pub async fn omni_synthesize_narrated(
 
 /// Result of a voice-acted synthesis
 #[derive(Debug, Serialize)]
-#[allow(dead_code)] // Activates with Gemma Omni
+#[allow(dead_code)] // Activates with LongCat CosyVoice
 pub struct VoiceActResult {
     /// Audio bytes (None if Silent mode)
     #[serde(skip)]
@@ -496,24 +499,24 @@ pub struct VoiceActResult {
     pub text: String,
 }
 
-/// Synthesize text via Kokoro TTS (Apache 2.0)
+/// Synthesize text via Acestep 1.5 on LongCat
 /// Returns raw WAV audio bytes
 pub async fn omni_synthesize(
     text: &str,
     voice: &str,
     _format: &str,
 ) -> anyhow::Result<Vec<u8>> {
-    let kokoro_voice = persona_to_omni_voice(voice);
-
-    info!("🎙️ Kokoro TTS: voice={} len={}", kokoro_voice, text.len());
+    let omni_voice = persona_to_omni_voice(voice);
 
     let payload = serde_json::json!({
         "text": text,
-        "voice": kokoro_voice,
+        "voice": omni_voice,
     });
 
+    info!("🎙️ LongCat Acestep 1.5 TTS (port {}): voice={} len={}", LONGCAT_PORT, omni_voice, text.len());
+
     let response = crate::http::LONG
-        .post(format!("http://127.0.0.1:{}/tts", OMNI_PORT))
+        .post(format!("http://127.0.0.1:{}/tts", LONGCAT_PORT))
         .json(&payload)
         .timeout(std::time::Duration::from_secs(30))
         .send()
@@ -522,11 +525,11 @@ pub async fn omni_synthesize(
     if !response.status().is_success() {
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
-        anyhow::bail!("LongCat Proxy returned {}: {}", status, body);
+        anyhow::bail!("Acestep 1.5 TTS failed: {} — {}", status, body);
     }
 
     let audio_bytes = response.bytes().await?;
-    info!("🎙️ LongCat Proxy returned {} bytes", audio_bytes.len());
+    info!("🎙️ LongCat Acestep 1.5 returned {} bytes", audio_bytes.len());
     Ok(audio_bytes.to_vec())
 }
 
@@ -670,9 +673,9 @@ mod tests {
 
     #[test]
     fn test_persona_recycler_maps_to_alloy() {
-        assert_eq!(persona_to_omni_voice("recycler"), "am_fenrir");
-        assert_eq!(persona_to_omni_voice("narrator"), "am_fenrir");
-        assert_eq!(persona_to_omni_voice("dm"), "am_fenrir");
+        assert_eq!(persona_to_omni_voice("recycler"), "joshua");
+        assert_eq!(persona_to_omni_voice("narrator"), "joshua");
+        assert_eq!(persona_to_omni_voice("dm"), "joshua");
     }
 
     #[test]
@@ -696,7 +699,7 @@ mod tests {
     #[test]
     fn test_persona_case_insensitive() {
         assert_eq!(persona_to_omni_voice("PETE"), "am_adam");
-        assert_eq!(persona_to_omni_voice("Recycler"), "am_fenrir");
+        assert_eq!(persona_to_omni_voice("Recycler"), "joshua");
         assert_eq!(persona_to_omni_voice("NPC"), "am_echo");
     }
 

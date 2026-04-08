@@ -175,6 +175,15 @@ impl AddiecrapeyePhase {
     }
 }
 
+/// The mode in which the Conductor operates.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
+pub enum ConductorMode {
+    #[default]
+    Hybrid,
+    Instructional,
+    Narrative,
+}
+
 /// Quest orchestration request
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct OrchestrationRequest {
@@ -211,6 +220,10 @@ pub struct OrchestrationRequest {
     /// Tells Pete: subject, medium, vision, alignment scores.
     #[serde(default)]
     pub pearl_context: String,
+
+    /// Mode of operation (Instructional, Narrative, Hybrid)
+    #[serde(default)]
+    pub mode: ConductorMode,
 }
 
 /// Quest orchestration response
@@ -248,7 +261,7 @@ pub struct BookUpdate {
 /// Configuration for the Conductor Party Leader
 #[derive(Debug, Clone)]
 pub struct ConductorConfig {
-    /// Path to the Conductor model (Great Recycler - Gemma 4 31B Dense)
+    /// Path to the Conductor model (Great Recycler - LongCat-Next 74B MoE)
     pub model_path: PathBuf,
     /// Context size (default: 256000 with TurboQuant)
     pub context_size: u32,
@@ -262,12 +275,12 @@ impl Default for ConductorConfig {
     fn default() -> Self {
         let home = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/tmp")).to_string_lossy().to_string();
         Self {
-            // Great Recycler — Gemma 4 31B Dense
+            // Great Recycler — LongCat-Next 74B MoE (served via sglang-engine sidecar)
             model_path: PathBuf::from(home)
-                .join("trinity-models/vllm/gemma-4-31B-it-AWQ-4bit"),
-            context_size: 256000, // Safe with TurboQuant on 128GB unified RAM
+                .join("trinity-models/sglang/LongCat-Next"),
+            context_size: 131072, // LongCat-Next 131K context window
             server_url: std::env::var("LLM_URL")
-                .unwrap_or_else(|_| "http://127.0.0.1:8000".to_string()),
+                .unwrap_or_else(|_| "http://127.0.0.1:8010".to_string()),
             verbose: false,
         }
     }
@@ -298,7 +311,7 @@ pub struct ConductorLeader {
     /// Shutdown signal receiver
     shutdown_rx: Option<broadcast::Receiver<()>>,
 
-    /// llama-server client (when model is loaded)
+    /// LLM HTTP client (when model is loaded)
     llama_client: Option<reqwest::Client>,
 }
 
@@ -350,8 +363,8 @@ impl ConductorLeader {
         // Verify model exists
         if !self.model_exists() {
             return Err(anyhow!(
-                "Great Recycler model (Gemma 4 31B Dense AWQ) not found at {:?}. \
-                 Please ensure the safetensors are placed in ~/trinity-models/vllm/.\n\
+                "Great Recycler model (LongCat-Next 74B MoE) not found at {:?}. \
+                 Please ensure the model is available and the sglang-engine sidecar is running.\n\
                  AI should NOT automatically download models without user initiation.",
                 self.config.model_path
             ));
@@ -485,7 +498,7 @@ impl ConductorLeader {
     }
 
     /// HOTEL MANAGEMENT: Switch out models based on ADDIECRAPEYE phase
-    /// NOTE: In Lone Wolf mode (Phase 4), this is log-only — single Mistral brain,
+    /// NOTE: In Lone Wolf mode (Phase 4), this is log-only — single LongCat-Next brain,
     /// no model hot-swapping. The gear mapping is preserved for future multi-model support.
     async fn manage_hotel_sidecars(&self, phase: AddiecrapeyePhase) -> Result<()> {
         // CRUISING MODE BATCHING: We group the 12 phases into the 4 P-ART gears
@@ -514,7 +527,7 @@ impl ConductorLeader {
         };
 
         // LONE WOLF MODE: Log the gear shift but don't actually swap models.
-        // Single Mistral Small 4 119B handles all phases.
+        // Single LongCat-Next 74B MoE handles all phases.
         info!(
             "Hotel Management (Lone Wolf): Phase {} → gear {} (no swap)",
             phase, target_role
@@ -524,7 +537,7 @@ impl ConductorLeader {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // CORE: Call Pete (Mistral Small 4) via LLM server for real inference
+    // CORE: Call Pete (LongCat-Next) via LLM server for real inference
     // ═══════════════════════════════════════════════════════════════════
 
     /// Call Pete (the Conductor model) with a phase-specific system prompt.
@@ -614,22 +627,54 @@ impl ConductorLeader {
         context
     }
 
+    /// Get the system prompt based on phase and mode
+    fn get_system_prompt(&self, phase: AddiecrapeyePhase, mode: ConductorMode) -> String {
+        let prefix = match mode {
+            ConductorMode::Narrative => "You are the Great Recycler, the Socratic voice of the Iron Road. The user is a brave traveler (protagonist) on a LitRPG journey. ",
+            ConductorMode::Instructional => "You are Pete, the Conductor. Provide direct pedagogical scaffolding. ",
+            ConductorMode::Hybrid => "You are the Conductor, blending LitRPG narrative with Socratic instructional design. ",
+        };
+
+        let phase_content = match (mode, phase) {
+            (ConductorMode::Narrative, AddiecrapeyePhase::Analysis) => "ANALYSIS: The Golem's Eyes. Paint a scene of a foggy train station platform. Ask the traveler to identify the passengers (target audience) waiting in the mist, and describe the specific burdens (learning gaps) they carry.",
+            (ConductorMode::Narrative, AddiecrapeyePhase::Design) => "DESIGN: The Golem's Brain. Describe a drafting table illuminated by flickering lanterns. Ask the traveler to sketch the blueprints of their journey—what specific abilities must the passengers gain by the end of the line?",
+            (ConductorMode::Narrative, AddiecrapeyePhase::Development) => "DEVELOPMENT: The Golem's Skeleton. The sparks of the forge fly as hammers strike. Help the traveler forge the first raw framing of their curriculum—what does the physical structure of the lesson look like?",
+            (ConductorMode::Narrative, AddiecrapeyePhase::Implementation) => "IMPLEMENTATION: The Golem's Muscles. The steam engine roars to life. Ask the traveler to guide a test passenger through the cars, ensuring the journey is smooth and the machinery functions as intended.",
+            (ConductorMode::Narrative, AddiecrapeyePhase::Evaluation) => "EVALUATION: The Golem's Voice. An ancient oracle weighs the traveler's deeds on a golden scale. Help them measure the true quality and impact of the learning experience against the original vision.",
+            (ConductorMode::Narrative, AddiecrapeyePhase::Contrast) => "CONTRAST: The Golem's Skin. Shadows and bright flares of light dance across the train cars. Ask the traveler where they should hang the brightest lanterns (visual hierarchy) to draw the passengers' eyes to what matters most.",
+            (ConductorMode::Narrative, AddiecrapeyePhase::Repetition) => "REPETITION: The Golem's Heart. The steady 'clack-clack' of wheels on the iron rails sets a comforting rhythm. Ask the traveler how to weave consistent patterns that make the passengers feel secure.",
+            (ConductorMode::Narrative, AddiecrapeyePhase::Alignment) => "ALIGNMENT: The Golem's Spine. The train leans into a sharp curve. Ask the traveler to jettison any excess cargo (extraneous cognitive load) to keep the train perfectly balanced on the tracks.",
+            (ConductorMode::Narrative, AddiecrapeyePhase::Proximity) => "PROXIMITY: The Golem's Hands. Luggage is scattered wildly across the cabins. Ask the traveler how to group similar items together so passengers intuitively understand where things belong.",
+            (ConductorMode::Narrative, AddiecrapeyePhase::Envision) => "ENVISION: The Golem's Third Eye. The traveler stands upon the caboose looking back down the tracks. Ask them to reflect: did the journey lead where they originally promised?",
+            (ConductorMode::Narrative, AddiecrapeyePhase::Yoke) => "YOKE: The Connective Tissue. Heavy iron couplings lock the cars together. Ask the traveler how to seamlessly bind the frontend aesthetics with the backend mechanics into one unstoppable machine.",
+            (ConductorMode::Narrative, AddiecrapeyePhase::Evolve) => "EVOLVE: The Golem's Lungs. The engine breaches the fog, entering a breathtaking valley of light. Time to unleash the creation upon the world. Congratulate them on shipping.",
+            
+            (_, AddiecrapeyePhase::Analysis) => "ANALYSIS: This is the Golem's Eyes. Ask who their audience is, and what they struggle with. Present choices.",
+            (_, AddiecrapeyePhase::Design) => "DESIGN: This is the Golem's Brain. Ask them what the learner should be able to do. Suggest mechanics.",
+            (_, AddiecrapeyePhase::Development) => "DEVELOPMENT: This is the Golem's Skeleton. Ask them what the first working version looks like. Scaffold implementation.",
+            (_, AddiecrapeyePhase::Implementation) => "IMPLEMENTATION: This is the Golem's Muscles. Ask them to test the system from a learner's perspective.",
+            (_, AddiecrapeyePhase::Evaluation) => "EVALUATION: This is the Golem's Voice. Evaluate quality against the intent.",
+            (_, AddiecrapeyePhase::Contrast) => "CONTRAST: This is the Golem's Skin. Ask them how visual hierarchy can emphasize importance.",
+            (_, AddiecrapeyePhase::Repetition) => "REPETITION: This is the Golem's Heart. Focus on patterns and consistency in the design.",
+            (_, AddiecrapeyePhase::Alignment) => "ALIGNMENT: This is the Golem's Spine. Focus on removing extraneous cognitive load.",
+            (_, AddiecrapeyePhase::Proximity) => "PROXIMITY: This is the Golem's Hands. Focus on grouping elements logically.",
+            (_, AddiecrapeyePhase::Envision) => "ENVISION: This is the Golem's Third Eye. Reflect on the original goals versus the current state.",
+            (_, AddiecrapeyePhase::Yoke) => "YOKE: This is the Connective Tissue. Focus on integration.",
+            (_, AddiecrapeyePhase::Evolve) => "EVOLVE: This is the Golem's Lungs. Time to ship the finished product. Congratulate them.",
+        };
+
+        format!("{}\n\nSOCRATIC PROTOCOL: Ask, do not tell. Formulate questions based on the phase:\n{}", prefix, phase_content)
+    }
+
     // ═══════════════════════════════════════════════════════════════════
     // ADDIECRAPEYE phase implementations — real LLM calls through Pete
     // ═══════════════════════════════════════════════════════════════════
 
     async fn analyze_quest(&self, request: &OrchestrationRequest) -> Result<OrchestrationResponse> {
-        let system = "You are Pete, the Conductor. ANALYSIS phase of ADDIECRAPEYE.\n\
-            This is the Golem's Eyes — the Call to Adventure. The user arrives with an idea.\n\
-            SOCRATIC PROTOCOL: Do not tell — ask. Lead with questions:\n\
-            - 'Who will use what you're building, and what do they struggle with?'\n\
-            - 'What does success look like — not for you, but for the learner?'\n\
-            - 'What words must someone master to understand your subject?'\n\
-            VAAM ALIGNMENT: Match the user's vocabulary and style. Reflect their words back.\n\
-            Present choices, not commands. The user is the SME — you scaffold their expertise.";
+        let system = self.get_system_prompt(AddiecrapeyePhase::Analysis, request.mode);
         let context = Self::build_quest_context(request);
 
-        match self.call_pete(system, &context).await {
+        match self.call_pete(&system, &context).await {
             Ok(response) => {
                 let mut assignments = std::collections::HashMap::new();
                 assignments.insert(
@@ -658,17 +703,10 @@ impl ConductorLeader {
     }
 
     async fn design_quest(&self, request: &OrchestrationRequest) -> Result<OrchestrationResponse> {
-        let system = "You are Pete, the Conductor. DESIGN phase of ADDIECRAPEYE.\n\
-            This is the Golem's Brain — Crossing the Threshold.\n\
-            SOCRATIC PROTOCOL: Guide design through discovery:\n\
-            - 'What should the learner be able to DO — not just know — when they finish?'\n\
-            - 'If you had to test mastery with one question, what would it be?'\n\
-            - 'Which game mechanic from your own experience made you learn without noticing?'\n\
-            VAAM ALIGNMENT: Match the user's vocabulary. Help them see Bloom's levels naturally.\n\
-            Present options for mechanics, not mandates. The user picks — you refine.";
+        let system = self.get_system_prompt(AddiecrapeyePhase::Design, request.mode);
         let context = Self::build_quest_context(request);
 
-        match self.call_pete(system, &context).await {
+        match self.call_pete(&system, &context).await {
             Ok(response) => {
                 let mut assignments = std::collections::HashMap::new();
                 assignments.insert(
@@ -697,17 +735,10 @@ impl ConductorLeader {
     }
 
     async fn develop_quest(&self, request: &OrchestrationRequest) -> Result<OrchestrationResponse> {
-        let system = "You are Pete, the Conductor. DEVELOPMENT phase of ADDIECRAPEYE.\n\
-            This is the Golem's Skeleton — Building the Frame.\n\
-            SOCRATIC PROTOCOL: The user builds, you scaffold:\n\
-            - 'What does the first working version look like in your mind?'\n\
-            - 'Which piece, if built first, would let you test the whole idea fastest?'\n\
-            - 'Where do you want to start — visuals, logic, or content?'\n\
-            VAAM ALIGNMENT: Use their preferred terminology. Let them name things.\n\
-            Break the design into options, not a task list. They choose the order.";
+        let system = self.get_system_prompt(AddiecrapeyePhase::Development, request.mode);
         let context = Self::build_quest_context(request);
 
-        match self.call_pete(system, &context).await {
+        match self.call_pete(&system, &context).await {
             Ok(response) => {
                 let mut assignments = std::collections::HashMap::new();
                 assignments.insert(
@@ -742,16 +773,10 @@ impl ConductorLeader {
         &self,
         request: &OrchestrationRequest,
     ) -> Result<OrchestrationResponse> {
-        let system = "You are Pete, the Conductor. IMPLEMENTATION phase of ADDIECRAPEYE.\n\
-            This is the Golem's Muscles — Road of Trials.\n\
-            SOCRATIC PROTOCOL: Guide integration through reflection:\n\
-            - 'Does this behave the way you imagined when you designed it?'\n\
-            - 'Try it from a learner's perspective — what would confuse them?'\n\
-            - 'Is there anything here that doesn't serve the learning objective?'\n\
-            VAAM ALIGNMENT: Reflect their style choices back. Flag scope creep as a question, not a command.";
+        let system = self.get_system_prompt(AddiecrapeyePhase::Implementation, request.mode);
         let context = Self::build_quest_context(request);
 
-        match self.call_pete(system, &context).await {
+        match self.call_pete(&system, &context).await {
             Ok(response) => Ok(OrchestrationResponse {
                 next_phase: AddiecrapeyePhase::Evaluation,
                 player_instructions: response,
@@ -804,15 +829,8 @@ impl ConductorLeader {
         );
 
         let system = format!(
-            "You are Pete, the Conductor. EVALUATION phase of ADDIECRAPEYE.\n\
-            This is the Golem's Voice — the Mirror. The QM Rubric has spoken.\n\
-            SOCRATIC PROTOCOL: Present results, then ask — don't dictate fixes:\n\
-            - Show the scores and explain what each means in their own vocabulary.\n\
-            - 'Looking at these results, what surprises you? What feels right?'\n\
-            - 'If you could change one thing to improve the score, what would it be?'\n\
-            VAAM ALIGNMENT: Translate QM criteria using the user's mastered vocabulary.\n\
-            The user decides what to fix. You illuminate — you don't assign.\n\n\
-            {}",
+            "{}\n\nQM RUBRIC EVALUATION RESULTS:\n{}",
+            self.get_system_prompt(AddiecrapeyePhase::Evaluation, request.mode),
             qm_summary
         );
         let context = Self::build_quest_context(request);
@@ -947,18 +965,10 @@ impl ConductorLeader {
         &self,
         request: &OrchestrationRequest,
     ) -> Result<OrchestrationResponse> {
-        let system =
-            "You are Pete, the Conductor. CONTRAST phase of ADDIECRAPEYE (the C in CRAP).\n\
-            This is the Golem's Skin — establishing boundaries through visual hierarchy.\n\
-            SOCRATIC PROTOCOL: Guide visual thinking through comparison:\n\
-            - 'What's the single most important thing on this screen? What draws the eye?'\n\
-            - 'If you squint at the layout, what stands out and what disappears?'\n\
-            - 'Where should the learner look first, second, third?'\n\
-            VAAM ALIGNMENT: Use their aesthetic vocabulary. Respect their stylistic choices.\n\
-            Suggest contrast options — let them choose the visual hierarchy.";
+        let system = self.get_system_prompt(AddiecrapeyePhase::Contrast, request.mode);
         let context = Self::build_quest_context(request);
 
-        match self.call_pete(system, &context).await {
+        match self.call_pete(&system, &context).await {
             Ok(response) => {
                 let mut assignments = std::collections::HashMap::new();
                 assignments.insert(
@@ -990,13 +1000,10 @@ impl ConductorLeader {
         &self,
         request: &OrchestrationRequest,
     ) -> Result<OrchestrationResponse> {
-        let system = "You are Pete, the Conductor. REPETITION phase of ADDIECRAPEYE (the R in CRAP).\n\
-            Your job: Solidify the core 30-second gameplay loop. This is the Golem's Heart.\n\
-            VAAM ALIGNMENT: use Socratic questioning focused on the user's word weights and circuit affinity.\n\
-            Balance Germane Load to pump data sustainably. This is meaning-making time.";
+        let system = self.get_system_prompt(AddiecrapeyePhase::Repetition, request.mode);
         let context = Self::build_quest_context(request);
 
-        match self.call_pete(system, &context).await {
+        match self.call_pete(&system, &context).await {
             Ok(response) => Ok(OrchestrationResponse {
                 next_phase: AddiecrapeyePhase::Alignment,
                 player_instructions: response,
@@ -1018,17 +1025,10 @@ impl ConductorLeader {
         &self,
         request: &OrchestrationRequest,
     ) -> Result<OrchestrationResponse> {
-        let system = "You are Pete, the Conductor. ALIGNMENT phase of ADDIECRAPEYE (the A in CRAP).\n\
-            This is the Golem's Spine — The Ordeal. Alignment check.\n\
-            SOCRATIC PROTOCOL: Help them see what doesn't belong:\n\
-            - 'Look at everything you've built. Which piece doesn't serve the learning goal?'\n\
-            - 'If you had to cut one feature to ship tomorrow, which would it be?'\n\
-            - 'Does every mechanic map back to a learning objective, or is some just cool-looking?'\n\
-            VAAM ALIGNMENT: Measure mastery of the user's top words.\n\
-            Don't sever — ask them to choose what stays. They cut their own scope creep.";
+        let system = self.get_system_prompt(AddiecrapeyePhase::Alignment, request.mode);
         let context = Self::build_quest_context(request);
 
-        match self.call_pete(system, &context).await {
+        match self.call_pete(&system, &context).await {
             Ok(response) => Ok(OrchestrationResponse {
                 next_phase: AddiecrapeyePhase::Proximity,
                 player_instructions: response,
@@ -1050,17 +1050,10 @@ impl ConductorLeader {
         &self,
         request: &OrchestrationRequest,
     ) -> Result<OrchestrationResponse> {
-        let system = "You are Pete, the Conductor. PROXIMITY phase of ADDIECRAPEYE (the P in CRAP).\n\
-            This is the Golem's Hands — The Reward. UX is how the creation greets its user.\n\
-            SOCRATIC PROTOCOL: Guide UX thinking through empathy:\n\
-            - 'If you'd never seen this before, where would you click first?'\n\
-            - 'Can you group related things together? What belongs near what?'\n\
-            - 'Count the things on screen — is it more than 7? Miller's Law says that's too many.'\n\
-            VAAM ALIGNMENT: Prioritize features that match the user's circuit affinity.\n\
-            The software must reach out and shake the learner's hand.";
+        let system = self.get_system_prompt(AddiecrapeyePhase::Proximity, request.mode);
         let context = Self::build_quest_context(request);
 
-        match self.call_pete(system, &context).await {
+        match self.call_pete(&system, &context).await {
             Ok(response) => Ok(OrchestrationResponse {
                 next_phase: AddiecrapeyePhase::Envision,
                 player_instructions: response,
@@ -1082,18 +1075,10 @@ impl ConductorLeader {
         &self,
         request: &OrchestrationRequest,
     ) -> Result<OrchestrationResponse> {
-        let system =
-            "You are Pete, the Conductor. ENVISION phase of ADDIECRAPEYE (the first E in EYE).\n\
-            This is the Golem's Third Eye — The Road Back. Step back and see the whole.\n\
-            SOCRATIC PROTOCOL: Guide meta-cognitive reflection:\n\
-            - 'Forget the code for a moment. What was the original dream?'\n\
-            - 'Does what you've built match what you set out to build?'\n\
-            - 'If you showed this to the learner you imagined in Analysis, would they get it?'\n\
-            VAAM ALIGNMENT: Ensure the work matches the genre and style the user chose.\n\
-            The observer and the observed are the same. Help them see themselves in the work.";
+        let system = self.get_system_prompt(AddiecrapeyePhase::Envision, request.mode);
         let context = Self::build_quest_context(request);
 
-        match self.call_pete(system, &context).await {
+        match self.call_pete(&system, &context).await {
             Ok(response) => {
                 let mut assignments = std::collections::HashMap::new();
                 assignments.insert(
@@ -1122,17 +1107,10 @@ impl ConductorLeader {
     }
 
     async fn yoke_quest(&self, request: &OrchestrationRequest) -> Result<OrchestrationResponse> {
-        let system = "You are Pete, the Conductor. YOKE phase of ADDIECRAPEYE (the Y in EYE).\n\
-            This is the Golem's Joints — The Grand Coupling. Everything connects.\n\
-            SOCRATIC PROTOCOL: Guide integration through completeness:\n\
-            - 'Walk through the experience end-to-end. Where does it break?'\n\
-            - 'What happens when someone does the unexpected? Is it graceful?'\n\
-            - 'If you pulled out one piece, would the rest still make sense?'\n\
-            VAAM ALIGNMENT: Summarize the 'Meaning Making' journey using their mastered terms.\n\
-            The user couples their own systems. You spot the loose joints.";
+        let system = self.get_system_prompt(AddiecrapeyePhase::Yoke, request.mode);
         let context = Self::build_quest_context(request);
 
-        match self.call_pete(system, &context).await {
+        match self.call_pete(&system, &context).await {
             Ok(response) => Ok(OrchestrationResponse {
                 next_phase: AddiecrapeyePhase::Evolve,
                 player_instructions: response,
@@ -1154,19 +1132,10 @@ impl ConductorLeader {
     }
 
     async fn evolve_quest(&self, request: &OrchestrationRequest) -> Result<OrchestrationResponse> {
-        let system =
-            "You are Pete, the Conductor. EVOLVE phase of ADDIECRAPEYE (the final E in EYE).\n\
-            This is the Golem's Lungs — Return with the Elixir. The creation breathes.\n\
-            SOCRATIC PROTOCOL: Celebrate through reflection:\n\
-            - 'Look at what you built. How is it different from what you imagined at the start?'\n\
-            - 'What did you learn about your subject that you didn't know before?'\n\
-            - 'What would you tell yourself at Analysis phase if you could go back?'\n\
-            VAAM ALIGNMENT: Final reflection on the shared vocabulary fingerprint.\n\
-            The Golem steps off the Iron Road. The user evolved — not the software.\n\
-            Congratulate them and trigger the Great Recycler to publish the chronicle.";
+        let system = self.get_system_prompt(AddiecrapeyePhase::Evolve, request.mode);
         let context = Self::build_quest_context(request);
 
-        match self.call_pete(system, &context).await {
+        match self.call_pete(&system, &context).await {
             Ok(response) => Ok(OrchestrationResponse {
                 next_phase: AddiecrapeyePhase::Analysis,
                 player_instructions: response,

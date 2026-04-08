@@ -1,45 +1,72 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════════════════════
-# TRINITY ID AI OS — start_sglang_omni.sh
+# TRINITY ID AI OS — launch_engine.sh
 # ═══════════════════════════════════════════════════════════════════════════════
 #
-# PURPOSE:  Launch SGLang engine for LongCat-Next (74B MoE)
-# HARDWARE: AMD Strix Halo (APU) — gfx1151
+# PURPOSE:  Launch the LongCat-Next 74B MoE Omni-Brain sidecar
+# HARDWARE: AMD Strix Halo (APU) — gfx1151, 128GB unified LPDDR5x
 #
-# SGLANG APU CRITICAL PROTECTIONS:
-#   1. `--attention-backend triton` is MANDATORY. Flash-infer will crash ROCm 7.x
-#   2. `--tp 1` disables Tensor Parallelism (LPDDR5x is single monolithic block)
-#   3. `--quantization bitsandbytes` compresses the 150GB model to ~36GB in-flight
+# QUANTIZATION: 4-bit NF4 via bitsandbytes
+#   - Full bf16 model: ~151GB
+#   - 4-bit NF4 model: ~38GB in-flight VRAM
+#   - Multimodal decoders (dNaViT, CosyVoice) remain at bf16 precision
+#
+# ARCHITECTURE:
+#   The model is served via transformers + FastAPI (not sglang) because:
+#   1. Stock sglang 0.5.x doesn't support 'longcat_next' model type
+#   2. The FluentLLM sglang fork requires CUDA (NVIDIA only)
+#   3. Transformers with trust_remote_code=True handles everything natively
+#   4. All multimodal decode (image gen, audio gen) works out of the box
 #
 # ═══════════════════════════════════════════════════════════════════════════════
 
-echo "🚀 Booting SGLang Inference Engine for LongCat-Next..."
+set -euo pipefail
 
-# Force ROCm paths and MIOpen fixes for Zen 5 APU stability (same as vLLM fixes)
+echo "🐱 LongCat-Next Omni-Brain — Trinity ID AI OS"
+echo "═══════════════════════════════════════════════"
+
+# ─── ROCm Environment for Strix Halo (gfx1151) ──────────────────────────────
 export HSA_ENABLE_SDMA=0
 export MIOPEN_FIND_MODE=FAST
 export PYTORCH_ROCM_ARCH="gfx1151"
+export TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1
 
-# The location of the in-progress background download
+# ─── HuggingFace Cache (project-local, avoids ~/.cache permission conflicts) ─
+export HF_HOME="$HOME/trinity-models/sglang/LongCat-Next/.cache"
+export TRANSFORMERS_CACHE="$HOME/trinity-models/sglang/LongCat-Next/.cache"
+mkdir -p "$HF_HOME/modules" 2>/dev/null
+
+# Fix bitsandbytes ROCm version detection (rocm713 binary, not rocm72)
+BNB_DIR="/opt/venv/lib64/python3.12/site-packages/bitsandbytes"
+if [ -f "$BNB_DIR/libbitsandbytes_rocm713.so" ] && [ ! -f "$BNB_DIR/libbitsandbytes_rocm72.so" ]; then
+    echo "🔧 Symlinking bitsandbytes ROCm library..."
+    ln -sf "$BNB_DIR/libbitsandbytes_rocm713.so" "$BNB_DIR/libbitsandbytes_rocm72.so"
+    ln -sf "$BNB_DIR/libbitsandbytes_rocm713.so" "$BNB_DIR/libbitsandbytes_cpu.so"
+fi
+
+# ─── Verify Model ───────────────────────────────────────────────────────────
 MODEL_DIR="$HOME/trinity-models/sglang/LongCat-Next"
 
 if [ ! -d "$MODEL_DIR" ]; then
     echo "⚠️  Model directory not found at $MODEL_DIR"
-    echo "Please wait for the background huggingface-cli download to finish!"
+    echo "   Download with: huggingface-cli download meituan-longcat/LongCat-Next --local-dir $MODEL_DIR"
     exit 1
 fi
 
-echo "🧠 Engaging DiNA Token Architecture on port 30000"
+SHARD_COUNT=$(ls "$MODEL_DIR"/model-*.safetensors 2>/dev/null | wc -l)
+echo "📦 Model shards found: $SHARD_COUNT/15"
+if [ "$SHARD_COUNT" -lt 15 ]; then
+    echo "⚠️  Download incomplete! Only $SHARD_COUNT/15 shards present."
+    echo "   The server will start in mock mode."
+fi
 
-# Note: SGLang has native OpenAPI-compatible chat completions
-python3 -m sglang.launch_server \
-  --model-path "$MODEL_DIR" \
-  --port 30000 \
-  --attention-backend triton \
-  --quantization bitsandbytes \
-  --trust-remote-code \
-  --tp 1
+# ─── Launch the Omni Sidecar ────────────────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+echo ""
+echo "🚀 Starting LongCat-Next Omni Sidecar on port 8010..."
+echo "   4-bit NF4 quantization via bitsandbytes"
+echo "   Endpoints: /v1/chat/completions, /v1/images/generations, /tts"
+echo ""
 
-# Alternative Option:
-# If bitsandbytes fails on ROCm, swap the flag above for `--quantization fp8`
-# and pass `--kv-cache-dtype fp8_e4m3` for balanced memory packing.
+# Use the container's venv Python (not system python)
+exec /opt/venv/bin/python3 "$SCRIPT_DIR/server.py"

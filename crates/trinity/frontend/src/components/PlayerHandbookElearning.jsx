@@ -412,12 +412,12 @@ export default function PlayerHandbookElearning({ onBack }) {
                 
                 .left-page {
                     padding: 50px 60px 40px 50px; 
-                    box-shadow: inset -40px 0 40px -10px rgba(0,0,0,0.5), inset 0 0 60px rgba(139,115,85,0.1);
+                    box-shadow: inset -20px 0 30px -10px rgba(0,0,0,0.2), inset 0 0 60px rgba(139,115,85,0.1);
                 }
                 
                 .right-page {
-                    padding: 50px 50px 40px 60px;
-                    box-shadow: inset 40px 0 40px -10px rgba(0,0,0,0.5), inset 0 0 60px rgba(139,115,85,0.1);
+                    padding: 50px 50px 40px 80px;
+                    box-shadow: inset 20px 0 30px -10px rgba(0,0,0,0.2), inset 0 0 60px rgba(139,115,85,0.1);
                 }
 
                 .art-bg {
@@ -426,13 +426,17 @@ export default function PlayerHandbookElearning({ onBack }) {
                 }
                 
                 .content-bg {
-                    background: linear-gradient(135deg, #f4ebd8 0%, #ebddc5 40%, #e0ceae 100%);
-                    background-image: radial-gradient(rgba(139,115,85,0.05) 1px, transparent 1px), radial-gradient(rgba(139,115,85,0.05) 1px, transparent 1px);
-                    background-size: 20px 20px;
-                    background-position: 0 0, 10px 10px;
+                    background: #e0ceae;
+                    background-image: 
+                        radial-gradient(rgba(139,115,85,0.08) 1px, transparent 1px), 
+                        radial-gradient(rgba(139,115,85,0.08) 1px, transparent 1px),
+                        linear-gradient(135deg, #f4ebd8 0%, #ebddc5 40%, #e0ceae 100%);
+                    background-size: 20px 20px, 20px 20px, 100% 100%;
+                    background-position: 0 0, 10px 10px, 0 0;
                 }
 
                 .art-frame {
+                    box-sizing: border-box;
                     width: 100%; height: 100%;
                     border: 8px solid #1a120b;
                     outline: 2px solid #CFB991; outline-offset: -2px;

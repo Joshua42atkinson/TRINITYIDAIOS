@@ -1,93 +1,76 @@
-use std::path::PathBuf;
-use std::process::Command;
-use tracing::{info, warn};
-use tokio::time::{sleep, Duration};
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRINITY ID AI OS — Inference Fleet Manager
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE:        vllm_fleet.rs
+// PURPOSE:     Auto-detect and log status of inference sidecars
+//
+// ARCHITECTURE (LongCat-Next Era):
+//   Port 8010 — LongCat-Next 74B MoE (sglang-engine, GPU, ~84GB NF4)
+//               Handles: text, images (DiNA), audio (CosyVoice)
+//               Launched externally via distrobox/sglang container
+//
+//   Port 8000 — Programmer Pete (Qwen REAP 25B A3B, CPU GGUF via llama-server)
+//               Handles: coding tasks, tool calls
+//               Launched externally via llama-server CLI
+//
+//   Port 8200 — Kokoro TTS (Apache 2.0, CPU ONNX)
+//               Handles: voice synthesis, 6 preset voices
+//               Launched via scripts/launch/kokoro_sidecar.py
+//
+// NOTE: In the LongCat-Next architecture, inference sidecars are launched
+//       externally (via distrobox, llama-server, etc). This module only
+//       checks their health on startup and logs their status. It does NOT
+//       attempt to auto-launch GPU processes — that was the old vLLM fleet
+//       approach which is no longer applicable.
+//
+// CHANGES:
+//   2026-04-08  Cascade  Rewritten for LongCat-Next dual-agent architecture
+//   2026-04-06  Cascade  Original vLLM fleet auto-launcher (legacy, removed)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
 
-const RECYCLER_PORT: u16 = 8001;
-const PETE_PORT: u16 = 8002;
-const ART_PORT: u16 = 8003;
+use tracing::info;
 
-fn get_vllm_models_dir() -> PathBuf {
-    dirs::home_dir()
-        .unwrap_or_default()
-        .join("trinity-models/vllm")
-}
+const LONGCAT_PORT: u16 = 8010;
+const PETE_PORT: u16 = 8000;
+const KOKORO_PORT: u16 = 8200;
 
+/// Check status of all inference sidecars on startup.
+/// Does NOT auto-launch — sidecars are managed externally.
 pub async fn start_fleet() {
-    let models_dir = get_vllm_models_dir();
-    
-    // 1. Great Recycler (35% VRAM)
-    let recycler_model = models_dir.join("gemma-4-31B-it-AWQ-4bit");
-    let speculative_model = models_dir.join("gemma-4-E2B-it-AWQ-4bit");
-    if !crate::inference::check_health(&format!("http://127.0.0.1:{}/v1/models", RECYCLER_PORT)).await {
-        if recycler_model.exists() && speculative_model.exists() {
-            info!("🚀 Starting Great Recycler Sidecar (Port {})", RECYCLER_PORT);
-            let _ = Command::new("python3")
-                .arg("-m")
-                .arg("vllm.entrypoints.openai.api_server")
-                .arg("--model").arg(&recycler_model)
-                .arg("--speculative-model").arg(&speculative_model)
-                .arg("--num-speculative-tokens").arg("5")
-                .arg("--quantization").arg("awq")
-                .arg("--gpu-memory-utilization").arg("0.35")
-                .arg("--port").arg(RECYCLER_PORT.to_string())
-                .arg("--max-model-len").arg("524288")
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null())
-                .spawn()
-                .map_err(|e| warn!("⚠️ Failed to launch Recycler: {}", e));
-        } else {
-            warn!("⚠️ Great Recycler models missing in {}", models_dir.display());
-        }
+    info!("🔍 Inference Fleet: checking sidecar status...");
+
+    // 1. LongCat-Next Omni-Brain (primary)
+    let longcat_url = format!("http://127.0.0.1:{}/v1/models", LONGCAT_PORT);
+    if crate::inference::check_health(&longcat_url).await {
+        info!("✅ LongCat-Next Omni-Brain running on :{}", LONGCAT_PORT);
     } else {
-        info!("✅ Great Recycler already running on :{}", RECYCLER_PORT);
+        info!(
+            "⬚  LongCat-Next not detected on :{}. Launch via: distrobox enter vllm -- ...",
+            LONGCAT_PORT
+        );
     }
-    
-    // 2. Programmer Pete (25% VRAM)
-    let pete_model = models_dir.join("gemma-4-26B-A4B-it-AWQ-4bit");
-    if !crate::inference::check_health(&format!("http://127.0.0.1:{}/v1/models", PETE_PORT)).await {
-        if pete_model.exists() {
-            info!("🚀 Starting Programmer Pete Sidecar (Port {})", PETE_PORT);
-            let _ = Command::new("python3")
-                .arg("-m")
-                .arg("vllm.entrypoints.openai.api_server")
-                .arg("--model").arg(&pete_model)
-                .arg("--quantization").arg("awq")
-                .arg("--gpu-memory-utilization").arg("0.25")
-                .arg("--port").arg(PETE_PORT.to_string())
-                .arg("--max-model-len").arg("524288")
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null())
-                .spawn()
-                .map_err(|e| warn!("⚠️ Failed to launch Pete: {}", e));
-        } else {
-            warn!("⚠️ Programmer Pete model missing in {}", models_dir.display());
-        }
+
+    // 2. Programmer Pete (coding subagent)
+    let pete_url = format!("http://127.0.0.1:{}/v1/models", PETE_PORT);
+    if crate::inference::check_health(&pete_url).await {
+        info!("✅ Programmer Pete (Qwen REAP) running on :{}", PETE_PORT);
     } else {
-        info!("✅ Programmer Pete already running on :{}", PETE_PORT);
+        info!(
+            "⬚  Programmer Pete not detected on :{}. Launch via: llama-server -m <gguf> --port {}",
+            PETE_PORT, PETE_PORT
+        );
     }
-    
-    // 3. ART Engine (25% VRAM)
-    let art_model = models_dir.join("gemma-4-E4B-it-AWQ-4bit");
-    if !crate::inference::check_health(&format!("http://127.0.0.1:{}/v1/models", ART_PORT)).await {
-        if art_model.exists() {
-            info!("🚀 Starting ART Engine Sidecar (Port {})", ART_PORT);
-            let _ = Command::new("python3")
-                .arg("-m")
-                .arg("vllm.entrypoints.openai.api_server")
-                .arg("--model").arg(&art_model)
-                .arg("--quantization").arg("awq")
-                .arg("--gpu-memory-utilization").arg("0.25")
-                .arg("--port").arg(ART_PORT.to_string())
-                .arg("--max-model-len").arg("262144")
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null())
-                .spawn()
-                .map_err(|e| warn!("⚠️ Failed to launch ART: {}", e));
-        } else {
-            warn!("⚠️ ART Engine model missing in {}", models_dir.display());
-        }
+
+    // 3. Kokoro TTS
+    let kokoro_url = format!("http://127.0.0.1:{}/health", KOKORO_PORT);
+    if crate::http::check_health(&kokoro_url).await {
+        info!("✅ Kokoro TTS running on :{}", KOKORO_PORT);
     } else {
-        info!("✅ ART Engine already running on :{}", ART_PORT);
+        info!(
+            "⬚  Kokoro TTS not detected on :{}. Launch via: python scripts/launch/kokoro_sidecar.py",
+            KOKORO_PORT
+        );
     }
 }

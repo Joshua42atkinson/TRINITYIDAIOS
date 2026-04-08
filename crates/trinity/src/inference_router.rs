@@ -44,7 +44,7 @@ impl BackendKind {
     /// Default port for each backend kind
     pub fn default_port(&self) -> u16 {
         match self {
-            BackendKind::VllmOmni => 8000,
+            BackendKind::VllmOmni => 8010,
             BackendKind::LlamaServer => 8080,
             BackendKind::Ollama => 11434,
             BackendKind::LmStudio => 1234,
@@ -139,7 +139,7 @@ pub struct BackendConfig {
 }
 
 fn default_primary() -> String {
-    "vllm-omni".to_string()
+    "longcat-omni".to_string()
 }
 fn default_true() -> bool {
     true
@@ -309,77 +309,38 @@ impl InferenceRouter {
     /// Default backend list when no config is found
     fn default_backends() -> Vec<InferenceBackend> {
         vec![
-            // ── vLLM Omni P.A.R.T.Y. Hotel (individual model ports) ──
-            // Great Recycler — Gemma-4 31B Dense AWQ (Socratic reasoning)
+            // ── Omni-Brain (GPU) ──
+            // Socratic reasoning + Media artifacts
             InferenceBackend {
-                name: "vllm-recycler".to_string(),
-                kind: BackendKind::VllmOmni,
-                base_url: "http://127.0.0.1:8001".to_string(),
+                name: "longcat-omni".to_string(),
+                kind: BackendKind::LongCat,
+                base_url: "http://127.0.0.1:8010".to_string(),
                 supports_tools: true,
                 supports_vision: true,
                 model_name: None,
                 healthy: false,
                 last_checked: 0,
             },
-            // Programmer Pete — Gemma-4 26B MoE AWQ (action-oriented)
+            // ── Yardmaster (REAP) ──
+            // Sandboxed logic and codebase modifications via vLLM Hub
             InferenceBackend {
-                name: "vllm-pete".to_string(),
-                kind: BackendKind::VllmOmni,
-                base_url: "http://127.0.0.1:8002".to_string(),
-                supports_tools: true,
-                supports_vision: true,
-                model_name: None,
-                healthy: false,
-                last_checked: 0,
-            },
-            // Tempo Engine — Gemma-4 E4B AWQ (ASR + lightweight tasks)
-            InferenceBackend {
-                name: "vllm-tempo".to_string(),
-                kind: BackendKind::VllmOmni,
-                base_url: "http://127.0.0.1:8003".to_string(),
-                supports_tools: false,
-                supports_vision: true,
-                model_name: None,
-                healthy: false,
-                last_checked: 0,
-            },
-            // vLLM Omni proxy (if running a unified proxy on 8000)
-            InferenceBackend {
-                name: "vllm-omni".to_string(),
+                name: "yardmaster-reap".to_string(),
                 kind: BackendKind::VllmOmni,
                 base_url: "http://127.0.0.1:8000".to_string(),
                 supports_tools: true,
-                supports_vision: true,
-                model_name: None,
-                healthy: false,
-                last_checked: 0,
-            },
-            InferenceBackend {
-                name: "llama-server".to_string(),
-                kind: BackendKind::LlamaServer,
-                base_url: "http://127.0.0.1:8080".to_string(),
-                supports_tools: true,
-                supports_vision: true,
-                model_name: None,
-                healthy: false,
-                last_checked: 0,
-            },
-            InferenceBackend {
-                name: "lm-studio".to_string(),
-                kind: BackendKind::LmStudio,
-                base_url: "http://127.0.0.1:1234".to_string(),
-                supports_tools: true,
-                supports_vision: true,
-                model_name: None,
-                healthy: false,
-                last_checked: 0,
-            },
-            InferenceBackend {
-                name: "ollama".to_string(),
-                kind: BackendKind::Ollama,
-                base_url: "http://127.0.0.1:11434".to_string(),
-                supports_tools: true,
                 supports_vision: false,
+                model_name: None,
+                healthy: false,
+                last_checked: 0,
+            },
+            // ── vLLM Hotel (GPU) ──
+            // Acestep 1.5 Embeddings & P.A.R.T.Y Hotloaded models
+            InferenceBackend {
+                name: "vllm-hotel".to_string(),
+                kind: BackendKind::VllmOmni,
+                base_url: "http://127.0.0.1:8000".to_string(),
+                supports_tools: false,
+                supports_vision: true,
                 model_name: None,
                 healthy: false,
                 last_checked: 0,
@@ -608,9 +569,9 @@ mod tests {
     fn test_default_backends_created_when_no_config() {
         let router = InferenceRouter::from_config(Some("/nonexistent/path.toml"));
         assert!(!router.backends.is_empty(), "Should have default backends");
-        // Default primary is "vllm-omni", so active should select it
-        assert_eq!(router.active_name(), "vllm-omni");
-        assert_eq!(router.active_url(), "http://127.0.0.1:8000");
+        // Default primary is "longcat-omni", so active should select it
+        assert_eq!(router.active_name(), "longcat-omni");
+        assert_eq!(router.active_url(), "http://127.0.0.1:8010");
     }
 
     #[test]
@@ -735,17 +696,17 @@ supports_vision = false
     fn test_status_serialization() {
         let router = InferenceRouter::from_config(Some("/nonexistent.toml"));
         let status = router.status();
-        assert_eq!(status.active_backend, "vllm-omni");
+        assert_eq!(status.active_backend, "longcat-omni");
         assert!(!status.backends.is_empty());
 
         // Should serialize to JSON without panic
         let json = serde_json::to_string(&status).unwrap();
-        assert!(json.contains("vllm-omni"));
+        assert!(json.contains("longcat-omni"));
     }
 
     #[test]
     fn test_backend_kind_properties() {
-        assert_eq!(BackendKind::VllmOmni.default_port(), 8000);
+        assert_eq!(BackendKind::VllmOmni.default_port(), 8010);
         assert_eq!(BackendKind::LlamaServer.default_port(), 8080);
         assert_eq!(BackendKind::Ollama.default_port(), 11434);
         assert_eq!(BackendKind::LmStudio.default_port(), 1234);
@@ -770,7 +731,7 @@ model_dir = "~/trinity-models/gguf"
         let router = InferenceRouter::from_config(Some(tmp.to_str().unwrap()));
         // Should use defaults when [inference] section is missing
         assert!(!router.backends.is_empty());
-        assert_eq!(router.config.primary, "vllm-omni");
+        assert_eq!(router.config.primary, "longcat-omni");
         assert_eq!(router.config.ctx_size, 262144);
 
         std::fs::remove_file(tmp).ok();

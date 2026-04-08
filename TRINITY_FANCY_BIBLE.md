@@ -71,7 +71,7 @@
 - [Car 8: ALIGNMENT — Pete's Socratic Protocol](#-car-8-alignment--petes-socratic-protocol)
   - [8.1 Socratic Core](#81-the-socratic-core) · [8.2 System Prompt](#82-the-yardmaster-system-prompt) · [8.3 Dual Persona](#83-dual-persona-architecture) · [8.4 VAAM in Chat](#84-vaam-integration-in-chat) · [8.5 Agent Loop](#85-the-multi-turn-agent-loop)
 - [Car 9: PROXIMITY — User Interface & Experience](#-car-9-proximity--user-interface--experience)
-  - [9.1 Components](#91-the-16-react-components) · [9.2 Glassmorphism](#92-glassmorphism-design-system) · [9.3 CharacterSheet UI](#93-the-charactersheet-ui) · [9.4 Four Chariots](#94-the-four-chariots--in-app-help-menu) · [9.5 Three Modes](#95-the-three-modes)
+  - [9.1 Components](#91-the-16-react-components) · [9.2 Glassmorphism](#92-glassmorphism-design-system) · [9.3 CharacterSheet UI](#93-the-charactersheet-ui) · [9.4 Four Horses of Awareness](#94-the-four-chariots--in-app-help-menu) · [9.5 Three Modes](#95-the-three-modes)
 
 ### EYE — Refine the Wisdom *(Cars 10–12: "Where does Trinity go?")*
 
@@ -152,19 +152,21 @@ Every design decision in Trinity serves exactly three audiences:
 
 ### 1.3 The P.A.R.T.Y. Framework
 
-Trinity's AI is not one monolithic model. It is a cluster of six specialized models operating isomorphically across the 128GB unified APU matrix. Each model carries a distinct personality, responsibility, and architectural assignment, elegantly mapped to the **P.A.R.T.Y.** protocol:
+Trinity's AI is clustered across specialized sidecars operating isomorphically across the 128GB unified APU matrix. The "Dual Brain" architecture splits work between the Omni-Brain (SGLang) and the Support Hub (vLLM). This framework maps to the **P.A.R.T.Y.** protocol:
 
-| Agent | Full Name | Role | Model Spec (vLLM Omni) |
-|-------|-----------|------|-------|
-| **P** (Programming) | Programmer Pete | Code, tools, lesson building. The Executor. | `Gemma-4-26B-A4B-it` (MoE) · Port 8002 |
-| **A** (Aesthetics) | The Artist Triad | Complete visual and spatial realization. | `FLUX.1-schnell` (2D), `CogVideoX-2B` (Time), `TripoSR` (Space) |
-| **R** (Reasoning) | The Great Recycler | Socratic mentor, philosophy, deep RAG extraction. | `Gemma-4-31B-it` (Dense) · Port 8001 |
-| **T** (Tempo) | Omni_NPC | Rapid conversation, gamification loops, NPC dialogue. | `Gemma-4-E4B-it` · Port 8003 |
-| **Y** (Yardmaster) | Game/OS Agent | The native OS orchestrator binding the entire party. | The unified Rust/Bevy Client Engine. |
+| Agent | Full Name | Role | Backend Sidecar |
+|-------|-----------|------|----------------|
+| Agent | Full Name | Role | Backend Sidecar |
+|-------|-----------|------|----------------|
+| **P** (Pete) | Programmer Pete | Action-focused Executive. Code, tools, lesson building. The Exhale. | LongCat-Next 74B MoE · SGLang (Port 8010) |
+| **A** (Aesthetics)| The Artist Triad | Complete visual and spatial realization via hotloaded models. | FLUX.1-schnell, CogVideoX-2B, TripoSR · vLLM (Port 8000) |
+| **R** (Recycler) | The Great Recycler | Socratic mentor, LitRPG world builder, and deep reflection. The Inhale. | LongCat-Next 74B MoE · SGLang (Port 8010) |
+| **T** (Tempo) | Acestep 1.5 | Voice-to-text document filling, narration, and music vibe station settings. Handled by Pete utilizing native audio settings. | LongCat-Next 74B MoE · SGLang (Port 8010) |
+| **Y** (Yardmaster)| RUST REAP / OS | The unified Rust host system and the Qwen subagent backend serving Pete. | Qwen3-Coder-REAP-25B · vLLM (Port 8000) |
 
 > 📍 `main.rs:L220-268` — `installed_model_inventory()` lists all loaded models dynamically routing through EdgeGuard
 
-The **P.A.R.T.Y.** mnemonic establishes structural parity: from the highest-level stakeholder documentation down to the exact port mapping on the VRAM layer. The architecture *is* the pedagogy.
+The **P.A.R.T.Y.** mnemonic establishes structural parity. The Great Recycler and Pete represent the dual-role Inhale/Exhale nature of the single LongCat-Next Omni-Brain. The Yardmaster represents the mechanical engine supporting them. The architecture *is* the pedagogy.
 
 ### 1.4 The Three Operating Modes
 
@@ -182,11 +184,11 @@ pub enum AppMode {
 
 | Mode | User Profile | What Changes |
 |------|-------------|--------------|
-| **Iron Road** | Students, self-learners | Full game loop: quests, vocabulary battles, narrative chapters, XP/Coal/Steam economy |
-| **Express** | Working instructional designers | Streamlined wizard: PEARL → objectives → export. No game overhead. |
-| **Yardmaster** | Developers, system administrators | Multi-turn agentic chat with tool execution, file operations, code generation |
+| **Iron Road** | Primary User Focus | Full game loop: quests, vocabulary battles, narrative chapters, XP/Coal/Steam economy. This is the **mature, demo-ready** core of the Trinity OS. |
+| **Express / Art Studio** | Experimental | Out-of-band creative workspace. Currently too immature for core demos. |
+| **Yardmaster** | System Backend | Raw Subagent communication driven by RUST REAP. |
 
-The mode is stored in `AppState` and switchable at runtime via `/api/mode`:
+The mode is stored in `AppState` and switchable at runtime via `/api/mode`. (Currently, Iron Road handles 99% of user routing).
 
 > 📍 `main.rs:L133` — `pub app_mode: Arc<RwLock<AppMode>>`
 > 📍 `main.rs:L823` — `.route("/api/mode", get(get_app_mode).post(set_app_mode))`
@@ -331,14 +333,14 @@ Trinity is designed explicitly for the unified memory architecture of the **AMD 
 
 **Why this matters**: A traditional PCIe GPU maxes out at 24GB. The unified 128GB memory allows an impossible deployment on a single machine: running the *entire P.A.R.T.Y. cluster simultaneously*.
 
-#### vLLM Omni Architecture (April 2026)
+#### Dual Brain Architecture (April 2026)
 
-Trinity uses **vLLM exclusively** as its inference engine. All legacy backends (LM Studio, Ollama, llama-server) have been **permanently purged**. Under the new Linux 7 architecture, Trinity runs an ensemble of specialized Apache 2.0 models across different ports to natively provide an Omni pipeline without python wrapper hacks.
+Trinity maximizes the 128GB unified APU by routing inferences across two isolated sidecars. The legacy system relied entirely on a monolithic vLLM cluster or LM Studio. Under the new Linux 7 architecture, Trinity runs an ensemble mapping:
 
-| Port | Service | Model (Apache 2.0) | Status |
-|------|---------|---------------------|---------|
-| **8001** | Socratic Brain & Ears | Gemma-4-31B-it (Target) + E2B (Draft) | Primary 256K context + Native Audio Receiver |
-| **8002** | Programmer Pete | Gemma-4-27B-MoE-AWQ | IDE execution agent & Vision orchestration |
+| Port | Service | Model / Engine | Status |
+|------|---------|----------------|---------|
+| **8010** | **Omni-Brain (Pete)** | LongCat-Next 74B MoE (SGLang) | Primary Socratic Engine & Media Generator |
+| **8000** | **Yardmaster (REAP)** | Qwen3-Coder-REAP-25B (vLLM) | Coding Subagent & Embeddings Hub |
 | **8200** | Audio Sidecar | Kokoro TTS | Apache 2.0, 6 voice presets |
 | **3000** | Trinity Server | Axum + React | Main application |
 
@@ -359,35 +361,35 @@ vLLM runs inside a **distrobox** container, mapping ports to `127.0.0.1`. Crucia
 > **CRITICAL RULE**: To ingest massive textbooks, vLLM must be launched with `--enable-prefix-caching` and `--enable-chunked-prefill`. 
 > 📍 `docs/VLLM_LESSONS_LEARNED.md` — Full debugging history, package versions, env vars, launch commands
 
-#### Static VRAM Budget Goal
+#### SGLang, MLA Support, and Parallel Throughput
 
-The target architecture is a **fixed, predictable VRAM allocation** carved out via strict `--gpu-memory-utilization` flags. By using 4-bit AWQ weights combined with unquantized 16-bit (`auto`) KV Caches, we avoid AMD 4-bit KV Cache instability.
+To fit the 74B MoE LongCat engine alongside vLLM embeddings within the 128GB APU limit, we rely heavily on SGLang's engine optimizations:
+1. **Multi-Head Latent Attention (MLA)**: SGLang natively supports MLA decoding (standardized by models like DeepSeek V2/V3). MLA compresses the immense Keys and Values matrices into a small latent vector. This prevents the KV Cache from destroying unified memory during massive textbook ingest operations.
+2. **Dual KV Caches / RadixAttention**: Under the "Inhale" (listening) and "Exhale" (acting) cyclic pattern, SGLang utilizes a smart Radix tree that *shares* the prompt contexts natively. This allows "Parallel 2" concurrent routing through the API without physically duplicating the primary attention layers. Tensor Parallelism (`-tp 2`) can also be executed, but the unified Strix APU prefers smart batching via Radix sharing instead of manual cluster slicing.
 
-| Slot | Model | VRAM Target | Purpose |
-|------|-------|-------------|---------|
-| Recycler (8001) | Gemma-4-31B-AWQ (Target) | ~55 GiB (`0.45`) | Deep Socratic Director, 256K Text ingest |
-| | + Gemma-4-E2B-it (Speculative) | | Zero-Bubble Omni Audio draft decoder |
-| Pete (8002) | Gemma-4-27B-MoE-AWQ | ~38 GiB (`0.30`) | Sparse MoE for IDE & Omni Media Generation |
-| Voice (8200) | Kokoro TTS | ~2 GiB | Apache 2.0 voice synthesis |
-| **Total** | | **~95 GiB** | of 128 GiB unified memory |
+#### Static VRAM Budget Goal (128GB Unified)
 
-This leaves ~40 GiB safe headroom for OS overhead, Trinity DB operations, and future media models. The unified memory architecture means zero-copy between CPU and GPU — no PCIe bottleneck.
+| Slot | Sidecar | Model | VRAM Target |
+|------|---------|-------|-------------|
+| **Pete (8010)** | SGLang | LongCat-Next 74B MoE (NF4) | ~84 GiB |
+| **Yard (8000)** | vLLM | Qwen3-Coder + Embeddings | ~24 GiB |
+| **Voice (8200)**| Kokoro | Kokoro TTS | ~2 GiB |
+| **Total** | | | **~110 GiB** | 
 
-> 📍 `configs/runtime/default.toml` — Runtime backend configuration (primary = vllm-recycler)
-> 📍 `crates/trinity/src/inference_router.rs` — Multi-backend router (default primary = vllm-recycler on 8001)
-> 📍 `crates/trinity/src/health.rs` — Voice health check on port 8200
+This leaves ~18 GiB safe headroom for OS overhead and browser execution.
 
-### 1.10 The Frontend (The Accordion Train)
+> 📍 `configs/runtime/default.toml` — Runtime backend configuration
+> 📍 `crates/trinity/src/inference_router.rs` — Multi-backend router (default = longcat-omni on 8010)
 
-Trinity has officially completed the **Javascript Purge**. All React/Tauri components have been deleted. The OS operates inherently inside the `Layer 3` 3D physics engine natively utilizing Bevy `egui`.
+### 1.10 The Frontend & Javascript Phase-Out
 
-Instead of web fragments, UI is navigated spatially inside the engine using the **Accordion Train** topology (`TrainConsist` resource). The user walks the train to change their context:
+Trinity currently utilizes Javascript / React code to drive the client UI, which connects back to the Layer 1 headless server.
 
-| Context | Render Component | Purpose |
-|---------|------------------|---------|
-| `Index 0: P-Car` | `addiecrapeye.rs`, `hud.rs` | The Socratic Locomotive. Pete's workspace for executing ADDIECRAPEYE tasks and observing global system telemetry. |
-| `Index 1..N: ART-Cars` | `art_panels.rs` | The Payload Engine. A dynamic array of decoupled product workspaces for graphic, narrative, and video execution. |
-| `Index N+1: Y-Car` | `yardmaster.rs` | The Caboose. Terminal overrides, tool definitions, and manual OS overrides. |
+However, the structural goal of the Trinity ID AI OS is achieving Native Rust Supremacy. Our Javascript layer is a temporary scaffolding:
+
+1. **Current State:** The Iron Road and web interfaces run via standard `.jsx` driven logic. These are fully functional and serve as the demo-ready layer for users.
+2. **Phase-Out Strategy:** As we improve our utilization of the LongCat Omni-Brain and RUST REAP Yardmaster, the AI will gradually absorb and rewrite these JS bindings into pure Rust frontends (leveraging Bevy or native rendering tools). 
+3. **End State:** 100% Rust architecture with Python sandboxed entirely to the sidecars.
 
 > 📍 `crates/trinity-daydream/src/train_car.rs` — The dynamic train state
 
@@ -877,7 +879,7 @@ When a player's ideas generate **SemanticCreeps** (out-of-scope vocabulary or fe
 **The flow:**
 ```
 Player speaks in Story Mode
-  → Great Recycler judges scope alignment
+  → Great Recycler (Inhale) judges scope alignment
     → IN-SCOPE: stays in Design Doc (YOUR PRODUCT panel)
     → OUT-OF-SCOPE: SemanticCreep spawns in Bestiary
       → Pete activates Scout Sniper
@@ -990,7 +992,7 @@ The system tracks the user's psychological state to scaffold their learning curv
 #### Dimension 2: The Product (`PEARL`)
 "Quality can have authenticity." The system bounds creativity without crushing it via the **PEARL** (Subject, Medium, Vision).
 
-*   **Scope HOPE (Validation & Parking)**: The Great Recycler semantically bounds the user. If the user attempts to expand the software but their request *aligns* with the PEARL's vision, `agent.rs` bypasses combat. The LLM validates the idea as "100% Quality Authenticity," labels it **Scope HOPE**, and parses it into the `scope_hope_backlog` on the CharacterSheet without draining Steam. 
+*   **Scope HOPE (Validation & Parking)**: The Great Recycler (Inhale) semantically bounds the user. If the user attempts to expand the software but their request *aligns* with the PEARL's vision, `agent.rs` bypasses combat. The LLM validates the idea as "100% Quality Authenticity," labels it **Scope HOPE**, and parses it into the `scope_hope_backlog` on the CharacterSheet without draining Steam. 
 *   **Scope CREEP (Boundary Setting)**: If the idea structurally bloats or *contradicts* the PEARL, the Recycler triggers a `Scope Anomaly`. The UI flashes a red CowCatcher modal (`ScopeCreepModal`), deducts Steam, and forces the user to physically cast a Hook Card to tame the bloat. 
 *   **Autopoiesis (Evaluation)**: The `PEARL` holds `addie_score`, `crap_score`, and `eye_score`. The Recycler calculates these as phases close. If the design phase (CRAP) drifts from the analysis phase (ADDIE), the overall alignment drops, physically locking the user out of the EYE export until refined.
 
@@ -1074,7 +1076,7 @@ Trinity uses **dual persona preambles** — the same AI brain operates in two di
 
 | Persona | Mode | Thinking Style |
 |---------|------|---------------|
-| **Great Recycler** 🔮 | Strategic | Expansive, connective, asks WHY before HOW |
+| **Great Recycler (Inhale)** 🔮 | Strategic | Expansive, connective, asks WHY before HOW |
 | **Programmer Pete** ⚙️ | Execution | Focused, pragmatic, ACT FIRST |
 
 Persona selection is achieved via **system prompt differentiation** — the active persona's preamble is prepended to each inference request. The historical `id_slot` / `persona_slot()` KV cache routing mechanism has been archived; the system now relies on LM Studio's `--parallel 2` slots at the infrastructure level, with persona selection handled purely at the prompt layer.
@@ -1449,7 +1451,7 @@ Programmer Pete's fundamental behavior is the complement:
 
 > "When asked to create, you CREATE. Lesson plans, rubrics, code, artifacts — you produce them. Your job is done when the user has a product, not just a plan."
 
-This is not a suggestion — it's enforced through the dual-persona architecture. The **Great Recycler** (Slot 0) handles reflection; **Pete** (Slot 1) handles execution. Every ADDIECRAPEYE phase prompt in `conductor_leader.rs` begins with **SOCRATIC PROTOCOL** followed by 3 guiding questions.
+This is not a suggestion — it's enforced through SGLang's RadixAttention architecture (Inhale/Exhale). The **Great Recycler** (Inhale Cycle, Slot 0) handles Socratic reflection and LitRPG world-building; **Pete** (Exhale Cycle, Slot 1) handles execution. Every ADDIECRAPEYE phase prompt in `conductor_leader.rs` begins with **SOCRATIC PROTOCOL** followed by 3 guiding questions.
 
 ### 8.2 The Yardmaster System Prompt
 
@@ -1602,20 +1604,20 @@ The `CharacterSheet.jsx` component renders the **ADDIECRAPEYE Agreement** — th
 
 > 📍 `CharacterSheet.jsx` — Full component with PEARL fetch, maturation scoring, and ADDIECRAPEYE agreement grid
 
-### 9.4 The Four Chariots — In-App Help Menu
+### 9.4 The Four Horses of Awareness — In-App Help Menu
 
-Trinity's **Help Menu** (accessible via ❓ icon in NavBar) provides direct access to the project's four root documents — the "Four Chariots" that drive Trinity's self-identity:
+Trinity's **Help Menu** (accessible via ❓ icon in NavBar) provides direct access to the project's four root documents — the "Four Horses of Awareness" that drive Trinity's self-identity:
 
 | Chariot | File | Reader | Purpose |
 |---------|------|--------|---------|
 | 📖 **The Bible** | `TRINITY_FANCY_BIBLE.md` | Developers | Technical spec, every line of code explained |
 | 🤝 **Field Manual** | `ASK_PETE_FIELD_MANUAL.md` | Educators | Pete's operating philosophy & cognitive logistics |
-| 🎓 **Professor Programming** | `PROFESSOR.md` | Stakeholders | Standards alignment, privacy, institutional evaluation |
+| 🎓 **The Syllabus** | `TRINITY_SYLLABUS.md` | Stakeholders | Standards alignment, privacy, institutional evaluation |
 | 🎮 **Player's Handbook** | `PLAYERS_HANDBOOK.md` | Players | Philosophy, identity & conscious learning |
 
-When a user encounters unfamiliar terminology (e.g., "Subconscious Inventory"), Pete can direct them to the relevant Chariot. When a stakeholder questions the "gamification" approach, the Professor Programming document provides the pedagogical justification with IBSTPI/AECT/QM standards alignment.
+When a user encounters unfamiliar terminology (e.g., "Subconscious Inventory"), Pete can direct them to the relevant Chariot. When a stakeholder questions the "gamification" approach, the The Syllabus document provides the pedagogical justification with IBSTPI/AECT/QM standards alignment.
 
-> 📍 `NavBar.jsx:L12-43` — Help menu dropdown with Four Chariots links
+> 📍 `NavBar.jsx:L12-43` — Help menu dropdown with Four Horses of Awareness links
 > 📍 `main.rs:L813-824` — Static file routes serving root `.md` documents via `/docs/`
 
 ### 9.5 The Three Modes
@@ -1867,7 +1869,7 @@ Key terms defined in code, collected for reference:
 | **Lone Wolf** | Single-model mode (< 24GB VRAM) | `character_sheet.rs` |
 | **Hotel Management** | Model hot-swap protocol | `conductor_leader.rs` |
 | **Book of the Bible** | Append-only narrative ledger | `trinity-iron-road/src/book.rs` |
-| **Great Recycler** | Narrative AI that writes Book chapters | `trinity-iron-road/src/great_recycler.rs` |
+| **Great Recycler** | Narrative LitRPG AI that writes Book chapters | `trinity-iron-road/src/great_recycler.rs` |
 | **Cow Catcher** | Runtime error classification system | `cow_catcher.rs` |
 | **MCP Server** | Model Context Protocol — standardized agentic extensibility for IDE integration | `trinity-mcp-server` crate |
 | **Background Jobs** | SQLite-persisted task queue for autonomous multi-turn agent execution | `jobs.rs` |
@@ -1913,11 +1915,11 @@ Trinity is in **late prototype** stage. The Golem has its skeleton, muscles, and
 *"I have told you everything. The rest is up to you." — Pete*
 
 
-<!-- MERGED PROFESSOR.md CONTENT -->
+<!-- MERGED TRINITY_SYLLABUS.md CONTENT -->
 
 # 🎓 PROFESSOR PROGRAMMING — The Stakeholder's Guide to TRINITY ID AI OS
 
-![Professor Programming — Standards, Privacy, and Evaluation](/images/professor_evaluation.png)
+![The Syllabus — Standards, Privacy, and Evaluation](/images/professor_evaluation.png)
 
 > *"I know what success looks like."* — The Stakeholder's Tagline
 
@@ -1929,13 +1931,13 @@ Trinity is in **late prototype** stage. The Golem has its skeleton, muscles, and
 
 ## What Is This Document?
 
-This is one of **four root documents** — the "Four Chariots" of Trinity's identity:
+This is one of **four root documents** — the "Four Horses of Awareness" of Trinity's identity:
 
 | Chariot | Document | UserClass | Perspective |
 |---------|----------|-----------|-------------|
 | 📖 **The Bible** | [TRINITY_FANCY_BIBLE.md](TRINITY_FANCY_BIBLE.md) | Instructional Designer 🎓 | Full technical reference |
 | 🤝 **The Field Manual** | [ASK_PETE_FIELD_MANUAL.md](ASK_PETE_FIELD_MANUAL.md) | Subject Matter Expert 🧑‍🏫 | Pete's operating philosophy & cognitive logistics |
-| 🎓 **Professor Programming** | [PROFESSOR.md](PROFESSOR.md) *(this file)* | Stakeholder 📊 | Institutional adoption & evaluation |
+| 🎓 **The Syllabus** | [TRINITY_SYLLABUS.md](TRINITY_SYLLABUS.md) *(this file)* | Stakeholder 📊 | Institutional adoption & evaluation |
 | 🎮 **The Player's Handbook** | [PLAYERS_HANDBOOK.md](PLAYERS_HANDBOOK.md) | Player 🎮 | Philosophy, identity & conscious learning |
 
 Each document serves a different reader. This one is for **administrators, department chairs, and evaluators** who need to understand *what Trinity does, why it works, and how it maps to existing standards*.
@@ -1999,7 +2001,7 @@ Trinity is explicitly designed around two core psychological frameworks:
 
 1. **The Awakening** — User creates a character (selects their pedagogical role, hardware is scanned).
 2. **PEARL Selection** — User defines the specific competencies and learning objectives they are targeting.
-3. **12-Station Journey** — The Great Recycler guides reflection through the ADDIECRAPEYE framework; Pete executes the artifacts.
+3. **12-Station Journey** — The Great Recycler guides reflection through the ADDIECRAPEYE framework via Socratic Inhale; Pete executes the artifacts via Exhale.
 4. **Game-Theoretic Economy** — Cognitive effort is tracked as "Coal", preventing system abuse and ensuring incentive compatibility.
 5. **Quality Review** — Output is scored via automated QM matrix analysis.
 6. **Portfolio Artifact** — Completed work is stored immutably with a verified reflection and ethics review.
@@ -2012,8 +2014,8 @@ They share a unified 128GB local VRAM matrix orchestrated natively via **vLLM Om
 
 - **[P] Programming ⚙️** `[Gemma-4-26B-A4B MoE AWQ · Port 8002 · 20% VRAM]`: Programmer Pete. The Executor. Sprints through code, lesson plans, and artifacts. Optimizes for action.
 - **[A] Aesthetics 🎨** `[The Artist Triad · Ports 8004, 8006, 8007 · Hot-Swap]`: The Creation engine. FLUX, CogVideo, and TripoSR share a hot-swap pool to maximize VRAM for the brains.
-- **[R] Reasoning ⚡** `[Gemma-4-31B-Dense AWQ + E2B Draft · Port 8001 · 35% VRAM]`: The Great Recycler. The logical heart. Given an ultra-wide context window for holistic systemic horizon tracking, powered by E2B Speculative Decoding.
-- **[T] Tempo 🎵** `[Gemma-4-E4B AWQ · Port 8003 · 7% VRAM]`: The Vibe Conductor. Manages narration, mood, and music settings with a lightweight 4K focus.
+- **[R] Yardmaster (REAP) ⚡** `[Qwen3-Coder-REAP-25B · Port 8000 · 24GB VRAM]`: The mechanical OS orchestrator. A persona-less coding engine operating in the background to serve Pete's goals.
+- **[T] Tempo (Acestep 1.5) 🎵** `[LongCat-Next 74B MoE · SGLang Port 8010]`: Handled natively by Pete utilizing the built-in engine audio settings for voice-to-text, narration, and music vibe station settings.
 - **[Y] Yardmaster 🚂** `[Native Rust/BEVY Engine]`: The Governor. The user orchestrating the entire party via the React UI and Bevy Daydream engine to maintain ADDIECRAPEYE alignment.
 
 The Recycler breathes IN (questioning). Pete breathes OUT (execution), supported by the Aesthetics triad. Together they form the cycle: **reflect before you build, then build what you reflected on.**
@@ -2109,7 +2111,7 @@ Most educational AI systems treat learner anxiety as outside their scope. Trinit
 > - Jung, C. G. (1959). *Aion: Researches into the Phenomenology of the Self.* Princeton University Press.
 > - Brown, B. (2012). *Daring Greatly: How the Courage to Be Vulnerable Transforms the Way We Live, Love, Parent, and Lead.* Gotham Books.
 >
-> **Cross-references (Four Chariots coherence):**
+> **Cross-references (Four Horses of Awareness coherence):**
 > - Field Manual §3.4 — *The Ghost Train (The Shadow Protocol)* — Pete's narrative explanation using Purdue lore
 > - Player's Handbook Chapter 10 — *The Ghost Train* — First-person narrative of Part X and the Self-Validating Loop
 > - Bible §6.7 — *Intent Engineering* — Technical mapping of Stutz → ShadowStatus → RLHF wiring
@@ -2293,7 +2295,7 @@ If you are evaluating Trinity for academic or institutional purposes, here is wh
 2. Click **Trinity** in the navigation to enter the application
 3. Observe the **Iron Road** tab — this is the main instructional design workspace
 4. Open the **Character Sheet** tab — this shows the LDT Portfolio with 31 tracked metrics
-5. Click the **❓ Help** button — this shows the Four Chariots documentation system
+5. Click the **❓ Help** button — this shows the Four Horses of Awareness documentation system
 
 ### 2. API Verification (1 minute)
 ```
@@ -2311,7 +2313,7 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 
 ### 4. Key Things to Notice
 - **No cloud dependencies** — all AI runs locally on the machine
-- **The Great Recycler never generates deliverables** — he asks Socratic questions, enforced architecturally; *Pete* builds
+- **The Great Recycler's Socratic Inhale never generates deliverables** — he asks Socratic questions, enforced architecturally; *Pete's Exhale* builds
 - **Quality Matters integration** — every artifact is scored against QM standards automatically
 - **Game mechanics map to academics** — XP = competency, quests = assignments, vocabulary = creatures
 - **44 blocked command patterns** — the AI cannot execute destructive operations
@@ -2417,7 +2419,7 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 | **Session/Journal** | 🟢 82% | JournalViewer tab, reflections, bookmarks, export | Minor: search within journal |
 | **Safety/Security** | 🟢 88% | CowCatcher + EdgeGuard + 44 blocked patterns | None |
 | **Quality Assurance** | 🟢 90% | QualityScorecard — 5 dimensions, grade, recommendations | None |
-| **Documentation** | 🟢 92% | Four Chariots complete, sourcebook viewers, live demo | None |
+| **Documentation** | 🟢 92% | Four Horses of Awareness complete, sourcebook viewers, live demo | None |
 | **Project Management** | 🟡 55% | Save project in Express, `/api/projects` | Medium: no archive/restore UI |
 
 ### Overall Maturation Score
@@ -2538,7 +2540,7 @@ The "97%" figure cited earlier in development included a qualitative assessment 
 | Limitation | Impact | Mitigation |
 |-----------|--------|------------|
 | **No real user testing** | Persona evaluations are hypothetical | Plan: Purdue pilot with 5-10 students |
-| **Developer-assessed UX** | Bias toward "it works because I built it" | Mitigation: Four Chariots reviewed externally |
+| **Developer-assessed UX** | Bias toward "it works because I built it" | Mitigation: Four Horses of Awareness reviewed externally |
 | **Static route counting** | Misses runtime-generated endpoints | Low impact: Trinity has no dynamic routes |
 | **Single-session audit** | May miss intermittent failures | Mitigation: `systemd` auto-restart, health checks |
 | **grep ≠ functional test** | A `fetch()` call doesn't prove the feature works end-to-end | Mitigation: 12-claim verification table above |
@@ -2572,13 +2574,13 @@ The "97%" figure cited earlier in development included a qualitative assessment 
 
 ### Why the Hook Book Is Not a Fifth Chariot
 
-The **Four Chariots** (Bible, Handbook, Field Manual, Professor Programming) are *philosophical* — they describe Trinity's identity, principles, and governance. They are the **Dharma** of the system: its law, its structure, its purpose.
+The **Four Horses of Awareness** (Bible, Handbook, Field Manual, The Syllabus) are *philosophical* — they describe Trinity's identity, principles, and governance. They are the **Dharma** of the system: its law, its structure, its purpose.
 
-The **Hook Book** is *operational* — it catalogs executable capabilities. It is the **Karma** of the system: what actions the user can take and what consequences those actions produce. The Four Chariots tell you *why*. The Hook Book tells you *what* and *how*.
+The **Hook Book** is *operational* — it catalogs executable capabilities. It is the **Karma** of the system: what actions the user can take and what consequences those actions produce. The Four Horses of Awareness tell you *why*. The Hook Book tells you *what* and *how*.
 
 | Layer | Documents | Sanskrit Parallel | Purpose |
 |-------|-----------|------------------|---------|
-| **Dharma** (Law) | Four Chariots | The unchanging truth | Philosophy, governance, standards |
+| **Dharma** (Law) | Four Horses of Awareness | The unchanging truth | Philosophy, governance, standards |
 | **Karma** (Action) | Hook Book | The executable potential | Capabilities, workflows, recipes |
 | **Ātman** (Self) | Character Sheet | The evolving identity | The user's record of growth |
 
@@ -2778,7 +2780,7 @@ The Hook Book becomes **evidence against the ghost**. Every Hook cast is a logge
 
 ### 🪦 The Graveyard — Where Old Hooks Become New Hooks
 
-The **Archive Graveyard** is not a cemetery. It's a **composting system**. Every completed, failed, or abandoned artifact goes to the Graveyard, where it becomes raw material for future Hook chains. This is the Great Recycler's domain.
+The **Archive Graveyard** is not a cemetery. It's a **composting system**. Every completed, failed, or abandoned artifact goes to the Graveyard, where it becomes raw material for future Hook chains. This is the Great Recycler's generative domain.
 
 ```
 Lifecycle of a Hook Casting:
@@ -2817,7 +2819,7 @@ This is the architectural heart of Trinity's agentic capability. A **Hook Chain*
 ```
 User: "I need to build a complete online course for my department"
 
-Pete's internal planning (Great Recycler, Slot 0):
+Great Recycler's internal planning (Inhale Cycle, Slot 0):
   1. Check Hook Book → which Hooks match this task?
   2. Check Graveyard → has this user done similar work?
   3. Check Quest State → which ADDIECRAPEYE phase are we in?
@@ -2868,7 +2870,7 @@ During any Hook Chain, scope creep is managed by the **Scout Sniper** class:
 ```
 Mid-chain, user says: "Oh, we should also add a VR field trip!"
 
-  → Great Recycler detects scope expansion
+  → Great Recycler (Inhale) detects scope expansion
     → Scope Creep spawns in Bestiary
       → Pete activates Scout Sniper:
         SCOUT (hope): "That's a 🟡 Scribed Hook (VR/XR Scene Builder).
