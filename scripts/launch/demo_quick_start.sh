@@ -7,7 +7,7 @@ set -e
 
 SESSION="trinity-demo"
 GENESIS="$HOME/Workflow/desktop_trinity/trinity-genesis"
-LLAMA_BIN="$GENESIS/llama.cpp/build-rocm/bin/llama-server"
+LLAMA_BIN="$GENESIS/llama.cpp/build-rocm/bin/longcat-sglang"
 LLAMA_LIB="$GENESIS/llama.cpp/build-rocm/bin"
 TRINITY_BIN="$GENESIS/target/release/trinity"
 
@@ -30,8 +30,8 @@ echo "════════════════════════�
 
 # Preflight checks
 if [ ! -f "$LLAMA_BIN" ]; then
-    echo "ERROR: llama-server not found"
-    echo "Run: cd $GENESIS/llama.cpp && mkdir -p build-rocm && cd build-rocm && cmake .. -DGGML_HIPBLAS=ON && make -j\$(nproc) llama-server"
+    echo "ERROR: longcat-sglang not found"
+    echo "Run: cd $GENESIS/llama.cpp && mkdir -p build-rocm && cd build-rocm && cmake .. -DGGML_HIPBLAS=ON && make -j\$(nproc) longcat-sglang"
     exit 1
 fi
 
@@ -55,7 +55,7 @@ if tmux has-session -t "$SESSION" 2>/dev/null; then
     sleep 2
 fi
 
-pkill -f "llama-server.*--port $PORT" 2>/dev/null || true
+pkill -f "longcat-sglang.*--port $PORT" 2>/dev/null || true
 pkill -f "target/release/trinity" 2>/dev/null || true
 sleep 1
 

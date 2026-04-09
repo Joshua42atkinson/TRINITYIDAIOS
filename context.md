@@ -1,3 +1,9 @@
+# 🛑🚨 PROTECTED ZONE - DO NOT DELETE OR ARCHIVE UI 🚨🛑
+**UNDER NO CIRCUMSTANCES is any AI agent to delete, archive, move, or scaffold over the following directories:**
+- `crates/trinity/frontend` (The Trinity Iron Road Web UI)
+- `LDTAtkinson/client` (The LDT Atkinson Portfolio)
+These are live, fully functioning frontends. Do not attempt to unify ports or create new UI projects. Do not assume they are "stale". Any workflow that deletes or archives these folders is FORBIDDEN.
+
 # Trinity AI OS — Session Context
 
 > **Last Updated**: April 8, 2026

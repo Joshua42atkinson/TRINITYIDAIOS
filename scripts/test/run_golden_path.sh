@@ -271,7 +271,7 @@ if echo "$CHAT_RESPONSE" | grep -qi "error\|timeout" 2>/dev/null; then
     echo "  ⚠️  Chat:        LLM not available (headless test — expected)"
     echo ""
     echo "  To test the full loop with LLM:"
-    echo "  1. Start llama-server with a Mistral model"
+    echo "  1. Start longcat-sglang with a Mistral model"
     echo "  2. Re-run this script"
 else
     echo "  ✅ Chat:        LLM responded"

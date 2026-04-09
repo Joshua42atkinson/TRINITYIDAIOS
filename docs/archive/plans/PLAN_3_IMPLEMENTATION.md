@@ -19,14 +19,14 @@ Before implementation begins:
 
 | Step | Task | Files | Status |
 |------|------|-------|--------|
-| 1.1 | Launch llama-server with Mistral Small 4 split GGUF manually | Shell command | Ready to test |
+| 1.1 | Launch longcat-sglang with Mistral Small 4 split GGUF manually | Shell command | Ready to test |
 | 1.2 | Verify `/api/chat` returns real responses from Pete | `main.rs`, `inference.rs` | Code ready, needs live test |
 | 1.3 | Verify `/api/chat/stream` SSE works with Pete | `agent.rs` | Code ready |
 | 1.4 | Test tool-use loop (Pete calls tools, gets results, responds) | `agent.rs`, `tools.rs` | Code ready |
 
 **Launch command:**
 ```bash
-./bin/llama-server \
+./bin/longcat-sglang \
   -m ~/trinity-models/gguf/Mistral-Small-4-119B-2603-Q4_K_M-00001-of-00002.gguf \
   -c 32768 --port 8080 -ngl 99 -fa -ctk q4_0 -ctv q4_0 --no-mmap --ctx-shift
 ```
@@ -117,7 +117,7 @@ curl -X POST http://127.0.0.1:3000/api/chat \
 ### 6b. Research (R)
 | Step | Task |
 |------|------|
-| 6b.1 | Launch Crow 9B on a secondary llama-server port (`:8081`) |
+| 6b.1 | Launch Crow 9B on a secondary longcat-sglang port (`:8081`) |
 | 6b.2 | Launch REAP 25B on same port (swap based on task) |
 | 6b.3 | Wire into sidecar `/think` and `/code` endpoints |
 | 6b.4 | Test: Research agent analyzes a code file and suggests improvements |

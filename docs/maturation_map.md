@@ -31,7 +31,7 @@ To avoid cognitive overload, TRINITY dynamically engages logic engines (models) 
 
 ### 2. Programmer Pete (Qwen3-Coder REAP 25B A3B) — ⬚ NOT YET WIRED
 **Model:** Qwen3-Coder-REAP-25B-A3B-Rust (GGUF)  
-**Hardware:** CPU via `llama-server` (Vulkan/ROCm optional)  
+**Hardware:** CPU via `longcat-sglang` (Vulkan/ROCm optional)  
 **Port:** 8000 (configured in `inference_router.rs` as `pete-coder`, not yet serving)  
 **GGUF Weights Available:**
 - `Qwen3-Coder-REAP-25B-A3B-Rust-Q4_K_M.gguf` (~/trinity-models/gguf/)
@@ -39,12 +39,12 @@ To avoid cognitive overload, TRINITY dynamically engages logic engines (models) 
 
 **Role:** Subagent (The Deterministic Compiler — EXHALE)  
 **Function:**
-- Generates coding outputs sequentially alongside LongCat. Runs on CPU via `llama-server` so it does NOT compete with LongCat's GPU memory.
+- Generates coding outputs sequentially alongside LongCat. Runs on CPU via `longcat-sglang` so it does NOT compete with LongCat's GPU memory.
 - Executes `cargo_check`, writes Rust `.rs` files, builds React `.jsx`.
 - Receives tool instructions from the Great Recycler's orchestration layer.
 
 **What's Needed:**
-1. Install `llama-server` (llama.cpp) and verify it serves GGUF on port 8000
+1. Install `longcat-sglang` (llama.cpp) and verify it serves GGUF on port 8000
 2. Update `default.toml` to point `pete-coder` at port 8000
 3. Wire `agent.rs` to dispatch coding tasks to `pete-coder` instead of the active (LongCat) backend
 
@@ -73,7 +73,7 @@ To avoid cognitive overload, TRINITY dynamically engages logic engines (models) 
 │   T = Tempo (CosyVoice TTS + voice cloning)                │
 │                                                              │
 │  ████████████████  15 GB (CPU/mmap — NOT in VRAM)           │
-│  Qwen3-Coder REAP 25B A3B (Q4_K_M GGUF via llama-server) │
+│  Qwen3-Coder REAP 25B A3B (Q4_K_M GGUF via longcat-sglang) │
 │  OS = Programmer Pete (deterministic code execution)        │
 │                                                              │
 │  ░░░░░░░░░░░░░░  ~44 GB FREE                               │
@@ -87,9 +87,9 @@ To avoid cognitive overload, TRINITY dynamically engages logic engines (models) 
 | Model | Size on Disk | Runtime VRAM | Execution | P-ART-Y Role |
 |-------|-------------|-------------|-----------|-------------|
 | **LongCat-Next 74B MoE** | 151 GB (bf16) | **~84 GB** (NF4) | GPU (ROCm) | **P** + **A** + **R** + **T** |
-| **Qwen3-Coder REAP 25B A3B** (Q4_K_M) | 15 GB | **0 GB** (CPU mmap) | CPU (llama-server) | **Y** (coding) |
-| **Qwen3-Coder REAP 25B A3B** (IQ1_S) | 5 GB | **0 GB** (CPU mmap) | CPU (llama-server) | **Y** (lightweight) |
-| **Crow-9B-Opus** | 5.3 GB | **0 GB** (CPU mmap) | CPU (llama-server) | Quick captions |
+| **Qwen3-Coder REAP 25B A3B** (Q4_K_M) | 15 GB | **0 GB** (CPU mmap) | CPU (longcat-sglang) | **Y** (coding) |
+| **Qwen3-Coder REAP 25B A3B** (IQ1_S) | 5 GB | **0 GB** (CPU mmap) | CPU (longcat-sglang) | **Y** (lightweight) |
+| **Crow-9B-Opus** | 5.3 GB | **0 GB** (CPU mmap) | CPU (longcat-sglang) | Quick captions |
 | **Kokoro TTS v1.0** | 338 MB | **~0.3 GB** (ONNX) | CPU | Voice synthesis |
 | **Nomic-Embed-Text** (ONNX) | 23 MB | **~0.02 GB** | CPU/NPU | RAG embeddings |
 | **Whisper-Base** (ONNX) | 2.4 MB | **~0.1 GB** | CPU/NPU | Speech-to-text |
@@ -107,7 +107,7 @@ To avoid cognitive overload, TRINITY dynamically engages logic engines (models) 
 | FLUX.1-schnell (GGUF) | 6.4 GB | Alternative image gen |
 
 > [!NOTE]
-> **Key insight:** Because Qwen REAP runs on CPU via `llama-server` mmap, it costs **zero VRAM**. 
+> **Key insight:** Because Qwen REAP runs on CPU via `longcat-sglang` mmap, it costs **zero VRAM**. 
 > LongCat owns the GPU exclusively. The CPU has 16 Zen 5c cores available — plenty for GGUF inference 
 > at ~10-15 tok/s for code generation tasks. Pete doesn't need to be fast; he needs to be correct.
 
@@ -144,7 +144,7 @@ To avoid cognitive overload, TRINITY dynamically engages logic engines (models) 
 | **Voice pipeline** | TTS priority still Kokoro-first, needs LongCat CosyVoice | 1 hour |
 | **LitRPG prompts** | Users not addressed as protagonist in narrative | 2 hours |
 | **Frontend multimedia** | No inline image/audio rendering in chat UI | 3 hours |
-| **Programmer Pete** | No `llama-server` binary installed (deferred) | 30 min |
+| **Programmer Pete** | No `longcat-sglang` binary installed (deferred) | 30 min |
 | **Audiobook art** | Only 6/24 splash images exist | 30 min — run generation script |
 
 ### What's NEEDED for Overnight Autonomous Work 🌙
@@ -152,7 +152,7 @@ To avoid cognitive overload, TRINITY dynamically engages logic engines (models) 
 | # | Requirement | Blocks | Fix |
 |---|-------------|--------|-----|
 | 1 | **Fix `default.toml`** — route to LongCat :8010 | Everything | Update 3 port numbers |
-| 2 | **Install `llama-server`** for Qwen REAP GGUF | Pete coding agent | `apt` or build from source |
+| 2 | **Install `longcat-sglang`** for Qwen REAP GGUF | Pete coding agent | `apt` or build from source |
 | 3 | **Wire dual-dispatch in `agent.rs`** | Autonomous coding | Route code tasks to Pete, Socratic to LongCat |
 | 4 | **Verify Background Jobs** | Overnight work | Submit a test job via `/api/jobs` |
 | 5 | **Work Log persistence** | Morning review | Already wired — verify reports/ directory |
@@ -171,7 +171,7 @@ Users begin writing the Hook Book. As they establish narrative and visuals, the 
 
 ### Phase 3: The Daydream Forge (Journeyman)
 The User crosses from theory to product engineering. The Great Recycler awakens Programmer Pete to translate the ADDIECRAPEYE scaffolding into raw Rust/React logic. The User now plays a game of QA, reviewing Pete's builds against the ID's original theories.
-- **Active Subsystems:** ID (40%) via LongCat, OS (60%) via Qwen REAP on llama-server.
+- **Active Subsystems:** ID (40%) via LongCat, OS (60%) via Qwen REAP on longcat-sglang.
 
 ### Phase 4: Autopoiesis (Master)
 The User fully commands the TRINITY loop on a single, isolated Strix Halo node. The User feeds complex constraints (PEARL schemas) into the Recycler.
@@ -190,7 +190,7 @@ distrobox enter sglang-engine -- bash ./longcat_omni_sidecar/launch_engine.sh
 # Serves: text, images (DiNA), TTS (CosyVoice), STT, voice cloning
 
 # 2. Start Programmer Pete (when ready — NOT YET WIRED)
-# llama-server \
+# longcat-sglang \
 #   --model ~/trinity-models/gguf/Qwen3-Coder-REAP-25B-A3B-Rust-Q4_K_M.gguf \
 #   --port 8000 --ctx-size 32768 --n-gpu-layers 0 --threads 16
 

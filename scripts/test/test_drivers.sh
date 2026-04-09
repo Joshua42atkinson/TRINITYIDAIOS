@@ -11,12 +11,12 @@ echo "---------------------------------------------------"
 
 # Select Binary
 if [ "$DRIVER" == "hip" ]; then
-    SERVER_BIN="/home/joshua/antigravity/bin/llama-server-hip"
+    SERVER_BIN="/home/joshua/antigravity/bin/longcat-sglang-hip"
     export HSA_OVERRIDE_GFX_VERSION=11.5.1
     export HIP_VISIBLE_DEVICES=0
     export ROCR_VISIBLE_DEVICES=0
 elif [ "$DRIVER" == "vulkan" ]; then
-    SERVER_BIN="/home/joshua/antigravity/bin/llama-server-vulkan"
+    SERVER_BIN="/home/joshua/antigravity/bin/longcat-sglang-vulkan"
     export GGML_VULKAN_DEVICE=0
 else
     echo "❌ Unknown driver: $DRIVER"
@@ -29,7 +29,7 @@ if [ ! -f "$SERVER_BIN" ]; then
 fi
 
 # Cleanup
-pkill -9 -f llama-server
+pkill -9 -f longcat-sglang
 sleep 2
 
 # Start Server (Background)

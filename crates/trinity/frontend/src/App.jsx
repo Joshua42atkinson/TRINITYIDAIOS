@@ -162,8 +162,8 @@ export default function App() {
   const [started, setStarted] = useState(false);
   const [viewPhase, setViewPhase] = useState(null);
   const [appMode, setAppMode] = useState('iron_road'); // iron_road | express | yardmaster
-  const [setupComplete, setSetupComplete] = useState(false);
-  const [isCheckingSetup, setIsCheckingSetup] = useState(true);
+  const [setupComplete, setSetupComplete] = useState(true);
+  const [isCheckingSetup, setIsCheckingSetup] = useState(false);
   const [chariotDoc, setChariotDoc] = useState(null);  // filename of chariot doc to view
   const { quest, phases, currentPhaseIndex, refetch } = useQuest();
   const { bestiary } = useBestiary();

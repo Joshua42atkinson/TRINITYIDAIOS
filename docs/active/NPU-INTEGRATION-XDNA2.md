@@ -24,14 +24,14 @@
 
 ## 2. Architecture — NPU in Trinity's Hotel Pattern
 
-Trinity uses the **Hotel Pattern** for inference: multiple backends (llama-server instances) managed by `inference_router.rs`. The NPU slots into this as a **speculative decoding accelerator**:
+Trinity uses the **Hotel Pattern** for inference: multiple backends (longcat-sglang instances) managed by `inference_router.rs`. The NPU slots into this as a **speculative decoding accelerator**:
 
 ```
 ┌─────────────────────────────────────────────────────┐
 │                HOTEL PATTERN                         │
 │                                                      │
 │  ┌──────────────┐   ┌──────────────┐                │
-│  │ llama-server  │   │ llama-server  │               │
+│  │ longcat-sglang  │   │ longcat-sglang  │               │
 │  │ GPU (Primary) │   │ CPU (Fallback)│               │
 │  │ :8080         │   │ :8081         │               │
 │  └──────┬───────┘   └──────────────┘                │
@@ -209,7 +209,7 @@ EAGLE:               Draft model + Feature Reuse → Verify → Accept/Reject
 EAGLE reuses the primary model's hidden states to improve draft quality, achieving **2.5-3.5x speedup** vs. 1.5-2x for standard speculative decoding. 
 
 For Trinity, this would require:
-1. Modifying llama-server to expose hidden states
+1. Modifying longcat-sglang to expose hidden states
 2. Feeding hidden states to a small EAGLE head on the NPU
 3. This is a medium-term goal (after basic speculative decoding works)
 

@@ -15,7 +15,7 @@ systemctl stop trinity-os trinity-llama 2>/dev/null || true
 
 # 2. Kill any manual processes
 echo "[2/5] Cleaning up manual processes..."
-pkill -f "llama-server" 2>/dev/null || true
+pkill -f "longcat-sglang" 2>/dev/null || true
 pkill -f "target/release/trinity" 2>/dev/null || true
 sleep 2
 
@@ -32,7 +32,7 @@ systemctl enable trinity-llama trinity-os
 # 5. Start everything
 echo "[5/5] Starting Trinity stack..."
 systemctl start trinity-llama
-echo "  ↳ llama-server starting (model loading ~60s)..."
+echo "  ↳ longcat-sglang starting (model loading ~60s)..."
 systemctl start trinity-os
 echo "  ↳ trinity-os waiting for llama health check..."
 

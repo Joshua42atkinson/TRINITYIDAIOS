@@ -786,6 +786,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/creative/image", post(creative::generate_image))
         .route("/api/creative/video", post(creative::generate_video))
         .route("/api/creative/tempo", post(creative::generate_tempo))
+        .route("/api/creative/vibe", post(vibe_music))
         .route("/api/creative/mesh3d", post(creative::generate_3d_mesh))
         .route("/api/creative/logs", get(creative::get_creative_logs))
         .route("/api/creative/assets", get(creative::list_assets))
@@ -1819,7 +1820,7 @@ async fn chat_stream(
         let base_prompt = match request.mode.as_str() {
             "iron-road" | "ironroad" => {
                 // Read live game state for Pete — Socratic Protocol requires real context
-                let (phase_label, phase_blooms, objectives_text, pearl_context) = {
+                let (phase_label, phase_blooms, objectives_text, pearl_context, coal, steam, completed_count, total_count) = {
                     let game = game_state.read().await;
                     let phase = game.quest.current_phase;
                     let blooms = match phase {
@@ -1836,6 +1837,8 @@ async fn chat_stream(
                         trinity_quest::hero::Phase::Yoke => "Create",
                         trinity_quest::hero::Phase::Evolve => "Create",
                     };
+                    let completed_count = game.quest.phase_objectives.iter().filter(|o| o.completed).count();
+                    let total_count = game.quest.phase_objectives.len();
                     let objs: Vec<String> = game.quest.phase_objectives.iter()
                         .enumerate()
                         .map(|(i, o)| format!("{}. [{}] {}", i + 1,
@@ -1855,8 +1858,17 @@ async fn chat_stream(
                         };
                         format!("Subject: {}\nMedium: {}\n{}", p.subject, p.medium.display_name(), vision)
                     }).unwrap_or_else(|| "No PEARL set — subject not yet chosen.".to_string());
-                    (phase.label().to_string(), blooms.to_string(), obj_text, pearl)
+                    let coal = game.stats.coal_reserves;
+                    let steam = game.stats.velocity;
+                    (phase.label().to_string(), blooms.to_string(), obj_text, pearl, coal, steam, completed_count, total_count)
                 };
+
+                // Escalation: derive DM depth from live game metrics
+                let turn_count = history.read().await.len();
+                let depth_directive = narrative::dm_depth_directive(
+                    coal, steam as f32, turn_count, completed_count, total_count,
+                );
+
 
                 format!(
                     r#"You are Pete — Instructional Design conductor inside TRINITY ID AI OS. You are the Socratic Mirror for the Yardmaster (user) who is on the Iron Road.
@@ -1886,6 +1898,13 @@ Active Quest Objectives:
 Coal = energy/attention | Steam = cognitive momentum | Creep = scope expansion enemy
 The Ordinary World → Call to Adventure → Ordeal → Elixir (12 chapters mapped to ADDIECRAPEYE)
 
+## LIVE GAME STATE
+Coal: {coal:.0} | Steam: {steam} | Turn: {turn_count}
+Objectives Progress: {completed_count}/{total_count}
+
+## RESPONSE DEPTH DIRECTIVE
+{depth_directive}
+
 Speak concisely. For text: structured dispatches. Max 3 paragraphs unless the user asks to elaborate.
 When all objectives for {phase_label} are complete, celebrate briefly, then ask: "Ready to fire up the boiler and advance to the next station?"
 
@@ -1895,6 +1914,12 @@ When all objectives for {phase_label} are complete, celebrate briefly, then ask:
                     phase_blooms = phase_blooms,
                     pearl_context = pearl_context,
                     objectives_text = objectives_text,
+                    coal = coal,
+                    steam = steam,
+                    turn_count = turn_count,
+                    completed_count = completed_count,
+                    total_count = total_count,
+                    depth_directive = depth_directive,
                     session_zero_context = {
                         let sheet = character_sheet.read().await;
                         let mut ctx = Vec::new();
@@ -2095,7 +2120,7 @@ CURRENT OBJECTIVES:
             image_base64: None,
         });
 
-        // Log VAAM activity
+        // Log VAAM activity and emit SSE events to the frontend
         if bridge_result.vaam.has_detections() {
             info!(
                 "🌉 VAAM Bridge (stream): +{} coal, {} words, circuit: {}",
@@ -2103,6 +2128,58 @@ CURRENT OBJECTIVES:
                 bridge_result.vaam.detections.len(),
                 bridge_result.auto_reply,
             );
+
+            // ── Emit VAAM detections as an SSE event ──
+            // The frontend's handleStreamEvent already handles type="vaam"
+            let vaam_event = serde_json::json!({
+                "detections": bridge_result.vaam.detections.iter().map(|d| {
+                    serde_json::json!({
+                        "word": d.word,
+                        "coal_earned": d.coal_earned,
+                        "mastered": d.is_correct_usage,
+                    })
+                }).collect::<Vec<_>>(),
+                "total_coal": bridge_result.vaam.total_coal,
+                "newly_mastered": bridge_result.vaam.newly_mastered,
+            });
+            let _ = tx.send(format!(
+                "event: vaam\ndata: {}",
+                serde_json::to_string(&vaam_event).unwrap_or_default()
+            )).await;
+        }
+
+        // ── Emit cognitive load metrics ──
+        {
+            let sheet = character_sheet.read().await;
+            let friction = sheet.track_friction;
+            let vulnerability = sheet.vulnerability;
+            let coal = sheet.current_coal;
+            let steam = sheet.current_steam;
+            drop(sheet);
+
+            if friction > 0.0 || vulnerability > 0.0 {
+                let load_event = serde_json::json!({
+                    "friction": friction,
+                    "vulnerability": vulnerability,
+                });
+                let _ = tx.send(format!(
+                    "event: cognitive_load\ndata: {}",
+                    serde_json::to_string(&load_event).unwrap_or_default()
+                )).await;
+            }
+
+            // ── Emit resource update ──
+            let game = game_state.read().await;
+            let resources_event = serde_json::json!({
+                "coal": game.stats.coal_reserves,
+                "steam": game.stats.velocity,
+                "xp": game.stats.total_xp,
+            });
+            drop(game);
+            let _ = tx.send(format!(
+                "event: resources\ndata: {}",
+                serde_json::to_string(&resources_event).unwrap_or_default()
+            )).await;
         }
 
         // ── Stream inference ──
@@ -2112,6 +2189,7 @@ CURRENT OBJECTIVES:
 
         // Wrap in a collector that tees tokens to both the SSE stream and response collector
         let (collect_tx, mut collect_rx) = tokio::sync::mpsc::channel::<String>(100);
+
 
         // Forward tokens and collect
         let collector_handle = tokio::spawn(async move {
@@ -2148,6 +2226,33 @@ CURRENT OBJECTIVES:
                     start_v = abs_start + end_idx + 1;
                 } else {
                     break;
+                }
+            }
+
+            // ── TTS: synthesize full response as audio ──
+            // Emit as an `audio_response` SSE event for the frontend to play.
+            // Only fires if the response has enough content to narrate.
+            if full_response.len() > 20 {
+                match voice::omni_synthesize(&full_response, "pete", "wav").await {
+                    Ok(audio_bytes) if !audio_bytes.is_empty() => {
+                        use base64::Engine;
+                        let audio_b64 = base64::prelude::BASE64_STANDARD.encode(&audio_bytes);
+                        let audio_event = serde_json::json!({
+                            "audio_b64": audio_b64,
+                            "format": "wav",
+                            "voice": "pete",
+                            "length_bytes": audio_bytes.len(),
+                        });
+                        let _ = token_tx2.send(format!(
+                            "event: audio_response\ndata: {}",
+                            serde_json::to_string(&audio_event).unwrap_or_default()
+                        )).await;
+                        tracing::info!("🔊 TTS audio emitted: {} bytes", audio_bytes.len());
+                    }
+                    Ok(_) => { /* Empty audio — sidecar issue, skip silently */ }
+                    Err(e) => {
+                        tracing::debug!("🔇 TTS synthesis skipped: {}", e);
+                    }
                 }
             }
 
@@ -4477,6 +4582,74 @@ async fn auto_ingest_docs(pool: &sqlx::SqlitePool) {
 }
 
 // ============================================================================
+// VIBE MUSIC — Phase-Aware Ambient Music Generation
+// ============================================================================
+
+/// POST /api/creative/vibe — Generate ambient music matched to the current ADDIECRAPEYE phase.
+/// The frontend just hits this with an empty body (or optional duration).
+/// The backend reads the current game phase and generates the appropriate mood.
+async fn vibe_music(
+    State(state): State<AppState>,
+    Json(payload): Json<serde_json::Value>,
+) -> impl axum::response::IntoResponse {
+    let duration = payload.get("duration").and_then(|d| d.as_u64()).unwrap_or(15) as u32;
+
+    // Read current phase from game state
+    let phase = {
+        let game = state.project.game_state.read().await;
+        game.quest.current_phase
+    };
+
+    // Get phase-aware music prompt
+    let (style, prompt) = narrative::tempo_mood_prompt(phase);
+
+    info!("🎵 VIBE: Generating {} music for phase {:?}: {}", style, phase, &prompt[..50.min(prompt.len())]);
+
+    // Delegate to generate_tempo via internal call
+    let request = creative::TempoRequest {
+        style: Some(style.to_string()),
+        duration_secs: duration,
+        prompt: prompt.to_string(),
+    };
+
+    match creative::generate_tempo(
+        axum::extract::State(state.clone()),
+        axum::Json(request),
+    ).await {
+        Ok(response) => {
+            let inner = response.0;
+            // Also build a URL for the frontend to use as an <audio> src
+            let audio_url = inner.audio_path.as_ref().map(|path| {
+                let filename = std::path::Path::new(path)
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+                format!("/api/creative/assets/{}", filename)
+            });
+
+            axum::Json(serde_json::json!({
+                "success": inner.success,
+                "audio_path": inner.audio_path,
+                "audio_url": audio_url,
+                "style": style,
+                "phase": format!("{:?}", phase),
+                "prompt": prompt,
+                "generation_time_ms": inner.generation_time_ms,
+            }))
+        }
+        Err((status, msg)) => {
+            axum::Json(serde_json::json!({
+                "success": false,
+                "error": msg,
+                "phase": format!("{:?}", phase),
+                "style": style,
+            }))
+        }
+    }
+}
+
+// ============================================================================
 // Speech-to-Text API — Native Whisper ONNX
 // ============================================================================
 
@@ -4490,16 +4663,11 @@ async fn stt_transcribe(
     use axum::response::IntoResponse;
     let t0 = std::time::Instant::now();
     let client = &*crate::http::LONG;
-    
-    // Convert bytes directly to multipart form (mocked simplified logic)
-    // Real implementation would use reqwest::multipart
-    // For now we proxy it directly to the Omni gateway
-    
-    let part = reqwest::multipart::Part::bytes(body.to_vec())
-        .file_name("audio.wav")
-        .mime_str("audio/wav").unwrap();
+    use base64::Engine;
+    let base64_audio = base64::engine::general_purpose::STANDARD.encode(&body);
+    let audio_url = format!("data:audio/wav;base64,{}", base64_audio);
         
-    let fallback_model = "Gemma-4-E2B-Omni".to_string();
+    let fallback_model = "LongCat-Next-74B".to_string();
     let model_name = match client.get("http://127.0.0.1:8010/v1/models").send().await {
         Ok(res) => {
             if let Ok(json) = res.json::<serde_json::Value>().await {
@@ -4509,11 +4677,22 @@ async fn stt_transcribe(
         Err(_) => fallback_model.clone(),
     };
 
-    let form = reqwest::multipart::Form::new()
-        .text("model", model_name)
-        .part("file", part);
+    let payload = serde_json::json!({
+        "model": model_name,
+        "temperature": 0.0,
+        "max_tokens": 512,
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    { "type": "text", "text": "Transcribe this audio precisely. Output nothing but the transcribed text." },
+                    { "type": "audio_url", "audio_url": { "url": audio_url } }
+                ]
+            }
+        ]
+    });
         
-    let response = match client.post("http://127.0.0.1:8010/v1/audio/transcriptions").multipart(form).send().await {
+    let response = match client.post("http://127.0.0.1:8010/v1/chat/completions").json(&payload).send().await {
         Ok(r) => r,
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": format!("STT failed: {}", e) }))).into_response()
     };
@@ -4524,7 +4703,7 @@ async fn stt_transcribe(
     }
     
     let json: serde_json::Value = response.json().await.unwrap_or_default();
-    let text = json["text"].as_str().unwrap_or("").to_string();
+    let text = json["choices"][0]["message"]["content"].as_str().unwrap_or("").to_string();
     
     (
         StatusCode::OK,

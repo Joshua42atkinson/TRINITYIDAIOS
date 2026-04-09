@@ -6,7 +6,7 @@ This script provides a step-by-step demonstration of the TRINITY ID AI OS "Iron 
 
 ### Prerequisites
 - TRINITY ID AI OS compiled and running (`cargo run --bin trinity`)
-- LLM server accessible (Mistral Small 4 119B via llama-server)
+- LLM server accessible (Mistral Small 4 119B via longcat-sglang)
 - PostgreSQL database running
 - Browser pointed to `http://localhost:3000`
 
@@ -209,11 +209,11 @@ This script provides a step-by-step demonstration of the TRINITY ID AI OS "Iron 
 ### System Requirements
 - Rust toolchain installed
 - PostgreSQL running locally
-- llama-server running with Mistral Small 4 119B
+- longcat-sglang running with Mistral Small 4 119B
 - Modern web browser
 
 ### Common Demo Issues & Solutions
-1. **LLM Connection**: Ensure llama-server is running before starting
+1. **LLM Connection**: Ensure longcat-sglang is running before starting
 2. **Database Issues**: Check PostgreSQL connection string in .env
 3. **Resource Display**: Refresh browser if resource meters don't update
 4. **Voice Features**: Note that voice is handled by Python sidecar (optional for demo)

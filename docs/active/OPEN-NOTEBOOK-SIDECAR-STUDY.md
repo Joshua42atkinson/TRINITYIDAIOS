@@ -18,7 +18,7 @@ Trinity's existing document ingestion pipeline (`rag.rs`):
 | **Chunking** | Paragraph-boundary splitting (~500 words/chunk) | ✅ Working |
 | **Text Search** | SQLite `LIKE` fallback | ✅ Working |
 | **Semantic Search** | ONNX cosine similarity (in-memory) | ✅ Working |
-| **Embedding** | llama-server `/v1/embeddings` → hash fallback | ✅ Working |
+| **Embedding** | longcat-sglang `/v1/embeddings` → hash fallback | ✅ Working |
 | **Auto-Ingest** | 7 key docs ingested at server startup | ✅ Working |
 | **User Upload** | ❌ Not implemented | 🔴 Missing |
 | **Document CRUD** | ❌ No delete/update UI | 🔴 Missing |

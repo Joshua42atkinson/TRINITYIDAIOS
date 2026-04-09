@@ -10,7 +10,7 @@
 ├─ 96GB VRAM (BIOS v1.05 UMA_SPECIFIED) ← GPU/model workspace
 ├─ 32GB System RAM ← OS, Rust compiler, PostgreSQL, browser
 ├─ NPU: XDNA 2, 52 TOPS ← Always-on, 1-1.5B ONNX models only
-├─ GPU: Radeon 8060S, 40 CUs, RDNA 3.5 ← llama-server with -ngl 99
+├─ GPU: Radeon 8060S, 40 CUs, RDNA 3.5 ← longcat-sglang with -ngl 99
 └─ MiniMax verified: 16.8 tok/s on this hardware
 ```
 

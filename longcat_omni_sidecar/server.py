@@ -22,19 +22,36 @@ import base64
 import json
 import base64
 import torch
-import torchaudio
 import soundfile as sf
 
 # ── MONKEY PATCH TORCHAUDIO ──────────────────────────────────────────
 # torchcodec fails to link its precompiled ffmpeg dependencies in Fedora.
 # We intercept all torchaudio.save calls here and route them strictly 
 # through the native python-soundfile library.
-def patched_torchaudio_save(filepath, src, sample_rate, *args, **kwargs):
-    if src.ndim == 2:
-        src = src.t()  # Transpose from (Channels, Length) to (Length, Channels)
-    sf.write(filepath, src.detach().cpu().numpy(), sample_rate)
-
-torchaudio.save = patched_torchaudio_save
+# If torchaudio is not installed, we create a minimal shim module.
+try:
+    import torchaudio
+    def patched_torchaudio_save(filepath, src, sample_rate, *args, **kwargs):
+        if src.ndim == 2:
+            src = src.t()  # Transpose from (Channels, Length) to (Length, Channels)
+        sf.write(filepath, src.detach().cpu().numpy(), sample_rate)
+    torchaudio.save = patched_torchaudio_save
+except ImportError:
+    import types
+    import importlib
+    torchaudio = types.ModuleType("torchaudio")
+    torchaudio.__spec__ = importlib.machinery.ModuleSpec("torchaudio", None)
+    torchaudio.__version__ = "0.0.0-shim"
+    def _sf_save(filepath, src, sample_rate, *args, **kwargs):
+        import numpy as np
+        data = src.detach().cpu().numpy() if hasattr(src, 'detach') else src
+        if data.ndim == 2:
+            data = data.T
+        sf.write(filepath, data, sample_rate)
+    torchaudio.save = _sf_save
+    import sys
+    sys.modules["torchaudio"] = torchaudio
+    print("⚠️ torchaudio not installed — using soundfile shim")
 # ─────────────────────────────────────────────────────────────────────
 
 import asyncio
@@ -143,14 +160,24 @@ async def health():
 
 @app.post("/v1/chat/completions")
 async def chat_completions(request: Request):
-    """OpenAI-compatible chat completions — text generation."""
+    """OpenAI-compatible chat completions — text + streaming support."""
     data = await request.json()
     messages = data.get("messages", [])
     max_tokens = data.get("max_tokens", 2048)
     temperature = data.get("temperature", 0.7)
     do_sample = temperature > 0
+    stream = data.get("stream", False)
 
     if not model_loaded:
+        if stream:
+            async def mock_stream():
+                chunk = json.dumps({
+                    "choices": [{"delta": {"content": "[LongCat-Next not yet loaded — mock response]"}, "index": 0}],
+                    "model": MODEL_NAME,
+                })
+                yield f"data: {chunk}\n\n"
+                yield "data: [DONE]\n\n"
+            return StreamingResponse(mock_stream(), media_type="text/event-stream")
         return JSONResponse({
             "choices": [{
                 "message": {
@@ -166,6 +193,56 @@ async def chat_completions(request: Request):
         )
         inputs = tokenizer(text_input, return_tensors="pt").to(model.device)
 
+        if stream:
+            # ── SSE Streaming via TextIteratorStreamer ──
+            # Runs model.generate() in a background thread; yields tokens
+            # as OpenAI-compatible SSE chunks to the Rust backend.
+            from transformers import TextIteratorStreamer
+            from threading import Thread
+
+            streamer = TextIteratorStreamer(
+                tokenizer,
+                skip_prompt=True,
+                skip_special_tokens=True,
+            )
+
+            generation_kwargs = dict(
+                **inputs,
+                max_new_tokens=max_tokens,
+                do_sample=do_sample,
+                temperature=temperature if do_sample else None,
+                top_p=0.85 if do_sample else None,
+                streamer=streamer,
+            )
+
+            # Launch generation in a background thread (GIL is released
+            # during CUDA/ROCm kernels, so the async loop stays responsive)
+            thread = Thread(target=lambda: model.generate(**generation_kwargs))
+            thread.start()
+
+            async def token_stream():
+                try:
+                    for token_text in streamer:
+                        if not token_text:
+                            continue
+                        chunk = json.dumps({
+                            "choices": [{
+                                "delta": {"content": token_text},
+                                "index": 0,
+                                "finish_reason": None,
+                            }],
+                            "model": MODEL_NAME,
+                        })
+                        yield f"data: {chunk}\n\n"
+                except Exception as stream_err:
+                    print(f"⚠️ Streaming error: {stream_err}")
+                finally:
+                    thread.join(timeout=120)
+                    yield "data: [DONE]\n\n"
+
+            return StreamingResponse(token_stream(), media_type="text/event-stream")
+
+        # ── Non-streaming (original behavior) ──
         with torch.no_grad():
             outputs = model.generate(
                 **inputs,
@@ -354,6 +431,96 @@ async def text_to_speech(request: Request):
         import traceback
         traceback.print_exc()
         return Response(content=_mock_wav_bytes(), media_type="audio/wav")
+
+
+@app.post("/v1/audio/generations")
+async def audio_generations(request: Request):
+    """
+    TEMPO — Acestep 1.5 music generation via DiNA audio tokens.
+    Generates ambient/mood music for the Iron Road vibe system.
+    Uses the CosyVoice audio pipeline with music-specific prompting.
+
+    Request: {"prompt": "ambient steampunk...", "style": "ambient", "duration": 15}
+    Response: {"data": [{"b64_json": "...base64 WAV..."}]}
+    """
+    data = await request.json()
+    prompt = data.get("prompt", "ambient background music")
+    style = data.get("style", "ambient")
+    duration = min(data.get("duration", 15), 30)  # Cap at 30 seconds
+
+    if not model_loaded:
+        print(f"MOCK: TEMPO generation for style={style}: {prompt}")
+        return JSONResponse({"data": [{"b64_json": base64.b64encode(_mock_wav_bytes()).decode()}]})
+
+    try:
+        # Build a music generation prompt that leverages LongCat's audio
+        # token pipeline. The audiogen trigger tells the model to produce
+        # discrete audio tokens instead of text tokens.
+        music_system = (
+            f"You are a music composer. Generate a {duration}-second "
+            f"{style} instrumental music piece. No vocals. "
+            f"Style and mood: {prompt}"
+        )
+
+        messages = [
+            {"role": "system", "content": music_system},
+            {"role": "user", "content": f"Generate the music now.<longcat_audiogen_start>"}
+        ]
+
+        text_input = tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True
+        )
+        inputs = tokenizer(text_input, return_tensors="pt").to(model.device)
+
+        # Calculate max tokens based on duration
+        # CosyVoice generates at 12.5 Hz with 8-layer RVQ
+        # ~12.5 tokens/sec × 8 layers × duration
+        max_audio_tokens = min(int(12.5 * 8 * duration), 4096)
+
+        with torch.no_grad():
+            outputs = model.generate(
+                **inputs,
+                return_dict_in_generate=True,
+                max_new_tokens=max_audio_tokens,
+                do_sample=True,
+                temperature=0.8,    # Slightly higher creativity for music
+                top_k=50,
+                top_p=0.9,
+                repetition_penalty=1.05,
+            )
+
+        # Check for audio token output
+        output_audio_ids = getattr(outputs, 'audio_ids', None)
+        if output_audio_ids is not None and output_audio_ids.size(0) > 0:
+            save_prefix = "/tmp/longcat_tempo"
+            gen_config = getattr(model.generation_config, 'audio_generation_config', {})
+            custom_params = gen_config.get("custom_params", {
+                "sampling_rate": 24000,
+                "wave_concat_overlap": 1200
+            })
+
+            audio_path_list = model.model.decode_audio_ids_and_save(
+                output_audio_ids,
+                save_prefix=save_prefix,
+                **custom_params
+            )
+
+            if audio_path_list:
+                with open(audio_path_list[0], "rb") as f:
+                    audio_bytes = f.read()
+                encoded = base64.b64encode(audio_bytes).decode("utf-8")
+                print(f"🎵 TEMPO: Generated {len(audio_bytes)} bytes of {style} music")
+                return JSONResponse({"data": [{"b64_json": encoded}]})
+
+        # Fallback: model didn't produce audio tokens
+        print("⚠️ TEMPO: Model returned text instead of audio tokens, using mock")
+        return JSONResponse({"data": [{"b64_json": base64.b64encode(_mock_wav_bytes()).decode()}]})
+
+    except Exception as e:
+        print(f"❌ TEMPO generation failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"data": [{"b64_json": base64.b64encode(_mock_wav_bytes()).decode()}]})
 
 
 @app.post("/v1/audio/transcriptions")

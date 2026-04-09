@@ -10,7 +10,7 @@
 # From the trinity-genesis workspace
 ./scripts/launch/demo_quick_start.sh
 # or manually:
-llama-server \
+longcat-sglang \
   -m ~/trinity-models/gguf/Mistral-Small-4-119B-2603-Q4_K_M-00001-of-00002.gguf \
   --host 0.0.0.0 --port 8080 -ngl 99 -c 8192
 ```
@@ -76,7 +76,7 @@ curl -X POST http://localhost:3000/api/chat/yardmaster \
 ### LLM Not Responding
 ```bash
 curl http://localhost:8080/health
-# If down, restart llama-server (see Quick Start step 1)
+# If down, restart longcat-sglang (see Quick Start step 1)
 ```
 
 ### Database Issues

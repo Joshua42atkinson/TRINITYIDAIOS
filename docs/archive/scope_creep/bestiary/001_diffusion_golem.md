@@ -16,5 +16,5 @@ To safely merge the Diffusion Golem back into the Iron Road:
 1. **Analysis:** Verify if `diffusion.cpp` offers a clear performance advantage over local `ComfyUI` REST calls for *our specific asset generation needs*.
 2. **Design:** Create an asynchronous worker pool in Bevy that does *not* block the main render thread when the C++ FFI is invoked.
 3. **Development:** Rewrite the mock `diffusion_asset.rs` to actually link against the `diffusion.cpp` static library using `bindgen`.
-4. **Evaluation:** Ensure the memory footprint of the loaded diffusion model does not clash with the `llama-server` KV cache (The UMA Trap).
+4. **Evaluation:** Ensure the memory footprint of the loaded diffusion model does not clash with the `longcat-sglang` KV cache (The UMA Trap).
 5. **Yield:** If it passes the evaluation, it becomes an equippable "Artifact Generator" for the Artist sidecar.

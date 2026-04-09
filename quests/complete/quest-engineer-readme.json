@@ -39,7 +39,7 @@
       },
       {
         "id": 3,
-        "reason": "Understand the llama-server integration and client API",
+        "reason": "Understand the longcat-sglang integration and client API",
         "target": "crates/trinity-sidecar-engineer/src/llama.rs",
         "type": "read_file"
       },

@@ -98,7 +98,7 @@ pub enum NodeType {
 | `TRINITY_PROFILE` | Load profile | `conductor`, `engineer` | `rust_coder` |
 | `HOME` | Vector store base | `/home/joshua` | System default |
 | `DATABASE_URL` | PostgreSQL connection | `postgres://trinity:trinity@localhost/trinity` | `postgres://postgres:postgres@localhost:5432/trinity` |
-| `LLAMA_URL` | llama-server endpoint | `http://localhost:8080` | `http://127.0.0.1:8080` |
+| `LLAMA_URL` | longcat-sglang endpoint | `http://localhost:8080` | `http://127.0.0.1:8080` |
 
 ### 1.5 Hardware-Specific Configs
 
@@ -343,7 +343,7 @@ pub async fn list_tools() -> Json<Vec<ToolInfo>> {
 | `/code` | POST | Direct REAP prompt (Sword) |
 | `/shutdown` | POST | Graceful shutdown |
 
-### 2.3 llama-server API (Port 8080, 8081, 8082)
+### 2.3 longcat-sglang API (Port 8080, 8081, 8082)
 
 **Base URL:** `http://localhost:8080/v1`
 
@@ -539,11 +539,11 @@ LIMIT 10;
 
 ## 4. Model Launch Parameters
 
-### 4.1 llama-server Commands
+### 4.1 longcat-sglang Commands
 
 **Conductor (Mistral Small 4):**
 ```bash
-./llama.cpp/build/bin/llama-server \
+./llama.cpp/build/bin/longcat-sglang \
   -m ~/trinity-models/gguf/Mistral-Small-24B-Instruct-2501-Q4_K_M.gguf \
   -ngl 99 \                          # GPU layers (99 = all)
   -c 32768 \                         # Context size
@@ -554,7 +554,7 @@ LIMIT 10;
 
 **Engineer (Qwen3-Coder-25B):**
 ```bash
-./llama.cpp/build/bin/llama-server \
+./llama.cpp/build/bin/longcat-sglang \
   -m ~/trinity-models/gguf/Qwen3-Coder-REAP-25B-A3B-Rust-Q4_K_M.gguf \
   -ngl 99 \
   -c 32768 \
@@ -565,7 +565,7 @@ LIMIT 10;
 
 **Swarm/Researcher (Crow-9B or OmniCoder-9B):**
 ```bash
-./llama.cpp/build/bin/llama-server \
+./llama.cpp/build/bin/longcat-sglang \
   -m ~/trinity-models/gguf/Crow-9B-Opus-4.6-Distill-Heretic_Qwen3.5.i1-Q4_K_M.gguf \
   -ngl 99 \
   -c 32000 \
@@ -614,9 +614,9 @@ LIMIT 10;
 | Port | Service | Model | Notes |
 |------|---------|-------|-------|
 | 3000 | Trinity Server | — | Main HTTP API, static files |
-| 8080 | llama-server | Mistral Small 4 | Conductor, always on |
-| 8081 | llama-server | Crow-9B, etc. | Swarm/Researcher |
-| 8082 | llama-server | Qwen3-Coder-25B | Engineer (on-demand) |
+| 8080 | longcat-sglang | Mistral Small 4 | Conductor, always on |
+| 8081 | longcat-sglang | Crow-9B, etc. | Swarm/Researcher |
+| 8082 | longcat-sglang | Qwen3-Coder-25B | Engineer (on-demand) |
 | 8090 | Sidecar Engineer | — | Axum API for sidecar control |
 | 8091 | Sidecar Artist | — | Creative generation |
 | 8092 | Sidecar Evaluator | — | QM evaluation |

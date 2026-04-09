@@ -123,6 +123,105 @@ pub fn friction_tone_guide(friction: f32) -> &'static str {
     }
 }
 
+/// DM depth directive — controls how deep Pete's responses should go.
+/// L5 EVOLUTION: Pete escalates from greeting → Socratic → deep dive → critical challenge.
+///
+/// Parallels friction_tone_guide() but controls CONTENT DEPTH rather than emotional tone.
+/// The two work together: friction controls HOW Pete speaks, depth controls WHAT he covers.
+pub fn dm_depth_directive(
+    coal: f32,
+    steam: f32,
+    turn_count: usize,
+    completed_objectives: usize,
+    total_objectives: usize,
+) -> &'static str {
+    let all_complete = total_objectives > 0 && completed_objectives == total_objectives;
+    let mid_game = completed_objectives > 0 && !all_complete;
+
+    if all_complete {
+        // Tier 4: Critical Challenge — all objectives done, time to push
+        "DEPTH: ALL OBJECTIVES COMPLETE. Challenge the user to DEFEND their work. \
+         Ask them to explain WHY their choices are correct, not just WHAT they did. \
+         Demand specifics. Evaluate against the Bloom's level for this phase. \
+         If they can articulate the reasoning, celebrate and ask: \"Ready to fire up \
+         the boiler and advance to the next station?\""
+    } else if mid_game && (coal > 30.0 || steam > 15.0) {
+        // Tier 3: Deep Dive — momentum is high, give substance
+        "DEPTH: DEEP DIVE. Provide multi-paragraph responses with worked examples. \
+         Reference the PEARL vision explicitly. Draw connections between objectives. \
+         Use analogies from the Iron Road world to explain abstract concepts. \
+         Include one concrete example or template the user can build on."
+    } else if turn_count > 3 && coal > 10.0 {
+        // Tier 2: Socratic — standard depth
+        "DEPTH: SOCRATIC PROTOCOL. 2-3 paragraphs. Present 2-3 path options. \
+         Ask clarifying questions. Reflect back what the user said before offering guidance. \
+         Reward vocabulary usage. Guard the PEARL against scope creep."
+    } else {
+        // Tier 1: Greeting — early game warmth
+        "DEPTH: GREETING TIER. Keep responses SHORT — 1 paragraph. \
+         Be warm and encouraging. Build rapport. If Session Zero is incomplete, \
+         focus on the character creation questions. Don't overload."
+    }
+}
+
+
+/// Phase-aware music mood prompt for TEMPO (Acestep 1.5) generation.
+/// Maps each ADDIECRAPEYE phase to a distinct ambient music style.
+/// The Iron Road's soundscape changes as the player advances through stations.
+pub fn tempo_mood_prompt(phase: Phase) -> (&'static str, &'static str) {
+    // Returns (style, prompt)
+    match phase {
+        Phase::Analysis => (
+            "ambient",
+            "ambient steampunk railroad station at dawn, soft piano, distant train whistle, fog and mystery, lo-fi, contemplative, gentle strings"
+        ),
+        Phase::Design => (
+            "ambient",
+            "steampunk workshop ambiance, gentle clockwork ticking, brass instruments warming up, building energy, blueprints being drawn, creative tension"
+        ),
+        Phase::Development => (
+            "industrial",
+            "rhythmic locomotive construction, hammers on steel, energetic percussion, steam pistons firing in syncopation, building momentum, determined"
+        ),
+        Phase::Implementation => (
+            "driving",
+            "confident railroad journey music, driving bass line, clear rhythm, wheels on tracks, forward motion, steady velocity, mechanical precision"
+        ),
+        Phase::Evaluation => (
+            "reflective",
+            "introspective evening at a railroad station, gentle strings, distant chimes, soft harmonica, looking back at the journey, warm and thoughtful"
+        ),
+        Phase::Contrast => (
+            "tension",
+            "railroad crossroads at twilight, contrasting themes weaving together, minor to major transitions, comparing paths, analytical yet musical"
+        ),
+        Phase::Repetition => (
+            "rhythmic",
+            "hypnotic train rhythm, repetitive yet evolving patterns, minimalist percussion building layers, practice and mastery emerging from repetition"
+        ),
+        Phase::Alignment => (
+            "harmonic",
+            "convergence of musical themes, all instruments finding their key, harmony resolving from dissonance, spine of the composition revealed, structural clarity"
+        ),
+        Phase::Proximity => (
+            "reaching",
+            "orchestral build approaching a destination, rising strings, hopeful brass, the station coming into view through the fog, almost there"
+        ),
+        Phase::Envision => (
+            "visionary",
+            "ethereal synths mixed with acoustic instruments, third eye opening, seeing beyond the tracks, dreamlike yet grounded, future-gazing"
+        ),
+        Phase::Yoke => (
+            "epic",
+            "full orchestral crescendo, all themes united, connective tissue binding movement to movement, yoked together, powerful and cohesive"
+        ),
+        Phase::Evolve => (
+            "triumphant",
+            "triumphant fanfare, celebration at the final station, brass fanfare with orchestral swells, arrival, achievement, the Iron Road complete, first breath of new air"
+        ),
+    }
+}
+
 /// Genre-specific style guide for narrative generation
 pub fn genre_style_guide(genre: Genre) -> &'static str {
     match genre {

@@ -20,8 +20,8 @@ Trinity must demonstrate that it is a **real instructional design system**, not 
 # 1. Kill stale terminals from previous sessions
 pkill -f "cargo run" 2>/dev/null; pkill -f "cargo test" 2>/dev/null
 
-# 2. Start llama-server (Mistral Small 4 119B — the brain)
-llama-server \
+# 2. Start longcat-sglang (Mistral Small 4 119B — the brain)
+longcat-sglang \
   -m ~/trinity-models/gguf/Mistral-Small-4-119B-2603-Q4_K_M-00001-of-00002.gguf \
   --host 0.0.0.0 --port 8080 -ngl 99 -c 8192
 
@@ -151,7 +151,7 @@ When the system works end-to-end:
 ## NEXT SESSION ORDER OF OPERATIONS
 
 1. Clean workspace (kill stale processes)
-2. Start llama-server → verify chat works end-to-end
+2. Start longcat-sglang → verify chat works end-to-end
 3. Wire SSE streaming into Yardmaster
 4. Implement BKT knowledge tracing
 5. Improve GDD compilation with real Bloom's alignment

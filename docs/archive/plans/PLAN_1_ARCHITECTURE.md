@@ -39,7 +39,7 @@ Trinity runs multiple AI models simultaneously. Each model has a specific servin
 └────────────────┼──────────────┼────────────────┼───────────────┘
                  │              │                │
     ┌────────────▼───┐  ┌──────▼──────┐  ┌──────▼──────────────┐
-    │ llama-server   │  │ SIDECAR     │  │ SIDECAR             │
+    │ longcat-sglang   │  │ SIDECAR     │  │ SIDECAR             │
     │ (:8080)        │  │ (:8090)     │  │ (vLLM :8000)        │
     │                │  │             │  │                      │
     │ GGUF models:   │  │ Rust +PyO3  │  │ Python (PyO3-spawned)│
@@ -56,11 +56,11 @@ Trinity runs multiple AI models simultaneously. Each model has a specific servin
 
 | Model | Size | Format | Serving | Port | Protocol |
 |-------|------|--------|---------|------|----------|
-| Mistral Small 4 119B (Pete) | 68GB GGUF | Split GGUF | llama-server | 8080 | OpenAI-compat |
+| Mistral Small 4 119B (Pete) | 68GB GGUF | Split GGUF | longcat-sglang | 8080 | OpenAI-compat |
 | Ming-flash-omni-2.0 (Yardmaster) | ~195GB safetensors | Safetensors | vLLM via PyO3 | 8000 | Custom `/generate` |
-| Crow 9B (ART-R) | 5.3GB GGUF | GGUF | llama-server (swappable) | 8081 | OpenAI-compat |
-| REAP 25B (ART-R) | 15GB GGUF | GGUF | llama-server (swappable) | 8081 | OpenAI-compat |
-| OmniCoder 9B (ART-T) | 5.4GB GGUF | GGUF | llama-server (swappable) | 8082 | OpenAI-compat |
+| Crow 9B (ART-R) | 5.3GB GGUF | GGUF | longcat-sglang (swappable) | 8081 | OpenAI-compat |
+| REAP 25B (ART-R) | 15GB GGUF | GGUF | longcat-sglang (swappable) | 8081 | OpenAI-compat |
+| OmniCoder 9B (ART-T) | 5.4GB GGUF | GGUF | longcat-sglang (swappable) | 8082 | OpenAI-compat |
 | ComfyUI (ART-A) | N/A | Python | HTTP sidecar | 8188 | ComfyUI REST |
 | Blender (ART-A) | N/A | Python | Subprocess / PyO3 | N/A | Script gen |
 | MusicUI (ART-T) | N/A | Python | HTTP sidecar | 8086 | REST |
@@ -104,9 +104,9 @@ Trinity runs multiple AI models simultaneously. Each model has a specific servin
 
 | Sidecar | Rust Components | PyO3/Python Components |
 |---------|----------------|----------------------|
-| **P (Conductor/Pete)** | ADDIECRAPEYE state machine, quest orchestration, VAAM | llama-server subprocess (GGUF), future: vision via PyO3 |
+| **P (Conductor/Pete)** | ADDIECRAPEYE state machine, quest orchestration, VAAM | longcat-sglang subprocess (GGUF), future: vision via PyO3 |
 | **A (Aesthetics)** | Asset pipeline, file management | ComfyUI HTTP client, Blender subprocess/PyO3 |
-| **R (Research)** | Code analysis, document search, RAG | llama-server subprocess for Crow/REAP |
+| **R (Research)** | Code analysis, document search, RAG | longcat-sglang subprocess for Crow/REAP |
 | **T (Tempo)** | Music scheduling, flow state | MusicUI HTTP client, audio processing |
 | **Y (Yardmaster)** | Worldbuilding orchestration | vLLM via PyO3 for Ming omni-modal inference |
 

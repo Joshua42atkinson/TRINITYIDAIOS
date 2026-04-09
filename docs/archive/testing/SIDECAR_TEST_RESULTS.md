@@ -16,7 +16,7 @@
 **Verified**:
 - ✅ Binary compiles with timeout system
 - ✅ Model file found: `models/engineer/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled.i1-Q6_K.gguf`
-- ✅ llama-server spawns on port 8081
+- ✅ longcat-sglang spawns on port 8081
 - ✅ Health check passes in 4 seconds
 - ✅ API starts on port 8090
 - ✅ Quest board loads (4 quests available)

@@ -11,13 +11,13 @@
 ### 1.1 One-Command Launch
 
 ```bash
-# Start everything (Trinity Server + llama-server)
+# Start everything (Trinity Server + longcat-sglang)
 ./run_trinity.sh
 ```
 
 **What it does:**
-1. Kills stale llama-server processes
-2. Starts llama-server on port 8080 (base brain model)
+1. Kills stale longcat-sglang processes
+2. Starts longcat-sglang on port 8080 (base brain model)
 3. Waits for model load
 4. Starts `trinity` on port 3000
 5. Opens browser to http://localhost:3000
@@ -26,7 +26,7 @@
 
 ```bash
 # Terminal 1: Start llama.cpp server (Conductor)
-./llama.cpp/build/bin/llama-server \
+./llama.cpp/build/bin/longcat-sglang \
   -m ~/trinity-models/gguf/Mistral-Small-24B-Instruct-2501-Q4_K_M.gguf \
   -ngl 99 -c 32768 --port 8080
 
@@ -44,7 +44,7 @@ cargo run -p trinity --bin trinity
 
 ```bash
 # Minimum viable launch
-llama-server \
+longcat-sglang \
   -m ~/trinity-models/gguf/Mistral-Small-24B-Instruct-2501-Q4_K_M.gguf \
   -ngl 99 \
   -c 32768 \
@@ -67,7 +67,7 @@ curl -X POST http://localhost:3000/api/tools/execute \
   -d '{"tool": "sidecar_start", "params": {"model": "engineer"}}'
 
 # Or manual start
-llama-server \
+longcat-sglang \
   -m ~/trinity-models/gguf/Qwen3-Coder-REAP-25B-A3B-Rust-Q4_K_M.gguf \
   -ngl 99 -c 32768 --port 8082
 ```
@@ -81,7 +81,7 @@ curl http://localhost:8082/health
 ### 2.3 Researcher/Swarm (Optional)
 
 ```bash
-llama-server \
+longcat-sglang \
   -m ~/trinity-models/gguf/Crow-9B-Opus-4.6-Distill-Heretic_Qwen3.5.i1-Q4_K_M.gguf \
   -ngl 99 -c 32000 --port 8081
 ```
@@ -112,7 +112,7 @@ curl http://localhost:3000/api/health
 
 | Component | Check Command | Expected |
 |-----------|---------------|----------|
-| **llama-server** | `curl http://localhost:8080/health` | `{"status": "ok"}` |
+| **longcat-sglang** | `curl http://localhost:8080/health` | `{"status": "ok"}` |
 | **Trinity Server** | `curl http://localhost:3000/api/health` | JSON with `llama: true` |
 | **PostgreSQL** | `psql $DATABASE_URL -c "SELECT 1"` | `1` |
 | **Sidecar** | `curl http://localhost:8082/health` | `{"status": "ok"}` |
@@ -184,7 +184,7 @@ curl http://localhost:8090/status
 curl -X POST http://localhost:8090/shutdown
 
 # Or kill process
-killall llama-server  # Caution: kills ALL llama-server instances
+killall longcat-sglang  # Caution: kills ALL longcat-sglang instances
 ```
 
 ### 4.4 Sidecar Swap Sequence (Hotel Pattern)
@@ -270,7 +270,7 @@ done
 
 ## 6. Troubleshooting
 
-### 6.1 llama-server Won't Start
+### 6.1 longcat-sglang Won't Start
 
 **Symptoms:**
 - `curl http://localhost:8080/health` hangs or returns 000
@@ -288,13 +288,13 @@ ls -lh ~/trinity-models/gguf/Mistral-Small-24B-Instruct-2501-Q4_K_M.gguf
 free -h
 
 # Try verbose launch
-llama-server -m ~/trinity-models/gguf/Mistral-Small-24B-Instruct-2501-Q4_K_M.gguf -ngl 99 --verbose
+longcat-sglang -m ~/trinity-models/gguf/Mistral-Small-24B-Instruct-2501-Q4_K_M.gguf -ngl 99 --verbose
 ```
 
 **Solutions:**
 | Problem | Solution |
 |---------|----------|
-| Port in use | `killall llama-server` or use different port |
+| Port in use | `killall longcat-sglang` or use different port |
 | Model not found | Check path, download model |
 | OOM (Out of Memory) | Reduce `-ngl` (GPU layers) or `-c` (context) |
 | GPU not detected | Use `-ngl 0` for CPU-only mode |
@@ -362,7 +362,7 @@ RUST_LOG=debug cargo run -p trinity --bin trinity
 # Check if binary exists
 ls -lh target/release/trinity-sidecar-engineer
 
-# Check if model loaded in main llama-server
+# Check if model loaded in main longcat-sglang
 curl http://localhost:8080/v1/models
 
 # Check memory availability
@@ -373,14 +373,14 @@ free -h
 | Problem | Solution |
 |---------|----------|
 | Binary not built | `cargo build --release --bin trinity-sidecar-engineer` |
-| Conductor not running | Start llama-server on :8080 first |
+| Conductor not running | Start longcat-sglang on :8080 first |
 | Insufficient memory | Check Hotel pattern, unload other models |
 | Port conflict | Check if :8082 already in use |
 
 ### 6.5 OOM (Out of Memory) Crashes
 
 **Symptoms:**
-- `llama-server` killed by system
+- `longcat-sglang` killed by system
 - `dmesg` shows "Out of memory: Killed process"
 
 **Diagnosis:**
@@ -438,7 +438,7 @@ pactl list sources | grep -A 5 "USB"
 |-----------|--------------|----------|
 | Trinity Server | `~/.trinity/logs/server.log` | Daily |
 | Sidecar Engineer | `~/.trinity/logs/engineer.log` | Daily |
-| llama-server | STDOUT (redirect to file) | Manual |
+| longcat-sglang | STDOUT (redirect to file) | Manual |
 | PostgreSQL | `/var/log/postgresql/` | System |
 
 **View logs:**
@@ -446,7 +446,7 @@ pactl list sources | grep -A 5 "USB"
 # Trinity Server (live)
 tail -f ~/.trinity/logs/server.log
 
-# llama-server (if redirected)
+# longcat-sglang (if redirected)
 tail -f ~/.trinity/logs/llama.log
 ```
 
@@ -458,7 +458,7 @@ tail -f ~/.trinity/logs/llama.log
 
 ```bash
 # Maximum performance (full GPU offload)
-llama-server \
+longcat-sglang \
   -m ~/trinity-models/gguf/Mistral-Small-24B-Instruct-2501-Q4_K_M.gguf \
   -ngl 99 \              # All layers on GPU
   -c 32768 \             # Maximum context
@@ -471,7 +471,7 @@ llama-server \
 
 ```bash
 # For systems with < 64GB RAM
-llama-server \
+longcat-sglang \
   -m ~/trinity-models/gguf/Mistral-Small-24B-Instruct-2501-Q4_K_M.gguf \
   -ngl 50 \              # Partial GPU offload
   -c 8192 \              # Smaller context
@@ -483,7 +483,7 @@ llama-server \
 
 ```bash
 # No GPU available
-llama-server \
+longcat-sglang \
   -m ~/trinity-models/gguf/Mistral-Small-24B-Instruct-2501-Q4_K_M.gguf \
   -ngl 0 \               # CPU only
   -c 4096 \

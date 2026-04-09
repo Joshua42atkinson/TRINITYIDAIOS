@@ -447,10 +447,10 @@ User Action → API Handler → Iron Road Event → CROW Monitor → SSE Broadca
 
 ```bash
 # 1. Start Conductor (Mistral Small 4) - port 8080
-llama-server -m models/yardmaster/Mistral-Small-24B.gguf --port 8080
+longcat-sglang -m models/yardmaster/Mistral-Small-24B.gguf --port 8080
 
 # 2. Start CROW (Crow-9B) - port 8091
-llama-server -m models/crow/Crow-9B-Opus-4.6-Distill.gguf --port 8091
+longcat-sglang -m models/crow/Crow-9B-Opus-4.6-Distill.gguf --port 8091
 
 # 3. Start Trinity Server - port 3000
 cargo run --bin trinity-server

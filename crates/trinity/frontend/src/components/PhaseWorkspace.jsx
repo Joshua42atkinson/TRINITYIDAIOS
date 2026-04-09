@@ -235,6 +235,9 @@ export default function PhaseWorkspace({ quest, bestiary, sseEvents, onDismissEv
   const [journalOpen, setJournalOpen] = useState(false);
   const [voiceOn, setVoiceOn] = useState(false);
   const [voicePreset, setVoicePreset] = useState('M1');
+  const [vibeOn, setVibeOn] = useState(false);
+  const [vibeLoading, setVibeLoading] = useState(false);
+  const vibeAudioRef = useRef(null);
   const scrollRef = useRef(null);
   const prevPhaseRef = useRef(null);
   const audioQueueRef = useRef([]);
@@ -297,6 +300,87 @@ export default function PhaseWorkspace({ quest, bestiary, sseEvents, onDismissEv
       processAudioQueue();
     }
   }, [voiceOn, processAudioQueue]);
+
+  // ── Vibe Music: generate and loop ambient music when toggled ──
+  useEffect(() => {
+    if (!vibeOn) {
+      // Stop any playing vibe music
+      if (vibeAudioRef.current) {
+        vibeAudioRef.current.pause();
+        vibeAudioRef.current.src = '';
+        vibeAudioRef.current = null;
+      }
+      return;
+    }
+
+    let cancelled = false;
+
+    async function generateVibe() {
+      setVibeLoading(true);
+      try {
+        const res = await fetch('/api/creative/vibe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ duration: 15 }),
+        });
+        if (!res.ok) throw new Error(`Vibe request failed: ${res.status}`);
+        const data = await res.json();
+
+        if (cancelled) return;
+
+        if (data.success && data.audio_url) {
+          // Create looping audio player
+          const audio = new Audio(data.audio_url);
+          audio.loop = true;
+          audio.volume = 0.3; // Ambient — not overwhelming
+          vibeAudioRef.current = audio;
+
+          // Unlock Web Audio context and play
+          await audio.play().catch(() => {});
+
+          // Show in chat as narrative
+          setNarrative(n => [...n, {
+            role: 'narrator',
+            content: `「 ▸ VIBE ◂ The Iron Road hums with ${data.style || 'ambient'} music for the ${data.phase || 'current'} station… 」`,
+          }]);
+
+          // Also add an audio player in the narrative
+          setNarrative(n => [...n, {
+            role: 'audio',
+            url: data.audio_url,
+            content: `TEMPO: ${data.style} — ${data.phase}`,
+          }]);
+        } else {
+          console.warn('Vibe generation returned no audio:', data.error || 'unknown');
+          setNarrative(n => [...n, {
+            role: 'narrator',
+            content: '「 ▸ VIBE ◂ The soundscape engine sputters… no music generated. The fog is silent. 」',
+          }]);
+        }
+      } catch (e) {
+        console.error('Vibe music error:', e);
+        if (!cancelled) {
+          setNarrative(n => [...n, {
+            role: 'narrator',
+            content: '「 ▸ VIBE ◂ The TEMPO engine is offline. The Iron Road remains silent for now. 」',
+          }]);
+        }
+      } finally {
+        if (!cancelled) setVibeLoading(false);
+      }
+    }
+
+    generateVibe();
+
+    return () => {
+      cancelled = true;
+      if (vibeAudioRef.current) {
+        vibeAudioRef.current.pause();
+        vibeAudioRef.current.src = '';
+        vibeAudioRef.current = null;
+      }
+    };
+  }, [vibeOn]);
 
 
   const enqueueSentence = React.useCallback((text) => {
@@ -427,6 +511,26 @@ export default function PhaseWorkspace({ quest, bestiary, sseEvents, onDismissEv
 
     if (data.type === 'resources') {
       needsRefetch = true;
+    }
+
+    // ── Audio-in-Chat: play TTS audio delivered via the chat stream ──
+    if (data.type === 'audio_response' && data.audio_b64 && voiceOn) {
+      try {
+        const binaryStr = atob(data.audio_b64);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) {
+          bytes[i] = binaryStr.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: 'audio/wav' });
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audioQueueRef.current = []; // Clear any sentence-level queue
+        audio.onended = () => URL.revokeObjectURL(url);
+        audio.onerror = () => URL.revokeObjectURL(url);
+        audio.play().catch(() => {});
+      } catch (e) {
+        console.warn('Audio-in-chat decode failed:', e);
+      }
     }
 
     if (needsRefetch && onRefetchRef.current) onRefetchRef.current();
@@ -810,6 +914,24 @@ export default function PhaseWorkspace({ quest, bestiary, sseEvents, onDismissEv
                 <option value="F5">F5</option>
               </select>
             )}
+
+            <button
+              id="vibe-toggle-btn"
+              className={`gdd-export-btn ${vibeOn ? 'vibe-active' : ''}`}
+              onClick={() => {
+                if (!vibeOn) {
+                  // Unlock audio context with user gesture
+                  const unlocker = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+                  unlocker.play().catch(() => {});
+                }
+                setVibeOn(v => !v);
+              }}
+              disabled={vibeLoading}
+              title="Toggle ambient soundtrack (TEMPO Acestep 1.5)"
+              style={vibeOn ? { background: 'rgba(207, 185, 145, 0.2)', borderColor: 'var(--gold)' } : {}}
+            >
+              {vibeLoading ? '⏳ GENERATING...' : vibeOn ? '🎵 VIBE ON' : '🎵 VIBE OFF'}
+            </button>
 
             <button
               id="mechanics-toggle"

@@ -25,7 +25,7 @@ The autonomous work loop assumes: Opus will output valid JSON plans → REAP wil
 
 **What this means**: The overnight autonomous mode will work, but expect maybe 2-5 quests completed per night, not dozens. This is still useful — it's just slower than the vision implies.
 
-**Recommendation**: Add `-ngl 99` as default (unified memory means GPU offload is free), add JSON grammar enforcement via llama-server's `--grammar` flag, and implement exponential backoff on failures.
+**Recommendation**: Add `-ngl 99` as default (unified memory means GPU offload is free), add JSON grammar enforcement via longcat-sglang's `--grammar` flag, and implement exponential backoff on failures.
 
 ### 2b. Context Window ≠ Usable Context
 
@@ -57,9 +57,9 @@ Evidence from code audit:
 - The `test_gpt_oss_npu` binary has 7 compilation errors related to `NpuEngine` API mismatches
 - No evidence of successful ORT inference anywhere in the codebase
 
-**Real state**: ALL inference currently goes through a single llama-server instance on port 8080 using GPU. The "always-on NPU conductor" is aspirational.
+**Real state**: ALL inference currently goes through a single longcat-sglang instance on port 8080 using GPU. The "always-on NPU conductor" is aspirational.
 
-**Impact**: The memory budget in the Bible is wrong. There is no 14.2GB always-on NPU conductor. The actual always-on cost is the llama-server running GPT-OSS-20B GGUF (12GB) + PostgreSQL + OS ≈ 20GB. This leaves ~108GB for sidecars, which is actually *more* than the Bible states.
+**Impact**: The memory budget in the Bible is wrong. There is no 14.2GB always-on NPU conductor. The actual always-on cost is the longcat-sglang running GPT-OSS-20B GGUF (12GB) + PostgreSQL + OS ≈ 20GB. This leaves ~108GB for sidecars, which is actually *more* than the Bible states.
 
 ### 3b. PersonaPlex Voice Is Not Integrated
 
@@ -86,12 +86,12 @@ The quest system in `quests.rs` uses in-memory `Arc<RwLock<GameState>>`. If the 
 
 | Component | Status | Evidence |
 |-----------|--------|----------|
-| llama.cpp inference | **WORKS** | Proven pipeline: server → llama-server → SSE → browser |
+| llama.cpp inference | **WORKS** | Proven pipeline: server → longcat-sglang → SSE → browser |
 | SSE streaming chat | **WORKS** | Three pages (Pete, Book, Dev) all stream tokens |
 | RAG with PostgreSQL | **WORKS** | 107 chunks, full-text search, context injection |
 | Quest board (JSON) | **WORKS** | 7 quests, claim/execute/complete lifecycle |
 | Autonomous work loop | **BUILT, UNTESTED** | Code compiles, logic is sound, never run against live models |
-| Dual-model Sword & Shield | **BUILT, UNTESTED** | Architecture proven (separate llama-server processes), never executed |
+| Dual-model Sword & Shield | **BUILT, UNTESTED** | Architecture proven (separate longcat-sglang processes), never executed |
 | Role-based party system | **BUILT, UNTESTED** | 5 roles, unique prompts, compiles clean |
 | Agentic tools (file/shell) | **WORKS** | read_file, write_file, shell, search — all functional with sandboxing |
 
@@ -288,7 +288,7 @@ colossus:
   name: "The Colossus"
   icon: "🏔️"
   primary: MiniMax-M2-5-REAP-50 (66GB, port 8081, 8K context, -ngl 99)
-  secondary: None (Granite 1B via ORT for classification, not llama-server)
+  secondary: None (Granite 1B via ORT for classification, not longcat-sglang)
   skill: "Titan Mind — deep reasoning across entire codebases, production-quality generation"
   quest_types: [analysis, feature, refactor, documentation]
   addie_phases: [Analysis, Design, Development, Evaluation]
@@ -301,7 +301,7 @@ colossus:
 
 ### Immediate (This Session)
 1. **Test the Engineer sidecar with live models** — this is the most important thing. We built the system; now we need to run it and see what breaks.
-2. **Add `-ngl 99` to llama-server args** — free speedup on unified memory.
+2. **Add `-ngl 99` to longcat-sglang args** — free speedup on unified memory.
 
 ### This Week
 3. **Fix the 2 broken test binaries** (test_gpt_oss_npu, test_trinity_orchestrator)

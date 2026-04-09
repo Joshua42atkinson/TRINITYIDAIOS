@@ -13,7 +13,7 @@ echo "╚═══════════════════════�
 
 # Kill any existing processes
 echo "[1/4] Stopping existing processes..."
-pkill -f "llama-server" 2>/dev/null || true
+pkill -f "longcat-sglang" 2>/dev/null || true
 pkill -f "trinity" 2>/dev/null || true
 sleep 1
 
@@ -28,9 +28,9 @@ fi
 
 # Start llama.cpp
 echo "[2/4] Starting llama.cpp on :8080..."
-LLAMA_BIN="$HOME/Workflow/desktop_trinity/trinity-genesis/llama.cpp/build-vulkan/bin/llama-server"
+LLAMA_BIN="$HOME/Workflow/desktop_trinity/trinity-genesis/llama.cpp/build-vulkan/bin/longcat-sglang"
 if [ ! -f "$LLAMA_BIN" ]; then
-    echo "ERROR: llama-server not found at $LLAMA_BIN"
+    echo "ERROR: longcat-sglang not found at $LLAMA_BIN"
     exit 1
 fi
 
@@ -39,10 +39,10 @@ nohup "$LLAMA_BIN" \
     -c 4096 \
     --port 8080 \
     -ngl 99 \
-    > /tmp/llama-server.log 2>&1 &
+    > /tmp/longcat-sglang.log 2>&1 &
 
 LLAMA_PID=$!
-echo "  llama-server PID: $LLAMA_PID"
+echo "  longcat-sglang PID: $LLAMA_PID"
 
 # Wait for llama.cpp to load model
 echo "[3/4] Loading model (this may take a minute)..."
@@ -53,7 +53,7 @@ for i in {1..30}; do
     fi
     if [ $i -eq 30 ]; then
         echo "ERROR: Model failed to load after 30 seconds"
-        echo "Check /tmp/llama-server.log"
+        echo "Check /tmp/longcat-sglang.log"
         kill $LLAMA_PID 2>/dev/null || true
         exit 1
     fi
@@ -88,6 +88,6 @@ echo "║    • GET  /api/status    - System status                     ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo ""
 echo "Logs:"
-echo "  llama.cpp: tail -f /tmp/llama-server.log"
+echo "  llama.cpp: tail -f /tmp/longcat-sglang.log"
 echo "  Trinity:   tail -f /tmp/trinity-server.log"
 echo ""

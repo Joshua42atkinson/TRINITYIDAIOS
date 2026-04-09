@@ -20,18 +20,18 @@ if [ ! -f "$MODEL_PATH" ]; then
     curl -L "$MODEL_URL" -o "$MODEL_PATH"
 fi
 
-# Check for existing llama-server in standard paths
+# Check for existing longcat-sglang in standard paths
 LLAMA_SERVER=""
-if [ -x "./llama.cpp/build/bin/llama-server" ]; then
-    LLAMA_SERVER="./llama.cpp/build/bin/llama-server"
-elif [ -x "./llama.cpp/build-vulkan/bin/llama-server" ]; then
-    LLAMA_SERVER="./llama.cpp/build-vulkan/bin/llama-server"
-elif [ -x "./llama.cpp/build-rocm/bin/llama-server" ]; then
-    LLAMA_SERVER="./llama.cpp/build-rocm/bin/llama-server"
-elif command -v llama-server &> /dev/null; then
-    LLAMA_SERVER="llama-server"
+if [ -x "./llama.cpp/build/bin/longcat-sglang" ]; then
+    LLAMA_SERVER="./llama.cpp/build/bin/longcat-sglang"
+elif [ -x "./llama.cpp/build-vulkan/bin/longcat-sglang" ]; then
+    LLAMA_SERVER="./llama.cpp/build-vulkan/bin/longcat-sglang"
+elif [ -x "./llama.cpp/build-rocm/bin/longcat-sglang" ]; then
+    LLAMA_SERVER="./llama.cpp/build-rocm/bin/longcat-sglang"
+elif command -v longcat-sglang &> /dev/null; then
+    LLAMA_SERVER="longcat-sglang"
 else
-    echo "❌ ERROR: llama-server not found! Please ensure llama.cpp is built or installed."
+    echo "❌ ERROR: longcat-sglang not found! Please ensure llama.cpp is built or installed."
     # If the user has LM Studio installed from AppImage script instruction:
     echo "💡 Tip: If you have LM Studio, you can start tracking it locally on port 1234!"
     exit 1

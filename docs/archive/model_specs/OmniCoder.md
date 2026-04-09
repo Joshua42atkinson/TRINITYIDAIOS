@@ -55,7 +55,7 @@ brew install llama.cpp  # macOS
 llama-cli --hf-repo Tesslate/OmniCoder-9B-GGUF --hf-file omnicoder-9b-q4_k_m.gguf -p "Your prompt" -c 8192
 
 # Server mode (OpenAI-compatible API)
-llama-server --hf-repo Tesslate/OmniCoder-9B-GGUF --hf-file omnicoder-9b-q4_k_m.gguf -c 8192
+longcat-sglang --hf-repo Tesslate/OmniCoder-9B-GGUF --hf-file omnicoder-9b-q4_k_m.gguf -c 8192
 ```
 
 ---

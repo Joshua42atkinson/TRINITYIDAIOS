@@ -130,7 +130,7 @@ Ming ships with its own vLLM integration scripts in `talker/`:
 - 256K context window with Q4 KV cache quantization
 - Vision capable (multimodal)
 - Runs via **llama.cpp** (GGUF format), NOT vLLM
-- llama-server binary exists at `/home/joshua/Workflow/desktop_trinity/bin/llama-server`
+- longcat-sglang binary exists at `/home/joshua/Workflow/desktop_trinity/bin/longcat-sglang`
 
 ---
 

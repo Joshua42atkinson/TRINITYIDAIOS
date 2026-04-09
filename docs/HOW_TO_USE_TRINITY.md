@@ -26,7 +26,7 @@ Trinity needs two things running:
 2. **An LLM Backend** — the AI brain. Trinity supports any OpenAI-compatible backend:
    - **LM Studio** (recommended, port 1234) — download from [lmstudio.ai](https://lmstudio.ai)
    - **Ollama** (port 11434) — download from [ollama.com](https://ollama.com)
-   - **llama-server** (port 8080) — build from [llama.cpp](https://github.com/ggml-org/llama.cpp)
+   - **longcat-sglang** (port 8080) — build from [llama.cpp](https://github.com/ggml-org/llama.cpp)
 
 If someone else set this up for you (e.g., you're using the live demo at LDTAtkinson.com), skip to **Step 1**.
 

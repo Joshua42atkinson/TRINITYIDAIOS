@@ -15,7 +15,7 @@ TRINITY stands for **Instructional Design (ID)**, **Artificial Intelligence (AI)
 TRINITY operates on a **single-brain architecture** with multiple modes, utilizing a powerful large language model (LLM) like Mistral Small 4 119B (~68GB) to orchestrate various personas and functionalities. This design minimizes resource overhead by using one static RAM load with dynamic system prompts for different roles, rather than multiple models. The system is built with **Rust** for backend efficiency (using the Axum server framework on port 3000) and **React** for the frontend UI, running on high-spec hardware (128GB RAM recommended).
 
 #### Key Technical Components
-- **Inference Router**: Automatically detects and manages multiple inference backends (llama-server, vLLM, Ollama, LM Studio, SGLang) with health monitoring and failover capabilities. This ensures robust AI service availability.
+- **Inference Router**: Automatically detects and manages multiple inference backends (longcat-sglang, vLLM, Ollama, LM Studio, SGLang) with health monitoring and failover capabilities. This ensures robust AI service availability.
 - **Duality KV Cache**: Utilizes dual slots in the LLM (e.g., slot 0 for strategic Great Recycler persona, slot 1 for execution-focused Programmer Pete), enabling instant persona switching with up to 500K total context capacity.
 - **Backend Server**: The Rust Axum server handles API orchestration, quest persistence, and real-time hardware telemetry (CPU/RAM/GPU/NPU usage), ensuring system stability and performance monitoring.
 - **Frontend Interface**: A React-based UI with three primary modes:
@@ -248,7 +248,7 @@ If you must set up TRINITY locally and lack technical support, follow the detail
 2. **Set Up the LLM Server**:
    Start the LLM server using llama.cpp to serve the Mistral Small 4 model. TRINITY can auto-detect and launch this if not running, but for manual setup:
    ```bash
-   llama-server -m ~/trinity-models/gguf/Mistral-Small-4-119B-2603-Q4_K_M-00001-of-00002.gguf \
+   longcat-sglang -m ~/trinity-models/gguf/Mistral-Small-4-119B-2603-Q4_K_M-00001-of-00002.gguf \
      --host 127.0.0.1 --port 8080 -ngl 99 --ctx-size 262144 --flash-attn on --jinja --parallel 2
    ```
    Ensure the model path matches your local setup. The port can be configured (common values: 8080, 1234). Set the `LLM_URL` environment variable if using a non-default port.
@@ -274,7 +274,7 @@ For additional functionality like image generation or document intelligence, set
   *Simplified Explanation*: This starts a tool for creating images within TRINITY. It's like adding a graphics plugin to your system.
 - **Document Intelligence (Qianfan-OCR Researcher)**:
   ```bash
-  llama-server -m ~/trinity-models/gguf/Qianfan-OCR-Q4_K_M.gguf --port 8081 --ctx-size 32768
+  longcat-sglang -m ~/trinity-models/gguf/Qianfan-OCR-Q4_K_M.gguf --port 8081 --ctx-size 32768
   ```
   *Simplified Explanation*: This enables TRINITY to analyze documents, useful for incorporating existing materials into lessons.
 - **Voice Pipeline**:
@@ -311,9 +311,9 @@ This section addresses common issues users may encounter while setting up or usi
 ### Common Setup Issues
 - **LLM Connection Failure**:
   - **Symptoms**: TRINITY UI shows "No LLM detected" or Pete does not respond to queries. In the system status panel (accessible via the UI dashboard), the LLM indicator will be red or show "Disconnected."
-  - **Cause**: The llama-server or alternative inference backend is not running or not accessible on the configured port (default: 8080).
+  - **Cause**: The longcat-sglang or alternative inference backend is not running or not accessible on the configured port (default: 8080).
   - **Error Log Example**: Server logs may show `Error: Failed to connect to LLM at http://127.0.0.1:8080 - Connection refused.`
-  - **Solution**: Ensure the LLM server is running before starting TRINITY. Manually start it with the command provided in the Installation section. Verify the `LLM_URL` environment variable matches the server address (e.g., `http://127.0.0.1:8080`). TRINITY will auto-launch llama-server if none is detected, but check logs for errors if this fails (look for `Auto-launch failed: ...` in terminal output).
+  - **Solution**: Ensure the LLM server is running before starting TRINITY. Manually start it with the command provided in the Installation section. Verify the `LLM_URL` environment variable matches the server address (e.g., `http://127.0.0.1:8080`). TRINITY will auto-launch longcat-sglang if none is detected, but check logs for errors if this fails (look for `Auto-launch failed: ...` in terminal output).
 - **Database Connection Errors**:
   - **Symptoms**: Error messages about PostgreSQL connection or inability to save quest progress. UI may display a warning banner like "Database offline - Progress saving disabled."
   - **Cause**: PostgreSQL is not running, or the connection string in `.env` is incorrect.

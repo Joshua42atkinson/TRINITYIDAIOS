@@ -1,8 +1,17 @@
 # Trinity AI OS — Maturation Map: Evaluation & Evolution
 
-> **Last Updated**: April 8, 2026
+> **Last Updated**: April 8, 2026 (Evening — Iron Road Chat + TEMPO Vibe Music Integration)
 > **Purpose**: Map the Exact Agentic System and its Levels and Layers of Function.
 > **Core Philosophy**: Trinity's maturity is not a software feature list. It is an evaluation matrix. *Evaluation leads to Evolution.*
+
+---
+# 🛑🚨 PROTECTED ZONE - DO NOT DELETE OR ARCHIVE UI 🚨🛑
+**UNDER NO CIRCUMSTANCES is any AI agent to delete, archive, move, or scaffold over the following directories:**
+- `crates/trinity/frontend` (The Trinity Iron Road Web UI)
+- `LDTAtkinson/client` (The LDT Atkinson Portfolio)
+These are live, fully functioning frontends. Do not attempt to unify ports or create new UI projects. Do not assume they are "stale". Any workflow that deletes or archives these folders is FORBIDDEN.
+---
+
 >
 > **Physical Architecture**: **Dual Brain Sidecar Model (128GB Strix Halo APU)**.
 >
@@ -51,6 +60,7 @@ The lowest level of the stack. It must autonomously evaluate health and evolve b
 | **Cow Catcher** | `cow_catcher.rs` | Evaluates runtime panics, syntax errors, and LLM halts. Evolved behavior triggers autonomous self-repair via shell execution. | L5 |
 | **Inference Router** | `inference_router.rs`, `sidecar_monitor.rs` | Probes sidecar health (vLLM vs SGLang) and dynamically fails traffic over to CPU fallbacks if GPUs crash. | L5 |
 | **Unified APIs** | `main.rs`, `trinity_api.rs`, `http.rs` | Axum HTTP handling and basic routing. Provides the unopinionated pathways for system streams. | L5 |
+| **Desktop Ignition** | `trinity_ignition.sh` | Orchestrates safe serial startup sequences from the OS desktop level. Enforces strict locking so LongCat finishes loading into memory *alone* before vLLM or Trinity are allowed to boot, preventing host memory over-commit and NPU/RAM starvation. | L1 |
 
 ### 2. The Somatic Layer (Memory & State)
 The immutable body of the application. It provides the grounding truth required for Metacognitive systems to evaluate historical drift.
@@ -69,7 +79,7 @@ The arms and legs of Trinity. These interact with the external world (the OS) to
 | **The Yardmaster** | `agent.rs` | Evaluates standard tool requests and autonomously executes multi-turn file edits. Modifies the codebase directly. | L5 |
 | **38 Core Tools** | `tools.rs` | File I/O, `cargo check`, shell execution, mesh rendering scaffolding. Directly impacts user workspace. | L4 |
 | **Job Queue** | `jobs.rs` | Evaluates headless, asynchronous tasks and assigns them offline to REAP without blocking the user. | L3 |
-| **Creative Pipeline**| `creative.rs`, `music_streamer.rs` | Evaluates prompts to generate Visual/Audio media, rerouting seamlessly to the proper hotel aesthetic subagents. | L3 |
+| **Creative Pipeline**| `creative.rs`, `music_streamer.rs` | Evaluates prompts to generate Visual/Audio media via LongCat-Next. TEMPO vibe music generates phase-aware ambient tracks via Acestep 1.5 `/v1/audio/generations`. Inline `<audio>` players render in chat. | L5 |
 
 ### 4. The Cognitive Layer (Orchestration & Pedagogy)
 The pre-frontal cortex. It overlays the structural constraints of ADDIECRAPEYE onto the chaotic LLM responses.
@@ -78,7 +88,7 @@ The pre-frontal cortex. It overlays the structural constraints of ADDIECRAPEYE o
 |-----------|-------|----------------------|--------|
 | **Orchestrator** | `conductor_leader.rs` | Evaluates which ADDIECRAPEYE Phase the user is in and constricts the LLM system prompt accordingly. | L5 |
 | **Iron Road Quests** | `quests.rs` | Tracks specific objectives inside the LitRPG system. Prevents evolutionary phase-shifts until objectives are cleared. | L5 |
-| **Narrator** | `narrative.rs` | Weaves the rigid Cognitive constraints into a LitRPG storytelling experience via Zen mode interpretation. | L4 |
+| **Narrator** | `narrative.rs` | Weaves the rigid Cognitive constraints into a LitRPG storytelling experience. DM escalation directive (`dm_depth_directive`) dynamically adjusts Pete's response depth (Greeting→Socratic→Deep Dive→Critical) based on coal/steam/turns. Phase-aware TEMPO music moods (`tempo_mood_prompt`) provide 12 distinct ambient soundscapes. | L5 |
 
 ### 5. The Metacognitive Layer (Alignment & Reflection)
 The critical mirror. The layer where TRINITY evaluates itself to generate consequences. *This is where learning actually happens.*
@@ -97,7 +107,7 @@ The transmutation of hard work into an artifact. The final destination of the TR
 |-----------|-------|----------------------|--------|
 | **HTML EYE Package** | `export.rs`, `eye_container.rs` | Consolidates all metrics, vocabulary tracking, and narrative ledgers into a SCORM/xAPI compliant HTML5 interactive artifact. | L5 |
 | **Quality Scorecard**| `quality_scorecard.rs`, `authenticity_scorecard.rs` | Synthesizes the session's overall effectiveness into a permanent instructional rating. | L4 |
-| **Voice Cloning** | `voice.rs`, `telephone.rs`, `voice_loop.rs` | Synthesizes custom TTS utilizing CosyVoice, allowing human persona mapping across the system's endpoints seamlessly. | L3 |
+| **Voice Cloning** | `voice.rs`, `telephone.rs`, `voice_loop.rs` | Synthesizes custom TTS utilizing CosyVoice, allowing human persona mapping across the system's endpoints seamlessly. In-stream `audio_response` SSE events deliver narrated audio directly through the chat stream. | L4 |
 
 ---
 
@@ -155,13 +165,15 @@ The transmutation of hard work into an artifact. The final destination of the TR
 
 ### 🔮 Beyond L5: Tier 2 & 3 Expansion
 
-| Goal | Description | Effort |
-|------|-------------|--------|
-| **Programmer Pete Online** | Install llama-server, wire agent.rs dual-dispatch | 2 hours |
-| **VAAM Deepening** | Associate glossary words with dynamic pedagogical definitions inside EYE | 4 hours |
-| **Multi-Player Profiles** | Distinct profile switching beyond local `~/.local/share/trinity/` | 6 hours |
-| **MCP System Upgrades** | Expose Trinity as L5 omni-evaluator to external editors via MCP | 8 hours |
-| **PyO3 Bridging** | Sandboxed Python execution for Daydream environments | 8 hours |
+| Goal | Description | Effort | Status |
+|------|-------------|--------|--------|
+| **Programmer Pete Online** | Refine external routing to LongCat-Next SGLang sidecar (Dual KV parallel 156K contexts for Recycler/Pete) | 2 hours | ✅ SSE streaming + DM escalation wired |
+| **A.R.T.Y. vLLM Scaling** | Extend health and backpressure metrics for the secondary vLLM A.R.T.Y. endpoints | 4 hours | 🟡 Pending |
+| **Audio Consolidation Refactor** | Completely strip legacy Kokoro TTS and Whisper STT pipelines. Wire all audio I/O natively through LongCat-Next's CosyVoice and discrete audio tokens. | 4 hours | 🔶 In Progress — TEMPO endpoint + in-stream TTS built, torchaudio shim created, legacy Kokoro still exists |
+| **ART Studio** | Wire A.R.T.Y. creative pipeline (image/video/3D/audio) into a dedicated Iron Road UI workspace with inline previews and portfolio auto-vault | 6 hours | 🟡 Next Session |
+| **VAAM Deepening** | Associate glossary words with dynamic pedagogical definitions inside EYE | 4 hours | 🟡 Pending |
+| **Multi-Player Profiles** | Distinct profile switching beyond local `~/.local/share/trinity/` | 6 hours | 🟡 Pending |
+| **PyO3 Bridging** | Sandboxed Python execution for Daydream environments | 8 hours | 🟡 Pending |
 
 ---
 
@@ -189,6 +201,14 @@ trinity-genesis/
 ├── PLAYERS_HANDBOOK.md        # User-facing handbook
 └── ASK_PETE_FIELD_MANUAL.md   # Pete interaction guide
 ```
+
+---
+
+## Grooming the Horses (Instructional Presentation)
+
+Our foundational documentation ("The Four Horses") provides the required academic rigor and technical specifications, but their dense markdown format risks the "TL;DR" effect with reviewers. 
+
+To solve this, our next maturation goal is to transform all four documents into highly-presented **eLearning modules**. We will task LongCat-Next to convert the markdown text into engaging, structured modules complete with contextual images and layouts generated natively by its visual token system. This will both validate LongCat's aesthetic capabilities and ensure our foundational theory is actually consumed.
 
 ---
 *End of Protocol. The Matrix is active.*

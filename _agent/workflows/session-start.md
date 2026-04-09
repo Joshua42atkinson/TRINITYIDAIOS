@@ -8,9 +8,9 @@ description: Start of session checklist — check services, build Trinity, open 
 
 ## Steps
 
-1. Check if llama-server is running:
+1. Check if longcat-sglang is running:
 ```bash
-curl -s http://127.0.0.1:8080/v1/models 2>/dev/null | head -5 || echo "⚠️ llama-server NOT running on :8080 — start it with: llama-server -m /path/to/model.gguf --port 8080 -ngl 99"
+curl -s http://127.0.0.1:8080/v1/models 2>/dev/null | head -5 || echo "⚠️ longcat-sglang NOT running on :8080 — start it with: longcat-sglang -m /path/to/model.gguf --port 8080 -ngl 99"
 ```
 
 2. Check PostgreSQL:

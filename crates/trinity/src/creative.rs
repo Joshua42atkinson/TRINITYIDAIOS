@@ -432,57 +432,57 @@ pub async fn generate_image(
     }))
 }
 
-/// Generate tempo via local procedural engine
+/// Generate tempo natively via LongCat Acestep 1.5 (Port 8010)
 pub async fn generate_tempo(
     State(state): State<AppState>,
     Json(request): Json<TempoRequest>,
 ) -> Result<Json<TempoResponse>, (StatusCode, String)> {
     let start = std::time::Instant::now();
 
-    info!("Generating procedural tempo: {}", request.prompt);
+    info!("Generating native Acestep 1.5 Tempo: {}", request.prompt);
 
-    // Call the little Gemma-4 (E4B) on port 8003 to act as the "vibe setting boss"
-    let system_prompt = "You are the Tempo Vibe Boss. Your job is to analyze the user's prompt and select the best musical context for it. Respond with EXACTLY ONE of the following precise strings, with NO other text, punctuation, or explanation: problem_solving, creative_exploration, review_practice, assessment, break, concept_introduction.";
-    
-    let vibe_payload = serde_json::json!({
-        "model": "gemma-4-E4B",
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": request.prompt}
-        ],
-        "temperature": 0.3,
-        "max_tokens": 10
+    // Build the LongCat Acestep music generation payload
+    let payload = serde_json::json!({
+        "model": "LongCat-Next",
+        "prompt": request.prompt,
+        "style": request.style.unwrap_or_else(|| "ambient".to_string()),
+        "duration": request.duration_secs,
+        "response_format": "b64_json"
     });
 
-    let client = &*crate::http::STANDARD;
-    let mut context_arg = "concept_introduction".to_string(); // default fallback
+    let client = &*crate::http::LONG;
 
-    if let Ok(vibe_res) = client.post("http://127.0.0.1:8010/v1/chat/completions")
-        .json(&vibe_payload)
-        .send().await 
-    {
-        if vibe_res.status().is_success() {
-            if let Ok(vibe_json) = vibe_res.json::<serde_json::Value>().await {
-                if let Some(content) = vibe_json["choices"][0]["message"]["content"].as_str() {
-                    let cleaned = content.trim().to_lowercase();
-                    // Validate it's one of our supported contexts
-                    if ["problem_solving", "creative_exploration", "review_practice", "assessment", "break", "concept_introduction"].contains(&cleaned.as_str()) {
-                        context_arg = cleaned;
-                        info!("vibe boss (E4B) selected context: {}", context_arg);
-                    } else {
-                        info!("vibe boss returned invalid context '{}', using default", cleaned);
-                    }
-                }
-            }
-        } else {
-            info!("vibe boss (E4B) returned non-success, using default context");
-        }
-    } else {
-        info!("vibe boss (E4B) offline or failed, using default context");
+    // Send the generation request to LongCat Acestep 1.5
+    let response = client
+        .post("http://127.0.0.1:8010/v1/audio/generations")
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("LongCat Acestep unavailable: {}", e)))?;
+
+    if !response.status().is_success() {
+        let err_text = response.text().await.unwrap_or_default();
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Acestep Tempo engine failed: {}", err_text),
+        ));
     }
 
-    let _duration_str = request.duration_secs.to_string();
-    
+    let result: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to parse response: {}", e)))?;
+
+    // Parse base64 audio
+    let b64_data = result["data"][0]["b64_json"].as_str().ok_or_else(|| {
+        (StatusCode::INTERNAL_SERVER_ERROR, "No b64_json in Acestep response".to_string())
+    })?;
+
+    use base64::Engine;
+    let b64_bytes = base64::prelude::BASE64_STANDARD.decode(b64_data).map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("Base64 decode failed: {}", e))
+    })?;
+
     // Output path to workspace
     let home = std::env::var("HOME").unwrap_or_else(|_| dirs::home_dir().unwrap_or_default().to_string_lossy().to_string());
     let workspace_dir = std::path::PathBuf::from(&home).join(".local/share/trinity/workspace/assets/audio");
@@ -491,68 +491,39 @@ pub async fn generate_tempo(
     let filename = format!("trinity_tempo_{}.wav", timestamp);
     let final_path = workspace_dir.join(&filename);
     
-    // Shell out to our newly merged cargo crate in archive/trinity-tempo-ai
-    // For production this would be invoked directly via library, but CLI invocation is perfect for the sidecar architecture.
-    let crate_path = format!("{}/Workflow/desktop_trinity/trinity-genesis/archive/trinity-tempo-ai", home);
-    
-    let result = std::process::Command::new("cargo")
-        .current_dir(crate_path)
-        .arg("run")
-        .arg("--release")
-        .arg("--")
-        .arg("generate")
-        .arg("--context")
-        .arg(context_arg)
-        .arg("--output")
-        .arg(final_path.to_string_lossy().to_string())
-        .output();
+    std::fs::write(&final_path, b64_bytes).map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to write audio: {}", e))
+    })?;
 
-    match result {
-        Ok(output) if output.status.success() => {
-            info!("Tempo procedural audio generated successfully in {}ms", start.elapsed().as_millis());
+    info!("Tempo Acestep audio generated successfully in {}ms at {}", start.elapsed().as_millis(), final_path.display());
 
-            // Auto-vault to portfolio
-            {
-                let mut sheet = state.player.character_sheet.write().await;
-                let artifact = trinity_protocol::character_sheet::PortfolioArtifact {
-                    artifact_id: uuid::Uuid::new_v4(),
-                    title: request.prompt.clone(),
-                    hooks_cast: Vec::new(),
+    // Auto-vault to portfolio
+    {
+        let mut sheet = state.player.character_sheet.write().await;
+        let artifact = trinity_protocol::character_sheet::PortfolioArtifact {
+            artifact_id: uuid::Uuid::new_v4(),
+            title: request.prompt.clone(),
+            hooks_cast: Vec::new(),
             addiecrapeye_phase: "Develop".to_string(),
-                    artifact_type: "Procedural Audio".to_string(),
-                    reflection_journal: format!("ArtStudio tempo: {}", request.prompt),
-                    aligned_supra_badge: "Design & Development".to_string(),
-                    qm_score: 100.0,
-                    aect_ethics_cleared: true,
-                };
-                sheet.ldt_portfolio.artifact_vault.push(artifact);
-                sheet.ldt_portfolio.recalculate();
-                if let Err(e) = crate::character_sheet::save_character_sheet(&sheet) {
-                    tracing::error!("Failed to persist character sheet after auto-vault: {}", e);
-                }
-            }
-
-            Ok(Json(TempoResponse {
-                success: true,
-                audio_path: Some(final_path.to_string_lossy().to_string()),
-                message: "Tempo generated successfully".to_string(),
-                generation_time_ms: start.elapsed().as_millis() as u64,
-            }))
-        }
-        Ok(output) => {
-            let err = String::from_utf8_lossy(&output.stderr);
-            Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Tempo engine failed: {}", err),
-            ))
-        }
-        Err(e) => {
-            Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to execute tempo engine: {}", e),
-            ))
+            artifact_type: "Acestep 1.5 Audio".to_string(),
+            reflection_journal: format!("ArtStudio tempo: {}", request.prompt),
+            aligned_supra_badge: "Design & Development".to_string(),
+            qm_score: 100.0,
+            aect_ethics_cleared: true,
+        };
+        sheet.ldt_portfolio.artifact_vault.push(artifact);
+        sheet.ldt_portfolio.recalculate();
+        if let Err(e) = crate::character_sheet::save_character_sheet(&sheet) {
+            tracing::error!("Failed to persist character sheet after auto-vault: {}", e);
         }
     }
+
+    Ok(Json(TempoResponse {
+        success: true,
+        audio_path: Some(final_path.to_string_lossy().to_string()),
+        message: "Tempo generated natively via Acestep 1.5".to_string(),
+        generation_time_ms: start.elapsed().as_millis() as u64,
+    }))
 }
 
 /// Generate a video via vLLM Omni
@@ -579,12 +550,19 @@ pub async fn generate_video(
 
     let result: serde_json::Value = response.json().await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     
-    let b64 = result["data"][0]["b64_json"].as_str().unwrap_or("");
+    let b64 = result["data"][0]["b64_json"].as_str().ok_or_else(|| {
+        (StatusCode::INTERNAL_SERVER_ERROR, "No b64_json in video generation response".to_string())
+    })?;
+    
     use base64::{Engine as _, engine::general_purpose};
-    let bytes = general_purpose::STANDARD.decode(b64).unwrap_or_default();
+    let bytes = general_purpose::STANDARD.decode(b64).map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to decode video base64: {}", e))
+    })?;
     
     let path = format!("/tmp/trinity_video_{}.mp4", uuid::Uuid::new_v4());
-    let _ = std::fs::write(&path, bytes);
+    std::fs::write(&path, bytes).map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to write video file: {}", e))
+    })?;
 
     let mut sheet = state.player.character_sheet.write().await;
     sheet.ldt_portfolio.artifact_vault.push(trinity_protocol::character_sheet::PortfolioArtifact {
@@ -673,20 +651,29 @@ pub async fn generate_3d_mesh(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    let obj_b64 = result["data"][0]["obj_base64"].as_str().unwrap_or("");
+    let obj_b64 = result["data"][0]["obj_base64"].as_str().ok_or_else(|| {
+        (StatusCode::INTERNAL_SERVER_ERROR, "No obj_base64 in TripoSR response".to_string())
+    })?;
+    
     use base64::{Engine as _, engine::general_purpose};
-    let bytes = general_purpose::STANDARD.decode(obj_b64).unwrap_or_default();
+    let bytes = general_purpose::STANDARD.decode(obj_b64).map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to decode mesh base64: {}", e))
+    })?;
 
     // Copy to Trinity workspace
     let home = std::env::var("HOME").unwrap_or_else(|_| dirs::home_dir().unwrap_or_default().to_string_lossy().to_string());
     let workspace_dir = std::path::PathBuf::from(&home)
         .join(".local/share/trinity/workspace/assets/meshes");
-    let _ = std::fs::create_dir_all(&workspace_dir);
+    std::fs::create_dir_all(&workspace_dir).map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to create mesh dir: {}", e))
+    })?;
 
     let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
     let filename = format!("trinity_mesh_{}.obj", timestamp);
     let final_path = workspace_dir.join(&filename);
-    let _ = std::fs::write(&final_path, bytes);
+    std::fs::write(&final_path, bytes).map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to write mesh file: {}", e))
+    })?;
             
     let mesh_path = Some(final_path.to_string_lossy().to_string());
 

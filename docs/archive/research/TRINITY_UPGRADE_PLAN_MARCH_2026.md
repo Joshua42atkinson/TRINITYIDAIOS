@@ -47,7 +47,7 @@ Verified March 22, 2026 via direct system commands.
 
 | Software | Version | Status | Notes |
 |----------|---------|--------|-------|
-| llama.cpp (llama-server) | Latest | ✅ Active | Running Mistral Small 4, Vulkan backend |
+| llama.cpp (longcat-sglang) | Latest | ✅ Active | Running Mistral Small 4, Vulkan backend |
 | vLLM | 0.17.1 | ✅ Installed | Has EAGLE support code (`mistral_large_3_eagle.py`) |
 | ONNX Runtime | 1.24.4 | 🟡 CPU provider only | Needs ROCm/XDNA execution provider for NPU |
 | xdna-driver | Source built | ✅ Built | `/dev/accel0` present |
@@ -209,8 +209,8 @@ python3 llama.cpp/convert_hf_to_gguf.py \
   ~/.cache/huggingface/hub/models--mistralai--Mistral-Small-4-119B-2603-eagle/ \
   --outfile ~/trinity-models/gguf/mistral-small-4-eagle.gguf
 
-# 3. Launch llama-server with draft model
-llama-server \
+# 3. Launch longcat-sglang with draft model
+longcat-sglang \
   -m ~/trinity-models/gguf/Mistral-Small-4-119B-2603-Q4_K_M-00001-of-00002.gguf \
   --model-draft ~/trinity-models/gguf/mistral-small-4-eagle.gguf \
   --draft-max 5 \
@@ -301,7 +301,7 @@ AMD's NPU models currently support **up to 4096 tokens** combined context. This 
 | Tool result truncation | ~477 | 4000 | 16000 |
 | RAG injection cap | ~267 | 1500 | 16000 |
 
-### 6c. Add `--jinja` to llama-server launch
+### 6c. Add `--jinja` to longcat-sglang launch
 
 **File:** `crates/trinity/src/main.rs`, line ~441 (auto-launch args)
 
@@ -415,7 +415,7 @@ pub struct InferenceBackend {
 
 | Port | Backend | Notes |
 |------|---------|-------|
-| 8080 | llama-server | Primary (Vulkan/ROCm) |
+| 8080 | longcat-sglang | Primary (Vulkan/ROCm) |
 | 1234 | LM Studio | GUI-based |
 | 8000 | vLLM / SGLang | Production serving |
 | 11434 | Ollama | Docker/simple setup |
@@ -424,11 +424,11 @@ pub struct InferenceBackend {
 
 ```toml
 [inference]
-primary = "llama-server"
+primary = "longcat-sglang"
 ctx_size = 262144
 max_tokens = 16384
 
-[inference.backends.llama-server]
+[inference.backends.longcat-sglang]
 url = "http://127.0.0.1:8080"
 supports_tools = true
 jinja = true

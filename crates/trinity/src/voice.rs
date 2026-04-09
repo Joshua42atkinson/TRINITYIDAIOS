@@ -732,57 +732,78 @@ async fn call_voice_sidecar(
     })
 }
 
-/// Call native Acestep 1.5 STT + LLM + TTS pipeline
+/// Call native Acestep 1.5 DiNA pipeline (Single Hop Multimodal)
 async fn call_acestep_pipeline(
     audio_data: &[u8],
     _mode: &str,
     state: &AppState,
 ) -> anyhow::Result<VoiceConversationResponse> {
-    // ── Step 1: STT — LongCat Transcriptions ──
+    let start_time = std::time::Instant::now();
+    use base64::Engine;
+    let b64_audio = base64::prelude::BASE64_STANDARD.encode(audio_data);
+
+    // Evaluate cognitive load mathematically for L5 evolutionary traits
+    let speed = {
+        let sheet = state.player.character_sheet.read().await;
+        let friction = sheet.track_friction;
+        let vuln = sheet.vulnerability;
+        cognitive_load_speed_multiplier(friction, vuln)
+    };
+
     let client = &*crate::http::LONG;
-    let tmp_path = format!("/tmp/call_{}.wav", uuid::Uuid::new_v4());
-    std::fs::write(&tmp_path, audio_data)?;
-    let payload = serde_json::json!({ "file": tmp_path });
-    let transcript = match client.post(format!("http://127.0.0.1:{}/v1/audio/transcriptions", LONGCAT_PORT))
+    let payload = serde_json::json!({
+        "model": "LongCat-Next",
+        "modalities": ["text", "audio"],
+        "audio": {
+            "voice": "joshua", // Defaulting to narrator (Great Recycler)
+            "format": "wav",
+            "speed": speed
+        },
+        "messages": [
+            {
+                "role": "system",
+                "content": format!("You are the Great Recycler in Voice Conversation Mode. Keep responses under 2 sentences. Note: speaking at {:.2}x due to cognitive load constraints.", speed)
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "input_audio",
+                        "input_audio": {
+                            "data": b64_audio,
+                            "format": "wav"
+                        }
+                    }
+                ]
+            }
+        ]
+    });
+
+    tracing::info!("🎙️ Native DiNA Acestep invocation (Speed {:.2}x - Audio chunk {} bytes)", speed, audio_data.len());
+
+    let res = client.post(format!("http://127.0.0.1:{}/v1/chat/completions", LONGCAT_PORT))
         .json(&payload)
-        .send().await {
-        Ok(res) if res.status().is_success() => {
-            let json: serde_json::Value = res.json().await.unwrap_or_default();
-            json["text"].as_str().unwrap_or("[Silence]").to_string()
-        },
-        _ => return Err(anyhow::anyhow!("STT Acestep pipeline failed")),
-    };
+        .send().await
+        .map_err(|e| anyhow::anyhow!("DiNA request failed: {}", e))?;
 
-    // ── Step 2: LLM — Route Chat ──
-    let messages = vec![
-        crate::ChatMessage {
-            role: "system".to_string(),
-            content: "You are the Great Recycler in Voice Conversation Mode. Keep responses under 2 sentences.".to_string(),
-            timestamp: None,
-            image_base64: None,
-        },
-        crate::ChatMessage {
-            role: "user".to_string(),
-            content: transcript.clone(),
-            timestamp: None,
-            image_base64: None,
-        },
-    ];
+    if !res.status().is_success() {
+        let err = res.text().await.unwrap_or_default();
+        return Err(anyhow::anyhow!("Acestep DiNA pipeline rejected request: {}", err));
+    }
 
-    let url = state.inference_router.read().await.active_url().to_string();
-    let response_text = crate::inference::chat_completion(&url, &messages, 256)
-        .await
-        .unwrap_or_else(|_| "I'm sorry, my language core is unreachable.".to_string());
+    let json: serde_json::Value = res.json().await?;
+    let message = &json["choices"][0]["message"];
+    let response_text = message["content"].as_str().unwrap_or("").to_string();
+    let transcript_text = message["audio"]["transcript"].as_str().unwrap_or("[Transcribed natively via Omni]").to_string();
+    
+    let audio_b64 = message["audio"]["data"].as_str().ok_or_else(|| anyhow::anyhow!("No audio response found in DiNA payload"))?;
+    let audio_response = base64::prelude::BASE64_STANDARD.decode(audio_b64)?;
 
-    // ── Step 3: TTS — Acestep Synthesize ──
-    let audio_response = match omni_synthesize(&response_text, "recycler", "wav").await {
-        Ok(audio) => audio,
-        Err(_) => vec![],
-    };
+    tracing::info!("🎙️ Native DiNA Acestep completed in {}ms. Returning {} bytes.", start_time.elapsed().as_millis(), audio_response.len());
 
     Ok(VoiceConversationResponse {
         audio_data: audio_response,
-        transcript: Some(transcript),
+        transcript: Some(transcript_text),
         response_text: Some(response_text),
     })
 }

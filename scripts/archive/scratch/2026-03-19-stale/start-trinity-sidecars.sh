@@ -13,7 +13,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-LLAMA_BIN="$PROJECT_DIR/llama.cpp/build-vulkan/bin/llama-server"
+LLAMA_BIN="$PROJECT_DIR/llama.cpp/build-vulkan/bin/longcat-sglang"
 
 MODE="${1:-all}"
 
@@ -23,7 +23,7 @@ echo "║           Mode: $MODE                                        ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 
 # Kill existing processes
-pkill -f "llama-server" 2>/dev/null || true
+pkill -f "longcat-sglang" 2>/dev/null || true
 sleep 2
 
 start_ironroad() {

@@ -24,7 +24,7 @@
 |------|------|-------|
 | 1.1 | Update `main.rs` — replace `LLAMA_URL` with `VLLM_URL` as sole inference endpoint | `main.rs` |
 | 1.2 | Update `inference.rs` — point to vLLM (same OpenAI-compat API, minimal change) | `inference.rs` |
-| 1.3 | Update `tools.rs` — replace llama-server launch with vLLM management | `tools.rs` |
+| 1.3 | Update `tools.rs` — replace longcat-sglang launch with vLLM management | `tools.rs` |
 | 1.4 | Test `/api/chat` returns real responses from Pete via vLLM | Manual test |
 | 1.5 | Test `/api/chat/stream` SSE streaming | Manual test |
 

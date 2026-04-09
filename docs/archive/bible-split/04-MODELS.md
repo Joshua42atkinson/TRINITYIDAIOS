@@ -17,11 +17,11 @@
 
 | Role | Model | File | Size | Format | Serving | Port |
 |------|-------|------|------|--------|---------|------|
-| **P (Conductor/Pete)** | Mistral Small 4 119B MoE | `Mistral-Small-4-119B-2603-Q4_K_M-0000{1,2}-of-00002.gguf` | 68 GB | Split GGUF | llama-server | 8080 |
+| **P (Conductor/Pete)** | Mistral Small 4 119B MoE | `Mistral-Small-4-119B-2603-Q4_K_M-0000{1,2}-of-00002.gguf` | 68 GB | Split GGUF | longcat-sglang | 8080 |
 | **Y (Yardmaster)** | Ming-flash-omni-2.0 | `Ming-flash-omni-2.0/model-0000{1..42}-of-00042.safetensors` | ~195 GB | Safetensors | vLLM (PyO3) | 8000 |
-| **A-R-T (R)** | Crow 9B | `Crow-9B-Opus-4.6-Distill-Heretic_Qwen3.5.i1-Q4_K_M.gguf` | 5.3 GB | GGUF | llama-server | 8081 |
-| **A-R-T (R)** | REAP 25B MoE | `Qwen3-Coder-REAP-25B-A3B-Rust-Q4_K_M.gguf` | 15 GB | GGUF | llama-server | 8081 |
-| **A-R-T (T)** | OmniCoder 9B | `OmniCoder-9B-Q4_K_M.gguf` | 5.4 GB | GGUF | llama-server | 8082 |
+| **A-R-T (R)** | Crow 9B | `Crow-9B-Opus-4.6-Distill-Heretic_Qwen3.5.i1-Q4_K_M.gguf` | 5.3 GB | GGUF | longcat-sglang | 8081 |
+| **A-R-T (R)** | REAP 25B MoE | `Qwen3-Coder-REAP-25B-A3B-Rust-Q4_K_M.gguf` | 15 GB | GGUF | longcat-sglang | 8081 |
+| **A-R-T (T)** | OmniCoder 9B | `OmniCoder-9B-Q4_K_M.gguf` | 5.4 GB | GGUF | longcat-sglang | 8082 |
 | **A-R-T (A)** | SDXL Turbo + ComfyUI | `~/trinity-models/safetensors/sdxl-turbo/` | ~6.5 GB | FP16 | ComfyUI HTTP | 8188 |
 
 ### 1.2 Reserve Models
@@ -49,7 +49,7 @@
 | **Context** | 256K tokens (with Q4 KV cache quantization) |
 | **Vision** | ✅ Multimodal capable |
 | **Speed** | 40+ tokens/sec on Strix Halo |
-| **Serving** | llama-server on port 8080 |
+| **Serving** | longcat-sglang on port 8080 |
 | **Always Loaded** | ✅ Yes — the Conductor never unloads |
 | **Role** | Orchestrates ADDIECRAPEYE, Socratic dialogue (Ask Pete), VAAM management, quest routing |
 
@@ -67,7 +67,7 @@
 
 **Launch:**
 ```bash
-llama-server \
+longcat-sglang \
   -m ~/trinity-models/gguf/Mistral-Small-24B-Instruct-2501-Q4_K_M.gguf \
   -ngl 99 -c 32768 --port 8080
 ```
@@ -111,7 +111,7 @@ The Engineer uses a **dual-model pattern**:
 **Launch:**
 ```bash
 # Both models load on same server (dual context)
-llama-server \
+longcat-sglang \
   -m ~/trinity-models/gguf/Qwen3-Coder-REAP-25B-A3B-Rust-Q4_K_M.gguf \
   -ngl 99 -c 32768 --port 8082
 ```
@@ -138,7 +138,7 @@ llama-server \
 
 **Launch:**
 ```bash
-llama-server \
+longcat-sglang \
   -m models/evaluator/opus-27b-Q6_K.gguf \
   -ngl 99 -c 65536 --port 8090
 ```

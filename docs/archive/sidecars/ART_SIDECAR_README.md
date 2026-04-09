@@ -271,8 +271,8 @@ cmake --build build-rocm --config Release -j$(nproc)
 # Check model files
 ls ~/trinity-models/gguf/*.gguf
 
-# Check llama-server
-~/Workflow/desktop_trinity/trinity-genesis/llama.cpp/build-vulkan/bin/llama-server --help
+# Check longcat-sglang
+~/Workflow/desktop_trinity/trinity-genesis/llama.cpp/build-vulkan/bin/longcat-sglang --help
 ```
 
 ### ComfyUI Not Starting

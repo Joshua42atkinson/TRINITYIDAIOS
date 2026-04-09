@@ -11,7 +11,7 @@ description: Pete's Onboarding + Gameplay Loop — make the Iron Road playable e
 
 ## Boot Stack
 
-1. Start llama-server (Mistral Small 3.1 / whatever is configured):
+1. Start longcat-sglang (Mistral Small 3.1 / whatever is configured):
 ```bash
 # Check MODEL_REGISTRY.md for the current launch command
 cat /home/joshua/Workflow/desktop_trinity/trinity-genesis/MODEL_REGISTRY.md | head -40

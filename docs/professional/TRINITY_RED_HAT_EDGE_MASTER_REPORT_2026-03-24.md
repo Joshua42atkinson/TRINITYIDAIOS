@@ -99,7 +99,7 @@ Using read-only local inspection of:
 
 - **[public app bind]** `0.0.0.0:3000` served by process `trinity`
 - **[public edge listeners]** `*:80` and `*:443`
-- **[local LLM listener]** `127.0.0.1:8080` served by `llama-server`
+- **[local LLM listener]** `127.0.0.1:8080` served by `longcat-sglang`
 - **[local Postgres listener]** `127.0.0.1:5432`
 
 ## Live Trinity health snapshot
@@ -107,7 +107,7 @@ Using read-only local inspection of:
 - **[app health]** `healthy`
 - **[LLM connected]** `true`
 - **[active LLM URL]** `http://127.0.0.1:8080`
-- **[active backend]** `llama-server`
+- **[active backend]** `longcat-sglang`
 - **[model hint]** `Mistral-Small-4-119B-2603-Q4_K_M-00001-of-00002.gguf`
 - **[database]** `connected`
 - **[persisted message count]** `70`

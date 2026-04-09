@@ -130,7 +130,7 @@ Trinity is **backend-agnostic**. If you prefer a different tool:
 |---------|:----:|-------------|
 | **LM Studio** | 1234 | GUI app → Start Server |
 | **Ollama** | 11434 | `ollama serve && ollama run mistral-small` |
-| **llama-server** | 8080 | `llama-server -m MODEL.gguf --port 8080 -fa` |
+| **longcat-sglang** | 8080 | `longcat-sglang -m MODEL.gguf --port 8080 -fa` |
 | **Any OpenAI-compatible** | Custom | Set your endpoint in Trinity's setup wizard |
 
 Trinity's `InferenceRouter` auto-detects all of these at startup, no configuration needed.

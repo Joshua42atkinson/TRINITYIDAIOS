@@ -48,13 +48,13 @@ ollama serve  # starts on port 11434
 ollama pull mistral-small  # or any model
 ```
 
-**Option C: llama-server (manual)**
+**Option C: longcat-sglang (manual)**
 ```bash
 git clone https://github.com/ggml-org/llama.cpp.git
 cd llama.cpp
 cmake -B build -DGGML_VULKAN=ON
 cmake --build build --config Release -j$(nproc)
-sudo cp build/bin/llama-server /usr/local/bin/
+sudo cp build/bin/longcat-sglang /usr/local/bin/
 ```
 
 ---
@@ -105,8 +105,8 @@ TRINITY_HEADLESS=1 cargo run -p trinity --release
 
 ### Option B: Manual LLM start
 ```bash
-# Terminal 1: Start the LLM (if using llama-server)
-llama-server -m ~/trinity-models/gguf/YOUR_MODEL.gguf \
+# Terminal 1: Start the LLM (if using longcat-sglang)
+longcat-sglang -m ~/trinity-models/gguf/YOUR_MODEL.gguf \
   --host 127.0.0.1 --port 8080 -ngl 99 --ctx-size 262144 --flash-attn on --jinja
 
 # Terminal 2: Start Trinity
@@ -146,7 +146,7 @@ These are optional services for creative features:
 # Already integrated via InferenceRouter if running on port 8000.
 
 # Document intelligence (Qianfan-OCR)
-llama-server -m ~/trinity-models/gguf/Qianfan-OCR-Q4_K_M.gguf --port 8081 --ctx-size 32768
+longcat-sglang -m ~/trinity-models/gguf/Qianfan-OCR-Q4_K_M.gguf --port 8081 --ctx-size 32768
 
 # Voice pipeline (Kokoro TTS - Apache 2.0)
 ./scripts/launch/start_kokoro_sidecar.sh  # Starts on port 8200

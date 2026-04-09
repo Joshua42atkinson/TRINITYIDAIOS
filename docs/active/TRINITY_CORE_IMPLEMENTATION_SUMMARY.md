@@ -37,7 +37,7 @@ trinity-genesis/
 | `conductor_leader.rs` | 447 | ADDIECRAPEYE orchestration (Lone Wolf mode) |
 | `persistence.rs` | 395 | SQLite sessions, messages, projects, DAYDREAM |
 | `rag.rs` | 195 | ONNX vector semantic search + text fallback |
-| `inference.rs` | ~200 | OpenAI-compatible client → llama-server :8080 |
+| `inference.rs` | ~200 | OpenAI-compatible client → longcat-sglang :8080 |
 | `vaam_bridge.rs` | ~150 | VAAM → system prompt injection |
 
 ---
@@ -52,7 +52,7 @@ trinity-genesis/
 
 ### 2. ONNX RAG
 - Semantic search via cosine similarity (HNSW index)
-- Embedding via llama-server `/v1/embeddings` with hash fallback
+- Embedding via longcat-sglang `/v1/embeddings` with hash fallback
 - Tiered search: semantic → full-text → ILIKE
 - Auto-ingest of 7 Trinity docs on startup
 

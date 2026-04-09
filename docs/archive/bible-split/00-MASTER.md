@@ -105,10 +105,10 @@ party_members (id, name, role, model, active)
 
 ```bash
 # Conductor / base brain (Mistral Small 4) — main orchestrator
-llama-server -m ~/trinity-models/gguf/Mistral-Small-24B-Instruct-2501-Q4_K_M.gguf -ngl 99 -c 32768 --port 8080
+longcat-sglang -m ~/trinity-models/gguf/Mistral-Small-24B-Instruct-2501-Q4_K_M.gguf -ngl 99 -c 32768 --port 8080
 
 # Yardmaster / EYE (Ming-flash-omni-2.0) — dev mode code generation & vision
-llama-server -m ~/trinity-models/gguf/Ming-flash-omni-2.0-Q4_K_M.gguf -ngl 99 -c 32768 --port 8082
+longcat-sglang -m ~/trinity-models/gguf/Ming-flash-omni-2.0-Q4_K_M.gguf -ngl 99 -c 32768 --port 8082
 ```
 
 > **See all models:** [04-MODELS.md](04-MODELS.md)
@@ -124,7 +124,7 @@ llama-server -m ~/trinity-models/gguf/Ming-flash-omni-2.0-Q4_K_M.gguf -ngl 99 -c
 ./run_trinity.sh
 
 # Or manual sequence
-./llama.cpp/build/bin/llama-server -m ~/trinity-models/gguf/Mistral-Small-24B-Instruct-2501-Q4_K_M.gguf -ngl 99 -c 32768 --port 8080
+./llama.cpp/build/bin/longcat-sglang -m ~/trinity-models/gguf/Mistral-Small-24B-Instruct-2501-Q4_K_M.gguf -ngl 99 -c 32768 --port 8080
 cargo run -p trinity --bin trinity
 ```
 

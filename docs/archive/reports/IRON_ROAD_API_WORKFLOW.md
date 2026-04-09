@@ -15,7 +15,7 @@ The **Iron Road** is the central nervous system of Trinity. It connects the user
 | **ConductorLeader** | Orchestrates the party. Assigns quests based on ADDIE phase. | Internal Rust Channels / `tarpc` | Cannot generate code or art directly. Only plans and routes. |
 | **Ask Pete (NPU)** | Socratic Voice Companion. Front-line SME interview. | `ort` (ONNX) Local + Axum API | Runs purely on the NPU (Lobby). Always listening. |
 | **Great Recycler** | Observes progress. Translates raw actions into the "Iron Road Book" narrative. | Axum REST (`/api/narrative`) | Reads system events, outputs Markdown/HTML to Layer 2. |
-| **Engineer (GPU)** | Writes Rust/Bevy code. Executes development quests. | `llama-server` (Vulkan) port 8081 | Loaded on demand. Heavy lifting logic. |
+| **Engineer (GPU)** | Writes Rust/Bevy code. Executes development quests. | `longcat-sglang` (Vulkan) port 8081 | Loaded on demand. Heavy lifting logic. |
 | **Artist (GPU)** | Generates sprites and visuals using SDXL/ComfyUI. | ComfyUI REST API | Loaded on demand. Output to `/assets/`. |
 
 ---
@@ -27,7 +27,7 @@ The **Iron Road** is the central nervous system of Trinity. It connects the user
 * **Flow**:
   1. User introduces a concept/word.
   2. `WeighRequest` is dispatched in Bevy (`trinity-body/src/game/weigh_station.rs`).
-  3. HTTP POST to local `llama-server` (port 8080/8081).
+  3. HTTP POST to local `longcat-sglang` (port 8080/8081).
   4. Engine parses JSON schema -> Returns `WordPhysics` (Tier, Mass, Tags).
   5. Concept is physically spawned in the 3D Bevy space with its assigned mass.
 
@@ -65,4 +65,4 @@ To ensure we are not creating redundant features and can measure actual results:
 * **NPU Audio**: `mock_speech_to_text` and encoding functions replaced with actual `ort::Session` inferences over Vitis AI.
 * **NPU Engine**: Removed dummy float payloads; dynamically sizes based on model architecture.
 * **Weigh Station**: Fallback mocks deleted. Strict HTTP local inference enforced to prevent silent offline failures.
-* **Diffusion / Graphics**: Legacy `diffusion_asset.rs` (C++ mock bindings) removed entirely in favor of the active `comfyui` and `llama-server` mmproj integrations.
+* **Diffusion / Graphics**: Legacy `diffusion_asset.rs` (C++ mock bindings) removed entirely in favor of the active `comfyui` and `longcat-sglang` mmproj integrations.

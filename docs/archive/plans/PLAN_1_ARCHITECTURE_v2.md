@@ -7,7 +7,7 @@
 
 ## 1. The Core Simplification
 
-**Before (v1):** Two inference engines — llama-server for GGUF, vLLM for safetensors.  
+**Before (v1):** Two inference engines — longcat-sglang for GGUF, vLLM for safetensors.  
 **After (v2):** One inference engine — vLLM serves EVERYTHING.
 
 ### Why This Is Better
@@ -176,7 +176,7 @@ With vLLM as sole engine, the PyO3 boundary becomes cleaner:
 | File | Change |
 |------|--------|
 | `main.rs` | Replace `LLAMA_URL` with `VLLM_URL` as the sole inference endpoint |
-| `inference.rs` | Point to vLLM instead of llama-server (same OpenAI-compat API, minimal change) |
+| `inference.rs` | Point to vLLM instead of longcat-sglang (same OpenAI-compat API, minimal change) |
 | `tools.rs` | Remove `llama_server_binary()`, `conductor-llama` launch. Replace with vLLM management via PyO3 |
 | `conductor_leader.rs` | `call_pete()` already uses HTTP — just change the URL |
 | `vllm_batcher.rs` | Already talks OpenAI-compat — becomes the primary client |
@@ -193,8 +193,8 @@ With vLLM as sole engine, the PyO3 boundary becomes cleaner:
 
 - `llama_server_binary()` function in `tools.rs`
 - `LLAMA_URL` env var (replaced by `VLLM_URL`)
-- Any references to llama-server launch commands
-- The `bin/llama-server` binary dependency
+- Any references to longcat-sglang launch commands
+- The `bin/longcat-sglang` binary dependency
 
 ---
 
@@ -202,10 +202,10 @@ With vLLM as sole engine, the PyO3 boundary becomes cleaner:
 
 | Risk | Mitigation |
 |------|------------|
-| vLLM GGUF is "experimental and under-optimized" | Keep llama-server binary as fallback. Can always revert. |
+| vLLM GGUF is "experimental and under-optimized" | Keep longcat-sglang binary as fallback. Can always revert. |
 | vLLM ROCm support for AMD 395+ may have issues | Strix Halo is new silicon — test thoroughly before committing |
 | Single-file GGUF merge may fail for MoE models | Test merge first. If fails, convert to safetensors instead. |
-| vLLM startup is slower than llama-server | Acceptable — models stay loaded for long sessions |
+| vLLM startup is slower than longcat-sglang | Acceptable — models stay loaded for long sessions |
 
 ---
 
