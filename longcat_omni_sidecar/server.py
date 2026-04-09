@@ -92,7 +92,10 @@ def load_model_4bit():
             bnb_4bit_quant_type="nf4",
             bnb_4bit_compute_dtype=torch.bfloat16,
             bnb_4bit_use_double_quant=True,  # nested quantization for extra savings
-            llm_int8_skip_modules=["classifier", "router", "lm_head", "linear1", "linear2", "linear_1", "linear_2", "l_linear"]
+            llm_int8_skip_modules=[
+                "classifier", "router", "lm_head", "linear1", "linear2", "linear_1", "linear_2", "l_linear",
+                "visual_head", "audio_head", "visual_tokenizer", "audio_tokenizer"
+            ]
         )
 
         tokenizer = AutoTokenizer.from_pretrained(
@@ -107,10 +110,10 @@ def load_model_4bit():
             device_map="auto",
             trust_remote_code=True,
             torch_dtype=torch.bfloat16,
-            attn_implementation="sdpa",
         )
         model.eval()
         model.text_tokenizer = tokenizer
+        
         model_loaded = True
 
         # Report VRAM usage after load
@@ -179,7 +182,8 @@ async def chat_completions(request: Request):
                     if audio_url.startswith("data:audio/wav;base64,"):
                         b64_data = audio_url.replace("data:audio/wav;base64,", "")
                         bbytes = base64.b64decode(b64_data)
-                        path = "/tmp/stt_input.wav"
+                        import uuid
+                        path = f"/tmp/stt_{uuid.uuid4().hex[:8]}.wav"
                         with open(path, "wb") as f:
                             f.write(bbytes)
                         new_content += f"<longcat_audio_start>{path}<longcat_audio_end>"
@@ -227,21 +231,23 @@ async def chat_completions(request: Request):
                 skip_special_tokens=True,
             )
 
-            generation_kwargs = dict(
-                **inputs,
-                max_new_tokens=max_tokens,
-                do_sample=do_sample,
-                temperature=temperature if do_sample else None,
-                top_p=0.85 if do_sample else None,
-                streamer=streamer,
-            )
+            # Launch generation in a background thread
+            gen_kwargs = {
+                "input_ids": inputs["input_ids"],
+                "max_new_tokens": max_tokens,
+                "do_sample": do_sample,
+                "streamer": streamer,
+            }
+            if "attention_mask" in inputs:
+                gen_kwargs["attention_mask"] = inputs["attention_mask"]
+            if do_sample:
+                gen_kwargs["temperature"] = temperature
+                gen_kwargs["top_p"] = 0.85
 
-            # Launch generation in a background thread (GIL is released
-            # during CUDA/ROCm kernels, so the async loop stays responsive)
-            thread = Thread(target=lambda: model.generate(**generation_kwargs))
+            thread = Thread(target=lambda: model.generate(**gen_kwargs))
             thread.start()
 
-            async def token_stream():
+            def token_stream():
                 try:
                     for token_text in streamer:
                         if not token_text:
@@ -264,14 +270,19 @@ async def chat_completions(request: Request):
             return StreamingResponse(token_stream(), media_type="text/event-stream")
 
         # ── Non-streaming (original behavior) ──
+        gen_kwargs = {
+            "input_ids": inputs["input_ids"],
+            "max_new_tokens": max_tokens,
+            "do_sample": do_sample,
+        }
+        if "attention_mask" in inputs:
+            gen_kwargs["attention_mask"] = inputs["attention_mask"]
+        if do_sample:
+            gen_kwargs["temperature"] = temperature
+            gen_kwargs["top_p"] = 0.85
+
         with torch.no_grad():
-            outputs = model.generate(
-                **inputs,
-                max_new_tokens=max_tokens,
-                do_sample=do_sample,
-                temperature=temperature if do_sample else None,
-                top_p=0.85 if do_sample else None,
-            )
+            outputs = model.generate(**gen_kwargs)
 
         # Decode only new tokens
         new_tokens = outputs[0][inputs["input_ids"].shape[1]:]

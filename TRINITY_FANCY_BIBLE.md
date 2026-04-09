@@ -80,7 +80,7 @@
 - [Car 11: YOKE — ART Pipeline & Creative Tools](#-car-11-yoke--art-pipeline--creative-tools)
   - [11.1 ART Pipeline](#111-the-art-creative-pipeline) · [11.2 ComfyUI](#112-comfyui-workflow--sdxl-turbo) · [11.3 Visual Style](#113-visual-style-system) · [11.4 Voice](#114-voice-pipeline) · [11.5 Models](#115-model-inventory)
 - [Car 12: EVOLVE — Deployment, Hardware, and the Lexicon](#-car-12-evolve--deployment-hardware-and-the-lexicon)
-  - [12.1 Strix Halo](#121-the-amd-strix-halo-platform) · [12.2 KV Cache](#122-the-dual-kv-cache-architecture) · [12.3 Server](#123-server-architecture) · [12.4 Lexicon](#124-the-trinity-lexicon) · [12.5 What's Next](#125-whats-next)
+  - [12.1 Strix Halo](#121-the-amd-strix-halo-platform) · [12.2 Architecture](#122-the-dual-brain-inference-architecture) · [12.3 KV Cache](#123-the-dual-kv-cache--party-routing) · [12.4 Server](#124-server-architecture) · [12.5 Lexicon](#125-the-trinity-lexicon) · [12.6 What's Next](#126-whats-next)
 
 ---
 
@@ -1796,17 +1796,50 @@ Trinity runs on AMD's Strix Halo (Ryzen AI Max+ 395):
 
 The **unified memory** architecture is the absolute core enabler — the APU's lack of PCIe bottlenecks ensures we can run all 6 massive LLM, Diffusion, and Mesh generation models synchronously without eviction constraints.
 
-### 12.2 The vLLM Omni Deployment
+### 12.2 The Dual-Brain Inference Architecture
 
-Trinity utilizes a highly parallelized inference architecture managed by `vLLM` proxy on port `:8000` combined with custom headless Python servers. This eliminates the sluggish single-lane queue bottleneck found in legacy local systems like Ollama or LM Studio.
+Trinity employs a dual-brain inference design optimized explicitly for the 128GB unified memory constraint of AMD Strix Halo. We split the intelligence into two isolated systems, avoiding the single-lane queue bottleneck found in local systems like LM Studio while guaranteeing absolute OpenAI-endpoint parity across the P.A.R.T.Y. protocol.
 
-- **Unified OpenAI Compliance**: All nodes conform strictly to `/v1/chat/completions` or analogous `/v1/images/generations` logic.
-- **Port Masking**: The Rust client (`creative.rs` and `inference_router.rs`) sees the cluster as normal segmented internet APIs. 
-- **The Memory Sweep**: The boot script dynamically verifies presence and integrity to ensure the `~96% memory load` sits exactly within constraints. 
+#### 12.2.1 SGLang & LongCat-Next Omni-Brain (Port 8010)
+This serves as the core narrative engine that powers both Programmer Pete and the Great Recycler.
+- **Model**: LongCat-Next MoE (74B total parameters, ~25B active).
+- **Architecture (MLA)**: Employs Multi-Head Latent Attention (MLA), enabling a natively compressed 131K token context window without suffering standard KV cache memory inflation.
+- **Multimodal Integration**: Runs via standard `transformers` and FastAPI over `sglang` due to sub-module routing quirks. It handles DiNA image generation (incorporating the dNaViT and FLUX VAE directly) alongside voice generation (CosyVoice), acting as a true "Omni-Brain".
+- **Strix Halo Hardware Optimizations (ROCm)**: 
+  - Served via 4-bit NF4 quantization to squeeze the ~151GB unquantized `bf16` tensor footprint down to ~38GB.
+  - Due to `flash_attn` issues on RDNA 3.5, all attention mechanisms are forced onto `sdpa` bypasses.
+  - We explicitly enforce `llm_int8_skip_modules` on the `router`, `classifier`, and `linear` outputs to avoid math segmentation faults when computing Mixtral-style multi-head routing.
 
-No more switching out character personas mechanically by swapping large KV caches or models out of memory — the models *are* the characters, constantly running side by side, bound together by the Daydream LitRPG framework.
+#### 12.2.2 vLLM A.R.T.Y. Hub Operations (Port 8000)
+The A.R.T.Y. Hub is the secondary utility brain governing background processing, structured data validation, and the local RAG embedding system.
+- **Model Array**: Hot-swapped via local `vLLM` proxy to serve smaller, robust models like Qwen-2.5-Coder and standard embedding networks.
+- **PagedAttention Benefits**: Maximizes discrete batching of asynchronous jobs by managing memory blocks in pages, dramatically reducing fragmentation inside the APU's tight 128GB memory threshold.
+- **Strix Halo Hardware Optimizations (ROCm)**:
+  - Requires the strict use of `--enforce-eager` to disable unstable `CUDAGraphs` compilation on non-NVIDIA silicon, avoiding immediate pickling crashes.
+  - VRAM is aggressively restricted to exactly 35% utilization per tier via `gpu_memory_utilization` arguments to prevent the Linux kernel's OOM killer from terminating the master Rust service.
 
-### 12.3 Server Architecture
+Both Hubs connect dynamically: The Rust client (`creative.rs` and `inference_router.rs`) sees the array as normal segmented internet APIs. No more switching out character personas mechanically by swapping large KV caches — the models *are* the characters, constantly running side by side, bound together by the Daydream LitRPG framework.
+
+### 12.3 The Dual KV Cache & P.A.R.T.Y. Routing
+
+The Dual KV Cache architecture is the beating heart of Trinity's pedagogical framework, physically separating the psychological "Inhale" (Socratic reflection) and "Exhale" (Execution and building) mechanisms in memory.
+
+In older paradigms, this required manually locking hardware integers (e.g. `-np 2` slot assignments in Llama.cpp). However, the modern Strix Halo hubs support this fundamentally differently.
+
+#### The Rust Agent Runtime (The "What")
+If you explore `crates/trinity/src/agent.rs` (Lines ~160), you will find the `persona_slot` mappings and the core preambles:
+- **Slot 0 (The Great Recycler)**: The INHALE. Fed the `GREAT_RECYCLER_PREAMBLE`, instructing the agent to ask Socratic questions, challenge assumptions, and block the output of raw deliverables.
+- **Slot 1 (Programmer Pete)**: The EXHALE. Fed the `PROGRAMMER_PETE_PREAMBLE`, bypassing reflection to immediately execute tasks, build files, and manage sidecars.
+
+Upon chat initialization, the selected Preamble is injected dynamically at **Token 0** of the generation array, immediately ahead of the 256K rolling `message_history` context.
+
+#### Sub-Agent Support in A.R.T.Y. (vLLM)
+For utility models running under vLLM on Port 8000, we no longer need explicit slot-pinning. vLLM uses a **PagedAttention Prefix Tree**. Because the Inhale and Exhale system preambles act as the root tokens of the prompt array, vLLM's memory geometry automatically branches at `token 0`. This dynamically creates two isolated, persistent KV Cache memory trees in the 128GB unified RAM—one for Inhale, one for Exhale—effortlessly maintaining contextual continuity for sub-agents (like the REAP Coder) without any manual management.
+
+#### Omni-Brain Support in LongCat (SGLang)
+For the 74B MoE powering narrative and multimodality on Port 8010, the engine uses **Multi-Head Latent Attention (MLA)**. Because MLA natively compresses the structure of the KV cache by design, LongCat doesn't rely on strict prefix cache trees. It simply utilizes its massive 131K context window to ingest both Persona histories sequentially.
+
+### 12.4 Server Architecture
 
 ```
 Layer 0: Tauri v2 Desktop Shell (optional)
@@ -1840,7 +1873,7 @@ Layer 4: MCP Server (trinity-mcp-server crate)
   └── Enables IDE integration (Zed, Cursor)
 ```
 
-### 12.4 The Trinity Lexicon
+### 12.5 The Trinity Lexicon
 
 Key terms defined in code, collected for reference:
 
@@ -1876,7 +1909,7 @@ Key terms defined in code, collected for reference:
 | **Ignition** | LM Studio boot state machine: idle → launching → daemon_up → ready | `main.rs` |
 | **InferenceRouter** | Agnostic HTTP dispatcher — auto-detects LM Studio / Ollama / llama-server | `inference_router.rs` |
 
-### 12.5 What's Next
+### 12.6 What's Next
 
 Trinity is in **late prototype** stage. The Golem has its skeleton, muscles, and voice.
 
