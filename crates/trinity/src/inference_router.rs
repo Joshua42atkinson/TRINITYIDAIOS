@@ -44,11 +44,11 @@ impl BackendKind {
     /// Default port for each backend kind
     pub fn default_port(&self) -> u16 {
         match self {
-            BackendKind::VllmOmni => 8010,
+            BackendKind::VllmOmni => 8000,  // A.R.T.Y. Hub reverse proxy
             BackendKind::LlamaServer => 8080,
             BackendKind::Ollama => 11434,
             BackendKind::LmStudio => 1234,
-            BackendKind::LongCat => 8010,
+            BackendKind::LongCat => 8010,   // Pete / LongCat-Next Omni-Brain
             BackendKind::Custom => 8080,
         }
     }
@@ -286,7 +286,8 @@ impl InferenceRouter {
             .iter()
             .map(|(name, bc)| {
                 let kind = match name.as_str() {
-                    "vllm-omni" | "vllm" => BackendKind::VllmOmni,
+                    "vllm-omni" | "vllm" | "arty-hub" | "yardmaster-reap" => BackendKind::VllmOmni,
+                    "longcat-omni" | "longcat" => BackendKind::LongCat,
                     "llama-server" => BackendKind::LlamaServer,
                     "ollama" => BackendKind::Ollama,
                     "lm-studio" => BackendKind::LmStudio,
@@ -674,9 +675,9 @@ supports_vision = false
         let mut router = InferenceRouter::from_config(Some("/nonexistent.toml"));
         let original_count = router.backends.len();
 
-        // Set to an existing backend URL
-        router.set_active_url("http://127.0.0.1:11434".to_string());
-        assert_eq!(router.active_url(), "http://127.0.0.1:11434");
+        // Set to an existing backend URL (A.R.T.Y. Hub / yardmaster-reap on 8000)
+        router.set_active_url("http://127.0.0.1:8000".to_string());
+        assert_eq!(router.active_url(), "http://127.0.0.1:8000");
         assert_eq!(router.backends.len(), original_count); // no new backend added
     }
 
@@ -706,7 +707,7 @@ supports_vision = false
 
     #[test]
     fn test_backend_kind_properties() {
-        assert_eq!(BackendKind::VllmOmni.default_port(), 8010);
+        assert_eq!(BackendKind::VllmOmni.default_port(), 8000);
         assert_eq!(BackendKind::LlamaServer.default_port(), 8080);
         assert_eq!(BackendKind::Ollama.default_port(), 11434);
         assert_eq!(BackendKind::LmStudio.default_port(), 1234);

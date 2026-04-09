@@ -669,7 +669,20 @@ impl ConductorLeader {
             (_, AddiecrapeyePhase::Evolve) => "EVOLVE: This is the Golem's Lungs. Time to ship the finished product. Congratulate them.",
         };
 
-        format!("{}\n\nSOCRATIC PROTOCOL: Ask, do not tell. Formulate questions based on the phase:\n{}", prefix, phase_content)
+        // ═══ L5 EVOLUTIONARY: Inject RLHF learned preferences ═══
+        // apply_prompt_bias() reads accumulated thumbs-up/thumbs-down signals
+        // from ~/.local/share/trinity/rlhf_bias.json and generates steering
+        // instructions like "DO NOT repeat patterns like: [snippet]" or
+        // "CONTINUE patterns like: [snippet]". This is the wire that makes
+        // RLHF *actually change* Pete's behavior across sessions.
+        let phase_name = format!("{}", phase);
+        let rlhf_block = crate::rlhf_api::apply_prompt_bias(Some(&phase_name));
+
+        let mut prompt = format!("{}\n\nSOCRATIC PROTOCOL: Ask, do not tell. Formulate questions based on the phase:\n{}", prefix, phase_content);
+        if !rlhf_block.is_empty() {
+            prompt.push_str(&rlhf_block);
+        }
+        prompt
     }
 
     // ═══════════════════════════════════════════════════════════════════

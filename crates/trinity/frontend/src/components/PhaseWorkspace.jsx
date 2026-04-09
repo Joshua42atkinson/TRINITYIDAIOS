@@ -237,12 +237,24 @@ export default function PhaseWorkspace({ quest, bestiary, sseEvents, onDismissEv
   const [voicePreset, setVoicePreset] = useState('M1');
   const [vibeOn, setVibeOn] = useState(false);
   const [vibeLoading, setVibeLoading] = useState(false);
+  const [fleetOnline, setFleetOnline] = useState(true); // assume online until proven otherwise
   const vibeAudioRef = useRef(null);
   const scrollRef = useRef(null);
   const prevPhaseRef = useRef(null);
   const audioQueueRef = useRef([]);
   const isPlayingRef = useRef(false);
   const audioRef = useRef(null);
+
+  // Listen for fleet status from InferenceManager
+  useEffect(() => {
+    const handler = (e) => setFleetOnline(e.detail?.online ?? false);
+    window.addEventListener('trinity-fleet-status', handler);
+    // Also check on mount via quick health probe
+    fetch('/api/model/status').then(r => r.json()).then(d => {
+      setFleetOnline(d.status === 'mounted');
+    }).catch(() => setFleetOnline(false));
+    return () => window.removeEventListener('trinity-fleet-status', handler);
+  }, []);
 
   const processAudioQueue = React.useCallback(async () => {
     if (isPlayingRef.current || audioQueueRef.current.length === 0) return;
@@ -794,6 +806,20 @@ export default function PhaseWorkspace({ quest, bestiary, sseEvents, onDismissEv
         return copy;
       });
     }
+
+    // Safety net: if the stream ended but Pete said nothing, show offline message
+    setNarrative(n => {
+      const copy = [...n];
+      const last = copy[copy.length - 1];
+      if (last?.role === 'assistant' && !last.content?.trim()) {
+        copy[copy.length - 1] = {
+          ...last,
+          content: '🚂💤 Pete is sleeping — the AI engine isn\'t running. Start LongCat to wake him up.',
+        };
+      }
+      return copy;
+    });
+
     setIsStreaming(false);
 
     // Visible consequence: steam gain after Pete responds
@@ -962,6 +988,47 @@ export default function PhaseWorkspace({ quest, bestiary, sseEvents, onDismissEv
             </button>
           </div>
         </div>
+
+        {/* ── Inference Offline Banner (above content, not in chat) ── */}
+        {!fleetOnline && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '10px',
+            padding: '8px 16px', margin: '0',
+            background: 'linear-gradient(90deg, rgba(244, 63, 94, 0.06), rgba(250, 204, 21, 0.04))',
+            borderBottom: '1px solid rgba(244, 63, 94, 0.15)',
+            fontSize: '12px', color: 'var(--text-dim)',
+            fontFamily: 'var(--font-mono)',
+          }}>
+            <span style={{ fontSize: '16px' }}>🚂💤</span>
+            <span style={{ flex: 1 }}><strong style={{ color: '#F43F5E' }}>Pete is offline</strong> — start inference to enable AI chat</span>
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/inference/start', { method: 'POST' });
+                  const data = await res.json();
+                  if (data.status !== 'error') {
+                    const poll = setInterval(async () => {
+                      try {
+                        const r = await fetch('/api/model/status');
+                        const d = await r.json();
+                        if (d.status === 'mounted') { setFleetOnline(true); clearInterval(poll); }
+                      } catch {}
+                    }, 3000);
+                    setTimeout(() => clearInterval(poll), 120000);
+                  }
+                } catch {}
+              }}
+              style={{
+                padding: '4px 12px', background: 'linear-gradient(135deg, #CA8A04, #FACC15)',
+                color: '#020408', border: 'none', borderRadius: '12px',
+                fontWeight: 700, fontSize: '10px', letterSpacing: '1px',
+                cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+              }}
+            >
+              🔥 IGNITE
+            </button>
+          </div>
+        )}
 
         {/* ── LitRPG Mechanics Dropdown ── */}
         {mechanicsOpen && (
@@ -1235,7 +1302,7 @@ export default function PhaseWorkspace({ quest, bestiary, sseEvents, onDismissEv
             <input
               id="chat-input"
               className="chat-input"
-              placeholder="Your words, Yardmaster..."
+              placeholder={fleetOnline ? "Your words, Yardmaster..." : "⚠ Inference offline — start Pete first"}
               value={message}
               onChange={e => setMessage(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }}}

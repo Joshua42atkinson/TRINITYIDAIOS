@@ -195,28 +195,38 @@ async fn search_text(pool: &SqlitePool, query: &str) -> anyhow::Result<Vec<Strin
         .collect())
 }
 
-/// Generate embedding for text using vLLM Reverse Proxy
+/// Generate embedding for text using vLLM A.R.T.Y. Hub (port 8000 → nomic-embed on 8005)
 async fn generate_embedding(text: &str) -> anyhow::Result<Vec<f32>> {
-    let client = reqwest::Client::new();
+    let client = &*crate::http::LONG;
     let payload = serde_json::json!({
         "model": "nomic-embed-text-v1.5-AWQ",
         "input": text
     });
 
-    let res = client
+    let res = match client
         .post("http://127.0.0.1:8000/v1/embeddings")
         .json(&payload)
+        .timeout(std::time::Duration::from_secs(15))
         .send()
-        .await?;
+        .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            debug!("[RAG] A.R.T.Y. Hub embedding API unreachable ({}), using hash fallback", e);
+            return Ok(hash_embedding(text));
+        }
+    };
 
     if !res.status().is_success() {
-        anyhow::bail!("vLLM embedding API error: {}", res.status());
+        let status = res.status();
+        debug!("[RAG] A.R.T.Y. Hub embedding API returned {}, using hash fallback", status);
+        return Ok(hash_embedding(text));
     }
 
     let json: serde_json::Value = res.json().await?;
     let embedding_array = json["data"][0]["embedding"]
         .as_array()
-        .ok_or_else(|| anyhow::anyhow!("Missing embedding array in vLLM response"))?;
+        .ok_or_else(|| anyhow::anyhow!("Missing embedding array in A.R.T.Y. response"))?;
 
     let vec: Vec<f32> = embedding_array
         .iter()
@@ -227,6 +237,30 @@ async fn generate_embedding(text: &str) -> anyhow::Result<Vec<f32>> {
         anyhow::bail!("Embedding dimension mismatch: got {}, expected {}", vec.len(), EMBEDDING_DIM);
     }
     Ok(vec)
+}
+
+/// Deterministic hash-based embedding fallback when vLLM is unavailable.
+/// Produces a consistent 768-dim vector from text — not semantically meaningful
+/// but allows the system to function with text-search fallback.
+fn hash_embedding(text: &str) -> Vec<f32> {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    let mut vec = vec![0.0f32; EMBEDDING_DIM];
+    for (i, word) in text.split_whitespace().enumerate() {
+        let mut hasher = DefaultHasher::new();
+        word.hash(&mut hasher);
+        let h = hasher.finish();
+        let idx = (h as usize) % EMBEDDING_DIM;
+        vec[idx] += 1.0 / (1.0 + i as f32);
+    }
+    // Normalize
+    let norm: f32 = vec.iter().map(|v| v * v).sum::<f32>().sqrt();
+    if norm > 0.0 {
+        for v in vec.iter_mut() {
+            *v /= norm;
+        }
+    }
+    vec
 }
 
 /// Ingest a document by chunking and storing both text chunks AND vector embeddings

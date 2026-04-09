@@ -642,6 +642,19 @@ pub async fn run_agent_loop(
             ));
         }
 
+        // ═══ L5 EVOLUTIONARY: Inject RLHF learned preferences ═══
+        // Accumulated thumbs-up/thumbs-down signals steer future prompts.
+        {
+            let phase_label = {
+                let gs = game_state.read().await;
+                gs.quest.current_phase.label().to_string()
+            };
+            let rlhf_block = crate::rlhf_api::apply_prompt_bias(Some(&phase_label));
+            if !rlhf_block.is_empty() {
+                system.push_str(&rlhf_block);
+            }
+        }
+
         // === IRON ROAD: Inject Coal level + Sacred Circuitry focus ===
         // The AI needs to know its own attention level to self-regulate (Narrative enforcement).
         let mut _last_focus_directive = String::new();

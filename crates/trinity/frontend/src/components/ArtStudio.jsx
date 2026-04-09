@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useCreative } from '../hooks/useCreative';
 import { Command } from '@tauri-apps/plugin-shell';
+import InferenceManager from './InferenceManager';
 import '../styles/art_studio_premium.css';
+import '../styles/inference_manager.css';
 
 /* ─── Style selector options ─── */
 const VISUAL_STYLES = ['steampunk', 'cyberpunk', 'fantasy', 'minimalist', 'retro', 'noir'];
@@ -560,6 +562,20 @@ export default function ArtStudio() {
         return copy;
       });
     }
+
+    // Safety net: if Pete said nothing, show offline message
+    setNarrative(n => {
+      const copy = [...n];
+      const last = copy[copy.length - 1];
+      if (last?.role === 'assistant' && !last.content?.trim()) {
+        copy[copy.length - 1] = {
+          ...last,
+          content: '🚂💤 Pete is sleeping — the AI engine isn\'t running. Start LongCat to wake him up.',
+        };
+      }
+      return copy;
+    });
+
     setIsStreaming(false);
   };
 
@@ -588,6 +604,7 @@ export default function ArtStudio() {
             <button className={`premium-tab ${activeTool === 'chat' ? 'premium-tab--active' : ''}`} onClick={() => setActiveTool('chat')}>💬 Chat</button>
             <button className={`premium-tab ${activeTool === 'gallery' ? 'premium-tab--active' : ''}`} onClick={() => setActiveTool('gallery')}>📁 Gallery ({assets.length})</button>
             <button className={`premium-tab ${activeTool === 'forgeTools' ? 'premium-tab--active' : ''}`} onClick={() => setActiveTool('forgeTools')}>🐍 PyO3 Sandbox</button>
+            <button className={`premium-tab ${activeTool === 'inference' ? 'premium-tab--active' : ''}`} onClick={() => setActiveTool('inference')}>⚡ Fleet</button>
           </div>
 
           {activeTool === 'chat' && (
@@ -725,6 +742,12 @@ export default function ArtStudio() {
 
           {activeTool === 'forgeTools' && (
             <ForgeToolbar forgeRef={forgeRef} />
+          )}
+
+          {activeTool === 'inference' && (
+            <div style={{ height: '100%', overflow: 'hidden' }}>
+              <InferenceManager />
+            </div>
           )}
 
         </div>

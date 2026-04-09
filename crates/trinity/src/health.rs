@@ -70,8 +70,9 @@ pub struct DbHealth {
 
 #[derive(Serialize)]
 pub struct CreativeHealth {
-    pub comfyui: bool,
-    pub musicgpt: bool,
+    pub longcat_omni: bool,
+    pub arty_hub: bool,
+    pub embeddings: bool,
 }
 
 #[derive(Serialize)]
@@ -134,15 +135,16 @@ pub async fn health_check(
         .await
         .is_ok();
 
-    let comfyui_ok = crate::http::QUICK
-        .get("http://127.0.0.1:8188/system_stats")
+    let longcat_ok = crate::http::QUICK
+        .get("http://127.0.0.1:8010/health")
         .send()
         .await
         .map(|r| r.status().is_success())
         .unwrap_or(false);
 
-    let musicgpt_ok = crate::http::check_health("http://127.0.0.1:8189").await;
-    let voice_ok = crate::http::check_health("http://127.0.0.1:8200").await;
+    let arty_ok = crate::http::check_health("http://127.0.0.1:8000/health").await;
+    let embed_ok = crate::http::check_health("http://127.0.0.1:8005/health").await;
+    let voice_ok = longcat_ok; // TTS is served by LongCat CosyVoice on 8010
 
     let cc = state.cow_catcher.read().await;
     let obstacle_count = cc.get_obstacles().len();
@@ -183,12 +185,13 @@ pub async fn health_check(
             },
         },
         creative: CreativeHealth {
-            comfyui: comfyui_ok,
-            musicgpt: musicgpt_ok,
+            longcat_omni: longcat_ok,
+            arty_hub: arty_ok,
+            embeddings: embed_ok,
         },
         voice: VoiceHealth {
             connected: voice_ok,
-            url: "http://127.0.0.1:8200".to_string(),
+            url: "http://127.0.0.1:8010/tts".to_string(),
         },
         cow_catcher: CowCatcherHealth {
             obstacle_count,

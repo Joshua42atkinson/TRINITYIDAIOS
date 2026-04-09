@@ -6,8 +6,8 @@
 // PURPOSE:     Multi-engine inference client — OpenAI-compatible HTTP API
 //
 // ARCHITECTURE:
-//   • LongCat-Next (:8010) — Great Recycler (Omni-Brain, text+images+audio)
-//   • Qwen REAP (:8000) — Programmer Pete (CPU GGUF coding subagent)
+//   • LongCat-Next (:8010) — Pete / Great Recycler (Omni-Brain, text+images+audio)
+//   • A.R.T.Y. Hub (:8000) — Embeddings (nomic-embed), Yardmaster (Qwen REAP), Creative models
 //   • Any OpenAI-compatible server
 //   • FastFlowLM (NPU)   — ONNX models via AMD XDNA 2
 //   • All engines share /v1/chat/completions protocol

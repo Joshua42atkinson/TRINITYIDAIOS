@@ -42,21 +42,31 @@ if lsof -ti :$PORT > /dev/null 2>&1; then
 fi
 
 # ─── Check for LLM backend ──────────────────────────────────
-echo -n "Checking for LLM backend... "
+echo -n "Checking for LLM backends... "
 LLM_FOUND=false
 
-# Check vLLM (Great Recycler on port 8001)
-if curl -s --connect-timeout 2 http://127.0.0.1:8001/health > /dev/null 2>&1; then
-    echo -e "${GREEN}✅ vLLM detected on port 8001${NC}"
+# Check LongCat-Next Omni-Brain (Pete — port 8010)
+if curl -s --connect-timeout 2 http://127.0.0.1:8010/health > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ Pete / LongCat-Next detected on port 8010${NC}"
     LLM_FOUND=true
 fi
 
+# Check A.R.T.Y. Hub (vLLM reverse proxy — port 8000)
+if curl -s --connect-timeout 2 http://127.0.0.1:8000/health > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ A.R.T.Y. Hub detected on port 8000${NC}"
+else
+    echo -e "${YELLOW}⬚  A.R.T.Y. Hub not running (port 8000 — embeddings/RAG degraded)${NC}"
+fi
+
 if [ "$LLM_FOUND" = false ]; then
-    echo -e "${YELLOW}⚠️  No vLLM backend detected${NC}"
+    echo -e "${YELLOW}⚠️  No LLM backend detected${NC}"
     echo ""
-    echo -e "   Trinity needs the vLLM Great Recycler to function."
-    echo -e "   Please start the fleet via:"
-    echo -e "   ${BLUE}./scripts/start_vllm_fleet.sh${NC}"
+    echo -e "   Trinity needs LongCat-Next on port 8010 to function."
+    echo -e "   Start via:"
+    echo -e "   ${BLUE}distrobox enter sglang-engine -- bash ./longcat_omni_sidecar/launch_engine.sh${NC}"
+    echo -e ""
+    echo -e "   For A.R.T.Y. Hub (embeddings/RAG):"
+    echo -e "   ${BLUE}./scripts/launch/launch_arty_hub.sh${NC}"
     echo ""
     read -p "Start Trinity anyway? (y/N) " -n 1 -r
     echo

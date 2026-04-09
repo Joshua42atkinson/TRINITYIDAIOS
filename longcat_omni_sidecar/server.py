@@ -54,6 +54,8 @@ except ImportError:
     print("⚠️ torchaudio not installed — using soundfile shim")
 # ─────────────────────────────────────────────────────────────────────
 
+# ─────────────────────────────────────────────────────────────────────
+
 import asyncio
 import httpx
 from fastapi import FastAPI, HTTPException, Request
@@ -105,6 +107,7 @@ def load_model_4bit():
             device_map="auto",
             trust_remote_code=True,
             torch_dtype=torch.bfloat16,
+            attn_implementation="sdpa",
         )
         model.eval()
         model.text_tokenizer = tokenizer
@@ -163,6 +166,24 @@ async def chat_completions(request: Request):
     """OpenAI-compatible chat completions — text + streaming support."""
     data = await request.json()
     messages = data.get("messages", [])
+
+    # Process multimodalities: decode audio_url data into local files
+    for msg in messages:
+        if isinstance(msg.get("content"), list):
+            new_content = ""
+            for item in msg["content"]:
+                if item.get("type") == "text":
+                    new_content += item.get("text", "")
+                elif item.get("type") == "audio_url":
+                    audio_url = item.get("audio_url", {}).get("url", "")
+                    if audio_url.startswith("data:audio/wav;base64,"):
+                        b64_data = audio_url.replace("data:audio/wav;base64,", "")
+                        bbytes = base64.b64decode(b64_data)
+                        path = "/tmp/stt_input.wav"
+                        with open(path, "wb") as f:
+                            f.write(bbytes)
+                        new_content += f"<longcat_audio_start>{path}<longcat_audio_end>"
+            msg["content"] = new_content
     max_tokens = data.get("max_tokens", 2048)
     temperature = data.get("temperature", 0.7)
     do_sample = temperature > 0

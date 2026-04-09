@@ -2,11 +2,15 @@
 # Trinity ID AI OS — Runtime Configuration
 # ═══════════════════════════════════════════════════════════════════════════════
 #
-# INFERENCE ARCHITECTURE (April 8, 2026 — P.A.R.T.Y. Framework):
+# INFERENCE ARCHITECTURE (April 9, 2026 — P.A.R.T.Y. Framework):
 #   SGLang (8010): LongCat-Next 74B MoE — Pete (P). Instructional Designer + Great Recycler.
-#                  Parallel 2 KV cache (2× 156K MLA). Handles Socratic, narrative, DiNA images.
-#   vLLM  (8000): A.R.T.Y. Hub — Aesthetics (FLUX/CogVideoX/TripoSR), Research (embeddings),
-#                  Tempo (Acestep 1.5 audio), Yardmaster (Qwen3-Coder REAP).
+#                  Parallel 2 KV cache (2× 156K MLA). Handles Socratic, narrative, DiNA images,
+#                  CosyVoice TTS, Acestep 1.5 audio/music generation.
+#   vLLM  (8000): A.R.T.Y. Hub — FastAPI reverse proxy routing to:
+#                  R: nomic-embed-text-v1.5-AWQ (port 8005) — RAG semantic embeddings
+#                  Y: Yardmaster/Qwen REAP (port 8009) — coding subagent (optional)
+#                  A: FLUX/CogVideoX/TripoSR (ports 8004/8006/8007) — creative models (optional)
+#                  T: ACE-Step (port 8008) — music generation (optional)
 #
 # The InferenceRouter auto-detects backends on startup.
 # Set LLM_URL env var to override with a specific endpoint.
@@ -31,10 +35,19 @@ url = "http://127.0.0.1:8010"
 supports_tools = true
 supports_vision = true
 
-# ── Yardmaster (Y) — Qwen3-Coder REAP via vLLM ──
-# Part of the A.R.T.Y. Hub on port 8000
+# ── A.R.T.Y. Hub (vLLM reverse proxy) ──
+# Routes to downstream vLLM instances for embeddings, coding, creative
+# Start via: ./scripts/launch/launch_arty_hub.sh
+
+[inference.backends.arty-hub]
+url = "http://127.0.0.1:8000"
+supports_tools = false
+supports_vision = false
+
+# ── Yardmaster (Y) — Qwen REAP via vLLM ──
+# Part of the A.R.T.Y. Hub, routed through port 8000 to port 8009
 # The engineer that Pete is NOT. Writes Rust, builds React, runs cargo check.
-# Not yet serving — start vLLM on 8000 when ready
+# Not yet serving — add model to launch_arty_hub.sh when ready
 
 [inference.backends.yardmaster-reap]
 url = "http://127.0.0.1:8000"
@@ -51,17 +64,21 @@ batch_size = 512
 n_threads = 16
 
 [creative]
-# ComfyUI deprecated — LongCat DiNA handles image generation natively
-# comfyui_url = "http://127.0.0.1:8188"  # ARCHIVED
+# LongCat DiNA handles image generation natively on port 8010
 longcat_image_url = "http://127.0.0.1:8010/v1/images/generations"
 longcat_tts_url = "http://127.0.0.1:8010/tts"
-musicgpt_url = "http://127.0.0.1:8189"
+longcat_audio_url = "http://127.0.0.1:8010/v1/audio/generations"
+# Legacy creative sidecars (optional, managed by A.R.T.Y. Hub)
+# flux_url = "http://127.0.0.1:8000"      # Routed via A.R.T.Y. → 8004
+# cogvideo_url = "http://127.0.0.1:8000"   # Routed via A.R.T.Y. → 8006
 hunyuan3d_url = "http://127.0.0.1:7860"
 auto_launch = false
 
 [memory]
 vector_store_path = "~/.trinity/vectors"
-embedding_dim = 384
+embedding_model = "nomic-embed-text-v1.5-AWQ"
+embedding_url = "http://127.0.0.1:8000/v1/embeddings"
+embedding_dim = 768
 max_recall = 20
 
 [network]

@@ -762,8 +762,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/bestiary/tame", post(scope_creep_decision))
         // Inference Router API — Phase 3 multi-backend management
         .route("/api/inference/status", get(inference_status))
+        .route("/api/inference/fleet", get(fleet_status_endpoint))
+        .route("/api/inference/resources", get(inference_resources_endpoint))
         .route("/api/inference/switch", post(inference_switch))
         .route("/api/inference/refresh", post(inference_refresh))
+        .route("/api/inference/start", post(inference_start_endpoint))
+        .route("/api/inference/stop", post(inference_stop_endpoint))
         // App Mode API — Phase 5A mode switching
         .route("/api/mode", get(get_app_mode).post(set_app_mode))
         // Intent Engineering API — grounding + posture + scope decisions
@@ -1796,6 +1800,52 @@ async fn chat_stream(
             }
         }
 
+        // ── Scope Creep Detection (Iron Road chat) ──
+        // Scans user messages for scope drift phrases and emits SSE events
+        // so the frontend ScopeCard can render tame/fight decisions.
+        let mut modified_message = request.message.clone();
+        if request.mode.as_str() == "iron-road" || request.mode.as_str() == "ironroad" {
+            let current_phase = { game_state.read().await.quest.current_phase.clone() };
+            let pearl_opt = { game_state.read().await.quest.pearl.clone() };
+
+            if let Some(creep) =
+                scope_creep::detect_scope_creep(&request.message, &[], &current_phase)
+            {
+                let pearl_context = if let Some(p) = pearl_opt {
+                    format!("PEARL Subject: '{}'. PEARL Vision: '{}'", p.subject, p.vision)
+                } else {
+                    "PEARL is undefined".to_string()
+                };
+
+                // Emit SSE event for ScopeCard in the frontend
+                let creep_json = serde_json::json!({
+                    "name": creep.name,
+                    "threat_level": creep.threat_level,
+                    "steam_penalty": creep.steam_penalty,
+                    "description": creep.description,
+                });
+                let _ = tx.send(format!("event: creep_tameable\ndata: {}\n\n",
+                    serde_json::to_string(&creep_json).unwrap_or_default())).await;
+
+                // Inject PEARL alignment context so Pete evaluates the scope request
+                modified_message.push_str(&format!(
+                    "\n\n[SYSTEM OVERRIDE]: The user suggested a feature expansion ({}). \
+                     Evaluate this against their PEARL ({}). If it aligns, validate as 'Scope HOPE'. \
+                     If it contradicts the PEARL, identify as 'Scope CREEP' and guide them to tame it.",
+                    creep.backlog_item, pearl_context
+                ));
+
+                // Friction rises when scope creep is detected
+                let mut sheet = character_sheet.write().await;
+                sheet.track_friction = (sheet.track_friction + 8.0).min(100.0);
+                sheet.recalculate_vulnerability();
+                let _ = character_sheet::save_character_sheet(&sheet);
+                drop(sheet);
+
+                tracing::info!("[ScopeCreep] Detected in chat_stream: {}", creep.name);
+            }
+        }
+
         // ── RAG context ──
         let rag_chunks = if request.use_rag {
             rag::search_documents(&db_pool, &request.message)
@@ -2082,7 +2132,7 @@ CURRENT OBJECTIVES:
                  Be concise — 2-3 paragraphs max.".to_string(),
         };
 
-        // Build final system prompt with VAAM + RAG context
+        // Build final system prompt with VAAM + RAG + RLHF context
         let system_prompt = {
             let mut prompt = base_prompt;
             if !combined_ctx.is_empty() {
@@ -2093,6 +2143,18 @@ CURRENT OBJECTIVES:
             }
             if !vaam_context.is_empty() {
                 prompt.push_str(&format!("\n\n{}", vaam_context));
+            }
+            // ═══ L5 EVOLUTIONARY: Inject RLHF learned preferences ═══
+            // Reads accumulated user feedback (thumbs-up/down) from disk and
+            // appends steering instructions to the system prompt. This makes
+            // Pete's behavior genuinely adaptive across sessions.
+            let phase_for_rlhf = {
+                let gs = game_state.read().await;
+                gs.quest.current_phase.label().to_string()
+            };
+            let rlhf_block = rlhf_api::apply_prompt_bias(Some(&phase_for_rlhf));
+            if !rlhf_block.is_empty() {
+                prompt.push_str(&rlhf_block);
             }
             prompt
         };
@@ -2115,7 +2177,7 @@ CURRENT OBJECTIVES:
 
         messages.push(ChatMessage {
             role: "user".to_string(),
-            content: request.message.clone(),
+            content: modified_message.clone(),
             timestamp: Some(chrono::Utc::now().to_rfc3339()),
             image_base64: None,
         });
@@ -2259,15 +2321,25 @@ CURRENT OBJECTIVES:
             let _ = token_rx.send(full_response).await;
         });
 
-        let _ = inference::chat_completion_stream(
+        let stream_result = inference::chat_completion_stream(
             &llm_url,
             &messages,
             request.max_tokens,
-            collect_tx,
+            collect_tx.clone(),
             // Zen mode: disable reasoning (Crow 9B is reasoning-distilled, leaks CoT)
             if request.mode == "zen" { Some("none") } else { None },
         )
         .await;
+
+        // If inference failed (LLM offline), send an error message through SSE
+        // so the user sees "Pete is sleeping" instead of a blank response.
+        if let Err(e) = stream_result {
+            tracing::warn!("🔇 Inference stream failed: {}", e);
+            let offline_msg = "🚂💤 **Pete is sleeping** — the LongCat inference engine isn't running right now.\n\n\
+                To wake Pete up, run:\n```\ndistrobox enter sglang-engine -- bash ./longcat_omni_sidecar/launch_engine.sh\n```\n\n\
+                The Iron Road waits. The furnace just needs a spark.";
+            let _ = collect_tx.send(offline_msg.to_string()).await;
+        }
 
         // Wait for collector to finish
         let _ = collector_handle.await;
@@ -2958,13 +3030,21 @@ Use state as flavor, not as a list. If coal is high, describe warmth and light. 
             director_url.clone()
         };
 
-        let _ = inference::chat_completion_stream(
+        let stream_result = inference::chat_completion_stream(
             &storyteller_url,
             &storyteller_messages,
             dynamic_max_tokens,
-            narration_tx,
+            narration_tx.clone(),
             Some("none"),
         ).await;
+
+        // If inference failed (LLM offline), send an offline narration message
+        if let Err(e) = stream_result {
+            tracing::warn!("🔇 Zen narration stream failed: {}", e);
+            let _ = narration_tx.send(
+                "The fog thickens, and silence claims the Iron Road. The Great Recycler's voice is distant — the inference engine sleeps. Wake LongCat to hear the story continue.".to_string()
+            ).await;
+        }
 
         let full_narration = narration_collector.await.unwrap_or_default();
 
@@ -3260,6 +3340,145 @@ async fn inference_status(State(state): State<AppState>) -> Json<inference_route
     Json(router.status())
 }
 
+/// GET /api/inference/fleet — Detailed P.A.R.T.Y. sidecar fleet status
+async fn fleet_status_endpoint() -> Json<vllm_fleet::FleetStatus> {
+    Json(vllm_fleet::fleet_status().await)
+}
+
+/// GET /api/inference/resources — System resources + model memory estimates
+/// Powers the Inference Manager UI in ART Studio, helping users make informed
+/// model loading decisions on their hardware.
+async fn inference_resources_endpoint(State(state): State<AppState>) -> Json<serde_json::Value> {
+    use sysinfo::System;
+    let mut sys = System::new_all();
+    sys.refresh_memory();
+
+    let total_ram_gb = sys.total_memory() as f64 / (1024.0 * 1024.0 * 1024.0);
+    let used_ram_gb = sys.used_memory() as f64 / (1024.0 * 1024.0 * 1024.0);
+    let available_ram_gb = total_ram_gb - used_ram_gb;
+
+    // Fleet status for current model state
+    let fleet = vllm_fleet::fleet_status().await;
+
+    // Router status for active backends
+    let router = state.inference_router.read().await;
+    let router_status = router.status();
+
+    // Known model profiles — VRAM requirements for P.A.R.T.Y. models
+    // These are based on actual NF4/AWQ quantization profiles on Strix Halo
+    let model_profiles = serde_json::json!([
+        {
+            "id": "longcat-next-74b",
+            "name": "LongCat-Next 74B MoE",
+            "role": "P (Pete)",
+            "port": 8010,
+            "ram_gb": 42.0,
+            "context_len": 131072,
+            "quantization": "NF4 MoE",
+            "capabilities": ["text", "vision", "audio-in", "tts", "music"],
+            "status": if fleet.longcat_online { "online" } else { "offline" },
+            "description": "Primary brain — Socratic mentor, narrator, multimodal understanding"
+        },
+        {
+            "id": "nomic-embed-v1.5",
+            "name": "nomic-embed-text-v1.5-AWQ",
+            "role": "R (Research)",
+            "port": 8005,
+            "ram_gb": 0.5,
+            "context_len": 8192,
+            "quantization": "AWQ INT4",
+            "capabilities": ["embeddings"],
+            "status": if fleet.nomic_embed_online { "online" } else { "offline" },
+            "description": "Semantic embeddings for RAG search and document retrieval"
+        },
+        {
+            "id": "flux-dev",
+            "name": "FLUX.1-dev",
+            "role": "A (Aesthetics)",
+            "port": 8001,
+            "ram_gb": 24.0,
+            "context_len": 0,
+            "quantization": "BF16",
+            "capabilities": ["image-gen"],
+            "status": "offline",
+            "description": "High-quality image generation (DiNA scenes, characters)"
+        },
+        {
+            "id": "acestep-1.5",
+            "name": "ACE-Step 1.5",
+            "role": "T (Tempo)",
+            "port": 8010,
+            "ram_gb": 0.0,
+            "context_len": 0,
+            "quantization": "Native (LongCat)",
+            "capabilities": ["music-gen"],
+            "status": if fleet.longcat_online { "online" } else { "offline" },
+            "description": "Ambient music generation — routed through LongCat natively"
+        },
+        {
+            "id": "yardmaster-reap",
+            "name": "Qwen3-235B REAP MoE",
+            "role": "Y (Yardmaster)",
+            "port": 8009,
+            "ram_gb": 84.0,
+            "context_len": 262144,
+            "quantization": "NF4 MoE",
+            "capabilities": ["code", "tools", "reasoning"],
+            "status": "offline",
+            "description": "Coding subagent — software engineering and tool execution"
+        },
+        {
+            "id": "cogvideox",
+            "name": "CogVideoX-5B",
+            "role": "A (Aesthetics)",
+            "port": 8002,
+            "ram_gb": 12.0,
+            "context_len": 0,
+            "quantization": "FP16",
+            "capabilities": ["video-gen"],
+            "status": "offline",
+            "description": "Short video clip generation for quest cinematics"
+        },
+        {
+            "id": "triposr",
+            "name": "TripoSR",
+            "role": "A (Aesthetics)",
+            "port": 8003,
+            "ram_gb": 4.0,
+            "context_len": 0,
+            "quantization": "FP16",
+            "capabilities": ["3d-mesh"],
+            "status": "offline",
+            "description": "Image → 3D mesh generation for game assets"
+        }
+    ]);
+
+    Json(serde_json::json!({
+        "system": {
+            "total_ram_gb": (total_ram_gb * 10.0).round() / 10.0,
+            "used_ram_gb": (used_ram_gb * 10.0).round() / 10.0,
+            "available_ram_gb": (available_ram_gb * 10.0).round() / 10.0,
+            "ram_percent": ((used_ram_gb / total_ram_gb * 100.0) * 10.0).round() / 10.0,
+            "gpu": "AMD Strix Halo — 128GB Unified LPDDR5x (shared CPU+GPU)",
+            "npu": "Ryzen AI — XDNA2 (not yet bound via ONNX RT)"
+        },
+        "fleet": fleet,
+        "router": router_status,
+        "models": model_profiles,
+        "constraints": {
+            "note": "RAM is unified — CPU and GPU share 128GB LPDDR5x. Loading one model reduces available RAM for all.",
+            "max_concurrent_estimate_gb": available_ram_gb,
+            "recommendation": if available_ram_gb > 50.0 {
+                "Headroom available — can load additional models"
+            } else if available_ram_gb > 20.0 {
+                "Moderate load — choose models carefully"
+            } else {
+                "RAM is tight — unload before loading new models"
+            }
+        }
+    }))
+}
+
 /// POST /api/inference/switch — switch active backend by name
 #[derive(Debug, Deserialize)]
 struct InferenceSwitchRequest {
@@ -3289,6 +3508,103 @@ async fn inference_refresh(State(state): State<AppState>) -> Json<inference_rout
     let mut router = state.inference_router.write().await;
     router.auto_detect().await;
     Json(router.status())
+}
+
+/// POST /api/inference/start — launch LongCat-Next sidecar from web UI
+/// Calls scripts/launch/launch_longcat.sh start
+async fn inference_start_endpoint(State(state): State<AppState>) -> Json<serde_json::Value> {
+    let workspace = std::env::current_dir().unwrap_or_default();
+    let script = workspace.join("scripts/launch/launch_longcat.sh");
+
+    if !script.exists() {
+        return Json(serde_json::json!({
+            "status": "error",
+            "message": "launch_longcat.sh not found"
+        }));
+    }
+
+    match tokio::process::Command::new("bash")
+        .arg(&script)
+        .arg("start")
+        .current_dir(&workspace)
+        .output()
+        .await
+    {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            info!("🐱 LongCat start: {}", stdout.trim());
+            
+            // Parse JSON output from the script
+            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(stdout.trim()) {
+                // Also trigger a backend re-probe after a short delay
+                let state_clone = state.clone();
+                tokio::spawn(async move {
+                    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                    let mut router = state_clone.inference_router.write().await;
+                    router.auto_detect().await;
+                });
+                Json(parsed)
+            } else {
+                Json(serde_json::json!({
+                    "status": "started",
+                    "output": stdout.trim()
+                }))
+            }
+        }
+        Err(e) => {
+            warn!("❌ Failed to start LongCat: {}", e);
+            Json(serde_json::json!({
+                "status": "error",
+                "message": format!("Failed to execute launch script: {}", e)
+            }))
+        }
+    }
+}
+
+/// POST /api/inference/stop — stop LongCat-Next sidecar from web UI
+async fn inference_stop_endpoint(State(state): State<AppState>) -> Json<serde_json::Value> {
+    let workspace = std::env::current_dir().unwrap_or_default();
+    let script = workspace.join("scripts/launch/launch_longcat.sh");
+
+    if !script.exists() {
+        return Json(serde_json::json!({
+            "status": "error",
+            "message": "launch_longcat.sh not found"
+        }));
+    }
+
+    match tokio::process::Command::new("bash")
+        .arg(&script)
+        .arg("stop")
+        .current_dir(&workspace)
+        .output()
+        .await
+    {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            info!("🐱 LongCat stop: {}", stdout.trim());
+            
+            // Re-probe backends to update status
+            let mut router = state.inference_router.write().await;
+            router.auto_detect().await;
+
+            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(stdout.trim()) {
+                Json(parsed)
+            } else {
+                Json(serde_json::json!({
+                    "status": "stopped",
+                    "output": stdout.trim()
+                }))
+            }
+        }
+        Err(e) => {
+            warn!("❌ Failed to stop LongCat: {}", e);
+            Json(serde_json::json!({
+                "status": "error",
+                "message": format!("Failed to execute stop script: {}", e)
+            }))
+        }
+    }
 }
 
 // ============================================================================

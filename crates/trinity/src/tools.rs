@@ -999,19 +999,25 @@ async fn tool_sidecar_status() -> Result<String, String> {
 
     let llm_ok = crate::inference::check_health("http://127.0.0.1:8010").await;
     status.push(format!(
-        "LLM Omni-Brain (port 8010 — LongCat-Next 74B MoE): {}",
+        "Pete / LongCat-Next Omni-Brain (port 8010 — SGLang, text+image+TTS+audio): {}",
         if llm_ok { "✅ running" } else { "❌ stopped" }
     ));
 
-    let pete_ok = crate::inference::check_health("http://127.0.0.1:8000").await;
+    let arty_ok = crate::inference::check_health("http://127.0.0.1:8000").await;
     status.push(format!(
-        "Programmer Pete (port 8000 — Qwen REAP 25B GGUF): {}",
-        if pete_ok { "✅ running" } else { "⬚ not started" }
+        "A.R.T.Y. Hub (port 8000 — vLLM reverse proxy): {}",
+        if arty_ok { "✅ running" } else { "⬚ not started" }
     ));
 
+    let embed_ok = crate::inference::check_health("http://127.0.0.1:8005").await;
     status.push(format!(
-        "Active Models: LongCat-Next-74B-MoE (Recycler/DiNA/CosyVoice), Qwen3-Coder-REAP-25B (Pete)"
+        "  R (Research): nomic-embed (port 8005 — embeddings for RAG): {}",
+        if embed_ok { "✅ running" } else { "⬚ not started" }
     ));
+
+    status.push(
+        "Active Models: LongCat-Next-74B-MoE (Pete/Recycler/DiNA/CosyVoice), nomic-embed-text-v1.5 (RAG)".to_string()
+    );
 
     Ok(status.join("\n"))
 }
