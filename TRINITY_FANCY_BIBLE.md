@@ -24,7 +24,7 @@
 | **Socratic Protocol & Agent Tools** | `Verified` | `conductor_leader.rs`, `tools.rs`, 30 available tools |
 | **LDT Portfolio HUD** | `Verified` | `CharacterSheet.jsx`, `character_api.rs` |
 | **App Modes (Iron Road, Express, Yardmaster)** | `Verified` | `AppMode` enum natively integrated into Bevy Train Consist |
-| **Creative Pipeline (Images, Music, Video, 3D)** | `Verified` | `creative.rs`, `useCreative.js` — ComfyUI/MusicGPT/Hunyuan |
+| **Creative Pipeline (Images, Music, Video, 3D)** | `Verified` | `creative.rs`, `useCreative.js` — LongCat DiNA / Acestep 1.5 / Hunyuan3D |
 | **Voice Pipeline (Kokoro TTS)** | `Verified` | `voice.rs`, Kokoro sidecar on port 8200 — Apache 2.0, 6 presets |
 | **DAYDREAM (Native Bevy Sidecar)** | `Verified` | `trinity-daydream` crate — Pure Rust Bevy 0.18.1 3D LitRPG, no JS |
 | **ADDIECRAPEYE Phase Navigation** | `Verified` | Vertical 12-tab sidebar, phase-aware input & badge |
@@ -78,7 +78,7 @@
 - [Car 10: ENVISION — Purdue Integration & LDT Portfolio](#-car-10-envision--purdue-integration--ldt-portfolio)
   - [10.1 LDT Portfolio](#101-the-ldt-portfolio--the-graduation-track) · [10.2 Standards](#102-standards-alignment) · [10.3 Graduation](#103-graduation-requirements) · [10.4 Heavilon Events](#104-heavilon-events--memorial-steps) · [10.5 Artifact Vault](#105-the-artifact-vault)
 - [Car 11: YOKE — ART Pipeline & Creative Tools](#-car-11-yoke--art-pipeline--creative-tools)
-  - [11.1 ART Pipeline](#111-the-art-creative-pipeline) · [11.2 ComfyUI](#112-comfyui-workflow--sdxl-turbo) · [11.3 Visual Style](#113-visual-style-system) · [11.4 Voice](#114-voice-pipeline) · [11.5 Models](#115-model-inventory)
+  - [11.1 DAYDREAM](#111-daydream--the-native-gaming-system) · [11.2 ART Pipeline](#112-the-art-creative-pipeline) · [11.3 Visual Style](#113-visual-style-system) · [11.4 Voice](#114-voice-pipeline) · [11.5 Models](#115-model-inventory)
 - [Car 12: EVOLVE — Deployment, Hardware, and the Lexicon](#-car-12-evolve--deployment-hardware-and-the-lexicon)
   - [12.1 Strix Halo](#121-the-amd-strix-halo-platform) · [12.2 Architecture](#122-the-dual-brain-inference-architecture) · [12.3 KV Cache](#123-the-dual-kv-cache--party-routing) · [12.4 Server](#124-server-architecture) · [12.5 Lexicon](#125-the-trinity-lexicon) · [12.6 What's Next](#126-whats-next)
 
@@ -157,7 +157,7 @@ Trinity's AI is organized into 5 roles across 2 sidecars — the **Dual Brain** 
 | Agent | Full Name | Role | Backend Sidecar |
 |-------|-----------|------|-----------------|
 | **P** (Pete) | Pete — Instructional Designer | The Great Recycler. DM of the Iron Road. Socratic mentor, LitRPG narrator, DiNA image gen. Pete does the majority of Trinity's work. **Pete is NOT a software engineer.** He breaks character as "Programmer Pete" to get things done, but delegates real engineering to Y. | LongCat-Next 74B MoE · SGLang (Port 8010) · **Parallel 2 KV cache** (2× 156K MLA) |
-| **A** (Aesthetics) | The Artist Triad | Support visual and spatial models. Complete visual realization via hotloaded creative generators. | FLUX.1-schnell, CogVideoX-2B, TripoSR · vLLM (Port 8000) |
+| **A** (Aesthetics) | The Artist | Support visual and spatial generation. Native image gen via DiNA, video via CogVideo, 3D via TripoSR. | LongCat DiNA, CogVideoX-2B, TripoSR · Port 8010 + workers |
 | **R** (Research) | The Researcher | Embeddings & permanence. Balances Aesthetics (A) and Tempo (T) so that the information Pete delivers is balanced between visual and audio. | RAG embeddings (nomic-embed), vector storage · vLLM (Port 8000) |
 | **T** (Tempo) | Acestep 1.5 | Audio & music generation. The audio counterpart to Aesthetics. Voice narration, music vibe station settings. | Acestep 1.5 · vLLM (Port 8000) |
 | **Y** (Yardmaster) | RUST REAP | Software engineering subagent. The engineer that Pete is NOT. Writes Rust, builds React, runs cargo check. | Qwen3-Coder-REAP-25B · vLLM (Port 8000) |
@@ -261,7 +261,7 @@ Trinity exposes **~85 HTTP endpoints** organized into 15 functional groups:
 | Inference | `/api/inference/*` | Multi-backend LLM management | L819-821 |
 | Iron Road | `/api/bestiary`, `/api/book/*` | Vocabulary creatures, narrative book | L816-833 |
 | EYE Export | `/api/eye/*` | Compile → Preview → Export learning artifacts | L835-837 |
-| Creative | `/api/creative/*` | ComfyUI images, video, music, 3D mesh | L839-850 |
+| Creative | `/api/creative/*` | LongCat DiNA images, Acestep audio, CogVideo, 3D mesh | L839-850 |
 | Voice | `/api/voice/*` | TTS/STT conversation (Supertonic-2, PersonaPlex) | L852-855 |
 | Persistence | `/api/sessions`, `/api/projects` | Conversation history, DAYDREAM archive | L857-861 |
 | RAG | `/api/rag/*` | Semantic search via SQLite in-memory embeddings | L863-864 |
@@ -283,7 +283,7 @@ crates/trinity/src/
 ├── character_sheet.rs   — CharacterSheet persistence (~/.trinity/)
 ├── conductor_leader.rs  — ADDIECRAPEYE phase orchestrator
 ├── cow_catcher.rs       — Error handling, obstacle classification
-├── creative.rs          — ComfyUI/MusicGPT/Hunyuan3D client
+├── creative.rs          — LongCat DiNA / Acestep 1.5 / Hunyuan3D client
 ├── edge_guard.rs        — Route-level security middleware
 ├── export.rs            — EYE Container → HTML5 export
 ├── eye_container.rs     — Bundle quest data into exportable artifact
@@ -513,7 +513,7 @@ Grouped by responsibility:
 - `narrative.rs` — Great Recycler LitRPG prose generation
 
 **Content & Export** (3 modules):
-- `creative.rs` — ComfyUI/MusicGPT/Hunyuan3D client (1156 lines)
+- `creative.rs` — LongCat DiNA / Acestep 1.5 / Hunyuan3D client (1156 lines)
 - `export.rs` — EYE Container → HTML5 export
 - `eye_container.rs` — Bundle quest data into exportable artifact
 
@@ -1534,7 +1534,7 @@ Trinity's frontend is built as a modular React application with 16 components, e
 | **GameHUD** | Iron Road gameplay overlay | Coal, Steam, XP bars |
 | **TrainStatus** | Server + sidecar health monitor | Health endpoint polling |
 | **Yardmaster** | Agent chat (dev console) | `POST /api/agent/chat` (SSE) |
-| **ArtStudio** | Creative tools (image/music/3D) | ComfyUI + MusicGPT APIs |
+| **ArtStudio** | Creative tools (image/music/3D) | LongCat DiNA + Acestep 1.5 APIs |
 | **ExpressWizard** | Guided lesson builder wizard | Step-by-step ADDIE flow |
 | **JournalViewer** | Reflection journal reader | Shadow processing + Book entries |
 | **PerspectiveSidebar** | Bloom's/Practitioner/Devil's lenses | SSE "perspective" events |
@@ -1720,11 +1720,11 @@ This architectural decision was made for three reasons:
 
 ### 11.2 The ART Creative Pipeline
 
-**ART** = Aesthetics (Flux, CogVideo, TripoSR) — Trinity's generative aesthetics subsystem wired natively to vLLM's OpenAI-compatible proxy natively on the APU via independent FastAPI worker nodes without relying on heavy bloatware like ComfyUI or Gradio:
+**ART** = Aesthetics — Trinity's generative aesthetics subsystem. LongCat-Next's DiNA tokenizer natively generates images and audio via discrete token regression, while video and 3D remain on independent FastAPI worker nodes:
 
 | Modality | Technology | Node Port | Architecture |
 |----------|-----------|----------|------|
-| **Image** | FLUX.1-schnell (NF4) | :8004 | vLLM Native Server `/v1/images/generations` |
+| **Image** | LongCat DiNA (native) | :8010 | Discrete token regression via Omni-Brain `/v1/images/generations` |
 | **Video** | CogVideoX-2B (INT4) | :8006 | Headless FastAPI Daemon via diffusers |
 | **3D Mesh** | TripoSR | :8007 | Headless FastAPI Daemon |
 
@@ -1743,7 +1743,7 @@ Visual styles are determined by the character's genre selection:
 | Dark Fantasy | Magic, ethereal, medieval | Orchestral |
 
 > 📍 `character_sheet.rs:L760-780` — `CreativeConfig::from_genre()`: genre → visual + music mapping
-> 📍 `character_sheet.rs:L782-828` — `VisualStyle` enum (6 styles) with ComfyUI prompt suffixes
+> 📍 `character_sheet.rs:L782-828` — `VisualStyle` enum (6 styles) with DiNA image prompt suffixes
 > 📍 `character_sheet.rs:L830-881` — `MusicStyle` enum (6 styles) with MusicGPT prompts
 
 ### 11.4 Voice Pipeline
@@ -1762,18 +1762,17 @@ Trinity implements a **dual voice pipeline**:
 
 ### 11.5 Model Inventory
 
-Trinity's pure *P.A.R.T.Y.* cluster consists of strictly vetted (`Apache 2.0` / `MIT`) open model weights deployed natively on Strix Halo unified memory via vLLM Omni:
+Trinity employs a **Dual-Brain** architecture: the LongCat-Next Omni-Brain handles all narrative, creative, and multimodal tasks, while the A.R.T.Y. Hub provides coding support and embeddings. Both run on Strix Halo unified memory via dedicated distrobox containers (`kyuz0/vllm-therock-gfx1151`).
 
-| Role | Model Engine | Size | Precision |
-|------|-------|------|--------------|
-| **P** (Programming) | `Gemma-4-26B-A4B-it` | 17GB | AWQ (INT4) |
-| **A** (Aesthetic 2D) | `FLUX.1-schnell` | 12GB | NF4 |
-| **A** (Aesthetic Time) | `CogVideoX-2b` | 14GB | INT4 |
-| **A** (Aesthetic Space)| `TripoSR` | ~2GB | FP16 |
-| **R** (Reasoning) | `Gemma-4-31B-it` | 20GB | AWQ (INT4) |
-| **T** (Tempo) | `Gemma-4-E4B-it` | ~3GB | AWQ (INT4) |
+| Brain | Model | Port | Size (NF4) | Capabilities |
+|-------|-------|:----:|:----------:|------|
+| **Omni-Brain** | LongCat-Next 74B MoE (25B active) | 8010 | ~38 GB | Text, Vision (dNaViT), Audio (CosyVoice), Image Gen (DiNA), 131K context |
+| **A.R.T.Y. Hub** | Qwen3-Coder-30B-A3B (GPTQ-4bit) | 8000 | ~18 GB | Code generation, structured output, sub-agent tasks |
+| **Voice** | Kokoro TTS | 8200 | ~2 GB | Text-to-speech fallback (6 presets, Apache 2.0) |
+| **RAG** | all-MiniLM-L6-v2 (ONNX) | Native | ~100 MB | Semantic search (pure Rust, no Python) |
 
-> 📍 `scripts/launch/start_vllm_omni.sh` — Master launch sequence validating model presence
+> 📍 `longcat_omni_sidecar/launch_engine.sh` — LongCat launch sequence (distrobox → Python venv → FastAPI)
+> 📍 `scripts/launch/launch_arty_hub.sh` — A.R.T.Y. Hub vLLM launch sequence
 
 ---
 
@@ -2041,12 +2040,12 @@ Trinity is explicitly designed around two core psychological frameworks:
 
 Trinity utilizes exactly **three intelligent cognitive models** and **three generative aesthetic models**, bound together by the central Daydream game engine. We elegantly map the entire complex multimodal backend into a simple, memorable taxonomy: **The P.A.R.T.Y. Protocol**.
 
-They share a unified 128GB local VRAM matrix orchestrated natively via **vLLM Omni Reverse Proxy** on port `:8000` and independent FastAPI worker nodes:
+They share a unified 128GB local VRAM matrix orchestrated via the **Dual-Brain** inference architecture — LongCat-Next Omni-Brain on port `:8010` (SGLang sidecar) and the A.R.T.Y. Hub on port `:8000` (vLLM):
 
-- **[P] Programming ⚙️** `[Gemma-4-26B-A4B MoE AWQ · Port 8002 · 20% VRAM]`: Programmer Pete. The Executor. Sprints through code, lesson plans, and artifacts. Optimizes for action.
-- **[A] Aesthetics 🎨** `[The Artist Triad · Ports 8004, 8006, 8007 · Hot-Swap]`: The Creation engine. FLUX, CogVideo, and TripoSR share a hot-swap pool to maximize VRAM for the brains.
-- **[R] Yardmaster (REAP) ⚡** `[Qwen3-Coder-REAP-25B · Port 8000 · 24GB VRAM]`: The mechanical OS orchestrator. A persona-less coding engine operating in the background to serve Pete's goals.
-- **[T] Tempo (Acestep 1.5) 🎵** `[LongCat-Next 74B MoE · SGLang Port 8010]`: Handled natively by Pete utilizing the built-in engine audio settings for voice-to-text, narration, and music vibe station settings.
+- **[P] Programming ⚙️** `[LongCat-Next 74B MoE · Port 8010 · ~38GB NF4]`: Programmer Pete. The Instructional Designer and Great Recycler. Handles all Socratic protocol, narrative, and creative generation via the Omni-Brain.
+- **[A] Aesthetics 🎨** `[LongCat DiNA + CogVideo + TripoSR · Port 8010 + workers]`: The Creation engine. DiNA image generation runs natively inside LongCat; video and 3D use hot-swap FastAPI workers.
+- **[R] Yardmaster (REAP) ⚡** `[Qwen3-Coder-30B-A3B GPTQ-4bit · Port 8000 · ~18GB]`: The mechanical OS orchestrator. A persona-less coding engine serving sub-agent tasks via vLLM.
+- **[T] Tempo (Acestep 1.5) 🎵** `[LongCat-Next CosyVoice · Port 8010]`: Handled natively by Pete utilizing LongCat's built-in CosyVoice audio decoder for voice synthesis, narration, and music.
 - **[Y] Yardmaster 🚂** `[Native Rust/BEVY Engine]`: The Governor. The user orchestrating the entire party via the React UI and Bevy Daydream engine to maintain ADDIECRAPEYE alignment.
 
 The Recycler breathes IN (questioning). Pete breathes OUT (execution), supported by the Aesthetics triad. Together they form the cycle: **reflect before you build, then build what you reflected on.**
@@ -2159,18 +2158,17 @@ Trinity is designed for AMD Strix Halo (Ryzen AI Max+ 395) but can scale down:
 | **Recommended** | RDNA 3+ GPU or Apple M-series | 32-64GB | Pete + Recycler concurrent | ~25 tok/s |
 | **Optimal** | AMD Strix Halo (Ryzen AI Max+ 395) | 128GB unified | All 4 AI engines concurrent + creative pipeline | **40+ tok/s** |
 
-**Distribution Target**: The complete Trinity AI model payload (3× Gemma-4 AWQ + Aesthetics Triad) fits within **~70 GB** of storage. This is designed to ship as a single downloadable archive — no internet required after initial installation.
+**Distribution Target**: The complete Trinity AI model payload (LongCat-Next NF4 + Qwen3-Coder GPTQ + Kokoro + ONNX RAG) fits within **~60 GB** of storage. This is designed to ship as a single downloadable archive — no internet required after initial installation.
 
-The development system (AMD Strix Halo) runs all models concurrently via **vLLM Omni** and native python daemons (ROCm/Triton) with the following VRAM budget:
+The development system (AMD Strix Halo) runs the Dual-Brain architecture concurrently via dedicated distrobox containers (ROCm/TheRock) with the following VRAM budget:
 
-| Engine Classification | Model Spec | Port | VRAM Allocation | Context (TQ4) |
-|:---:|-------|:----:|:--------------:|:-------:|
-| **[R]** Recycler | Gemma-4-31B + E2B Draft | 8001 | 35% (44.8 GB) | ~128K+ |
-| **[P]** Programmer Pete | Gemma-4-26B-A4B MoE | 8002 | 18% (23.0 GB) | ~32K tokens |
-| **[T]** Tempo/Vibe | Gemma-4-E4B | 8003 | 7% (9.0 GB) | 4K (Fixed) |
-| **[A]** Media Sidecars | FLUX / CogVid / Tripo / ACE | Dynamic | ~16% (20.0 GB Max) | Hot-Swap Pool |
-| **[RAG]** Embeddings | nomic-embed-text | 8005 | 2% (2.5 GB) | N/A |
-| **Total AI Budget** | | | **~96.8 GB** | **(Fenced off ~23GB for OS/BEVY)** |
+| Engine | Model | Port | VRAM | Context |
+|:------:|-------|:----:|:----:|:-------:|
+| **Omni-Brain** | LongCat-Next 74B MoE (NF4) | 8010 | ~38 GB (30%) | 131K tokens |
+| **A.R.T.Y. Hub** | Qwen3-Coder-30B-A3B (GPTQ-4bit) | 8000 | ~18 GB (14%) | 32K tokens |
+| **Voice** | Kokoro TTS (CPU/ONNX) | 8200 | ~2 GB (1.5%) | N/A |
+| **RAG** | all-MiniLM-L6-v2 (ONNX, Rust) | Native | ~100 MB | N/A |
+| **Total AI Budget** | | | **~58 GB (45%)** | **(62 GB free for OS/Bevy/headroom)** |
 
 Development hardware specifications:
 
@@ -2178,6 +2176,185 @@ Development hardware specifications:
 - **GPU**: RDNA 3.5 integrated, 40 CUs
 - **NPU**: XDNA 2 (50 TOPS) — reserved for future speculative decoding
 - **RAM**: 128GB LPDDR5X unified memory (shared CPU/GPU)
+
+### 12.1.1 The ROCm Compute Path — Complete Dependency Map
+
+> **⚠️ CRITICAL REFERENCE: This section documents the EXACT compute path that must be version-aligned for GPU inference on Strix Halo. If inference breaks, check each layer in order. DO NOT DELETE THIS SECTION.**
+
+Trinity's GPU inference on AMD Strix Halo requires **four layers** of the compute stack to be version-compatible. When they mismatch, the result is `hipErrorInvalidImage` — the GPU kernel binary format doesn't match what the driver expects.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ LAYER 0: HOST HARDWARE & KERNEL                                 │
+│ ─────────────────────────────────────────────────────────────── │
+│ CPU: AMD Ryzen AI Max+ 395 (Zen 5, 16C/32T)                    │
+│ GPU: Radeon 8060S Graphics — ISA Target: gfx1151 (RDNA 3.5)    │
+│ NPU: XDNA 2 (RyzenAI-npu5, 50 TOPS)                           │
+│ RAM: 128GB LPDDR5X Unified Memory                               │
+│                                                                 │
+│ Minimum Linux Kernel: 6.18.4+ (fixes KFD queue creation)       │
+│ Recommended Kernel: 6.19+ (ongoing amdgpu driver improvements) │
+│ DO NOT USE linux-firmware-20251125 (breaks ROCm init)           │
+│                                                                 │
+│ Kernel Boot Parameters:                                         │
+│   iommu=pt                                                      │
+│   amdgpu.gttsize=126976    (124GB GTT for iGPU unified memory) │
+│   ttm.pages_limit=33554432 (128GB page limit)                   │
+│   ttm.page_pool_size=33554432                                   │
+│                                                                 │
+│ Devices: /dev/kfd (KFD kernel driver), /dev/dri/renderD128      │
+├─────────────────────────────────────────────────────────────────┤
+│ LAYER 1: HOST ROCm DRIVER (amdgpu-install)                      │
+│ ─────────────────────────────────────────────────────────────── │
+│ Installed via:  sudo amdgpu-install --usecase=rocm              │
+│ Repository:     https://repo.radeon.com/rocm/apt/<VERSION>      │
+│ Latest Stable:  ROCm 7.2.1 (March 25, 2026)                    │
+│                                                                 │
+│ Key packages:                                                   │
+│   amdgpu-dkms         — Kernel module (KFD + amdgpu)            │
+│   hsa-rocr            — HSA Runtime (libhsa-runtime64.so)       │
+│   hipblas / hipblaslt  — GPU BLAS (Matrix Multiply)             │
+│   comgr               — Code Object Manager                     │
+│   rocm-smi            — System Management Interface             │
+│                                                                 │
+│ ⚠️ VERSION RULE: The container's ROCm userspace version must    │
+│ be COMPATIBLE with the host's kernel module version.             │
+│ ROCm 7.2 host ↔ ROCm 7.2.x container = ✅                      │
+│ ROCm 7.2 host ↔ ROCm 7.13 container  = ❌ hipErrorInvalidImage │
+├─────────────────────────────────────────────────────────────────┤
+│ LAYER 2: CONTAINER (distrobox + kyuz0 image)                    │
+│ ─────────────────────────────────────────────────────────────── │
+│ Image:   docker.io/kyuz0/vllm-therock-gfx1151:latest           │
+│ Base:    Fedora 43 (TheRock nightly ROCm builds)                │
+│ Created: distrobox create -n <name>                             │
+│           --image docker.io/kyuz0/vllm-therock-gfx1151:latest  │
+│           --additional-flags "--device /dev/kfd                  │
+│             --device /dev/dri --group-add video                  │
+│             --group-add render                                   │
+│             --security-opt seccomp=unconfined"                   │
+│                                                                 │
+│ Two distrobox instances from the same image:                    │
+│   sglang-engine → LongCat-Next Omni-Brain (port 8010)          │
+│   vllm          → A.R.T.Y. Hub Qwen3-Coder (port 8000)        │
+│                                                                 │
+│ Container ROCm: /opt/rocm/lib/ (libamdhip64, libhsa, etc.)     │
+│ Python venv:    /opt/venv/bin/python3 (Python 3.12)             │
+│ Included tools: start-vllm (TUI wizard), rocm-smi, hipcc       │
+│                                                                 │
+│ ⚠️ The container ships its OWN ROCm userspace.                  │
+│ It communicates with the HOST's kernel via /dev/kfd.             │
+│ If the image's ROCm version >> host driver version → CRASH.     │
+├─────────────────────────────────────────────────────────────────┤
+│ LAYER 3: PyTorch & _rocm_sdk_core (BUNDLED ROCm)                │
+│ ─────────────────────────────────────────────────────────────── │
+│ PyTorch ROCm wheels bundle ANOTHER copy of ROCm libraries at:  │
+│   /opt/venv/.../site-packages/_rocm_sdk_core/lib/               │
+│     libhsa-runtime64.so.1                                       │
+│     libamdhip64.so.7                                            │
+│                                                                 │
+│ AT RUNTIME, Python loads BOTH the container /opt/rocm AND the   │
+│ bundled _rocm_sdk_core libs. The bundled ones take priority.     │
+│                                                                 │
+│ torch.cuda.get_arch_list() → ['gfx1151']  (compiled target)    │
+│ AOTriton kernels: amd-gfx11xx (generic RDNA 3 family)           │
+│   Requires: TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1          │
+│                                                                 │
+│ ⚠️ TRIPLE MISMATCH RISK:                                       │
+│   Host KFD (7.2) ↔ Container ROCm (7.13) ↔ PyTorch (7.13)     │
+│   The PyTorch _rocm_sdk_core must match the HOST KFD version.   │
+├─────────────────────────────────────────────────────────────────┤
+│ LAYER 4: PYTHON INFERENCE LIBRARIES                             │
+│ ─────────────────────────────────────────────────────────────── │
+│                                                                 │
+│ vLLM:          0.19.x (rocm713 build, VLLM_TARGET_DEVICE=rocm) │
+│ SGLang:        0.5.10 (sgl_kernel missing → 0 models)          │
+│   ↳ LongCat-Next uses transformers+FastAPI, NOT native SGLang   │
+│   ↳ Meituan's FluentLLM SGLang fork requires CUDA (NVIDIA)     │
+│ bitsandbytes:  0.43.3.dev0 (ROCm build, libbitsandbytes_rocm*) │
+│ transformers:  trust_remote_code=True for LongCat-Next          │
+│                                                                 │
+│ flash_attn:    2.8.4 (NVIDIA-only — WILL SEGFAULT on ROCm)     │
+│   ↳ Custom shim at longcat_omni_sidecar/flash_attn/             │
+│   ↳ Redirects flash_attn_func → torch.nn.functional.sdpa        │
+│   ↳ NEVER install real flash_attn on ROCm!                      │
+│                                                                 │
+│ Attention Backend: ALWAYS use SDPA (not flash_attn, not triton) │
+│   Set: ATTN_BACKEND=sdpa                                        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Required Environment Variables for Strix Halo Inference:**
+
+| Variable | Value | Purpose |
+|----------|-------|---------|
+| `HSA_ENABLE_SDMA=0` | Disable SDMA | Prevents DMA engine hangs on gfx1151 |
+| `PYTORCH_ROCM_ARCH=gfx1151` | Set arch | Tells PyTorch which GPU ISA to target |
+| `TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1` | Enable AOTriton | Enables gfx11xx Triton kernels for gfx1151 |
+| `MIOPEN_FIND_MODE=FAST` | Fast kernel search | Prevents infinite MIOpen exhaustive search |
+| `HIP_FORCE_DEV_KERNARG=1` | Force kernel args | Memory model compatibility for unified memory |
+| `VLLM_TARGET_DEVICE=rocm` | ROCm target | (Set by container) Forces vLLM to use ROCm path |
+| `HIP_PLATFORM=amd` | AMD platform | (Set by container) Tells HIP to use AMD backend |
+| `VLLM_DISABLE_COMPILE_CACHE=1` | No cache | Avoids stale compiled kernel cache issues |
+
+**Updating the ROCm Host Driver:**
+
+```bash
+# ⚠️ NOTE: The kyuz0 container uses TheRock NIGHTLY builds (ROCm 7.13+).
+# Standard amdgpu-install (ROCm 7.2) may NOT bridge the gap because PyTorch
+# bundles its own _rocm_sdk_core with ROCm 7.13 HSA/HIP runtime that must
+# be ABI-compatible with the host's KFD kernel module.
+#
+# Option 1: Update host amdgpu-install to latest stable (may be sufficient)
+wget https://repo.radeon.com/amdgpu-install/7.2.1/ubuntu/noble/amdgpu-install_7.2.1.70201-1_all.deb
+sudo apt install ./amdgpu-install_7.2.1.70201-1_all.deb
+sudo apt update
+sudo amdgpu-install --usecase=rocm
+sudo usermod -a -G render,video $LOGNAME
+sudo reboot
+
+# Option 2: If 7.2.1 doesn't fix it, install TheRock nightly KFD on host
+# See: https://github.com/ROCm/TheRock for nightly tarballs
+# This is what the container was built against.
+```
+
+**Refreshing the distrobox containers after driver update:**
+
+```bash
+# Pull latest kyuz0 image
+podman pull docker.io/kyuz0/vllm-therock-gfx1151:latest
+
+# Recreate containers from fresh image
+distrobox rm -f sglang-engine
+distrobox rm -f vllm
+distrobox create -n sglang-engine \
+  --image docker.io/kyuz0/vllm-therock-gfx1151:latest \
+  --additional-flags "--device /dev/kfd --device /dev/dri --group-add video --group-add render --security-opt seccomp=unconfined"
+distrobox create -n vllm \
+  --image docker.io/kyuz0/vllm-therock-gfx1151:latest \
+  --additional-flags "--device /dev/kfd --device /dev/dri --group-add video --group-add render --security-opt seccomp=unconfined"
+```
+
+**Quick Verification Test (run inside distrobox):**
+
+```bash
+export HSA_ENABLE_SDMA=0
+export TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1
+/opt/venv/bin/python3 -c "
+import torch
+print(f'PyTorch: {torch.__version__}')
+print(f'GPU: {torch.cuda.get_device_name(0)}')
+print(f'GCN Arch: {torch.cuda.get_device_properties(0).gcnArchName}')
+t = torch.randn(4, 4, device='cuda', dtype=torch.bfloat16)
+print(f'GPU Tensor: OK ({t.sum().item():.2f})')
+c = torch.mm(t, t.T)
+print(f'MatMul (hipBLAS): OK ({c.sum().item():.2f})')
+print('ALL GPU TESTS PASSED')
+"
+```
+
+> 📍 `longcat_omni_sidecar/launch_engine.sh` — Contains the canonical environment variable setup
+> 📍 `scripts/launch/launch_longcat.sh` — Entry point that enters the distrobox and runs launch_engine.sh
+> 📍 `crates/trinity/src/inference_router.rs` — Rust-side routing logic for ports 8010 and 8000
 
 ---
 
@@ -2212,21 +2389,20 @@ Trinity's inference is process-isolated and backend-agnostic. The `InferenceRout
 │  MCP Server: Model Context Protocol for IDE integration     │
 │  Background Jobs: SQLite-persisted async task runner         │
 ├─────────────────────────────────────────────────────────────┤
-│  Layer 2: vLLM Omni Reverse Proxy (FastAPI, port 8000)      │
-│  Routes OpenAI-compatible requests to purpose-specific      │
-│  model engines. Single entry point for all AI operations.   │
-┌─────────────┬──────────────┬─────────────────┐
-│  Gemma-4    │  Gemma-4     │  Gemma-4        │
-│  31B+E2B    │  26B-A4B MoE │  E4B (Tempo)    │
-│  Port 8001  │  Port 8002   │  Port 8003      │
-│  Recycler   │  Pete        │  Vibe           │
-└─────────────┴──────────────┴─────────────────┘
-│  Dynamic Media Pool (20GB Hot-Swap)           │
-│  • Port 8004: Image Gen (FLUX)                │
-│  • Port 8006: Video Gen (CogVideo)            │
-│  • Port 8007: 3D Mesh (TripoSR)               │
-│  • Port 8008: Audio/Music (ACE-Step)          │
-│  • Port 8005: Embeddings (nomic - Static)     │
+│  Layer 2: Dual-Brain Inference (distrobox containers)        │
+│                                                             │
+│  ┌────────────────────────┐  ┌──────────────────────────┐   │
+│  │  LongCat-Next Omni     │  │  A.R.T.Y. Hub (vLLM)     │   │
+│  │  74B MoE (NF4)         │  │  Qwen3-Coder GPTQ-4bit   │   │
+│  │  Port 8010             │  │  Port 8000                │   │
+│  │  Pete / Recycler       │  │  Sub-agent / RAG          │   │
+│  │  + DiNA Images         │  │  + Embeddings             │   │
+│  │  + CosyVoice TTS       │  │  + Code Generation        │   │
+│  └────────────────────────┘  └──────────────────────────┘   │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Voice: Kokoro TTS (Port 8200) — CPU/ONNX fallback   │   │
+│  └──────────────────────────────────────────────────────┘   │
 ├─────────────────────────────────────────────────────────────┤
 │  Native Rust Services (no HTTP, embedded in binary)         │
 │  • RAG Memory (ONNX, all-MiniLM-L6-v2) — vector similarity  │
@@ -2235,7 +2411,7 @@ Trinity's inference is process-isolated and backend-agnostic. The `InferenceRout
 └─────────────────────────────────────────────────────────────┘
 ```
 
-The key architectural insight: **"Bring Your Own Pipeline" (BYOP)**. Trinity ships as a lightweight Rust binary that dispatches to whatever inference backend the user has running. The `InferenceRouter` auto-detects vLLM Omni (primary), llama-server, Ollama, LM Studio, or any OpenAI-compatible API. Students on consumer hardware use Ollama with small models; the development system runs all four Gemma-4 engines concurrently via vLLM; institutional deployments can use batched inference servers. The same Trinity binary works with all of them.
+The key architectural insight: **"Bring Your Own Pipeline" (BYOP)**. Trinity ships as a lightweight Rust binary that dispatches to whatever inference backend the user has running. The `InferenceRouter` auto-detects LongCat-Next (primary, port 8010), vLLM A.R.T.Y. Hub, llama-server, Ollama, LM Studio, or any OpenAI-compatible API. Students on consumer hardware use Ollama with small models; the development system runs the Dual-Brain architecture concurrently via distrobox; institutional deployments can use batched inference servers. The same Trinity binary works with all of them.
 
 ### Realistic Deployment: 1,000 Users on Gautschi
 
@@ -2244,7 +2420,7 @@ Purdue's Gautschi supercomputer (March 2025) has **160 NVIDIA H100 SXMs** (80 GB
 | Component | H100s | Serves |
 |-----------|:-----:|--------|
 | **Batched inference pool** (119B MoE, continuous batching via TGI or compatible backend) | 20 (10 instances × 2 GPUs) | ~200–300 concurrent Socratic sessions |
-| **SDXL Turbo** (image generation queue) | 4 | ~50 concurrent image requests |
+| **LongCat DiNA** (image generation queue) | 4 | ~50 concurrent image requests |
 | **TTS + STT** (native ONNX or GPU-accelerated) | 2 | Voice pipeline for accessibility |
 | **Embeddings + RAG** (native ONNX MiniLM) | 2 | Semantic search across all user artifacts |
 | **Total** | **~28 of 160** | **1,000 registered users** (200–300 concurrent peak) |
@@ -2265,8 +2441,8 @@ Zero data leaves campus. No API keys. Reduces reliance on third-party cloud proc
 
 | Component | Technology | Status |
 |-----------|-----------|:------:|
-| **LLM Brain** | Agnostic HTTP Inference Router → vLLM Omni Reverse Proxy (:8000). Gemma-4 31B + 26B native AWQ. | ✅ Running |
-| **Inference Architecture** | `start_vllm_omni.sh` auto-bootstraps all model weights, launches 4 vLLM engines, starts FastAPI proxy | ✅ Verified |
+| **LLM Brain** | Dual-Brain: LongCat-Next Omni (:8010) + A.R.T.Y. Hub vLLM (:8000). InferenceRouter auto-detects. | ✅ Running |
+| **Inference Architecture** | `launch_longcat.sh` + `launch_arty_hub.sh` via distrobox (`kyuz0/vllm-therock-gfx1151`) | ✅ Verified |
 | **Image Generation** | `creative.rs` → `http://127.0.0.1:8000/v1/images/generations` → HunyuanImage AWQ 4-bit on port 8004 | 🟡 Wired (awaiting model download) |
 | **Video Generation** | `creative.rs` → `http://127.0.0.1:8000/v1/video/generations` → stub ready for future video model | 🟡 Wired (no model yet) |
 | **3D Mesh Generation** | `creative.rs` → Hunyuan3D-2.1 Gradio API on port 7860 | 🟡 Wired (sidecar optional) |
@@ -2294,7 +2470,7 @@ Zero data leaves campus. No API keys. Reduces reliance on third-party cloud proc
 |-------------|-----------|:------:|--------|
 | **Multi-user sessions** | SQLite per-user isolation, session tokens | 2–3 weeks | Each student gets their own CharacterSheet & quest state |
 | **Batched inference** | TGI or batched OpenAI-compatible backend behind InferenceRouter | 1 week | 100+ concurrent users per model instance |
-| **Full creative pipeline** | MING 2.1 replacing ComfyUI sidecar stack | 1 week | Unified image/video/3D from a single model, no sidecar management |
+| **Full creative pipeline** | LongCat-Next Omni consolidating all media generation | 1 week | Unified image/video/audio/3D from a single model, no sidecar management |
 | **Speculative decoding** | EAGLE draft model (GGUF) on NPU | 1–2 weeks | 2–3× token throughput on consumer hardware |
 | **NPU offload** | XDNA 2 (AMD, 50 TOPS) for embeddings + STT | 2 weeks | Frees GPU for LLM-only, voice becomes "free" |
 | **RLHF fine-tuning** | DPO/ORPO on student interaction logs | Ongoing | Pete improves from real classroom data |
@@ -2400,7 +2576,7 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 
 ## Appendix B: Product Maturation Map
 
-> Generated: 2026-04-04 20:00 ET | Revised — vLLM Omni Gemma-4 unification, AWQ static model architecture, 25 React components, 267K LOC Rust, 16K LOC JSX, 38 backend modules, honest gap assessment
+> Generated: 2026-04-09 | Revised — Dual-Brain architecture (LongCat-Next + vLLM A.R.T.Y. Hub), 25 React components, 267K LOC Rust, 16K LOC JSX, 38 backend modules, ROCm compute path documented
 
 ### System Metrics (Machine-Verified April 4, 2026)
 
@@ -2412,23 +2588,18 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 | Backend API routes | **131** | `grep route/get/post main.rs` |
 | Total Rust LOC (workspace) | **267,406** | `find . -name '*.rs' \| xargs wc -l` |
 | Total JSX LOC (frontend) | **16,014** | `find . -name '*.jsx' \| xargs wc -l` |
-| AI model storage (on disk) | **~50 GB** | `du -sh ~/trinity-models/vllm/` |
-| AI model target (static) | **~70 GB** | 3× Gemma-4 AWQ + Aesthetics Triad (Flux, CogVideo, TripoSR) |
+| AI model storage (on disk) | **~50 GB** | `du -sh ~/trinity-models/` |
+| AI model target (static) | **~60 GB** | LongCat-Next NF4 + Qwen3-Coder GPTQ + Kokoro + ONNX RAG |
 | Workspace crates | **8** | trinity, protocol, quest, iron-road, voice, daydream, mcp-server, archive |
 
-### Model Inventory (April 5, 2026)
+### Model Inventory (April 9, 2026)
 
 | Model | Size | Status | Role |
 |-------|:----:|:------:|------|
-| Model | Size | Status | Role |
-|-------|:----:|:------:|------|
-| `gemma-4-31B-it-AWQ` | 20 GB | ✅ Stable | **[R+T]** Recycler/Vibe (Target) |
-| `gemma-4-E4B-it-AWQ` | ~3 GB | ✅ Stable | **[Draft]** Speculative Engine |
-| `gemma-4-26B-A4B-it-AWQ` | 17 GB | ✅ Stable | **[P]** Programmer Pete (MoE) |
-| `flux.1-schnell-nf4` | 12 GB | ✅ Stable | **[A]** Image Node (Static) |
-| `CogVideoX-2b-NF4` | 13 GB | ✅ Stable | **[A]** Video Node (Static) |
-| `ACE-Step v1 3.5B` | 8 GB | ✅ Stable | **[A]** Music Node (Static) |
-| `TripoSR` | ~2 GB | ✅ Stable | **[A]** Mesh Node (Static) |
+| `LongCat-Next 74B MoE (NF4)` | ~38 GB | ✅ Stable | **[Omni-Brain]** Pete / Recycler / Vision / Audio / Image Gen |
+| `Qwen3-Coder-30B-A3B (GPTQ-4bit)` | ~18 GB | ✅ Stable | **[A.R.T.Y. Hub]** Code generation, sub-agent tasks |
+| `Kokoro TTS` | ~2 GB | ✅ Stable | **[Voice]** Text-to-speech (6 presets, Apache 2.0) |
+| `all-MiniLM-L6-v2 (ONNX)` | ~100 MB | ✅ Stable | **[RAG]** Semantic search (pure Rust, no Python) |
 
 ### Functional Coverage by Domain
 
@@ -2483,10 +2654,10 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 
 | Task | Impact | Effort | What It Unlocks |
 |------|:------:|:------:|----------------|
-| **Accept HF terms for Gemma-4 E4B** | High | 2 min | Omni NPC engine boots on port 8003 |
-| **Run `start_vllm_omni.sh` (triggers all downloads)** | High | ~30 min | HunyuanImage + nomic-embed auto-fetch |
-| **Delete Qwen 2.5 legacy models** | Low | 1 min | Frees 14.6 GB of disk space |
-| **Add TTS model to vLLM (Port 8005)** | High | 1 hour | Pete speaks. Voice conversation loop. |
+| **Verify GPU compute path** | Critical | 10 min | See §12.1.1 — `torch.randn(device='cuda')` must pass in distrobox |
+| **Run LongCat-Next sidecar** | High | 5 min | `launch_longcat.sh` → port 8010 health check |
+| **Run vLLM A.R.T.Y. Hub** | High | 5 min | `launch_arty_hub.sh` → port 8000 health check |
+| **Verify image generation end-to-end** | Critical | 10 min | Proves LongCat DiNA creative pipeline is live |
 | **Verify image generation end-to-end** | Critical | 10 min | Proves creative pipeline is live |
 | **Wire achievement badges UI** | Medium | 2 hours | Phase completion badges visible in CharacterSheet |
 | **Project archive/restore UI** | Medium | 3 hours | Backend exists, needs Yardmaster button |
@@ -2499,10 +2670,10 @@ https://LDTAtkinson.com/trinity/api/inference/status → AI model status
 |-----|--------|----------|-------|
 | ~~Game mechanics wiring~~ | ~~High~~ | ~~DONE~~ | All 28 mechanics fully wired as of April 1, 2026 |
 | ~~CRAPEYE objective gaps~~ | ~~Medium~~ | ~~DONE~~ | 432 bespoke objectives across all 12 chapters × 12 phases |
-| ~~vLLM Omni unification~~ | ~~High~~ | ~~DONE~~ | Gemma-4 natively wired, Qwen stand-ins removed April 4, 2026 |
+| ~~vLLM Omni unification~~ | ~~High~~ | ~~DONE~~ | Replaced by Dual-Brain: LongCat-Next (:8010) + vLLM A.R.T.Y. Hub (:8000) |
 | ~~Double-page sourcebooks~~ | ~~Medium~~ | ~~DONE~~ | Player Handbook + Field Manual in premium RPG spread layout |
-| HunyuanImage model download | High | v1.3 | Auto-fetches on next `start_vllm_omni.sh` boot |
-| Gemma-4 E4B HF terms | Medium | v1.3 | User must accept gated model terms on HuggingFace |
+| ROCm driver alignment | High | v1.3 | Host ROCm 7.2 must match container's ROCm version (see §12.1.1) |
+| LongCat sidecar restoration | High | v1.3 | server.py → transformers+FastAPI on port 8010 |
 | TTS model integration | High | v1.4 | Add a vLLM-compatible TTS engine on port 8005 |
 | Audio conversation loop | Medium | v1.4 | Mic → STT → Pete → TTS → speaker pipeline |
 | Hook Book TCG bridge | Medium | v2.0 | GlobalDeckOverlay ↔ Daydream drag-and-drop Hook Card casting |
@@ -2723,13 +2894,13 @@ The world evolves with the student's cognitive progression:
 ### 🚀 The Endgame — What Trinity Scales To
 
 ```
-TODAY (v1.3 — Single User, Local, Gemma-4 Native)
-├── One student, one machine, four AI engines
+TODAY (v1.3 — Single User, Local, Dual-Brain Architecture)
+├── One student, one machine, Dual-Brain inference (LongCat + vLLM)
 ├── 283K+ LOC total (267K Rust + 16K JSX)
 ├── 25 React components, 7 hooks, 38 backend modules, 131 API routes
-├── 8 workspace crates, vLLM Omni unified inference
+├── 8 workspace crates, distrobox-isolated ROCm inference
 ├── MCP Server ∙ Background Jobs ∙ Native RAG ∙ Tauri Desktop
-├── ~55 GB static model payload (fits on USB drive)
+├── ~60 GB static model payload (fits on USB drive)
 └── Fully functional prototype, zero cloud dependencies
 
 NEXT (v1.4 — Creative Pipeline Complete)

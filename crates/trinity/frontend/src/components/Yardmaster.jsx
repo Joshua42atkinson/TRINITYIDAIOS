@@ -634,7 +634,7 @@ export default function Yardmaster() {
                     } catch(e) { /* fallback */ }
                   }}
                   disabled={isIgniting && ignitionStatus !== 'failed'}
-                  title="Connects to vLLM on port 8010"
+                  title="Connects to Step-3.5-Flash via vLLM on port 8000"
                 >
                   {isOnline
                     ? '🟢 FURNACE ONLINE'

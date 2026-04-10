@@ -37,6 +37,8 @@ pub enum BackendKind {
     Ollama,
     LmStudio,
     LongCat,
+    StepFlash,
+    JanusPro,
     Custom,
 }
 
@@ -48,7 +50,9 @@ impl BackendKind {
             BackendKind::LlamaServer => 8080,
             BackendKind::Ollama => 11434,
             BackendKind::LmStudio => 1234,
-            BackendKind::LongCat => 8010,   // Pete / LongCat-Next Omni-Brain
+            BackendKind::LongCat => 8010,   // Pete / LongCat-Next Omni-Brain (Legacy)
+            BackendKind::StepFlash => 8000, // Pete / Step-3.5-Flash (vLLM Hub)
+            BackendKind::JanusPro => 1234,  // Aesthetics / Janus Pro
             BackendKind::Custom => 8080,
         }
     }
@@ -61,6 +65,8 @@ impl BackendKind {
             BackendKind::Ollama => "Ollama",
             BackendKind::LmStudio => "LM Studio",
             BackendKind::LongCat => "LongCat-Next",
+            BackendKind::StepFlash => "Step-3.5-Flash-REAP",
+            BackendKind::JanusPro => "Janus-Pro",
             BackendKind::Custom => "Custom",
         }
     }
@@ -70,7 +76,7 @@ impl BackendKind {
         match self {
             BackendKind::VllmOmni => "/health",    // vLLM uses standard /health
             BackendKind::Ollama => "/api/tags",     // Ollama uses /api/tags as health-ish
-            BackendKind::LmStudio => "/v1/models",  // LM Studio uses /v1/models
+            BackendKind::LmStudio | BackendKind::JanusPro => "/v1/models",  // LM Studio uses /v1/models
             _ => "/health",                         // OpenAI-compatible servers use /health
         }
     }
@@ -139,7 +145,7 @@ pub struct BackendConfig {
 }
 
 fn default_primary() -> String {
-    "longcat-omni".to_string()
+    "step-flash-reap".to_string()
 }
 fn default_true() -> bool {
     true
@@ -288,6 +294,8 @@ impl InferenceRouter {
                 let kind = match name.as_str() {
                     "vllm-omni" | "vllm" | "arty-hub" | "yardmaster-reap" => BackendKind::VllmOmni,
                     "longcat-omni" | "longcat" => BackendKind::LongCat,
+                    "step-flash-reap" => BackendKind::StepFlash,
+                    "janus-pro" => BackendKind::JanusPro,
                     "llama-server" => BackendKind::LlamaServer,
                     "ollama" => BackendKind::Ollama,
                     "lm-studio" => BackendKind::LmStudio,
@@ -311,7 +319,7 @@ impl InferenceRouter {
     fn default_backends() -> Vec<InferenceBackend> {
         vec![
             // ── Omni-Brain (GPU) ──
-            // Socratic reasoning + Media artifacts
+            // Pete (Reasoning & Media Generation)
             InferenceBackend {
                 name: "longcat-omni".to_string(),
                 kind: BackendKind::LongCat,

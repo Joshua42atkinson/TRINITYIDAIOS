@@ -20,19 +20,26 @@
 type = "Auto"  # Auto-detect Brain/Body
 
 [inference]
-primary = "longcat-omni"
+primary = "step-flash-reap"
 auto_detect = true
 ctx_size = 131072
 max_tokens = 16384
 
-# ── Pete (SGLang GPU — LongCat-Next 74B MoE) ──
+# ── Pete (vLLM / LM Studio — Step-3.5-Flash-REAP-121B) ──
 # Pete IS the Great Recycler. Instructional designer, DM, narrator.
-# Served by FastAPI sidecar inside sglang-engine distrobox container
-# Capabilities: text, image_generation (DiNA), tts (CosyVoice), audio_understanding
+# Replaces the legacy LongCat-Next MoE engine.
+# Capabilities: text, reasoning, pedagogy. Unmatched cognitive capability.
 
-[inference.backends.longcat-omni]
-url = "http://127.0.0.1:8010"
+[inference.backends.step-flash-reap]
+url = "http://127.0.0.1:8000"
 supports_tools = true
+supports_vision = false
+
+# ── Aesthetics (LM Studio / vLLM — Janus-Pro-7B) ──
+# Multimodal / Vision fallback for the A.R.T.Y framework.
+[inference.backends.janus-pro]
+url = "http://127.0.0.1:1234"
+supports_tools = false
 supports_vision = true
 
 # ── A.R.T.Y. Hub (vLLM reverse proxy) ──

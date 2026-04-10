@@ -639,6 +639,7 @@ export default function PlayerHandbookElearning({ onBack }) {
                     background: linear-gradient(to bottom, #CFB991, #b59b6c); 
                     color: #111; border-color: #CFB991; font-weight: 700;
                     box-shadow: 0 2px 8px rgba(207,185,145,0.4);
+                }
             `}} />
         </div>
     );
