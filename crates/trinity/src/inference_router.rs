@@ -36,10 +36,47 @@ pub enum BackendKind {
     LlamaServer,
     Ollama,
     LmStudio,
-    LongCat,
-    StepFlash,
     JanusPro,
     Custom,
+}
+
+/// P-ART-Y role taxonomy for size-to-task model routing.
+///
+/// Each backend is assigned a role that maps to a cognitive load level:
+/// - Programming: MoE coding brain (Gemma 4 26B A4B) — fast, tool-heavy
+/// - Aesthetics:  Vision-Language critique (Janus Pro) — spatial analysis
+/// - Reasoning:   Dense evaluation brain (Gemma 4 31B) — maximum depth
+/// - Tempo:       Always-on fast reactor (Gemma 4 E4B) — real-time chat
+/// - Yardmaster:  The Rust client itself (not an LLM backend)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PartyRole {
+    /// P — Gemma 4 26B A4B MoE. Code gen, tool calling, scaffolding.
+    #[serde(rename = "P")]
+    Programming,
+    /// A — Janus Pro 7B / FLUX. Vision critique, image generation.
+    #[serde(rename = "A")]
+    Aesthetics,
+    /// R — Gemma 4 31B Dense. Deep reasoning, evaluation, RAG.
+    #[serde(rename = "R")]
+    Reasoning,
+    /// T — Gemma 4 E4B. Always-on fast chat, NPC dialog, routing.
+    #[serde(rename = "T")]
+    Tempo,
+    /// Y — The TRINITY Rust/Bevy client. Not an LLM.
+    #[serde(rename = "Y")]
+    Yardmaster,
+}
+
+impl std::fmt::Display for PartyRole {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PartyRole::Programming => write!(f, "P (Programming)"),
+            PartyRole::Aesthetics => write!(f, "A (Aesthetics)"),
+            PartyRole::Reasoning => write!(f, "R (Reasoning)"),
+            PartyRole::Tempo => write!(f, "T (Tempo)"),
+            PartyRole::Yardmaster => write!(f, "Y (Yardmaster)"),
+        }
+    }
 }
 
 impl BackendKind {
@@ -50,9 +87,7 @@ impl BackendKind {
             BackendKind::LlamaServer => 8080,
             BackendKind::Ollama => 11434,
             BackendKind::LmStudio => 1234,
-            BackendKind::LongCat => 8010,   // Pete / LongCat-Next Omni-Brain (Legacy)
-            BackendKind::StepFlash => 8000, // Pete / Step-3.5-Flash (vLLM Hub)
-            BackendKind::JanusPro => 1234,  // Aesthetics / Janus Pro
+            BackendKind::JanusPro => 8003,  // Aesthetics / Janus Pro sidecar
             BackendKind::Custom => 8080,
         }
     }
@@ -64,8 +99,6 @@ impl BackendKind {
             BackendKind::LlamaServer => "llama-server",
             BackendKind::Ollama => "Ollama",
             BackendKind::LmStudio => "LM Studio",
-            BackendKind::LongCat => "LongCat-Next",
-            BackendKind::StepFlash => "Step-3.5-Flash-REAP",
             BackendKind::JanusPro => "Janus-Pro",
             BackendKind::Custom => "Custom",
         }
@@ -93,7 +126,7 @@ impl BackendKind {
 /// A single inference backend with its connection details and capabilities
 #[derive(Debug, Clone, Serialize)]
 pub struct InferenceBackend {
-    /// Unique name for this backend (e.g., "llama-server", "vllm", "ollama")
+    /// Unique name for this backend (e.g., "tempo-e4b", "pete-coder", "ollama")
     pub name: String,
     /// Backend type
     pub kind: BackendKind,
@@ -103,6 +136,11 @@ pub struct InferenceBackend {
     pub supports_tools: bool,
     /// Whether this backend supports vision/multimodal inputs
     pub supports_vision: bool,
+    /// P-ART-Y role assignment for size-to-task routing
+    pub party_role: PartyRole,
+    /// Whether this backend should always remain loaded (permanent resident)
+    /// vs. being Hotel-swapped on demand
+    pub always_resident: bool,
     /// Model name hint (populated from /v1/models if available)
     pub model_name: Option<String>,
     /// Whether this backend is currently reachable
@@ -142,10 +180,19 @@ pub struct BackendConfig {
     pub supports_tools: bool,
     #[serde(default)]
     pub supports_vision: bool,
+    /// P-ART-Y role: "P", "A", "R", "T", or "Y"
+    #[serde(default = "default_party_role")]
+    pub party_role: PartyRole,
+    /// Whether this backend is a permanent resident (true) or Hotel-swapped (false)
+    #[serde(default)]
+    pub always_resident: bool,
 }
 
 fn default_primary() -> String {
-    "step-flash-reap".to_string()
+    "tempo-e4b".to_string()
+}
+fn default_party_role() -> PartyRole {
+    PartyRole::Tempo
 }
 fn default_true() -> bool {
     true
@@ -228,6 +275,8 @@ impl InferenceRouter {
                         base_url: env_url,
                         supports_tools: true,
                         supports_vision: true,
+                        party_role: PartyRole::Tempo,
+                        always_resident: true,
                         model_name: None,
                         healthy: false,
                         last_checked: 0,
@@ -292,9 +341,8 @@ impl InferenceRouter {
             .iter()
             .map(|(name, bc)| {
                 let kind = match name.as_str() {
-                    "vllm-omni" | "vllm" | "arty-hub" | "yardmaster-reap" => BackendKind::VllmOmni,
-                    "longcat-omni" | "longcat" => BackendKind::LongCat,
-                    "step-flash-reap" => BackendKind::StepFlash,
+                    "vllm-omni" | "vllm" | "arty-hub" | "tempo-e4b" | "pete-coder"
+                    | "recycler-dense" | "yardmaster-reap" | "pete-gemma4" => BackendKind::VllmOmni,
                     "janus-pro" => BackendKind::JanusPro,
                     "llama-server" => BackendKind::LlamaServer,
                     "ollama" => BackendKind::Ollama,
@@ -307,6 +355,8 @@ impl InferenceRouter {
                     base_url: bc.url.clone(),
                     supports_tools: bc.supports_tools,
                     supports_vision: bc.supports_vision,
+                    party_role: bc.party_role,
+                    always_resident: bc.always_resident,
                     model_name: None,
                     healthy: false,
                     last_checked: 0,
@@ -318,38 +368,93 @@ impl InferenceRouter {
     /// Default backend list when no config is found
     fn default_backends() -> Vec<InferenceBackend> {
         vec![
-            // ── Omni-Brain (GPU) ──
-            // Pete (Reasoning & Media Generation)
+            // ── T — Tempo: Gemma 4 E4B AWQ (always-on, ~6 GB) ──
             InferenceBackend {
-                name: "longcat-omni".to_string(),
-                kind: BackendKind::LongCat,
-                base_url: "http://127.0.0.1:8010".to_string(),
+                name: "tempo-e4b".to_string(),
+                kind: BackendKind::VllmOmni,
+                base_url: "http://127.0.0.1:8001".to_string(),
                 supports_tools: true,
                 supports_vision: true,
+                party_role: PartyRole::Tempo,
+                always_resident: true,
                 model_name: None,
                 healthy: false,
                 last_checked: 0,
             },
-            // ── Yardmaster (REAP) ──
-            // Sandboxed logic and codebase modifications via vLLM Hub
+            // ── P — Programming: Gemma 4 26B A4B AWQ (hotel swap, ~16 GB) ──
             InferenceBackend {
-                name: "yardmaster-reap".to_string(),
+                name: "pete-coder".to_string(),
                 kind: BackendKind::VllmOmni,
                 base_url: "http://127.0.0.1:8000".to_string(),
+                supports_tools: true,
+                supports_vision: true,
+                party_role: PartyRole::Programming,
+                always_resident: false,
+                model_name: None,
+                healthy: false,
+                last_checked: 0,
+            },
+            // ── R — Reasoning: Gemma 4 31B Dense AWQ (hotel swap, ~18 GB) ──
+            InferenceBackend {
+                name: "recycler-dense".to_string(),
+                kind: BackendKind::VllmOmni,
+                base_url: "http://127.0.0.1:8002".to_string(),
                 supports_tools: true,
                 supports_vision: false,
+                party_role: PartyRole::Reasoning,
+                always_resident: false,
                 model_name: None,
                 healthy: false,
                 last_checked: 0,
             },
-            // ── vLLM Hotel (GPU) ──
-            // Acestep 1.5 Embeddings & P.A.R.T.Y Hotloaded models
+            // ── A — Aesthetics: Janus Pro 7B (hotel swap, ~4 GB) ──
             InferenceBackend {
-                name: "vllm-hotel".to_string(),
-                kind: BackendKind::VllmOmni,
-                base_url: "http://127.0.0.1:8000".to_string(),
+                name: "janus-pro".to_string(),
+                kind: BackendKind::JanusPro,
+                base_url: "http://127.0.0.1:8003".to_string(),
                 supports_tools: false,
                 supports_vision: true,
+                party_role: PartyRole::Aesthetics,
+                always_resident: false,
+                model_name: None,
+                healthy: false,
+                last_checked: 0,
+            },
+            // ── Fallback: llama-server ──
+            InferenceBackend {
+                name: "llama-server".to_string(),
+                kind: BackendKind::LlamaServer,
+                base_url: "http://127.0.0.1:8080".to_string(),
+                supports_tools: true,
+                supports_vision: true,
+                party_role: PartyRole::Tempo,
+                always_resident: false,
+                model_name: None,
+                healthy: false,
+                last_checked: 0,
+            },
+            // ── Fallback: Ollama ──
+            InferenceBackend {
+                name: "ollama".to_string(),
+                kind: BackendKind::Ollama,
+                base_url: "http://127.0.0.1:11434".to_string(),
+                supports_tools: true,
+                supports_vision: false,
+                party_role: PartyRole::Tempo,
+                always_resident: false,
+                model_name: None,
+                healthy: false,
+                last_checked: 0,
+            },
+            // ── Fallback: LM Studio ──
+            InferenceBackend {
+                name: "lm-studio".to_string(),
+                kind: BackendKind::LmStudio,
+                base_url: "http://127.0.0.1:1234".to_string(),
+                supports_tools: true,
+                supports_vision: true,
+                party_role: PartyRole::Tempo,
+                always_resident: false,
                 model_name: None,
                 healthy: false,
                 last_checked: 0,
@@ -533,6 +638,39 @@ impl InferenceRouter {
         }
     }
 
+    /// Switch the active backend by P-ART-Y role.
+    /// Returns the backend URL if found and healthy, None otherwise.
+    /// This is the primary method for Hotel swap orchestration.
+    pub fn switch_to_role(&mut self, role: PartyRole) -> Option<String> {
+        if let Some(idx) = self.backends.iter().position(|b| b.party_role == role && b.healthy) {
+            let old = &self.backends[self.active].name;
+            let new = &self.backends[idx].name;
+            info!("🔄 P-ART-Y gear shift: {} → {} [role: {}]", old, new, role);
+            self.active = idx;
+            Some(self.backends[idx].base_url.clone())
+        } else {
+            // Try unhealthy backend of this role (it may come online)
+            if let Some(idx) = self.backends.iter().position(|b| b.party_role == role) {
+                warn!("⚠️ {} backend '{}' exists but is unhealthy", role, self.backends[idx].name);
+                Some(self.backends[idx].base_url.clone())
+            } else {
+                warn!("⚠️ No backend with role {} configured", role);
+                None
+            }
+        }
+    }
+
+    /// Get a backend by P-ART-Y role without switching the active backend.
+    /// Useful for parallel requests (e.g., Perspective Engine firing R while T handles chat).
+    pub fn get_backend_by_role(&self, role: PartyRole) -> Option<&InferenceBackend> {
+        self.backends.iter().find(|b| b.party_role == role)
+    }
+
+    /// Get all backends assigned to a specific P-ART-Y role
+    pub fn get_backends_by_role(&self, role: PartyRole) -> Vec<&InferenceBackend> {
+        self.backends.iter().filter(|b| b.party_role == role).collect()
+    }
+
     /// Manually set the active backend URL (for backward compatibility with
     /// the old model-switch endpoint)
     pub fn set_active_url(&mut self, url: String) {
@@ -546,6 +684,8 @@ impl InferenceRouter {
                 base_url: url,
                 supports_tools: true,
                 supports_vision: true,
+                party_role: PartyRole::Tempo,
+                always_resident: false,
                 model_name: None,
                 healthy: true, // assume healthy if user explicitly set it
                 last_checked: 0,
@@ -578,9 +718,9 @@ mod tests {
     fn test_default_backends_created_when_no_config() {
         let router = InferenceRouter::from_config(Some("/nonexistent/path.toml"));
         assert!(!router.backends.is_empty(), "Should have default backends");
-        // Default primary is "longcat-omni", so active should select it
-        assert_eq!(router.active_name(), "longcat-omni");
-        assert_eq!(router.active_url(), "http://127.0.0.1:8010");
+        // Default primary is "tempo-e4b", the always-on fast brain
+        assert_eq!(router.active_name(), "tempo-e4b");
+        assert_eq!(router.active_url(), "http://127.0.0.1:8001");
     }
 
     #[test]
@@ -631,7 +771,7 @@ url = "http://127.0.0.1:1234"
 supports_tools = true
 "#;
         // Write to temp file
-        let tmp = std::env::temp_dir().join("trinity_test_primary.toml");
+        let tmp = std::path::PathBuf::from("/var/tmp/trinity_test_primary.toml");
         std::fs::write(&tmp, toml_content).unwrap();
 
         let router = InferenceRouter::from_config(Some(tmp.to_str().unwrap()));
@@ -657,7 +797,7 @@ url = "http://127.0.0.1:11434"
 supports_tools = true
 supports_vision = false
 "#;
-        let tmp = std::env::temp_dir().join("trinity_test_switch.toml");
+        let tmp = std::path::PathBuf::from("/var/tmp/trinity_test_switch.toml");
         std::fs::write(&tmp, toml_content).unwrap();
 
         let mut router = InferenceRouter::from_config(Some(tmp.to_str().unwrap()));
@@ -683,7 +823,7 @@ supports_vision = false
         let mut router = InferenceRouter::from_config(Some("/nonexistent.toml"));
         let original_count = router.backends.len();
 
-        // Set to an existing backend URL (A.R.T.Y. Hub / yardmaster-reap on 8000)
+        // Set to an existing backend URL (Pete Coder / Programming on 8000)
         router.set_active_url("http://127.0.0.1:8000".to_string());
         assert_eq!(router.active_url(), "http://127.0.0.1:8000");
         assert_eq!(router.backends.len(), original_count); // no new backend added
@@ -705,12 +845,12 @@ supports_vision = false
     fn test_status_serialization() {
         let router = InferenceRouter::from_config(Some("/nonexistent.toml"));
         let status = router.status();
-        assert_eq!(status.active_backend, "longcat-omni");
+        assert_eq!(status.active_backend, "tempo-e4b");
         assert!(!status.backends.is_empty());
 
         // Should serialize to JSON without panic
         let json = serde_json::to_string(&status).unwrap();
-        assert!(json.contains("longcat-omni"));
+        assert!(json.contains("tempo-e4b"));
     }
 
     #[test]
@@ -734,15 +874,56 @@ type = "Auto"
 [model]
 model_dir = "~/trinity-models/gguf"
 "#;
-        let tmp = std::env::temp_dir().join("trinity_test_no_inference.toml");
+        let tmp = std::path::PathBuf::from("/var/tmp/trinity_test_no_inference.toml");
         std::fs::write(&tmp, toml_content).unwrap();
 
         let router = InferenceRouter::from_config(Some(tmp.to_str().unwrap()));
         // Should use defaults when [inference] section is missing
         assert!(!router.backends.is_empty());
-        assert_eq!(router.config.primary, "longcat-omni");
+        assert_eq!(router.config.primary, "tempo-e4b");
         assert_eq!(router.config.ctx_size, 262144);
 
         std::fs::remove_file(tmp).ok();
+    }
+
+    #[test]
+    fn test_party_role_lookup() {
+        let router = InferenceRouter::from_config(Some("/nonexistent.toml"));
+
+        // Verify P-ART-Y roles are assigned correctly in default backends
+        let tempo = router.get_backend_by_role(PartyRole::Tempo);
+        assert!(tempo.is_some());
+        assert_eq!(tempo.unwrap().name, "tempo-e4b");
+        assert!(tempo.unwrap().always_resident);
+
+        let programming = router.get_backend_by_role(PartyRole::Programming);
+        assert!(programming.is_some());
+        assert_eq!(programming.unwrap().name, "pete-coder");
+        assert!(!programming.unwrap().always_resident);
+
+        let reasoning = router.get_backend_by_role(PartyRole::Reasoning);
+        assert!(reasoning.is_some());
+        assert_eq!(reasoning.unwrap().name, "recycler-dense");
+
+        let aesthetics = router.get_backend_by_role(PartyRole::Aesthetics);
+        assert!(aesthetics.is_some());
+        assert_eq!(aesthetics.unwrap().name, "janus-pro");
+
+        // Fallbacks should all be Tempo role
+        let all_tempo = router.get_backends_by_role(PartyRole::Tempo);
+        assert!(all_tempo.len() >= 4); // tempo-e4b + llama-server + ollama + lm-studio
+    }
+
+    #[test]
+    fn test_party_role_serialization() {
+        // Verify PartyRole serializes to single-letter codes
+        let json = serde_json::to_string(&PartyRole::Programming).unwrap();
+        assert_eq!(json, "\"P\"");
+        let json = serde_json::to_string(&PartyRole::Tempo).unwrap();
+        assert_eq!(json, "\"T\"");
+        let json = serde_json::to_string(&PartyRole::Reasoning).unwrap();
+        assert_eq!(json, "\"R\"");
+        let json = serde_json::to_string(&PartyRole::Aesthetics).unwrap();
+        assert_eq!(json, "\"A\"");
     }
 }

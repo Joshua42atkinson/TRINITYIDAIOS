@@ -8,7 +8,7 @@
 // CONTEXT:     The Yardmaster coding subagent needs a local LLM for execution.
 //              Instead of a hardcoded "Execution Success" stub, this module
 //              proxies code execution tasks to the active inference backend
-//              (LongCat-Next on :8010 or Yardmaster REAP on :8009).
+//              (Gemma 4 on :8001 or Yardmaster REAP on :8009).
 //
 // MATURITY:    L3 — Functional proxy with fallback (was L1 stub)
 //
@@ -33,9 +33,9 @@ impl Default for PeteConfig {
     fn default() -> Self {
         Self {
             use_gpu_acceleration: true,
-            model_id: "LongCat-Next".into(),
+            model_id: "Great_Recycler".into(),
             api_url: std::env::var("PETE_ENGINE_URL")
-                .unwrap_or_else(|_| "http://127.0.0.1:8010".into()),
+                .unwrap_or_else(|_| "http://127.0.0.1:8001".into()),
             max_tokens: 4096,
         }
     }
@@ -55,7 +55,7 @@ impl PeteEngine {
     }
 
     /// Execute a coding/analysis task via the inference backend.
-    /// Routes to LongCat-Next (:8010) or Yardmaster REAP (:8009) for real inference.
+    /// Routes to Gemma 4 (:8001) or Yardmaster REAP (:8009) for real inference.
     /// Falls back to an honest error message if no backend is available.
     pub async fn execute_task(&self, instruction: &str) -> Result<String, String> {
         let client = &*crate::http::LONG;
@@ -95,8 +95,8 @@ impl PeteEngine {
                 let status = response.status();
                 let text = response.text().await.unwrap_or_default();
                 warn!("Pete Engine API returned {}: {}", status, text);
-                Err(format!(
-                    "Pete Engine offline ({}): {}. Start LongCat via: distrobox enter sglang-engine -- bash ./longcat_omni_sidecar/launch_engine.sh",
+            Err(format!(
+                    "Pete Engine offline ({}): {}. Start Pete via: ./scripts/launch/launch_pete.sh",
                     status, text
                 ))
             }
@@ -125,13 +125,13 @@ mod tests {
     fn test_default_config() {
         let config = PeteConfig::default();
         assert!(config.use_gpu_acceleration);
-        assert!(config.api_url.contains("8010"));
+        assert!(config.api_url.contains("8001"));
         assert_eq!(config.max_tokens, 4096);
     }
 
     #[test]
     fn test_pete_engine_creates() {
         let engine = PeteEngine::new(PeteConfig::default());
-        assert_eq!(engine.config.model_id, "LongCat-Next");
+        assert_eq!(engine.config.model_id, "Great_Recycler");
     }
 }

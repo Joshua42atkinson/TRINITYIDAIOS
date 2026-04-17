@@ -246,7 +246,7 @@ async fn process_audio_frame(
     let tmp_path = format!("/tmp/call_{}.wav", uuid::Uuid::new_v4());
     std::fs::write(&tmp_path, audio_data)?;
     let payload = serde_json::json!({ "file": tmp_path });
-    let transcript = match client.post("http://127.0.0.1:8010/v1/audio/transcriptions").json(&payload).send().await {
+    let transcript = match client.post("http://127.0.0.1:8001/v1/audio/transcriptions").json(&payload).send().await {
         Ok(res) if res.status().is_success() => {
             let json: serde_json::Value = res.json().await.unwrap_or_default();
             json["text"].as_str().unwrap_or("[Silence]").to_string()
@@ -287,9 +287,9 @@ async fn process_audio_frame(
 }
 
 /// Synthesize response text via best available TTS
-/// Priority: Acestep 1.5 (:8010) → Kokoro (:8200) → silent fallback
+/// Priority: Acestep 1.5 (:8008) → Kokoro (:8200) → silent fallback
 async fn synthesize_response(text: &str, voice: &str, _state: &AppState) -> anyhow::Result<Vec<u8>> {
-    // Primary TTS: Acestep 1.5 on LongCat (:8010)
+    // Primary TTS: Acestep 1.5 sidecar (:8008)
     if crate::voice::check_omni_audio_health().await {
         return crate::voice::omni_synthesize(text, voice, "wav").await;
     }
@@ -297,7 +297,7 @@ async fn synthesize_response(text: &str, voice: &str, _state: &AppState) -> anyh
     if crate::voice::check_kokoro_health().await {
         return crate::voice::kokoro_synthesize(text, voice, "wav").await;
     }
-    Err(anyhow::anyhow!("No TTS available (Acestep :8010 and Kokoro :8200 unreachable)"))
+    Err(anyhow::anyhow!("No TTS available (Acestep :8008 and Kokoro :8200 unreachable)"))
 }
 
 /// Build a voice-optimized system prompt for the Telephone Line

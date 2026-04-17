@@ -22,7 +22,7 @@
 // maintaining the Socratic learning loop and keeping drift at bay.
 //
 // ARCHITECTURE:
-//   • Monitors the P.A.R.T.Y. sidecars: LongCat-Next (:8010), A.R.T.Y. Hub (:8000)
+//   • Monitors the P-ART-Y sidecars: Tempo (:8001), Pete Coder (:8000), Recycler (:8002), Janus (:8003)
 //   • Only reports to CowCatcher if a sidecar was previously healthy and
 //     then went down — avoids false obstacles from optional/uninstalled services
 //   • The LLM backend is handled by the InferenceRouter's own health loop
@@ -49,18 +49,30 @@ pub async fn monitor_sidecars(cow_catcher: Arc<RwLock<CowCatcher>>) {
     info!("Starting Sidecar Health Monitor — real targets only");
 
     // The sidecars we actually run. These complement the InferenceRouter's /v1 health checks.
-    // P.A.R.T.Y. Architecture (April 2026):
-    //   - longcat-omni (8010): Pete / Great Recycler — SGLang sidecar
-    //   - vllm-arty (8000): A.R.T.Y. Hub — vLLM reverse proxy for Aesthetics, Research, Tempo, Yardmaster
+    // P-ART-Y Architecture (April 2026 — Gemma 4 Harmony):
+    //   - tempo-e4b (8001): T — Gemma 4 E4B AWQ (always-on fast brain)
+    //   - pete-coder (8000): P — Gemma 4 26B A4B AWQ (hotel swap for coding)
+    //   - recycler-dense (8002): R — Gemma 4 31B Dense AWQ (hotel swap for reasoning)
+    //   - janus-pro (8003): A — Janus Pro 7B (hotel swap for vision critique)
     let mut targets: Vec<SidecarTarget> = vec![
         SidecarTarget {
-            name: "longcat-omni",
-            url: "http://127.0.0.1:8010/health",
+            name: "tempo-e4b",
+            url: "http://127.0.0.1:8001/health",
             was_healthy: false,
         },
         SidecarTarget {
-            name: "vllm-arty-hub",
+            name: "pete-coder",
             url: "http://127.0.0.1:8000/health",
+            was_healthy: false,
+        },
+        SidecarTarget {
+            name: "recycler-dense",
+            url: "http://127.0.0.1:8002/health",
+            was_healthy: false,
+        },
+        SidecarTarget {
+            name: "janus-pro",
+            url: "http://127.0.0.1:8003/health",
             was_healthy: false,
         },
     ];

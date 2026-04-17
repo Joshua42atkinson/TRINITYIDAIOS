@@ -29,7 +29,7 @@
 //     - 6 preset voices, American English, low-latency
 //     - POST /tts endpoint returning WAV audio
 //   • "Walkie-Talkie" (FALLBACK): Whisper STT + Piper TTS via voice sidecar (:8200)
-//     - STT/TTS run on NPU, leaving 100% GPU for LongCat-Next 74B MoE
+//     - STT/TTS run on NPU, leaving 100% GPU for Gemma 4 E4B AWQ
 //   • "Kokoro" (ALWAYS-ON): Native ONNX TTS (66M params, CPU-capable)
 //   • "Telephone" (FUTURE): PersonaPlex/Moshi audio-to-audio on GPU
 //   • Two modes: DEV (production agent) and IRON ROAD (gamified roleplay)
@@ -108,7 +108,7 @@ pub async fn voice_status() -> Json<VoiceStatus> {
     let (pipeline, message) = if omni_available {
         (
             "acestep-1.5",
-            "Acestep 1.5 native audio generation via LongCat SGLang".to_string(),
+            "Acestep 1.5 native audio generation via dedicated sidecar".to_string(),
         )
     } else if personaplex_available {
         (
@@ -194,7 +194,7 @@ pub async fn voice_conversation(
 
     // Try Acestep 1.5 STT + LLM + TTS pipeline natively
     if check_omni_audio_health().await {
-        info!("🎤 Using Acestep 1.5 native pipeline (port 8010), mode={}", mode);
+        info!("🎤 Using Acestep 1.5 native pipeline (port 8008), mode={}", mode);
         let response = call_acestep_pipeline(&audio_data, &mode, &state).await.map_err(|e| {
             error!("Acestep 1.5 pipeline failed: {}", e);
             (
@@ -224,7 +224,7 @@ pub async fn voice_conversation(
 
     Err((
         StatusCode::SERVICE_UNAVAILABLE,
-        "No voice backend available. Start Acestep 1.5 (port 8010) or voice sidecar (port 8200)".to_string(),
+        "No voice backend available. Start Acestep 1.5 (port 8008) or voice sidecar (port 8200)".to_string(),
     ))
 }
 
@@ -353,8 +353,8 @@ async fn check_personaplex_health() -> bool {
 // Built and ready — activates when kokoro_sidecar.py goes live on :8200.
 // Suppress dead_code warnings for the entire subsystem until then.
 
-/// LongCat proxy port — CosyVoice TTS (future, currently returns mock audio)
-const LONGCAT_PORT: u16 = 8010;
+/// Acestep proxy port — TTS generation (dedicated sidecar)
+const ACESTEP_PORT: u16 = 8008;
 /// Kokoro TTS sidecar port — PRIMARY working TTS (Apache 2.0)
 const KOKORO_PORT: u16 = 8200;
 
@@ -409,11 +409,11 @@ fn dm_voice_cue() -> &'static str {
     "Pausing story mode. "
 }
 
-/// Check if the Acestep 1.5 LongCat backend is available
+/// Check if the Acestep 1.5 backend is available
 pub async fn check_omni_audio_health() -> bool {
-    // Primary: LongCat Acestep 1.5 on port 8010
+    // Primary: Acestep 1.5 on port 8008
     crate::http::QUICK
-        .get(format!("http://127.0.0.1:{}/health", LONGCAT_PORT))
+        .get(format!("http://127.0.0.1:{}/health", ACESTEP_PORT))
         .timeout(std::time::Duration::from_secs(2))
         .send()
         .await
@@ -511,12 +511,12 @@ pub async fn omni_synthesize_with_load(
     });
 
     info!(
-        "🎙️ LongCat L5 TTS: voice={} speed={:.2}x (friction={:.1}% vuln={:.2}) len={}",
+        "🎙️ Acestep L5 TTS: voice={} speed={:.2}x (friction={:.1}% vuln={:.2}) len={}",
         omni_voice, speed, friction * 100.0, vulnerability, text.len()
     );
 
     let response = crate::http::LONG
-        .post(format!("http://127.0.0.1:{}/tts", LONGCAT_PORT))
+        .post(format!("http://127.0.0.1:{}/tts", ACESTEP_PORT))
         .json(&payload)
         .timeout(std::time::Duration::from_secs(30))
         .send()
@@ -535,7 +535,7 @@ pub async fn omni_synthesize_with_load(
 
 /// Full narrated synthesis — persona + emotion + narrator mode
 /// This is the main entry point for voice-acted TTS.
-#[allow(dead_code)] // Activates with LongCat CosyVoice
+#[allow(dead_code)] // Activates with Acestep CosyVoice sidecar
 pub async fn omni_synthesize_narrated(
     text: &str,
     persona: &str,
@@ -582,7 +582,7 @@ pub async fn omni_synthesize_narrated(
 
 /// Result of a voice-acted synthesis
 #[derive(Debug, Serialize)]
-#[allow(dead_code)] // Activates with LongCat CosyVoice
+#[allow(dead_code)] // Activates with Acestep CosyVoice sidecar
 pub struct VoiceActResult {
     /// Audio bytes (None if Silent mode)
     #[serde(skip)]
@@ -597,7 +597,7 @@ pub struct VoiceActResult {
     pub text: String,
 }
 
-/// Synthesize text via Acestep 1.5 on LongCat
+/// Synthesize text via Acestep 1.5
 /// Returns raw WAV audio bytes
 pub async fn omni_synthesize(
     text: &str,
@@ -611,10 +611,10 @@ pub async fn omni_synthesize(
         "voice": omni_voice,
     });
 
-    info!("🎙️ LongCat Acestep 1.5 TTS (port {}): voice={} len={}", LONGCAT_PORT, omni_voice, text.len());
+    info!("🎙️ Acestep 1.5 TTS (port {}): voice={} len={}", ACESTEP_PORT, omni_voice, text.len());
 
     let response = crate::http::LONG
-        .post(format!("http://127.0.0.1:{}/tts", LONGCAT_PORT))
+        .post(format!("http://127.0.0.1:{}/tts", ACESTEP_PORT))
         .json(&payload)
         .timeout(std::time::Duration::from_secs(30))
         .send()
@@ -627,7 +627,7 @@ pub async fn omni_synthesize(
     }
 
     let audio_bytes = response.bytes().await?;
-    info!("🎙️ LongCat Acestep 1.5 returned {} bytes", audio_bytes.len());
+    info!("🎙️ Acestep 1.5 returned {} bytes", audio_bytes.len());
     Ok(audio_bytes.to_vec())
 }
 
@@ -752,7 +752,7 @@ async fn call_acestep_pipeline(
 
     let client = &*crate::http::LONG;
     let payload = serde_json::json!({
-        "model": "LongCat-Next",
+        "model": "Great_Recycler",
         "modalities": ["text", "audio"],
         "audio": {
             "voice": "joshua", // Defaulting to narrator (Great Recycler)
@@ -781,7 +781,7 @@ async fn call_acestep_pipeline(
 
     tracing::info!("🎙️ Native DiNA Acestep invocation (Speed {:.2}x - Audio chunk {} bytes)", speed, audio_data.len());
 
-    let res = client.post(format!("http://127.0.0.1:{}/v1/chat/completions", LONGCAT_PORT))
+    let res = client.post(format!("http://127.0.0.1:{}/v1/chat/completions", ACESTEP_PORT))
         .json(&payload)
         .send().await
         .map_err(|e| anyhow::anyhow!("DiNA request failed: {}", e))?;

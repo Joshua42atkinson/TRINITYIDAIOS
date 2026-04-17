@@ -30,9 +30,21 @@ pub mod art_panels;
 #[cfg(feature = "desktop")]
 pub mod creative_bridge;
 
-// DAYDREAM — 3D LitRPG world (desktop feature required for physics + camera)
-#[cfg(feature = "desktop")]
+// DAYDREAM — 3D LitRPG world (requires desktop OR xr feature for physics + rendering)
+#[cfg(any(feature = "desktop", feature = "xr"))]
 pub mod daydream;
+
+// XR Shell — headset-rendered world setup (xr feature only)
+#[cfg(feature = "xr")]
+pub mod xr_shell;
+
+// Spatial UI — native Bevy dashboard panels (works on desktop + XR)
+#[cfg(any(feature = "desktop", feature = "xr"))]
+pub mod spatial_ui;
+
+// P-ART-Y Bridge — HTTP bridge to AI fleet (works on desktop + XR)
+#[cfg(any(feature = "desktop", feature = "xr"))]
+pub mod party_bridge;
 
 #[cfg(feature = "desktop")]
 pub mod python_bridge;

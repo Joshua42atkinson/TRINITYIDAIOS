@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  sglang-omni:
+    build:
+      context: .
+      dockerfile: Dockerfile.sglang
+    container_name: trinity-sglang-omni
+    restart: unless-stopped
+    ipc: host # Critical for SGLang performance tokenizer-to-engine IPC sharing
+    ports:
+      - "30000:30000"
+    volumes:
+      - /home/joshua/trinity-models/omni/LongCat-Next-INT4:/model:ro
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    environment:
+      # AMD Strix Halo / RDNA 3.5 Specific Overrides
+      - NCCL_P2P_DISABLE=1                     # Disables unsupported PCIe P2P on APUs
+      - HIP_FORCE_DEV_KERNARG=1                # Required for APU-level argument mapping
+      - RADV_PERFMODE=nogttspill               # Prevents Vulkan/GTT cache eviction
+      # Generic Engine Settings
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
+    command: >
+      python3 -m sglang.launch_server 
+      --model-path /model 
+      --port 30000 
+      --host 0.0.0.0 
+      --mem-fraction-static 0.75 
+      --quantization awq 
+      --trust-remote-code
+    group_add:
+      - video
+      - render

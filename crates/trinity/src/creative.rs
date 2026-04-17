@@ -322,7 +322,7 @@ pub async fn creative_status() -> Json<CreativeStatus> {
 
 async fn check_vllm_creative() -> SidecarStatus {
     let running = crate::http::QUICK
-        .get("http://127.0.0.1:8010/health")
+        .get("http://127.0.0.1:8001/health")
         .send()
         .await
         .map(|r| r.status().is_success())
@@ -330,11 +330,11 @@ async fn check_vllm_creative() -> SidecarStatus {
 
     SidecarStatus {
         running,
-        endpoint: "http://127.0.0.1:8010".to_string(),
+        endpoint: "http://127.0.0.1:8001".to_string(),
         message: if running {
-            "LongCat wrapper proxy running".to_string()
+            "Pete/Gemma 4 proxy running".to_string()
         } else {
-            "LongCat proxy down. Start start_longcat_server.py".to_string()
+            "Pete proxy down. Start launch_pete.sh".to_string()
         },
     }
 }
@@ -381,12 +381,12 @@ pub async fn generate_image(
     let full_prompt = format!("{}, {}", request.prompt, style_suffix);
 
     info!(
-        "Generating image via LongCat Proxy: {} ({}x{})",
+        "Generating image via Pete/vLLM: {} ({}x{})",
         full_prompt, request.width, request.height
     );
 
     let payload = serde_json::json!({
-        "model": "LongCat-Next",
+        "model": "Great_Recycler",
         "prompt": full_prompt,
         "n": 1,
         "size": format!("{}x{}", request.width, request.height),
@@ -394,15 +394,15 @@ pub async fn generate_image(
     });
 
     let response = client
-        .post("http://127.0.0.1:8010/v1/images/generations")
+        .post("http://127.0.0.1:8001/v1/images/generations")
         .json(&payload)
         .send()
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("LongCat Server unreachable: {}", e)))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pete server unreachable: {}", e)))?;
 
     if !response.status().is_success() {
         let body = response.text().await.unwrap_or_default();
-        return Err((StatusCode::INTERNAL_SERVER_ERROR, format!("LongCat generation failed: {}", body)));
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Image generation failed: {}", body)));
     }
 
     let result: serde_json::Value = response.json().await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
@@ -432,7 +432,7 @@ pub async fn generate_image(
     }))
 }
 
-/// Generate tempo natively via LongCat Acestep 1.5 (Port 8010)
+/// Generate tempo natively via Acestep 1.5 (Port 8008)
 pub async fn generate_tempo(
     State(state): State<AppState>,
     Json(request): Json<TempoRequest>,
@@ -441,9 +441,9 @@ pub async fn generate_tempo(
 
     info!("Generating native Acestep 1.5 Tempo: {}", request.prompt);
 
-    // Build the LongCat Acestep music generation payload
+    // Build the Acestep music generation payload
     let payload = serde_json::json!({
-        "model": "LongCat-Next",
+        "model": "Acestep-1.5",
         "prompt": request.prompt,
         "style": request.style.unwrap_or_else(|| "ambient".to_string()),
         "duration": request.duration_secs,
@@ -452,13 +452,13 @@ pub async fn generate_tempo(
 
     let client = &*crate::http::LONG;
 
-    // Send the generation request to LongCat Acestep 1.5
+    // Send the generation request to Acestep 1.5 sidecar
     let response = client
-        .post("http://127.0.0.1:8010/v1/audio/generations")
+        .post("http://127.0.0.1:8008/v1/audio/generations")
         .json(&payload)
         .send()
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("LongCat Acestep unavailable: {}", e)))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Acestep unavailable: {}", e)))?;
 
     if !response.status().is_success() {
         let err_text = response.text().await.unwrap_or_default();
@@ -1361,16 +1361,16 @@ pub async fn auto_generate_phase_scene(
     use base64::Engine;
     let start = std::time::Instant::now();
 
-    // Check LongCat image generation availability
+    // Check Pete image generation availability
     let available = crate::http::QUICK
-        .get("http://127.0.0.1:8010/health")
+        .get("http://127.0.0.1:8001/health")
         .send()
         .await
         .map(|r| r.status().is_success())
         .unwrap_or(false);
 
     if !available {
-        info!("\u{1f3a8} Phase scene generation skipped — LongCat not available (phase: {})", phase);
+        info!("🎨 Phase scene generation skipped — Pete not available (phase: {})", phase);
         return None;
     }
 
@@ -1380,7 +1380,7 @@ pub async fn auto_generate_phase_scene(
     info!("\u{1f3a8} Auto-generating phase scene for: {} ({} chars)", phase, full_prompt.len());
 
     let payload = serde_json::json!({
-        "model": "LongCat-Next",
+        "model": "Great_Recycler",
         "prompt": full_prompt,
         "n": 1,
         "size": "1024x576",
@@ -1388,7 +1388,7 @@ pub async fn auto_generate_phase_scene(
     });
 
     let response = match crate::http::LONG
-        .post("http://127.0.0.1:8010/v1/images/generations")
+        .post("http://127.0.0.1:8001/v1/images/generations")
         .json(&payload)
         .send()
         .await
@@ -1401,7 +1401,7 @@ pub async fn auto_generate_phase_scene(
     };
 
     if !response.status().is_success() {
-        tracing::warn!("\u{1f3a8} LongCat rejected scene for phase {}: {}", phase, response.status());
+        tracing::warn!("🎨 Pete rejected scene for phase {}: {}", phase, response.status());
         return None;
     }
 

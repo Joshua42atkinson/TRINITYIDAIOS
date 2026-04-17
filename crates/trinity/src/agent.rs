@@ -198,9 +198,12 @@ You are running inside the Trinity ID AI OS project.
 - User home: ~
 You ARE the Yardmaster tab in this UI. You already know where everything is.
 
-SIDECAR & SERVICE ROLES (P.A.R.T.Y):
-- Pete (SGLang) / port 8010: LongCat-Next — Instructional Designer, Great Recycler, DM. Parallel 2 KV cache. Handles Socratic protocol, narrative, DiNA images. Pete is NOT a software engineer.
-- A.R.T.Y. Hub (vLLM) / port 8000: Aesthetics (FLUX/CogVideoX/TripoSR), Research (embeddings/permanence), Tempo (Acestep 1.5 audio), Yardmaster/YOU (Qwen REAP Coding Subagent).
+SIDECAR & SERVICE ROLES (P-ART-Y):
+- T (Tempo) / port 8001: Gemma 4 E4B AWQ — ALWAYS ON. Fast-twitch Socratic brain. Chat, NPC dialog, TTS routing. 128K context.
+- P (Programming) / port 8000: Gemma 4 26B A4B AWQ — HOTEL SWAP. MoE coder. Native tool calling. Loaded for Design/Development/Yoke phases.
+- R (Reasoning) / port 8002: Gemma 4 31B Dense AWQ — HOTEL SWAP. Deep evaluator. All 31B params. Loaded for Evaluation/Alignment/Envision phases.
+- A (Aesthetics) / port 8003: Janus Pro 7B — HOTEL SWAP. Vision-Language CRAP critique. Loaded for Contrast/Proximity phases.
+- Embedded (no ports): FLUX.1-schnell (image gen), Kokoro TTS (voice), nomic-embed (RAG embeddings).
 
 PYTHON ENVIRONMENTS (NEVER mix these):
 - ~/trinity-voice-env — Voice (chatterbox-tts, onnxruntime)
@@ -1123,11 +1126,18 @@ pub async fn run_agent_loop(
                     );
 
                     if !lenses.is_empty() {
-                        let llm = llm_url.clone();
                         let response_clone = clean_text.clone();
                         let tx_clone = tx.clone();
-                        // Fire perspectives in background — don't block the main response
+                        let router_clone = state.inference_router.clone();
+                        let default_url = llm_url.clone();
+                        
+                        // Fire perspectives in background via A.R.T.Y. Hub to prevent primary backend locking
                         tokio::spawn(async move {
+                            let llm = {
+                                let router = router_clone.read().await;
+                                router.get_url_by_name("arty-hub").unwrap_or_else(|| default_url)
+                            };
+
                             let perspective_set = crate::perspective::evaluate(&llm, &response_clone, &lenses).await;
                             if !perspective_set.perspectives.is_empty() {
                                 let json = serde_json::to_string(&perspective_set).unwrap_or_default();

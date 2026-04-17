@@ -101,7 +101,7 @@ pub async fn trinity_chat(
     if !inference::check_health(&llm_url).await {
         return Err((
             StatusCode::SERVICE_UNAVAILABLE,
-            "LLM server not reachable. Start LongCat sidecar on :8010".to_string(),
+            "LLM server not reachable. Start Pete via: ./scripts/launch/launch_pete.sh".to_string(),
         ));
     }
 

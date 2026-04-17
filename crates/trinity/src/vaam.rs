@@ -186,7 +186,38 @@ impl VaamState {
     /// Scan a message for vocabulary words and award coal
     pub async fn scan_message(&self, message: &str) -> VaamResult {
         let db = self.database.read().await;
-        let detections = db.scan(message);
+        let mut detections = db.scan(message);
+
+        // --- SEMANTIC RAG UPGRADE (L5 Maturation) ---
+        // Verify vocabulary context semantically against its pedagogical definition
+        // instead of relying entirely on static context-clue keyword matching.
+        if !detections.is_empty() {
+            if let Ok(message_embedding) = crate::rag::generate_embedding(message).await {
+                for detection in &mut detections {
+                    if let Some(word_def) = db.all_words().iter().find(|w| w.word == detection.word) {
+                        if let Some(def_text) = &word_def.definition {
+                            // Compare user intent to pedagogical definition
+                            if let Ok(def_embedding) = crate::rag::generate_embedding(def_text).await {
+                                let similarity = crate::rag::cosine_similarity(&message_embedding, &def_embedding);
+                                
+                                // Threshold for true semantic comprehension
+                                if similarity > 0.40 {
+                                    if !detection.is_correct_usage {
+                                        tracing::info!("[VAAM/L5] Upgraded to correct usage via Semantic Comprehension (sim {:.2}) for '{}'", similarity, detection.word);
+                                        detection.is_correct_usage = true;
+                                        detection.coal_earned = word_def.coal_value;
+                                    } else {
+                                        tracing::debug!("[VAAM/L5] Semantic Comprehension confirmed (sim {:.2}) for '{}'", similarity, detection.word);
+                                    }
+                                } else if !detection.is_correct_usage {
+                                    tracing::debug!("[VAAM/L5] Semantic Comprehension failed (sim {:.2}) for '{}'", similarity, detection.word);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         let mut mastery = self.mastery.write().await;
         let mut session_coal = self.session_coal.write().await;

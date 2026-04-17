@@ -27,6 +27,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 use bevy::prelude::*;
+#[cfg(feature = "desktop")]
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use avian3d::prelude::*;
 // NOTE: `noise` crate imported at Cargo.toml level for future Perlin terrain.
@@ -100,40 +101,50 @@ pub struct DaydreamPlugin;
 
 impl Plugin for DaydreamPlugin {
     fn build(&self, app: &mut App) {
-        app
-            // Physics engine (Rapier3D)
-            .add_plugins(PhysicsPlugins::default())
-            // Orbit camera controls
-            .add_plugins(PanOrbitCameraPlugin)
-            // DAYDREAM state
-            .insert_resource(DaydreamCommandQueue::default())
-            .insert_resource(DaydreamWorldState::default())
-            // Startup: camera + minimal lighting (terrain comes from Pete)
-            .add_systems(Startup, setup_daydream_shell)
-            // Frame-by-frame processing
-            .add_systems(Update, (
-                process_blueprints,
-                process_commands,
-                animate_move_to,
-            ))
-            .add_systems(Update, (
-                animate_world_mood,
-                pulse_waypoints,
-            ))
-            // Add Python interpreter plugin
-            .add_plugins(crate::python_bridge::PythonPlugin)
-            // The 3D UI Train Car Layout
-            .add_plugins(crate::train_car::IsomorphicTrainPlugin)
-            // Yardmaster Dashboard
-            .add_plugins(crate::yardmaster_ui::YardmasterUiPlugin)
-            // Iron Road Native UI (The Tome)
-            .add_plugins(crate::iron_road_ui::IronRoadUiPlugin)
-            // SAO Dropdown Menu & Hook Deck
-            .add_plugins(crate::sao_menu::SaoMenuPlugin)
-            // Voice Integration TTS
-            .add_plugins(crate::voice_bridge::VoiceBridgePlugin);
+        // ── Physics engine (shared across all targets) ───────────────
+        app.add_plugins(PhysicsPlugins::default());
+
+        // ── Orbit camera controls (desktop only) ─────────────────────
+        #[cfg(feature = "desktop")]
+        app.add_plugins(PanOrbitCameraPlugin);
+
+        // ── DAYDREAM world state ─────────────────────────────────────
+        app.insert_resource(DaydreamCommandQueue::default())
+            .insert_resource(DaydreamWorldState::default());
+
+        // ── Startup systems (platform-specific shell) ────────────────
+        #[cfg(feature = "desktop")]
+        app.add_systems(Startup, setup_daydream_shell);
+
+        #[cfg(feature = "xr")]
+        app.add_systems(Startup, crate::xr_shell::setup_xr_shell);
+
+        // ── Frame-by-frame processing (shared across all targets) ────
+        app.add_systems(
+            Update,
+            (process_blueprints, process_commands, animate_move_to),
+        );
+        app.add_systems(Update, (animate_world_mood, pulse_waypoints));
+
+        // ── Cross-platform plugins (desktop + XR) ────────────────────
+        // Spatial UI — native Bevy dashboard panels (no egui)
+        app.add_plugins(crate::spatial_ui::SpatialUiPlugin);
+        // P-ART-Y Bridge — connects to the AI fleet via HTTP
+        app.add_plugins(crate::party_bridge::PartyBridgePlugin::default());
+
+        // ── Desktop-only UI plugins ──────────────────────────────────
+        #[cfg(feature = "desktop")]
+        {
+            app.add_plugins(crate::python_bridge::PythonPlugin)
+                .add_plugins(crate::train_car::IsomorphicTrainPlugin)
+                .add_plugins(crate::yardmaster_ui::YardmasterUiPlugin)
+                .add_plugins(crate::iron_road_ui::IronRoadUiPlugin)
+                .add_plugins(crate::sao_menu::SaoMenuPlugin)
+                .add_plugins(crate::voice_bridge::VoiceBridgePlugin);
+        }
     }
 }
+
 
 // ─── World State ─────────────────────────────────────────────────────────────
 
@@ -204,6 +215,7 @@ const CYAN_ACCENT: Color = Color::srgb(0.0, 0.8, 1.0);
 /// NO terrain, NO entities, NO content. That's Pete's job.
 /// The user enters a misty, empty world. As their PEARL forms,
 /// Pete shapes the landscape around their subject.
+#[cfg(feature = "desktop")]
 fn setup_daydream_shell(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -467,12 +479,16 @@ fn process_commands(
                 ));
 
                 // If Pete generated a Python script for this entity, attach the interpreter bridge
+                // (desktop only — PyO3 not available on Android XR)
+                #[cfg(feature = "desktop")]
                 if let Some(script_code) = python_script {
                     spawn_cmd.insert(crate::python_bridge::PythonScript {
                         source: script_code,
                     });
                     info!("🐍 DAYDREAM: Python script attached to '{}'", label);
                 }
+                #[cfg(not(feature = "desktop"))]
+                let _ = python_script; // Suppress unused variable warning in XR build
 
                 world_state.concept_count += 1;
                 info!("🌙 DAYDREAM: Concept '{}' spawned (total: {})", label, world_state.concept_count);

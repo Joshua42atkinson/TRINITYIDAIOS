@@ -70,9 +70,13 @@ pub struct DbHealth {
 
 #[derive(Serialize)]
 pub struct CreativeHealth {
-    pub longcat_omni: bool,
-    pub arty_hub: bool,
-    pub embeddings: bool,
+    pub tempo_online: bool,
+    pub programming_online: bool,
+    pub reasoning_online: bool,
+    pub aesthetics_online: bool,
+    /// Legacy alias for frontend compatibility
+    #[serde(rename = "pete_online")]
+    pub _pete_online: bool,
 }
 
 #[derive(Serialize)]
@@ -135,16 +139,17 @@ pub async fn health_check(
         .await
         .is_ok();
 
-    let longcat_ok = crate::http::QUICK
-        .get("http://127.0.0.1:8010/health")
+    let tempo_ok = crate::http::QUICK
+        .get("http://127.0.0.1:8001/health")
         .send()
         .await
         .map(|r| r.status().is_success())
         .unwrap_or(false);
 
-    let arty_ok = crate::http::check_health("http://127.0.0.1:8000/health").await;
-    let embed_ok = crate::http::check_health("http://127.0.0.1:8005/health").await;
-    let voice_ok = longcat_ok; // TTS is served by LongCat CosyVoice on 8010
+    let programming_ok = crate::http::check_health("http://127.0.0.1:8000/health").await;
+    let reasoning_ok = crate::http::check_health("http://127.0.0.1:8002/health").await;
+    let aesthetics_ok = crate::http::check_health("http://127.0.0.1:8003/health").await;
+    let voice_ok = false; // TTS is embedded via Kokoro ORT — no external sidecar
 
     let cc = state.cow_catcher.read().await;
     let obstacle_count = cc.get_obstacles().len();
@@ -185,13 +190,15 @@ pub async fn health_check(
             },
         },
         creative: CreativeHealth {
-            longcat_omni: longcat_ok,
-            arty_hub: arty_ok,
-            embeddings: embed_ok,
+            tempo_online: tempo_ok,
+            programming_online: programming_ok,
+            reasoning_online: reasoning_ok,
+            aesthetics_online: aesthetics_ok,
+            _pete_online: tempo_ok,
         },
         voice: VoiceHealth {
             connected: voice_ok,
-            url: "http://127.0.0.1:8010/tts".to_string(),
+            url: "embedded://ort/kokoro".to_string(),
         },
         cow_catcher: CowCatcherHealth {
             obstacle_count,

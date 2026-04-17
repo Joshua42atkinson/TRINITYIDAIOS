@@ -12,6 +12,11 @@ name = "daydream"
 path = "src/bin/daydream.rs"
 required-features = ["desktop"]
 
+[[bin]]
+name = "daydream_xr"
+path = "src/bin/daydream_xr.rs"
+required-features = ["xr"]
+
 [dependencies]
 # Core Trinity Integration
 trinity-protocol = { path = "../trinity-protocol" }
@@ -44,13 +49,20 @@ dirs = { workspace = true }
 # egui integration (optional — desktop only)
 bevy_egui = { version = "0.39", optional = true }
 
-# Python scripting engine
-pyo3 = { version = "0.21", features = ["auto-initialize"] }
+# Python scripting engine (desktop only — requires CPython)
+pyo3 = { version = "0.21", features = ["auto-initialize"], optional = true }
 
 # DAYDREAM 3D dependencies (optional — desktop only)
 avian3d = { version = "0.6", optional = true }
 bevy_panorbit_camera = { workspace = true, optional = true }
 noise = { workspace = true, optional = true }
+
+# XR / OpenXR integration (optional — xr only)
+bevy_mod_xr = { workspace = true, optional = true }
+bevy_mod_openxr = { workspace = true, optional = true, features = ["vulkan"] }
+
+# Selective save/load
+moonshine-save = { workspace = true, optional = true }
 
 # Utilities
 uuid = { workspace = true }
@@ -77,9 +89,30 @@ desktop = [
     "bevy/x11",
     "bevy/wayland",
     "bevy_egui",
+    "pyo3",
     "avian3d",
     "bevy_panorbit_camera",
     "noise",
 ]
+xr = [
+    "bevy/bevy_render",
+    "bevy/bevy_pbr",
+    "bevy/bevy_core_pipeline",
+    "bevy/bevy_asset",
+    "bevy/bevy_scene",
+    "bevy/bevy_text",
+    "bevy/bevy_ui",
+    "bevy/bevy_mesh",
+    "bevy/bevy_log",
+    "bevy/bevy_state",
+    "bevy/bevy_gltf",
+    "bevy/bevy_audio",
+    "bevy/multi_threaded",
+    "bevy/default_font",
+    "bevy_mod_xr",
+    "bevy_mod_openxr",
+    "avian3d",
+]
+save = ["moonshine-save"]
 inference = []
 vision = []

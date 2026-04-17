@@ -119,7 +119,7 @@ pub async fn search_documents(pool: &SqlitePool, query: &str) -> anyhow::Result<
     search_text(pool, query).await
 }
 
-fn cosine_similarity(a: &[f32], b: &[f32]) -> f64 {
+pub fn cosine_similarity(a: &[f32], b: &[f32]) -> f64 {
     if a.len() != b.len() || a.is_empty() {
         return 0.0;
     }
@@ -196,7 +196,7 @@ async fn search_text(pool: &SqlitePool, query: &str) -> anyhow::Result<Vec<Strin
 }
 
 /// Generate embedding for text using vLLM A.R.T.Y. Hub (port 8000 → nomic-embed on 8005)
-async fn generate_embedding(text: &str) -> anyhow::Result<Vec<f32>> {
+pub async fn generate_embedding(text: &str) -> anyhow::Result<Vec<f32>> {
     let client = &*crate::http::LONG;
     let payload = serde_json::json!({
         "model": "nomic-embed-text-v1.5-AWQ",

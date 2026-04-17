@@ -5,9 +5,9 @@ import { marked } from 'marked';
 // EDITORIAL STRUCTURE
 // ============================================================================
 const EDITORIAL_STRUCTURE = [
-    { type: 'title', title: "The Player's Handbook", subtitle: 'A Guide to Conscious Learning in Trinity ID AI OS', artIndex: 1 },
+    { type: 'title', title: "The Player's Handbook", subtitle: 'A Guide to Conscious Learning in Trinity ID AI OS', artIndex: 1, customBg: '/audiobook_art/page_1_left_bg.png' },
     { type: 'toc', title: 'Table of Contents', artIndex: 1 },
-    { type: 'content', section: 'Preface', title: 'Preface: A Note on Operating Systems', artIndex: 1, audioFile: '01__Preface_A_Note_on_Operating_Systems.wav' },
+    { type: 'content', section: 'Preface', title: 'Preface: A Note on Operating Systems', artIndex: 1, audioFile: '01__Preface_A_Note_on_Operating_Systems.wav', customBg: '/audiobook_art/page_1_right_bg.png' },
     { type: 'part', title: 'Part I', subtitle: 'The Player — Know Thyself', artIndex: 2, audioFile: '02__Part_I_The_Player_Know_Thyself.wav' },
     { type: 'content', section: 'The First Wave', chapterTitle: 'Chapter 1: The Awakening', title: 'The First Wave', artIndex: 3, audioFile: '03__Chapter_1_The_Awakening.wav' },
     { type: 'content', section: 'The Great Fusion', title: 'The Great Fusion', artIndex: 3 },
@@ -95,7 +95,7 @@ export default function PlayerHandbookElearning({ onBack }) {
     const flipTimer = useRef(null);
 
     useEffect(() => {
-        fetch('/docs/PLAYERS_HANDBOOK.md')
+        fetch(`${import.meta.env.BASE_URL}docs/PLAYERS_HANDBOOK.md`)
             .then(res => res.text())
             .then(text => {
                 const map = {};
@@ -162,7 +162,7 @@ export default function PlayerHandbookElearning({ onBack }) {
             if ((page.type === 'part' || page.type === 'title' || page.type === 'toc' || page.type === 'finale' || (page.type === 'content' && page.isFirstSubpage)) && page.artIndex) {
                  const rightPage = { ...page, globalPage: globalPageIdx + 1 };
                  spreadArray.push([
-                     { isArtOnly: true, splashUrl: `/audiobook_art/chapter_${page.artIndex}.jpg`, globalPage: globalPageIdx },
+                     { isArtOnly: true, splashUrl: `${import.meta.env.BASE_URL}audiobook_art/chapter_${page.artIndex}.jpg`, globalPage: globalPageIdx },
                      rightPage
                  ]);
                  i++;
@@ -197,7 +197,7 @@ export default function PlayerHandbookElearning({ onBack }) {
     // Find audio from whichever page has it
     const audioPage = (leftPage && leftPage.audioFile && leftPage.isFirstSubpage) ? leftPage : 
                       (rightPage && rightPage.audioFile && rightPage.isFirstSubpage) ? rightPage : null;
-    const audioUrl = audioPage ? `/audiobook/${audioPage.audioFile}` : null;
+    const audioUrl = audioPage ? `${import.meta.env.BASE_URL}audiobook/${audioPage.audioFile}` : null;
 
     useEffect(() => { if (audioRef.current) audioRef.current.playbackRate = playbackRate; }, [playbackRate]);
     useEffect(() => {
@@ -232,7 +232,7 @@ export default function PlayerHandbookElearning({ onBack }) {
     const renderPageContent = (page) => {
         if (!page || page.isArtOnly) return null;
         const currentHTML = getHtml(page);
-        const spotUrl = page.artIndex ? `/audiobook_art/chapter_${page.artIndex}_spot.jpg` : null;
+        const spotUrl = page.artIndex ? `${import.meta.env.BASE_URL}audiobook_art/chapter_${page.artIndex}_spot.jpg` : null;
         const hasTrinityBox = page.content && page.content.includes('IN TRINITY');
 
         switch (page.type) {
@@ -311,8 +311,11 @@ export default function PlayerHandbookElearning({ onBack }) {
                 <div className="book-spine" />
 
                 {/* Left Page */}
-                <div className={`book-page left-page ${leftPage && leftPage.isArtOnly ? 'art-bg' : 'content-bg'}`}>
-                    {leftPage && leftPage.isArtOnly && (
+                <div 
+                    className={`book-page left-page ${leftPage && leftPage.isArtOnly ? 'art-bg' : (leftPage?.customBg ? 'custom-bg' : 'content-bg')}`}
+                    style={leftPage?.customBg ? { backgroundImage: `url(${import.meta.env.BASE_URL}${leftPage.customBg.startsWith('/') ? leftPage.customBg.slice(1) : leftPage.customBg})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: 'transparent' } : {}}
+                >
+                    {leftPage && leftPage.isArtOnly && !leftPage.customBg && (
                         <div className="art-frame">
                             <img src={leftPage.splashUrl} alt="" className="splash-img" onError={e => { e.target.parentElement.style.backgroundColor = '#111'; }} />
                         </div>
@@ -322,7 +325,10 @@ export default function PlayerHandbookElearning({ onBack }) {
                 </div>
 
                 {/* Right Page */}
-                <div className={`book-page right-page ${rightPage ? 'content-bg' : 'art-bg'}`}>
+                <div 
+                    className={`book-page right-page ${rightPage ? (rightPage.customBg ? 'custom-bg' : 'content-bg') : 'art-bg'}`}
+                    style={rightPage?.customBg ? { backgroundImage: `url(${import.meta.env.BASE_URL}${rightPage.customBg.startsWith('/') ? rightPage.customBg.slice(1) : rightPage.customBg})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: 'transparent' } : {}}
+                >
                     {rightPage && renderPageContent(rightPage)}
                     {rightPage && <div className="page-watermark-right">{rightPage.globalPage}</div>}
                 </div>
@@ -399,9 +405,17 @@ export default function PlayerHandbookElearning({ onBack }) {
                 .flip-backward { opacity: 0; transform: perspective(2000px) rotateY(10deg) translateX(-50px); }
 
                 .book-spine {
-                    position: absolute; top: 0; bottom: 0; left: 50%; width: 60px; margin-left: -30px;
-                    background: linear-gradient(to right, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.9) 40%, rgba(30,20,10,1) 50%, rgba(0,0,0,0.9) 60%, rgba(0,0,0,0.6) 100%);
-                    box-shadow: inset 0 0 20px rgba(0,0,0,1);
+                    position: absolute; top: 0; bottom: 0; left: 50%; width: 120px; margin-left: -60px;
+                    background: linear-gradient(to right, 
+                        rgba(0,0,0,0) 0%, 
+                        rgba(0,0,0,0.1) 25%, 
+                        rgba(0,0,0,0.5) 45%, 
+                        rgba(15,10,5,0.8) 50%, 
+                        rgba(0,0,0,0.5) 55%, 
+                        rgba(0,0,0,0.1) 75%, 
+                        rgba(0,0,0,0) 100%
+                    );
+                    box-shadow: none;
                     z-index: 10; pointer-events: none;
                 }
 
@@ -433,6 +447,10 @@ export default function PlayerHandbookElearning({ onBack }) {
                         linear-gradient(135deg, #f4ebd8 0%, #ebddc5 40%, #e0ceae 100%);
                     background-size: 20px 20px, 20px 20px, 100% 100%;
                     background-position: 0 0, 10px 10px, 0 0;
+                }
+                
+                .custom-bg {
+                    background-color: transparent !important;
                 }
 
                 .art-frame {

@@ -6,7 +6,7 @@
 // PURPOSE:     Multi-engine inference client — OpenAI-compatible HTTP API
 //
 // ARCHITECTURE:
-//   • LongCat-Next (:8010) — Pete / Great Recycler (Omni-Brain, text+images+audio)
+//   • Pete / Gemma 4 (:8001) — Great Recycler (text+vision+tools)
 //   • A.R.T.Y. Hub (:8000) — Embeddings (nomic-embed), Yardmaster (Qwen REAP), Creative models
 //   • Any OpenAI-compatible server
 //   • FastFlowLM (NPU)   — ONNX models via AMD XDNA 2
@@ -26,8 +26,67 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 use serde::{Deserialize, Serialize};
+use std::sync::OnceLock;
+use tokio::sync::RwLock;
 
 use crate::ChatMessage;
+
+// ═══════════════════════════════════════════════════
+// Dynamic Model Name Resolution
+// ═══════════════════════════════════════════════════
+
+/// Cache of discovered model names per base_url.
+/// Avoids hammering /v1/models on every request.
+static MODEL_CACHE: OnceLock<RwLock<std::collections::HashMap<String, String>>> = OnceLock::new();
+
+fn model_cache() -> &'static RwLock<std::collections::HashMap<String, String>> {
+    MODEL_CACHE.get_or_init(|| RwLock::new(std::collections::HashMap::new()))
+}
+
+/// Resolve the model name for a given backend URL.
+/// 1. Check cache
+/// 2. Query /v1/models
+/// 3. Fall back to generic names that most backends accept
+async fn resolve_model_name(base_url: &str) -> String {
+    // Check cache first
+    {
+        let cache = model_cache().read().await;
+        if let Some(name) = cache.get(base_url) {
+            return name.clone();
+        }
+    }
+
+    // Query /v1/models to discover the model
+    let client = &*crate::http::QUICK;
+    let model_name = match client
+        .get(format!("{}/v1/models", base_url))
+        .send()
+        .await
+    {
+        Ok(resp) if resp.status().is_success() => {
+            if let Ok(body) = resp.json::<serde_json::Value>().await {
+                body.get("data")
+                    .and_then(|d| d.as_array())
+                    .and_then(|arr| arr.first())
+                    .and_then(|m| m.get("id"))
+                    .and_then(|id| id.as_str())
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| "default".to_string())
+            } else {
+                "default".to_string()
+            }
+        }
+        _ => "default".to_string(),
+    };
+
+    // Cache it
+    {
+        let mut cache = model_cache().write().await;
+        cache.insert(base_url.to_string(), model_name.clone());
+    }
+
+    model_name
+}
 
 #[derive(Serialize)]
 struct CompletionRequest {
@@ -125,6 +184,8 @@ struct ApiMessageResponse {
     role: String,
     #[serde(default)]
     content: Option<String>,
+    #[serde(default)]
+    reasoning: Option<String>,
     /// GPT-OSS models put reasoning in this field
     #[serde(default)]
     reasoning_content: Option<String>,
@@ -175,8 +236,9 @@ pub async fn chat_completion_stream(
         })
         .collect();
 
+    let model = resolve_model_name(base_url).await;
     let request = CompletionRequest {
-        model: "Great_Recycler".to_string(), // Default proxy name for local LLM routing
+        model, // Dynamically resolved from the backend's /v1/models
         messages: api_messages,
         max_tokens: Some(_max_tokens), // Explicitly defined to bypass 16 token default
         temperature: 0.7,
@@ -217,6 +279,7 @@ pub async fn chat_completion_stream(
                                 .delta
                                 .content
                                 .as_ref()
+                                .or(choice.delta.reasoning.as_ref())
                                 .or(choice.delta.reasoning_content.as_ref())
                         };
                         if let Some(content) = token {
@@ -246,6 +309,7 @@ struct StreamChoice {
 #[derive(Deserialize)]
 struct StreamDelta {
     content: Option<String>,
+    reasoning: Option<String>,
     reasoning_content: Option<String>,
 }
 
@@ -294,8 +358,9 @@ pub async fn chat_completion_with_effort(
         })
         .collect();
 
+    let model = resolve_model_name(base_url).await;
     let request = CompletionRequest {
-        model: "Great_Recycler".to_string(),
+        model, // Dynamically resolved from the backend's /v1/models
         messages: api_messages,
         max_tokens: Some(_max_tokens), // Explicitly defined to bypass 16 token default
         temperature: 0.7,
@@ -325,7 +390,7 @@ pub async fn chat_completion_with_effort(
             // GPT-OSS models put actual content in reasoning_content, content is truncated
             // Use reasoning_content if available and longer, otherwise use content
             let content = c.message.content.clone().unwrap_or_default();
-            let reasoning = c.message.reasoning_content.clone().unwrap_or_default();
+            let reasoning = c.message.reasoning.clone().or(c.message.reasoning_content.clone()).unwrap_or_default();
 
             // Prefer reasoning_content if it's longer (GPT-OSS behavior)
             if reasoning.len() > content.len() {
@@ -414,8 +479,9 @@ pub async fn chat_completion_with_tools(
         })
         .collect();
 
+    let model = resolve_model_name(base_url).await;
     let request = CompletionRequest {
-        model: "Great_Recycler".to_string(),
+        model, // Dynamically resolved from the backend's /v1/models
         messages: api_messages,
         max_tokens: Some(_max_tokens), // Explicitly defined to bypass 16 token default
         temperature: 0.7,
@@ -449,7 +515,7 @@ pub async fn chat_completion_with_tools(
 
     let content = {
         let c = choice.message.content.clone().unwrap_or_default();
-        let r = choice.message.reasoning_content.clone().unwrap_or_default();
+        let r = choice.message.reasoning.clone().or(choice.message.reasoning_content.clone()).unwrap_or_default();
         let text = if r.len() > c.len() { r } else { c };
         if text.is_empty() {
             None

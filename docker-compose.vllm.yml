@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  vllm-omni:
+    image: rocm/vllm:latest
+    container_name: trinity-vllm-omni
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - /home/joshua/trinity-models/omni/LongCat-Next-INT4:/model:ro
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    environment:
+      # AMD Strix Halo / RDNA 3.5 Specific Overrides
+      - NCCL_P2P_DISABLE=1                     # Disables unsupported PCIe P2P on APUs
+      - VLLM_WORKER_MULTIPROC_METHOD=spawn     # Critical fix for EngineCore IPC crashes on unified memory
+      - RADV_PERFMODE=nogttspill               # Prevents random Vulkan/GTT cache eviction
+      # Generic Engine Settings
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
+    command: >
+      --model /model
+      --quantization awq
+      --trust-remote-code
+      --tensor-parallel-size 1
+      --max-model-len 4096
+      --gpu-memory-utilization 0.90
+      --enforce-eager
+      --host 0.0.0.0
+      --port 8000
+    group_add:
+      - video
+      - render

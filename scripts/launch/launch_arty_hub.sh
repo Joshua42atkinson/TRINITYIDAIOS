@@ -11,11 +11,11 @@
 #     Port 8005 — R: nomic-embed-text-v1.5-AWQ (embeddings for RAG semantic search)
 #     Port 8009 — Y: Yardmaster (Qwen/Gemma coding subagent — optional, add later)
 #
-#   Port 8010 — Pete/LongCat-Next (SGLang sidecar — launched SEPARATELY)
+#   Port 8001 — Pete/Gemma 4 E4B AWQ (vLLM — launched SEPARATELY via launch_pete.sh)
 #               NOT managed by this script.
 #
 # HARDWARE: AMD Strix Halo (APU) — gfx1151, 128GB unified LPDDR5x
-# VRAM:     nomic-embed ~500MB, leaves ~40-90GB free alongside LongCat
+# VRAM:     nomic-embed ~500MB, leaves ~100GB+ free alongside Pete
 #
 # USAGE:
 #   ./scripts/launch/launch_arty_hub.sh

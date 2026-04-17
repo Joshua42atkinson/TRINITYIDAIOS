@@ -7,9 +7,8 @@ PURPOSE: FastAPI reverse proxy on port 8000 that routes OpenAI-compatible
          requests to the correct downstream vLLM instances by model name.
 
 ARCHITECTURE (P.A.R.T.Y. Framework — April 2026):
-  This router IS the A.R.T.Y. Hub. It handles everything Pete (SGLang :8010)
-  can't do. Pete/Great Recycler runs on the LongCat sidecar and is NOT routed
-  through here.
+  This router IS the A.R.T.Y. Hub. It handles everything Pete (vLLM :8001)
+  can't do. Pete/Great Recycler (Gemma 4 E4B AWQ) is NOT routed through here.
 
   Downstream backends:
     Port 8005 — R: nomic-embed-text-v1.5-AWQ (embeddings for RAG)
@@ -51,6 +50,10 @@ MODEL_ROUTING = {
     # Y — Yardmaster
     "Qwen3-REAP":     "http://127.0.0.1:8009",
     "Yardmaster":      "http://127.0.0.1:8009",
+    
+    # Vision & Aesthetics
+    "Janus-Pro":       "http://127.0.0.1:8003",
+    "Janus-Pro-7B":    "http://127.0.0.1:8003",
 }
 
 # Endpoints that should route to embeddings by default (not Yardmaster)
@@ -157,6 +160,7 @@ async def health():
     checks = await asyncio.gather(
         _check_backend("nomic-embed (R)", "http://127.0.0.1:8005"),
         _check_backend("yardmaster (Y)", "http://127.0.0.1:8009"),
+        _check_backend("janus-pro (Vision)", "http://127.0.0.1:8003"),
         _check_backend("flux-schnell (A)", "http://127.0.0.1:8004"),
         _check_backend("cogvideo (A)", "http://127.0.0.1:8006"),
         _check_backend("triposr (A)", "http://127.0.0.1:8007"),

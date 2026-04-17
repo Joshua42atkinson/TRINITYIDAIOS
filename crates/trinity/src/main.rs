@@ -86,6 +86,7 @@ mod authenticity_scorecard;
 mod quests;
 mod rag;
 mod vllm_fleet;
+mod hotel_manager;
 mod scope_creep;
 mod sidecar_monitor;
 mod skills;
@@ -293,16 +294,40 @@ fn safetensors_model_path(repo: &str) -> PathBuf {
 fn installed_model_inventory() -> Vec<(&'static str, PathBuf)> {
     vec![
         (
-            "🔮 Great Recycler: LongCat-Next-74B-MoE [~84GB NF4]",
-            home_dir().join("trinity-models/sglang/LongCat-Next/config.json"),
+            "🧠 Pete: Gemma 4 E4B AWQ [15GB, vision+text]",
+            safetensors_model_path("gemma-4-E4B-it-AWQ-4bit"),
         ),
         (
-            "⚙️ Programmer Pete: Qwen3-Coder-REAP-25B-A3B [Q4_K_M GGUF]",
+            "🧠 Pete (Large): Gemma 4 26B-A4B AWQ [17GB, vision+text]",
+            safetensors_model_path("gemma-4-26B-A4B-it-AWQ-4bit"),
+        ),
+        (
+            "⚙️ Yardmaster: Qwen3-Coder-REAP-25B-A3B [Q4_K_M GGUF]",
             gguf_model_path("Qwen3-Coder-REAP-25B-A3B-Rust-Q4_K_M.gguf"),
         ),
         (
-            "🎤 Voice Narration: Kokoro TTS (Apache 2.0)",
+            "🎨 Image Gen: FLUX.1-schnell [Q4_K_S GGUF, 6.4GB]",
+            gguf_model_path("flux1-schnell-Q4_K_S.gguf"),
+        ),
+        (
+            "🎵 Music Gen: ACE-Step v1 3.5B [safetensors, 7.8GB]",
+            home_dir().join("trinity-models/safetensors/ACE-Step-v1-3.5B/config.json"),
+        ),
+        (
+            "🎤 Voice: Kokoro TTS [ONNX, 338MB]",
             home_dir().join("trinity-models/tts/kokoro/config.json"),
+        ),
+        (
+            "👂 STT: Whisper Base [ONNX, 280MB]",
+            home_dir().join("trinity-models/stt/whisper-base/config.json"),
+        ),
+        (
+            "🔍 RAG: all-MiniLM-L6-v2 [ONNX, 23MB]",
+            home_dir().join("trinity-models/onnx/embeddings/model.onnx"),
+        ),
+        (
+            "📐 ONNX: Qwen2.5-7B [ONNX AMD, 8.3GB]",
+            home_dir().join("trinity-models/onnx/qwen-2.5-7b-onnx-amd/config.json"),
         ),
     ]
 }
@@ -768,6 +793,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/inference/refresh", post(inference_refresh))
         .route("/api/inference/start", post(inference_start_endpoint))
         .route("/api/inference/stop", post(inference_stop_endpoint))
+        // Hotel Swap Protocol — P-ART-Y model management
+        .route("/api/inference/hotel", get(hotel_status_endpoint))
+        .route("/api/inference/hotel/swap", post(hotel_swap_endpoint))
         // App Mode API — Phase 5A mode switching
         .route("/api/mode", get(get_app_mode).post(set_app_mode))
         // Intent Engineering API — grounding + posture + scope decisions
@@ -1292,7 +1320,7 @@ async fn portfolio_chat_stream(
     let (tx, mut rx) = tokio::sync::mpsc::channel::<String>(100);
 
     let router = state.inference_router.read().await;
-    let llm_url = router.get_url_by_name("longcat-omni").unwrap_or_else(|| router.active_url().to_string());
+    let llm_url = router.active_url().to_string();
     drop(router);
     tokio::spawn(async move {
         // Build messages: system prompt + conversation history + new message
@@ -1614,7 +1642,7 @@ When all objectives for {phase_label} are complete, narrate the station being cl
 
     // Call inference — HTTP fallback
     let router = state.inference_router.read().await;
-    let url = router.get_url_by_name("longcat-omni").unwrap_or_else(|| router.active_url().to_string());
+    let url = router.active_url().to_string();
     drop(router);
     let response = inference::chat_completion_with_effort(
         &url,
@@ -1747,12 +1775,10 @@ async fn chat_stream(
     // Channel to collect the full response for saving to history
     let (response_tx, mut response_rx) = tokio::sync::mpsc::channel::<String>(1);
 
-    // Route to the active inference backend (LongCat Omni-Brain on :8010).
-    let llm_url = if request.mode == "zen" {
-        "http://127.0.0.1:8010".to_string() // Zen mode also uses LongCat
-    } else {
+    // Route to the active inference backend via the router.
+    let llm_url = {
         let r = state.inference_router.read().await;
-        r.get_url_by_name("longcat-omni").unwrap_or_else(|| r.active_url().to_string())
+        r.active_url().to_string()
     };
     let db_pool = state.db_pool.clone();
     let history = state.project.conversation_history.clone();
@@ -2335,8 +2361,8 @@ CURRENT OBJECTIVES:
         // so the user sees "Pete is sleeping" instead of a blank response.
         if let Err(e) = stream_result {
             tracing::warn!("🔇 Inference stream failed: {}", e);
-            let offline_msg = "🚂💤 **Pete is sleeping** — the LongCat inference engine isn't running right now.\n\n\
-                To wake Pete up, run:\n```\ndistrobox enter sglang-engine -- bash ./longcat_omni_sidecar/launch_engine.sh\n```\n\n\
+            let offline_msg = "🚂💤 **Pete is sleeping** — the inference engine isn't running right now.\n\n\
+                To wake Pete up, run:\n```\n./scripts/launch/launch_pete.sh\n```\n\n\
                 The Iron Road waits. The furnace just needs a spark.";
             let _ = collect_tx.send(offline_msg.to_string()).await;
         }
@@ -2440,8 +2466,10 @@ CURRENT OBJECTIVES:
                 );
 
                 if !lenses.is_empty() {
+                    // Route to A.R.T.Y. Hub for background evaluation to avoid blocking Pete's primary GPU thread
                     let router = perspective_router.read().await;
-                    let llm_url = router.get_url_by_name("longcat-omni").unwrap_or_else(|| router.active_url().to_string());
+                    let llm_url = router.get_url_by_name("arty-hub")
+                        .unwrap_or_else(|| router.active_url().to_string());
                     drop(router);
                     let perspective_set =
                         perspective::evaluate(&llm_url, &full_response, &lenses).await;
@@ -2496,7 +2524,7 @@ CURRENT OBJECTIVES:
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // The Director → Storyteller pipeline:
-//   1. Director (Great Recycler, LongCat-Next on port 8010) interprets user text → structured JSON
+//   1. Director (Great Recycler, Gemma 4 on port 8001) interprets user text → structured JSON
 //   2. Storyteller (:8081) narrates with Director's interpretation + game state
 //   3. SSE events: "interpretation" (JSON) and "narration" (tokens)
 //
@@ -2554,64 +2582,64 @@ async fn backend_start(
                 
                 // ═══ Phase 1: Fast-path check
                 let mut server_already_up = false;
-                match client.get("http://127.0.0.1:8010/v1/models")
+                match client.get("http://127.0.0.1:8001/v1/models")
                     .timeout(std::time::Duration::from_secs(2))
                     .send().await
                 {
                     Ok(resp) if resp.status().is_success() => {
-                        info!("🔥 Fast-path: vLLM Omni API server is already running on :8010");
+                        info!("🔥 Fast-path: vLLM API server is already running on :8001");
                         server_already_up = true;
                     }
                     _ => {}
                 }
 
                 if !server_already_up {
-                    info!("🔥 vLLM Omni not running — launching proxy in background...");
+                    info!("🔥 Pete/vLLM not running — launching in background...");
                     
                     let trinity_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
-                    let launch_script = trinity_dir.join("scripts/launch/start_vllm_omni.sh");
+                    let launch_script = trinity_dir.join("scripts/launch/launch_pete.sh");
                     
                     match tokio::process::Command::new("bash")
                         .arg(launch_script)
                         .spawn()
                     {
                         Ok(mut child) => {
-                            info!("🔥 Launched vLLM Omni script in background!");
+                            info!("🔥 Launched Pete/vLLM script in background!");
                             // Just detach, assuming the script handles long-lived daemon
                             tokio::spawn(async move {
                                 let _ = child.wait().await;
                             });
                         },
                         Err(e) => {
-                            warn!("❌ Failed to launch vLLM Omni script: {}", e);
+                            warn!("❌ Failed to launch Pete script: {}", e);
                             set_ignition(&ignition_bg, "failed").await;
                             return;
                         }
                     }
 
-                    // ═══ Phase 2: Poll :8010 until the server is healthy (up to 300s since models are huge)
+                    // ═══ Phase 2: Poll :8001 until the server is healthy (up to 300s since models are huge)
                     set_ignition(&ignition_bg, "polling").await;
                     let mut server_ready = false;
                     for attempt in 1..=300 {
                         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                        match client.get("http://127.0.0.1:8010/v1/models")
+                        match client.get("http://127.0.0.1:8001/v1/models")
                             .timeout(std::time::Duration::from_secs(2))
                             .send().await
                         {
                             Ok(resp) if resp.status().is_success() => {
-                                info!("🔥 vLLM Omni API server ready after {}s", attempt);
+                                info!("🔥 Pete/vLLM API server ready after {}s", attempt);
                                 server_ready = true;
                                 break;
                             }
                             _ => {
                                 if attempt % 10 == 0 {
-                                    info!("🔥 Waiting for vLLM Omni API... ({}s)", attempt);
+                                    info!("🔥 Waiting for Pete/vLLM API... ({}s)", attempt);
                                 }
                             }
                         }
                     }
                     if !server_ready {
-                        warn!("❌ vLLM Omni API server did not respond after 300s");
+                        warn!("❌ Pete/vLLM API server did not respond after 300s");
                         set_ignition(&ignition_bg, "failed").await;
                         return;
                     }
@@ -2620,7 +2648,7 @@ async fn backend_start(
                 set_ignition(&ignition_bg, "ready").await;
                 let mut router = inference_router.write().await;
                 router.auto_detect().await;
-                info!("🔥 ═══ IGNITION COMPLETE — vLLM Omni is ONLINE ═══");
+                info!("🔥 ═══ IGNITION COMPLETE — Pete/vLLM is ONLINE ═══");
             });
         },
         _ => {
@@ -2762,7 +2790,7 @@ async fn zen_chat_stream(
         // STEP 1: Director Call (non-streaming)
         // ══════════════════════════════════════════════
         let router = inference_router.read().await;
-        let director_url = router.get_url_by_name("longcat-omni").unwrap_or_else(|| router.active_url().to_string());
+        let director_url = router.active_url().to_string();
         drop(router);
         let director_prompt = format!(
             r#"You are the Director — the analytical mind behind the Iron Road game engine.
@@ -3042,13 +3070,13 @@ Use state as flavor, not as a list. If coal is high, describe warmth and light. 
         if let Err(e) = stream_result {
             tracing::warn!("🔇 Zen narration stream failed: {}", e);
             let _ = narration_tx.send(
-                "The fog thickens, and silence claims the Iron Road. The Great Recycler's voice is distant — the inference engine sleeps. Wake LongCat to hear the story continue.".to_string()
+                "The fog thickens, and silence claims the Iron Road. The Great Recycler's voice is distant — the inference engine sleeps. Start Pete to hear the story continue.".to_string()
             ).await;
         }
 
         let full_narration = narration_collector.await.unwrap_or_default();
 
-        // Synthesize Narration Audio via LongCat (TTS)
+        // Synthesize Narration Audio via Kokoro TTS (embedded)
         let tx_narration_audio = tx.clone();
         let narration_text = full_narration.clone();
         tokio::spawn(async move {
@@ -3289,7 +3317,7 @@ async fn model_status(State(state): State<AppState>) -> Json<serde_json::Value> 
 /// Switch the active inference backend at runtime
 #[derive(Debug, Deserialize)]
 struct SwitchModelRequest {
-    /// Backend name (e.g. "vllm-omni", "longcat-omni") OR URL
+    /// Backend name (e.g. "tempo-e4b", "pete-coder", "recycler-dense") OR URL
     #[serde(default)]
     url: String,
     #[serde(default)]
@@ -3345,6 +3373,66 @@ async fn fleet_status_endpoint() -> Json<vllm_fleet::FleetStatus> {
     Json(vllm_fleet::fleet_status().await)
 }
 
+/// GET /api/inference/hotel — Hotel Swap zone status
+/// Returns current occupant, available guests, and swap zone state
+async fn hotel_status_endpoint() -> Json<serde_json::Value> {
+    let occupant = hotel_manager::current_occupant().await;
+    let fleet = vllm_fleet::fleet_status().await;
+
+    Json(serde_json::json!({
+        "occupant": occupant.map(|r| format!("{}", r)),
+        "hotel_occupant_display": fleet.hotel_occupant,
+        "tempo_online": fleet.tempo_online,
+        "available_roles": ["P", "R", "A"],
+        "swap_zone_ports": {
+            "P": 8000,
+            "R": 8002,
+            "A": 8003
+        },
+        "note": "Only ONE hotel guest at a time. Tempo (port 8001) is always on."
+    }))
+}
+
+/// POST /api/inference/hotel/swap — Trigger a Hotel swap by role
+/// Body: { "role": "P" } or { "role": "R" } or { "role": "A" } or { "role": "checkout" }
+async fn hotel_swap_endpoint(
+    Json(body): Json<serde_json::Value>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let role_str = body["role"]
+        .as_str()
+        .ok_or((StatusCode::BAD_REQUEST, "Missing 'role' field".to_string()))?;
+
+    if role_str == "checkout" || role_str == "none" {
+        hotel_manager::hotel_checkout().await;
+        return Ok(Json(serde_json::json!({
+            "status": "checked_out",
+            "message": "Hotel swap zone cleared — Tempo handles all tasks",
+        })));
+    }
+
+    let target: inference_router::PartyRole = match role_str {
+        "P" | "programming" | "Programming" => inference_router::PartyRole::Programming,
+        "R" | "reasoning" | "Reasoning" => inference_router::PartyRole::Reasoning,
+        "A" | "aesthetics" | "Aesthetics" => inference_router::PartyRole::Aesthetics,
+        other => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                format!("Invalid role '{}'. Use P, R, A, or checkout", other),
+            ))
+        }
+    };
+
+    let result = hotel_manager::hotel_swap(target).await;
+
+    Ok(Json(serde_json::json!({
+        "status": if result.success { "swapped" } else { "failed" },
+        "role": format!("{}", result.requested),
+        "url": result.url,
+        "duration_secs": result.duration.as_secs_f64(),
+        "message": result.message,
+    })))
+}
+
 /// GET /api/inference/resources — System resources + model memory estimates
 /// Powers the Inference Manager UI in ART Studio, helping users make informed
 /// model loading decisions on their hardware.
@@ -3364,92 +3452,112 @@ async fn inference_resources_endpoint(State(state): State<AppState>) -> Json<ser
     let router = state.inference_router.read().await;
     let router_status = router.status();
 
-    // Known model profiles — VRAM requirements for P.A.R.T.Y. models
-    // These are based on actual NF4/AWQ quantization profiles on Strix Halo
+    // Known model profiles — VRAM requirements for P-ART-Y models
+    // These are based on actual AWQ/Q4 quantization profiles on Strix Halo
     let model_profiles = serde_json::json!([
         {
-            "id": "longcat-next-74b",
-            "name": "LongCat-Next 74B MoE",
-            "role": "P (Pete)",
-            "port": 8010,
-            "ram_gb": 42.0,
-            "context_len": 131072,
-            "quantization": "NF4 MoE",
-            "capabilities": ["text", "vision", "audio-in", "tts", "music"],
-            "status": if fleet.longcat_online { "online" } else { "offline" },
-            "description": "Primary brain — Socratic mentor, narrator, multimodal understanding"
-        },
-        {
-            "id": "nomic-embed-v1.5",
-            "name": "nomic-embed-text-v1.5-AWQ",
-            "role": "R (Research)",
-            "port": 8005,
-            "ram_gb": 0.5,
-            "context_len": 8192,
-            "quantization": "AWQ INT4",
-            "capabilities": ["embeddings"],
-            "status": if fleet.nomic_embed_online { "online" } else { "offline" },
-            "description": "Semantic embeddings for RAG search and document retrieval"
-        },
-        {
-            "id": "flux-dev",
-            "name": "FLUX.1-dev",
-            "role": "A (Aesthetics)",
-            "port": 8001,
-            "ram_gb": 24.0,
-            "context_len": 0,
-            "quantization": "BF16",
-            "capabilities": ["image-gen"],
-            "status": "offline",
-            "description": "High-quality image generation (DiNA scenes, characters)"
-        },
-        {
-            "id": "acestep-1.5",
-            "name": "ACE-Step 1.5",
+            "id": "tempo-e4b",
+            "name": "Gemma 4 E4B AWQ",
             "role": "T (Tempo)",
-            "port": 8010,
-            "ram_gb": 0.0,
-            "context_len": 0,
-            "quantization": "Native (LongCat)",
-            "capabilities": ["music-gen"],
-            "status": if fleet.longcat_online { "online" } else { "offline" },
-            "description": "Ambient music generation — routed through LongCat natively"
+            "port": 8001,
+            "ram_gb": 6.0,
+            "context_len": 131072,
+            "quantization": "AWQ INT4",
+            "capabilities": ["text", "vision", "tools"],
+            "status": if fleet.tempo_online { "online" } else { "offline" },
+            "always_resident": true,
+            "description": "Always-on fast brain — Socratic chat, NPC dialog, TTS routing"
         },
         {
-            "id": "yardmaster-reap",
-            "name": "Qwen3-235B REAP MoE",
-            "role": "Y (Yardmaster)",
-            "port": 8009,
-            "ram_gb": 84.0,
+            "id": "pete-coder",
+            "name": "Gemma 4 26B A4B AWQ",
+            "role": "P (Programming)",
+            "port": 8000,
+            "ram_gb": 16.0,
             "context_len": 262144,
-            "quantization": "NF4 MoE",
-            "capabilities": ["code", "tools", "reasoning"],
-            "status": "offline",
-            "description": "Coding subagent — software engineering and tool execution"
+            "quantization": "AWQ INT4",
+            "capabilities": ["code", "tools", "vision"],
+            "status": if fleet.programming_online { "online" } else { "offline" },
+            "always_resident": false,
+            "description": "MoE coding brain — code gen, tool calling, React/Rust scaffolding"
         },
         {
-            "id": "cogvideox",
-            "name": "CogVideoX-5B",
-            "role": "A (Aesthetics)",
+            "id": "recycler-dense",
+            "name": "Gemma 4 31B AWQ",
+            "role": "R (Reasoning)",
             "port": 8002,
-            "ram_gb": 12.0,
-            "context_len": 0,
-            "quantization": "FP16",
-            "capabilities": ["video-gen"],
-            "status": "offline",
-            "description": "Short video clip generation for quest cinematics"
+            "ram_gb": 18.0,
+            "context_len": 262144,
+            "quantization": "AWQ INT4",
+            "capabilities": ["reasoning", "tools"],
+            "status": if fleet.reasoning_online { "online" } else { "offline" },
+            "always_resident": false,
+            "description": "Dense reasoning — evaluation, QM rubrics, PEARL alignment"
         },
         {
-            "id": "triposr",
-            "name": "TripoSR",
+            "id": "janus-pro",
+            "name": "Janus Pro 7B",
             "role": "A (Aesthetics)",
             "port": 8003,
             "ram_gb": 4.0,
             "context_len": 0,
             "quantization": "FP16",
-            "capabilities": ["3d-mesh"],
+            "capabilities": ["vision", "image-critique"],
+            "status": if fleet.aesthetics_online { "online" } else { "offline" },
+            "always_resident": false,
+            "description": "Vision-Language CRAP critique of UI screenshots"
+        },
+        {
+            "id": "flux-schnell",
+            "name": "FLUX.1-schnell",
+            "role": "A (Aesthetics)",
+            "port": 0,
+            "ram_gb": 7.0,
+            "context_len": 0,
+            "quantization": "GGUF Q4",
+            "capabilities": ["image-gen"],
+            "status": "embedded",
+            "always_resident": true,
+            "description": "2D image generation via embedded Candle crate"
+        },
+        {
+            "id": "kokoro-tts",
+            "name": "Kokoro TTS",
+            "role": "Voice",
+            "port": 0,
+            "ram_gb": 1.0,
+            "context_len": 0,
+            "quantization": "ONNX",
+            "capabilities": ["tts"],
+            "status": "embedded",
+            "always_resident": true,
+            "description": "Text-to-speech via embedded ORT crate"
+        },
+        {
+            "id": "nomic-embed",
+            "name": "nomic-embed-text-v1.5",
+            "role": "Embeddings",
+            "port": 0,
+            "ram_gb": 1.0,
+            "context_len": 8192,
+            "quantization": "ONNX",
+            "capabilities": ["embeddings"],
+            "status": "embedded",
+            "always_resident": true,
+            "description": "RAG semantic search via embedded ORT crate"
+        },
+        {
+            "id": "acestep-1.5",
+            "name": "ACE-Step 1.5",
+            "role": "T (Tempo/Music)",
+            "port": 8008,
+            "ram_gb": 7.8,
+            "context_len": 0,
+            "quantization": "BF16",
+            "capabilities": ["music-gen"],
             "status": "offline",
-            "description": "Image → 3D mesh generation for game assets"
+            "always_resident": false,
+            "description": "Ambient music generation — optional Python sidecar"
         }
     ]);
 
@@ -3510,49 +3618,50 @@ async fn inference_refresh(State(state): State<AppState>) -> Json<inference_rout
     Json(router.status())
 }
 
-/// POST /api/inference/start — launch LongCat-Next sidecar from web UI
-/// Calls scripts/launch/launch_longcat.sh start
+/// POST /api/inference/start — launch T (Tempo) from web UI
+/// Tries launch_tempo_e4b.sh first, falls back to legacy launch_pete.sh
 async fn inference_start_endpoint(State(state): State<AppState>) -> Json<serde_json::Value> {
     let workspace = std::env::current_dir().unwrap_or_default();
-    let script = workspace.join("scripts/launch/launch_longcat.sh");
 
-    if !script.exists() {
-        return Json(serde_json::json!({
-            "status": "error",
-            "message": "launch_longcat.sh not found"
-        }));
-    }
+    // Try the new P-ART-Y script first, fall back to legacy
+    let script = {
+        let new = workspace.join("scripts/launch/launch_tempo_e4b.sh");
+        let legacy = workspace.join("scripts/launch/launch_pete.sh");
+        if new.exists() {
+            new
+        } else if legacy.exists() {
+            legacy
+        } else {
+            return Json(serde_json::json!({
+                "status": "error",
+                "message": "No Tempo launch script found (tried launch_tempo_e4b.sh, launch_pete.sh)"
+            }));
+        }
+    };
 
     match tokio::process::Command::new("bash")
         .arg(&script)
-        .arg("start")
         .current_dir(&workspace)
-        .output()
-        .await
+        .spawn()
     {
-        Ok(output) => {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            info!("🐱 LongCat start: {}", stdout.trim());
+        Ok(_child) => {
+            info!("🚀 T (Tempo) launch initiated via {}", script.display());
             
-            // Parse JSON output from the script
-            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(stdout.trim()) {
-                // Also trigger a backend re-probe after a short delay
-                let state_clone = state.clone();
-                tokio::spawn(async move {
-                    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-                    let mut router = state_clone.inference_router.write().await;
-                    router.auto_detect().await;
-                });
-                Json(parsed)
-            } else {
-                Json(serde_json::json!({
-                    "status": "started",
-                    "output": stdout.trim()
-                }))
-            }
+            // Trigger a backend re-probe after a delay
+            let state_clone = state.clone();
+            tokio::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_secs(15)).await;
+                let mut router = state_clone.inference_router.write().await;
+                router.auto_detect().await;
+            });
+            Json(serde_json::json!({
+                "status": "starting",
+                "message": "T (Tempo — Gemma 4 E4B AWQ) launch initiated on port 8001",
+                "script": script.display().to_string()
+            }))
         }
         Err(e) => {
-            warn!("❌ Failed to start LongCat: {}", e);
+            warn!("❌ Failed to start Tempo: {}", e);
             Json(serde_json::json!({
                 "status": "error",
                 "message": format!("Failed to execute launch script: {}", e)
@@ -3561,28 +3670,21 @@ async fn inference_start_endpoint(State(state): State<AppState>) -> Json<serde_j
     }
 }
 
-/// POST /api/inference/stop — stop LongCat-Next sidecar from web UI
+/// POST /api/inference/stop — stop T (Tempo) from web UI
 async fn inference_stop_endpoint(State(state): State<AppState>) -> Json<serde_json::Value> {
-    let workspace = std::env::current_dir().unwrap_or_default();
-    let script = workspace.join("scripts/launch/launch_longcat.sh");
-
-    if !script.exists() {
-        return Json(serde_json::json!({
-            "status": "error",
-            "message": "launch_longcat.sh not found"
-        }));
-    }
-
+    // Kill any vLLM process on port 8001 (Tempo)
     match tokio::process::Command::new("bash")
-        .arg(&script)
-        .arg("stop")
-        .current_dir(&workspace)
+        .arg("-c")
+        .arg("lsof -ti:8001 2>/dev/null | xargs -r kill 2>/dev/null; echo '{\"status\":\"stopped\"}'")
         .output()
         .await
     {
         Ok(output) => {
             let stdout = String::from_utf8_lossy(&output.stdout);
-            info!("🐱 LongCat stop: {}", stdout.trim());
+            info!("🛑 Tempo stop: {}", stdout.trim());
+            
+            // Also clear Hotel swap zone occupant state
+            hotel_manager::hotel_checkout().await;
             
             // Re-probe backends to update status
             let mut router = state.inference_router.write().await;
@@ -3598,10 +3700,10 @@ async fn inference_stop_endpoint(State(state): State<AppState>) -> Json<serde_js
             }
         }
         Err(e) => {
-            warn!("❌ Failed to stop LongCat: {}", e);
+            warn!("❌ Failed to stop Tempo: {}", e);
             Json(serde_json::json!({
                 "status": "error",
-                "message": format!("Failed to execute stop script: {}", e)
+                "message": format!("Failed to stop: {}", e)
             }))
         }
     }
@@ -4362,7 +4464,7 @@ async fn generate_narrative_endpoint(State(state): State<AppState>) -> Json<serd
     };
 
     let router = state.inference_router.read().await;
-    let llm_url = router.get_url_by_name("longcat-omni").unwrap_or_else(|| router.active_url().to_string());
+    let llm_url = router.active_url().to_string();
     drop(router);
 
     match narrative::generate_narrative(&llm_url, &context).await {
@@ -4983,8 +5085,8 @@ async fn stt_transcribe(
     let base64_audio = base64::engine::general_purpose::STANDARD.encode(&body);
     let audio_url = format!("data:audio/wav;base64,{}", base64_audio);
         
-    let fallback_model = "LongCat-Next-74B".to_string();
-    let model_name = match client.get("http://127.0.0.1:8010/v1/models").send().await {
+    let fallback_model = "Great_Recycler".to_string();
+    let model_name = match client.get("http://127.0.0.1:8001/v1/models").send().await {
         Ok(res) => {
             if let Ok(json) = res.json::<serde_json::Value>().await {
                 json["data"][0]["id"].as_str().unwrap_or(&fallback_model).to_string()
@@ -5008,7 +5110,7 @@ async fn stt_transcribe(
         ]
     });
         
-    let response = match client.post("http://127.0.0.1:8010/v1/chat/completions").json(&payload).send().await {
+    let response = match client.post("http://127.0.0.1:8001/v1/chat/completions").json(&payload).send().await {
         Ok(r) => r,
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": format!("STT failed: {}", e) }))).into_response()
     };
@@ -5038,8 +5140,8 @@ async fn stt_status(
 ) -> Json<serde_json::Value> {
     Json(serde_json::json!({
         "loaded": true,
-        "model": "LongCat-Next-74B",
-        "backend": "longcat-omni",
+        "model": "Great_Recycler",
+        "backend": "tempo-e4b",
     }))
 }
 
@@ -5123,8 +5225,8 @@ async fn setup_config(
     Json(config): Json<SetupConfig>,
 ) -> impl axum::response::IntoResponse {
     let url = match config.backend.as_str() {
-        "vllm-omni" => "http://127.0.0.1:8010/v1/chat/completions",
-        _ => config.custom_url.as_deref().unwrap_or("http://127.0.0.1:8010/v1/chat/completions"),
+        "vllm-omni" => "http://127.0.0.1:8001/v1/chat/completions",
+        _ => config.custom_url.as_deref().unwrap_or("http://127.0.0.1:8001/v1/chat/completions"),
     };
 
     // Test the connection BEFORE acknowledging setup is complete

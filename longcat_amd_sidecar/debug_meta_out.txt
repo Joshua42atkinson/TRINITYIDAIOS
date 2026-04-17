@@ -1,4 +1,0 @@
-Traceback (most recent call last):
-  File "/home/joshua/Workflow/desktop_trinity/trinity-genesis/longcat_amd_sidecar/debug_meta.py", line 1, in <module>
-    from transformers import AutoModelForCausalLM, BitsAndBytesConfig
-ModuleNotFoundError: No module named 'transformers'

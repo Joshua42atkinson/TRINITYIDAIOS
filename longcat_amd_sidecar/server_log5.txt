@@ -1,130 +1,0 @@
-=================================================
- Starting LongCat-Next Omni Brain (AMD SDPA Backend)
- Port: 8010
-=================================================
-/home/joshua/Workflow/desktop_trinity/trinity-genesis/longcat_amd_sidecar/server.py:119: DeprecationWarning: 
-        on_event is deprecated, use lifespan event handlers instead.
-
-        Read more about it in the
-        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-        
-  @app.on_event("startup")
-INFO:     Started server process [1632935]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://127.0.0.1:8010 (Press CTRL+C to quit)
-`torch_dtype` is deprecated! Use `dtype` instead!
-════════════════════════════════════════════════════════════
-  TRINITY ID AI OS — AMD SDPA Sidecar (Port 8010)
-════════════════════════════════════════════════════════════
-🧠 Loading LongCat-Next from /home/joshua/trinity-models/sglang/LongCat-Next
-   Backend: PyTorch SDPA (Bypassing Flash Attention)
-INFO:     127.0.0.1:36726 - "GET /health HTTP/1.1" 200 OK
-/home/joshua/.cache/huggingface/modules/transformers_modules/LongCat_hyphen_Next/modular_longcat_next_audio.py:219: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
-  @autocast(enabled=True, dtype=torch.float32)
-/home/joshua/Workflow/desktop_trinity/trinity-genesis/longcat_amd_sidecar/.venv/lib/python3.12/site-packages/diffusers/models/lora.py:391: FutureWarning: `LoRACompatibleLinear` is deprecated and will be removed in version 1.0.0. Use of `LoRACompatibleLinear` is deprecated. Please switch to PEFT backend by installing PEFT: `pip install peft`.
-  deprecate("LoRACompatibleLinear", "1.0.0", deprecation_message)
-[ERROR] `cache_position` is part of LongcatNextForCausalLM.forward's signature, but not documented. Make sure to add it to the docstring of the function in /home/joshua/.cache/huggingface/modules/transformers_modules/LongCat_hyphen_Next/modeling_longcat_next.py.
-self.visual_offset_vals=tensor(..., device='meta', size=(8,), dtype=torch.int64)
-self.audio_offset_vals=tensor(..., device='meta', size=(8,), dtype=torch.int64)
-INFO:     127.0.0.1:59908 - "GET /health HTTP/1.1" 200 OK
-/home/joshua/Workflow/desktop_trinity/trinity-genesis/longcat_amd_sidecar/.venv/lib/python3.12/site-packages/transformers/modeling_utils.py:4832: UserWarning: expandable_segments not supported on this platform (Triggered internally at ../c10/hip/HIPAllocatorConfig.h:29.)
-  _ = torch.empty(int(byte_count // 2), dtype=torch.float16, device=device, requires_grad=False)
-Loading weights:   0%|          | 0/2698 [00:00<?, ?it/s]Loading weights:   3%|▎         | 73/2698 [00:00<00:08, 322.02it/s]INFO:     127.0.0.1:59920 - "GET /health HTTP/1.1" 200 OK
-Loading weights:   4%|▍         | 115/2698 [00:00<00:07, 327.56it/s]Loading weights:   5%|▌         | 148/2698 [00:00<00:17, 149.73it/s]Loading weights:   6%|▋         | 170/2698 [00:01<00:19, 132.21it/s]Loading weights:   7%|▋         | 187/2698 [00:01<00:21, 115.81it/s]Loading weights:   7%|▋         | 201/2698 [00:01<00:24, 103.14it/s]Loading weights:   8%|▊         | 213/2698 [00:01<00:25, 97.65it/s] Loading weights:   8%|▊         | 224/2698 [00:01<00:27, 90.80it/s]Loading weights:  14%|█▎        | 365/2698 [00:01<00:06, 346.68it/s]Loading weights:  25%|██▍       | 663/2698 [00:01<00:02, 915.89it/s]Loading weights:  36%|███▌      | 958/2698 [00:02<00:01, 1392.38it/s]Loading weights:  43%|████▎     | 1167/2698 [00:02<00:00, 1536.64it/s]Loading weights:  50%|█████     | 1349/2698 [00:02<00:01, 716.08it/s] INFO:     127.0.0.1:59922 - "GET /health HTTP/1.1" 200 OK
-Loading weights:  55%|█████▌    | 1486/2698 [00:04<00:05, 234.01it/s]INFO:     127.0.0.1:59932 - "GET /health HTTP/1.1" 200 OK
-Loading weights:  59%|█████▊    | 1584/2698 [00:05<00:06, 168.05it/s]Loading weights:  61%|██████▏   | 1655/2698 [00:06<00:07, 137.89it/s]Loading weights:  63%|██████▎   | 1707/2698 [00:07<00:08, 123.63it/s]Loading weights:  65%|██████▍   | 1746/2698 [00:08<00:08, 109.98it/s]Loading weights:  66%|██████▌   | 1775/2698 [00:08<00:09, 102.34it/s]Loading weights:  67%|██████▋   | 1798/2698 [00:08<00:09, 96.65it/s] Loading weights:  67%|██████▋   | 1816/2698 [00:09<00:11, 76.05it/s]INFO:     127.0.0.1:52444 - "GET /health HTTP/1.1" 200 OK
-Loading weights:  68%|██████▊   | 1844/2698 [00:09<00:09, 90.16it/s]Loading weights:  69%|██████▉   | 1874/2698 [00:09<00:07, 108.97it/s]Loading weights:  71%|███████   | 1912/2698 [00:09<00:05, 139.83it/s]Loading weights:  72%|███████▏  | 1950/2698 [00:09<00:04, 172.65it/s]Loading weights:  74%|███████▎  | 1988/2698 [00:09<00:03, 205.93it/s]Loading weights:  75%|███████▌  | 2028/2698 [00:10<00:02, 240.05it/s]Loading weights:  77%|███████▋  | 2065/2698 [00:10<00:02, 267.18it/s]INFO:     127.0.0.1:52448 - "GET /health HTTP/1.1" 200 OK
-Loading weights:  78%|███████▊  | 2104/2698 [00:10<00:02, 214.75it/s]Loading weights:  79%|███████▉  | 2133/2698 [00:12<00:12, 44.85it/s] Loading weights:  80%|███████▉  | 2154/2698 [00:13<00:15, 36.10it/s]INFO:     127.0.0.1:52460 - "GET /health HTTP/1.1" 200 OK
-Loading weights:  80%|████████  | 2169/2698 [00:14<00:20, 26.25it/s]INFO:     127.0.0.1:52462 - "GET /health HTTP/1.1" 200 OK
-Loading weights:  81%|████████  | 2180/2698 [00:15<00:19, 26.09it/s]Loading weights:  82%|████████▏ | 2201/2698 [00:15<00:14, 35.05it/s]Loading weights:  82%|████████▏ | 2213/2698 [00:16<00:16, 29.55it/s]Loading weights:  83%|████████▎ | 2238/2698 [00:16<00:11, 39.94it/s]Loading weights:  83%|████████▎ | 2248/2698 [00:16<00:13, 32.31it/s]Loading weights:  84%|████████▎ | 2256/2698 [00:17<00:12, 35.46it/s]Loading weights:  84%|████████▍ | 2263/2698 [00:17<00:11, 36.92it/s]Loading weights:  84%|████████▍ | 2270/2698 [00:17<00:10, 39.40it/s]Loading weights:  84%|████████▍ | 2277/2698 [00:17<00:10, 41.49it/s]Loading weights:  85%|████████▍ | 2286/2698 [00:17<00:08, 45.81it/s]Loading weights:  85%|████████▌ | 2294/2698 [00:17<00:07, 50.54it/s]Loading weights:  85%|████████▌ | 2301/2698 [00:17<00:07, 49.97it/s]Loading weights:  86%|████████▌ | 2308/2698 [00:18<00:07, 53.05it/s]Loading weights:  86%|████████▌ | 2316/2698 [00:18<00:06, 58.62it/s]Loading weights:  86%|████████▌ | 2323/2698 [00:18<00:06, 56.03it/s]Loading weights:  86%|████████▋ | 2330/2698 [00:18<00:06, 57.13it/s]Loading weights:  87%|████████▋ | 2337/2698 [00:18<00:06, 54.14it/s]Loading weights:  87%|████████▋ | 2344/2698 [00:18<00:06, 56.27it/s]Loading weights:  87%|████████▋ | 2352/2698 [00:18<00:05, 61.05it/s]Loading weights:  87%|████████▋ | 2359/2698 [00:18<00:05, 56.91it/s]Loading weights:  88%|████████▊ | 2366/2698 [00:19<00:05, 57.80it/s]Loading weights:  88%|████████▊ | 2372/2698 [00:19<00:06, 52.99it/s]Loading weights:  88%|████████▊ | 2380/2698 [00:19<00:05, 57.14it/s]Loading weights:  89%|████████▊ | 2388/2698 [00:19<00:05, 60.88it/s]INFO:     127.0.0.1:38240 - "GET /health HTTP/1.1" 200 OK
-Loading weights:  89%|████████▉ | 2395/2698 [00:19<00:05, 54.73it/s]Loading weights:  89%|████████▉ | 2402/2698 [00:19<00:05, 55.38it/s]Loading weights:  89%|████████▉ | 2408/2698 [00:19<00:05, 50.67it/s]Loading weights:  90%|████████▉ | 2416/2698 [00:19<00:05, 54.54it/s]Loading weights:  90%|████████▉ | 2424/2698 [00:20<00:04, 59.22it/s]Loading weights:  90%|█████████ | 2431/2698 [00:20<00:04, 55.52it/s]INFO:     127.0.0.1:38244 - "GET /health HTTP/1.1" 200 OK
-Loading weights:  90%|█████████ | 2438/2698 [00:20<00:04, 56.20it/s]Loading weights:  91%|█████████ | 2444/2698 [00:20<00:04, 51.04it/s]Loading weights:  91%|█████████ | 2452/2698 [00:20<00:04, 55.65it/s]Loading weights:  91%|█████████ | 2460/2698 [00:20<00:03, 60.10it/s]Loading weights:  91%|█████████▏| 2467/2698 [00:20<00:04, 56.27it/s]Loading weights:  92%|█████████▏| 2474/2698 [00:20<00:03, 57.13it/s]Loading weights:  92%|█████████▏| 2480/2698 [00:21<00:04, 52.58it/s]Loading weights:  92%|█████████▏| 2488/2698 [00:21<00:03, 56.00it/s]Loading weights:  93%|█████████▎| 2496/2698 [00:21<00:03, 59.02it/s]Loading weights:  93%|█████████▎| 2502/2698 [00:21<00:03, 53.60it/s]Loading weights:  93%|█████████▎| 2510/2698 [00:21<00:03, 58.04it/s]Loading weights:  93%|█████████▎| 2516/2698 [00:21<00:03, 52.37it/s]Loading weights:  94%|█████████▎| 2524/2698 [00:21<00:03, 56.40it/s]Loading weights:  94%|█████████▍| 2532/2698 [00:21<00:02, 60.16it/s]Loading weights:  94%|█████████▍| 2539/2698 [00:22<00:02, 54.65it/s]Loading weights:  94%|█████████▍| 2546/2698 [00:22<00:02, 55.71it/s]Loading weights:  95%|█████████▍| 2552/2698 [00:22<00:02, 51.25it/s]Loading weights:  95%|█████████▍| 2560/2698 [00:22<00:02, 55.63it/s]Loading weights:  95%|█████████▌| 2568/2698 [00:22<00:02, 59.96it/s]Loading weights:  95%|█████████▌| 2575/2698 [00:22<00:02, 56.21it/s]Loading weights:  96%|█████████▌| 2582/2698 [00:22<00:02, 57.06it/s]Loading weights:  96%|█████████▌| 2588/2698 [00:23<00:02, 50.98it/s]Loading weights:  96%|█████████▌| 2596/2698 [00:23<00:01, 55.20it/s]Loading weights:  97%|█████████▋| 2604/2698 [00:23<00:01, 59.71it/s]Loading weights:  97%|█████████▋| 2611/2698 [00:23<00:01, 55.53it/s]Loading weights:  97%|█████████▋| 2618/2698 [00:23<00:01, 55.52it/s]Loading weights:  97%|█████████▋| 2624/2698 [00:23<00:01, 51.44it/s]Loading weights: 100%|██████████| 2698/2698 [00:23<00:00, 113.86it/s]
-INFO:     127.0.0.1:38246 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:38248 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52194 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52210 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52218 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52226 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:40498 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:40504 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:40520 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:40532 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52000 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52004 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52018 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52034 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35936 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35942 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35946 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35954 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35730 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35736 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35750 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35754 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46964 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46978 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46990 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46996 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34220 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34222 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34228 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34236 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:38236 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:38244 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:38248 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:38254 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:36474 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:36488 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:36498 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:36506 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:42682 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:42694 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:42706 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:42716 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:40902 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:40918 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:40922 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:40934 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55718 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55730 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55738 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55748 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:48036 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:48046 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35658 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35662 - "GET /health HTTP/1.1" 200 OK
-[1mLongcatNextForCausalLM LOAD REPORT[0m from: /home/joshua/trinity-models/sglang/LongCat-Next
-Key                                                          | Status     | 
--------------------------------------------------------------+------------+-
-model.layers.{0...13}.mlp.experts.{0...255}.gate_proj.weight | UNEXPECTED | 
-model.layers.{0...13}.mlp.experts.{0...255}.down_proj.weight | UNEXPECTED | 
-model.layers.{0...13}.mlp.experts.{0...255}.up_proj.weight   | UNEXPECTED | 
-model.layers.{0...13}.mlp.experts.gate_up_proj               | MISSING    | 
-model.layers.{0...13}.mlp.experts.down_proj                  | MISSING    | 
-
-Notes:
-- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
-- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
-INFO:     127.0.0.1:38184 - "GET /health HTTP/1.1" 200 OK
-Some parameters are on the meta device because they were offloaded to the disk.
-Traceback (most recent call last):
-  File "/home/joshua/Workflow/desktop_trinity/trinity-genesis/longcat_amd_sidecar/server.py", line 98, in load_model_4bit
-    param.data = torch.zeros_like(param.data, device=active_device)
-    ^^^^^^^^^^
-RuntimeError: Attempted to call `variable.set_data(tensor)`, but `variable` and `tensor` have incompatible tensor type.
-   ❌ Model load failed: Attempted to call `variable.set_data(tensor)`, but `variable` and `tensor` have incompatible tensor type.
-INFO:     127.0.0.1:38188 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:45210 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:45220 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:40414 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:40428 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:33738 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:33750 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56042 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56054 - "GET /health HTTP/1.1" 200 OK
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [1632935]
-Terminated

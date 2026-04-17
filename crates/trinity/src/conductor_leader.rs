@@ -65,8 +65,118 @@ pub enum AddiecrapeyePhase {
 }
 
 /// Get the system prompt associated with a phase.
-pub fn phase_system_prompt(_phase: AddiecrapeyePhase) -> &'static str {
-    "You are the Conductor. Guide the user through this phase of the IRON ROAD."
+/// Each phase maps to a Bloom's cognitive level and pedagogical strategy.
+/// This is injected into the LLM context by agent.rs to steer Pete's behavior.
+pub fn phase_system_prompt(phase: AddiecrapeyePhase) -> &'static str {
+    match phase {
+        AddiecrapeyePhase::Analysis => r#"PHASE: ANALYSIS — The Golem's Eyes (Bloom's: Remember/Understand)
+You are Pete, the Conductor of the Iron Road. The traveler has just boarded.
+Your job: EXTRACT their intent. Ask 3 focused questions:
+1. WHO is the target audience? (age, skill level, context)
+2. WHAT problem does the learner currently face? (the gap)
+3. WHY does this matter to the traveler personally?
+Do NOT suggest solutions. Do NOT build anything. Only ask and listen.
+When you have clear answers to all 3, tell them they're ready to advance to Design."#,
+
+        AddiecrapeyePhase::Design => r#"PHASE: DESIGN — The Golem's Brain (Bloom's: Apply)
+The traveler has identified their audience and gap. Now they must DESIGN.
+Your job: Help them write measurable learning objectives using Bloom's verbs.
+Guide them to:
+1. Write 3-5 objectives starting with action verbs (analyze, create, evaluate)
+2. Choose a delivery medium that matches the objectives
+3. Map each objective to an assessment strategy
+Challenge weak objectives: "How will you KNOW the learner achieved this?""#,
+
+        AddiecrapeyePhase::Development => r#"PHASE: DEVELOPMENT — The Golem's Skeleton (Bloom's: Create)
+Time to BUILD. The traveler moves from planning to production.
+Your job: Help them create the first tangible artifact.
+Guide them to:
+1. Start with the SMALLEST working version (MVP)
+2. Focus on ONE objective at a time
+3. Use tools to scaffold (generate_lesson_plan, scaffold_bevy_game, etc.)
+Ask: "What does the learner SEE and DO in the first 5 minutes?""#,
+
+        AddiecrapeyePhase::Implementation => r#"PHASE: IMPLEMENTATION — The Golem's Muscles (Bloom's: Apply)
+The artifact exists. Now the traveler must TEST it from the learner's perspective.
+Your job: Guide them through a walkthrough.
+Ask them to:
+1. Play through their own creation as if they were a student
+2. Identify where a learner would get confused
+3. Note any technical issues (broken links, unclear instructions)
+Ask: "If a student opened this with zero context, what would they do first?""#,
+
+        AddiecrapeyePhase::Evaluation => r#"PHASE: EVALUATION — The Golem's Voice (Bloom's: Evaluate)
+Time to MEASURE quality against the original objectives.
+Your job: Apply the Quality Matters rubric mindset.
+Guide them to evaluate:
+1. Does each objective have a matching assessment?
+2. Is the content accessible (alt text, reading level, navigation)?
+3. Does the experience respect cognitive load (not too much at once)?
+Ask: "If you graded this with your own rubric, what score would it get?""#,
+
+        AddiecrapeyePhase::Contrast => r#"PHASE: CONTRAST — The Golem's Skin (Bloom's: Analyze)
+CRAP Design Principle #1: CONTRAST. Visual hierarchy matters.
+Your job: Help the traveler create emphasis where it belongs.
+Guide them to:
+1. Identify the 3 most important elements on each screen/page
+2. Make those elements visually DOMINANT (size, color, weight)
+3. Push secondary elements into the background
+Ask: "What's the FIRST thing a student's eye lands on? Is that the right thing?""#,
+
+        AddiecrapeyePhase::Repetition => r#"PHASE: REPETITION — The Golem's Heart (Bloom's: Apply)
+CRAP Design Principle #2: REPETITION. Consistency builds trust.
+Your job: Audit for pattern consistency.
+Guide them to check:
+1. Are fonts, colors, and spacing consistent across all sections?
+2. Do interactive elements behave the same way everywhere?
+3. Is the navigation pattern predictable?
+Ask: "If I covered the title, would a student know they're still in the same experience?""#,
+
+        AddiecrapeyePhase::Alignment => r#"PHASE: ALIGNMENT — The Golem's Spine (Bloom's: Evaluate)
+CRAP Design Principle #3: ALIGNMENT. Every element needs a visual connection.
+Your job: Eliminate extraneous cognitive load.
+Guide them to:
+1. Remove anything that doesn't serve a learning objective
+2. Align elements to a consistent grid or structure
+3. Ensure scope hasn't crept beyond the PEARL
+Ask: "What can you REMOVE without losing learning value?""#,
+
+        AddiecrapeyePhase::Proximity => r#"PHASE: PROXIMITY — The Golem's Hands (Bloom's: Analyze)
+CRAP Design Principle #4: PROXIMITY. Related things go together.
+Your job: Apply Miller's Law (7±2) and Gestalt grouping.
+Guide them to:
+1. Group related content visually (sections, cards, containers)
+2. Separate unrelated content with whitespace or dividers
+3. Ensure no single screen has more than 7 distinct elements
+Ask: "Could a student scan this in 10 seconds and know where to start?""#,
+
+        AddiecrapeyePhase::Envision => r#"PHASE: ENVISION — The Golem's Third Eye (Bloom's: Evaluate)
+Meta-cognitive reflection. The traveler looks back at the entire journey.
+Your job: Compare the final product against the original PEARL.
+Guide them to:
+1. Re-read their original vision statement
+2. Score alignment: does the product match the vision? (1-10)
+3. Identify what surprised them — what emerged that wasn't planned?
+Ask: "If you showed this to your target audience RIGHT NOW, would they learn what you intended?""#,
+
+        AddiecrapeyePhase::Yoke => r#"PHASE: YOKE — The Connective Tissue (Bloom's: Create)
+Final assembly. Everything gets coupled together.
+Your job: Help them integrate all pieces into a distributable whole.
+Guide them to:
+1. Connect front-end to back-end (or paper to digital, or lesson to assessment)
+2. Create the export package (HTML5, DOCX, ZIP portfolio)
+3. Write the deployment instructions or teacher guide
+Ask: "Can someone OTHER than you deploy and use this successfully?""#,
+
+        AddiecrapeyePhase::Evolve => r#"PHASE: EVOLVE — The Golem's Lungs (Bloom's: Create)
+The Golem takes its first breath. Time to SHIP.
+Your job: Celebrate, document, and release.
+Guide them to:
+1. Export the final deliverable (use the export tools)
+2. Write a 3-sentence reflection for their portfolio
+3. Identify one thing they'd do differently next time
+Congratulate them: they completed the Iron Road. The Golem lives."#,
+    }
 }
 
 impl std::fmt::Display for AddiecrapeyePhase {
@@ -261,11 +371,11 @@ pub struct BookUpdate {
 /// Configuration for the Conductor Party Leader
 #[derive(Debug, Clone)]
 pub struct ConductorConfig {
-    /// Path to the Conductor model (Pete / Great Recycler - LongCat-Next 74B MoE)
+    /// Path to the Tempo backbone model (Gemma 4 E4B AWQ — always-on)
     pub model_path: PathBuf,
-    /// Context size (default: 256000 with TurboQuant)
+    /// Context size (default: 131072 for Gemma 4 E4B)
     pub context_size: u32,
-    /// vLLM Omni base URL
+    /// Tempo brain base URL (:8001 — always-on)
     pub server_url: String,
     /// Enable verbose logging
     pub verbose: bool,
@@ -275,12 +385,12 @@ impl Default for ConductorConfig {
     fn default() -> Self {
         let home = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/tmp")).to_string_lossy().to_string();
         Self {
-            // Great Recycler — LongCat-Next 74B MoE (served via sglang-engine sidecar)
+            // T — Tempo: Gemma 4 E4B AWQ (always-on via vLLM)
             model_path: PathBuf::from(home)
-                .join("trinity-models/sglang/LongCat-Next"),
-            context_size: 131072, // LongCat-Next 131K context window
+                .join("trinity-models/vllm/gemma-4-E4B-it-AWQ-4bit"),
+            context_size: 131072, // Gemma 4 E4B 128K context window
             server_url: std::env::var("LLM_URL")
-                .unwrap_or_else(|_| "http://127.0.0.1:8010".to_string()),
+                .unwrap_or_else(|_| "http://127.0.0.1:8001".to_string()),
             verbose: false,
         }
     }
@@ -363,7 +473,7 @@ impl ConductorLeader {
         // Verify model exists
         if !self.model_exists() {
             return Err(anyhow!(
-                "Great Recycler model (LongCat-Next 74B MoE) not found at {:?}. \
+                "Great Recycler model (Gemma 4 E4B AWQ) not found at {:?}. \
                  Please ensure the model is available and the sglang-engine sidecar is running.\n\
                  AI should NOT automatically download models without user initiation.",
                 self.config.model_path
@@ -497,53 +607,107 @@ impl ConductorLeader {
         Ok(response)
     }
 
-    /// HOTEL MANAGEMENT: Switch out models based on ADDIECRAPEYE phase
-    /// NOTE: In Lone Wolf mode (Phase 4), this is log-only — single LongCat-Next brain,
-    /// no model hot-swapping. The gear mapping is preserved for future multi-model support.
+    /// HOTEL MANAGEMENT: Map ADDIECRAPEYE phase to the appropriate P-ART-Y model.
+    ///
+    /// The Hotel Swap Protocol ensures only ONE heavyweight model occupies VRAM
+    /// at any given time. The Tempo brain (Gemma 4 E4B) is always on; the swap
+    /// zone holds either Programming (26B A4B), Reasoning (31B Dense), or
+    /// Aesthetics (Janus Pro 7B) depending on the current phase.
+    ///
+    /// Phase-to-Gear mapping:
+    ///   Analysis, Implementation, Repetition, Evolve → T only (no swap needed)
+    ///   Design, Development, Yoke                    → P (Gemma 4 26B A4B)
+    ///   Evaluation, Alignment, Envision              → R (Gemma 4 31B Dense)
+    ///   Contrast, Proximity                          → A (Janus Pro 7B)
     async fn manage_hotel_sidecars(&self, phase: AddiecrapeyePhase) -> Result<()> {
-        // CRUISING MODE BATCHING: We group the 12 phases into the P.A.R.T.Y gears
-        // to prevent thrashing the VRAM every single node.
-        //
-        // P = Pete (LongCat SGLang 8010) — Instructional Designer, Great Recycler, DM
-        // A = Aesthetics (vLLM 8000) — FLUX, CogVideoX, TripoSR visual models
-        // R = Research (vLLM 8000) — Embeddings & permanence, balances A and T
-        // T = Tempo (vLLM 8000) — Acestep 1.5 audio/music generation
-        // Y = Yardmaster (vLLM 8000) — Qwen3-Coder REAP, software engineering
+        use crate::inference_router::PartyRole;
+
+        // Map each ADDIECRAPEYE phase to its target P-ART-Y gear.
+        // Phases that only need fast Socratic chat use Tempo (always-on).
+        // Phases that need heavy computation swap in the appropriate model.
         let target_role = match phase {
-            // Gear P: Pete — Socratic Mirror (permanent resident on SGLang)
-            AddiecrapeyePhase::Analysis | AddiecrapeyePhase::Envision => {
-                "pete" // Socratic questioning, meta-awareness
-            }
-            // Gear A: Aesthetics — Visual models (CRAP design phases)
-            AddiecrapeyePhase::Design
-            | AddiecrapeyePhase::Contrast
-            | AddiecrapeyePhase::Proximity => {
-                "aesthetics" // Visual hierarchy, FLUX images, UI boundaries
-            }
-            // Gear R: Research — Embeddings & permanence (evaluation phases)
-            AddiecrapeyePhase::Evaluation | AddiecrapeyePhase::Alignment => {
-                "research" // RAG embeddings, QM rubrics, scope pruning
-            }
-            // Gear T: Tempo — Audio/music generation (build phases)
-            AddiecrapeyePhase::Development
+            // T only — Tempo handles these without a Hotel guest
+            // Analysis: lightweight Socratic questioning to extract intent
+            // Implementation: walkthrough testing, conversational guidance
+            // Repetition: pattern consistency audit, conversational
+            // Evolve: celebration, export, wrap-up dialog
+            AddiecrapeyePhase::Analysis
             | AddiecrapeyePhase::Implementation
-            | AddiecrapeyePhase::Repetition => "tempo",
-            // Full P.A.R.T.Y swarm for coupling + shipping
-            AddiecrapeyePhase::Yoke | AddiecrapeyePhase::Evolve => "pete", // Pete leads the final assembly
+            | AddiecrapeyePhase::Repetition
+            | AddiecrapeyePhase::Evolve => {
+                info!(
+                    "🏨 Hotel Management: Phase {} → T (Tempo only, no swap needed)",
+                    phase
+                );
+                // Free the Hotel swap zone — evict any current occupant to reclaim VRAM
+                crate::hotel_manager::hotel_checkout().await;
+                return Ok(());
+            }
+
+            // P — Programming: code gen, tool calling, structured output
+            // Design: writing measurable objectives, choosing mechanics
+            // Development: building first tangible artifact, scaffolding
+            // Yoke: final assembly, integration code, compilation
+            AddiecrapeyePhase::Design
+            | AddiecrapeyePhase::Development
+            | AddiecrapeyePhase::Yoke => {
+                info!(
+                    "🏨 Hotel Management: Phase {} → P (Programming — Gemma 4 26B A4B)",
+                    phase
+                );
+                PartyRole::Programming
+            }
+
+            // R — Reasoning: deep evaluation, quality rubrics, reflection
+            // Evaluation: QM rubric analysis, quality measurement
+            // Alignment: scope pruning, extraneous load elimination
+            // Envision: meta-cognitive reflection, PEARL comparison
+            AddiecrapeyePhase::Evaluation
+            | AddiecrapeyePhase::Alignment
+            | AddiecrapeyePhase::Envision => {
+                info!(
+                    "🏨 Hotel Management: Phase {} → R (Reasoning — Gemma 4 31B Dense)",
+                    phase
+                );
+                PartyRole::Reasoning
+            }
+
+            // A — Aesthetics: vision-language CRAP critique
+            // Contrast: visual hierarchy analysis, emphasis ranking
+            // Proximity: UX grouping, spatial layout evaluation
+            AddiecrapeyePhase::Contrast | AddiecrapeyePhase::Proximity => {
+                info!(
+                    "🏨 Hotel Management: Phase {} → A (Aesthetics — Janus Pro 7B)",
+                    phase
+                );
+                PartyRole::Aesthetics
+            }
         };
 
-        // LONE WOLF MODE: Log the gear shift but don't actually swap models.
-        // Single LongCat-Next 74B MoE handles all phases.
-        info!(
-            "Hotel Management (Lone Wolf): Phase {} → gear {} (no swap)",
-            phase, target_role
-        );
+        // Execute the actual Hotel swap: kill old model → launch new → wait for health
+        let result = crate::hotel_manager::hotel_swap(target_role).await;
+
+        if result.success {
+            info!(
+                "🏨 Hotel swap complete: {} loaded in {:.1}s",
+                result.message,
+                result.duration.as_secs_f64()
+            );
+        } else {
+            // Swap failed — degrade gracefully to Lone Wolf mode.
+            // Tempo (E4B) will handle this phase's requests.
+            warn!(
+                "🏨 Hotel swap failed: {} (took {:.1}s) — Tempo handles this phase",
+                result.message,
+                result.duration.as_secs_f64()
+            );
+        }
 
         Ok(())
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // CORE: Call Pete (LongCat-Next) via LLM server for real inference
+    // CORE: Call Pete (Gemma 4) via LLM server for real inference
     // ═══════════════════════════════════════════════════════════════════
 
     /// Call Pete (the Conductor model) with a phase-specific system prompt.

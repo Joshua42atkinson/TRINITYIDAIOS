@@ -5,7 +5,7 @@
 # Usage: ./run-trinity.sh
 #
 # This script:
-#   1. Checks for a running LLM backend (LM Studio, Ollama, etc.)
+#   1. Checks for Pete (Gemma 4 on port 8001) and A.R.T.Y. Hub (port 8000)
 #   2. Starts Trinity in headless mode
 #   3. Opens the browser to http://localhost:3000
 # ═══════════════════════════════════════════════════════════════
@@ -45,9 +45,9 @@ fi
 echo -n "Checking for LLM backends... "
 LLM_FOUND=false
 
-# Check LongCat-Next Omni-Brain (Pete — port 8010)
-if curl -s --connect-timeout 2 http://127.0.0.1:8010/health > /dev/null 2>&1; then
-    echo -e "${GREEN}✅ Pete / LongCat-Next detected on port 8010${NC}"
+# Check Pete / Gemma 4 (vLLM on port 8001)
+if curl -s --connect-timeout 2 http://127.0.0.1:8001/health > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ Pete / Gemma 4 detected on port 8001${NC}"
     LLM_FOUND=true
 fi
 
@@ -61,9 +61,9 @@ fi
 if [ "$LLM_FOUND" = false ]; then
     echo -e "${YELLOW}⚠️  No LLM backend detected${NC}"
     echo ""
-    echo -e "   Trinity needs LongCat-Next on port 8010 to function."
+    echo -e "   Trinity needs Pete (Gemma 4 E4B AWQ) on port 8001 to function."
     echo -e "   Start via:"
-    echo -e "   ${BLUE}distrobox enter sglang-engine -- bash ./longcat_omni_sidecar/launch_engine.sh${NC}"
+    echo -e "   ${BLUE}./scripts/launch/launch_pete.sh${NC}"
     echo -e ""
     echo -e "   For A.R.T.Y. Hub (embeddings/RAG):"
     echo -e "   ${BLUE}./scripts/launch/launch_arty_hub.sh${NC}"

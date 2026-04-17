@@ -5,7 +5,7 @@
 
 set -e
 
-DISTROBOX_NAME="vllm"
+DISTROBOX_NAME="vllm-019"
 MODEL_DIR="$HOME/trinity-models/vllm"
 
 # --- Preflight: ensure distrobox exists ---

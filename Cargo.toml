@@ -10,7 +10,7 @@ members = [
     "crates/trinity-voice",            # Supertonic TTS, SSML, VAAM vocal emphasis
 
     # ── Native Extensions ──
-    "crates/trinity-daydream",         # Bevy 0.18.1 3D LitRPG sidecar (Layer 3)
+    "crates/trinity-daydream",         # Bevy 0.18.1 3D LitRPG / XR Studio (Layer 3)
     "crates/trinity-mcp-server",       # Model Context Protocol for IDE integration
 ]
 
@@ -63,6 +63,13 @@ bevy_panorbit_camera = { version = "0.34", default-features = false }
 noise = { version = "0.9", default-features = false }
 image = "0.25"
 bincode = "1.3"
+
+# XR / OpenXR (used by trinity-daydream with feature "xr")
+bevy_mod_xr = { version = "0.5", default-features = false }
+bevy_mod_openxr = { version = "0.5", default-features = false }
+
+# Selective save/load (used by trinity-daydream with feature "save")
+moonshine-save = { version = "0.4", default-features = false }
 
 # RPC
 tarpc = { version = "0.35", features = ["tokio1", "serde-transport", "serde-transport-bincode"] }

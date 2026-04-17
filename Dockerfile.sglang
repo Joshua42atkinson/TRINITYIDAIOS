@@ -1,0 +1,12 @@
+FROM lmsysorg/sglang:latest-rocm
+
+# The SGLang image relies heavily on vLLM backend matrices. 
+# LongCat-Next natively uses Identity activation mappings for visual passthroughs 
+# and defaults its configuration to bfloat16. 
+# We dynamically locate the installed quantization modules and aggressively patch out 
+# the brittle PyTorch/vLLM hardcoded assertions so the container doesn't crash on boot.
+
+RUN find / -name "moe_wna16.py" -type f -exec sed -i 's/assert layer.activation == MoEActivation.SILU/# Bypass SiLU constraint for LongCat/g' {} +
+RUN find / -name "awq.py" -type f -exec sed -i 's/return \[torch.half\]/return \[torch.half, torch.bfloat16\]/g' {} +
+
+# Add any additional library fixes here if Triton specific errors occur on Strix Halo
