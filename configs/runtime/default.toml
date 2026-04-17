@@ -2,90 +2,174 @@
 # Trinity ID AI OS — Runtime Configuration
 # ═══════════════════════════════════════════════════════════════════════════════
 #
-# INFERENCE ARCHITECTURE (April 9, 2026 — P.A.R.T.Y. Framework):
-#   SGLang (8010): LongCat-Next 74B MoE — Pete (P). Instructional Designer + Great Recycler.
-#                  Parallel 2 KV cache (2× 156K MLA). Handles Socratic, narrative, DiNA images,
-#                  CosyVoice TTS, Acestep 1.5 audio/music generation.
-#   vLLM  (8000): A.R.T.Y. Hub — FastAPI reverse proxy routing to:
-#                  R: nomic-embed-text-v1.5-AWQ (port 8005) — RAG semantic embeddings
-#                  Y: Yardmaster/Qwen REAP (port 8009) — coding subagent (optional)
-#                  A: FLUX/CogVideoX/TripoSR (ports 8004/8006/8007) — creative models (optional)
-#                  T: ACE-Step (port 8008) — music generation (optional)
+# P-ART-Y MODEL ARCHITECTURE (April 14, 2026 — Gemma 4 Harmony):
 #
-# The InferenceRouter auto-detects backends on startup.
-# Set LLM_URL env var to override with a specific endpoint.
+#   The TRINITY inference layer uses three sizes of the Gemma 4 model family
+#   to match cognitive load to model capacity. Same tokenizer, same tool
+#   calling schema, same quantization pipeline, same Apache 2.0 license.
+#
+#   ═══ ALWAYS-ON PERMANENT RESIDENTS ═══
+#
+#   T — Tempo (Port 8001): Gemma-4-E4B-it AWQ 4-bit (~6 GB)
+#       Fast-twitch always-on brain. Chat, NPC dialog, Socratic questioning,
+#       TTS routing. 128K context, multimodal (text + image + audio).
+#
+#   A — Aesthetics: FLUX.1-schnell GGUF (~7 GB) via embedded Candle crate
+#       2D image generation. No sidecar needed.
+#
+#   Voice: Kokoro TTS ONNX (~1 GB) via embedded ORT crate
+#       Text-to-speech synthesis. No sidecar needed.
+#
+#   Embed: nomic-embed-text-v1.5 ONNX (~1 GB) via embedded ORT crate
+#       RAG semantic search embeddings. No sidecar needed.
+#
+#   ═══ HOTEL SWAP ZONE (one heavyweight at a time) ═══
+#
+#   P — Programming (Port 8000): Gemma-4-26B-A4B-it AWQ 4-bit (~16 GB)
+#       MoE coding brain. 26B total, 4B active per token. 256K context.
+#       Loaded during: Development, Yoke, Evolve phases.
+#
+#   R — Reasoning (Port 8002): Gemma-4-31B-it AWQ 4-bit (~18 GB)
+#       Dense reasoning brain. All 31B params active. 256K context.
+#       Loaded during: Evaluation, Alignment, Envision phases.
+#
+#   A₂ — Vision Critique (Port 8003): Janus Pro 7B (~4 GB)
+#       Vision-Language CRAP evaluation of UI screenshots.
+#       Loaded during: Contrast, Proximity phases.
+#
+#   ═══ FALLBACK TIER (for student/consumer hardware) ═══
+#
+#   Port 8080: llama-server / Ollama / LM Studio
+#       Any OpenAI-compatible server. "Lone Wolf" mode — single model
+#       handles all P-ART-Y roles. See docs/LM_STUDIO_SETUP.md.
+#
+#   The InferenceRouter auto-detects backends on startup.
+#   Set LLM_URL env var to override with a specific endpoint.
 # ═══════════════════════════════════════════════════════════════════════════════
 
 [node]
 type = "Auto"  # Auto-detect Brain/Body
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# INFERENCE — P-ART-Y Model Routing
+# ═══════════════════════════════════════════════════════════════════════════════
+
 [inference]
-primary = "step-flash-reap"
+primary = "tempo-e4b"
 auto_detect = true
 ctx_size = 131072
 max_tokens = 16384
 
-# ── Pete (vLLM / LM Studio — Step-3.5-Flash-REAP-121B) ──
-# Pete IS the Great Recycler. Instructional designer, DM, narrator.
-# Replaces the legacy LongCat-Next MoE engine.
-# Capabilities: text, reasoning, pedagogy. Unmatched cognitive capability.
+# ── T — Tempo: Gemma 4 E4B AWQ 4-bit (Always On) ──────────────────────────
+# The fast-twitch always-on brain. Chat, NPC dialog, Socratic questioning.
+# Multimodal (text + image + audio). 128K context. ~6 GB VRAM.
+# This is the PERMANENT RESIDENT — never unloaded.
 
-[inference.backends.step-flash-reap]
+[inference.backends.tempo-e4b]
+url = "http://127.0.0.1:8001"
+supports_tools = true
+supports_vision = true
+party_role = "T"
+always_resident = true
+
+# ── P — Programming: Gemma 4 26B A4B AWQ 4-bit (Hotel Swap) ───────────────
+# The MoE coding brain. 26B total params, 4B active per token.
+# Native function calling, 256K context. ~16 GB VRAM.
+# Loaded during: Design, Development, Yoke, Evolve phases.
+
+[inference.backends.pete-coder]
 url = "http://127.0.0.1:8000"
 supports_tools = true
-supports_vision = false
+supports_vision = true
+party_role = "P"
+always_resident = false
 
-# ── Aesthetics (LM Studio / vLLM — Janus-Pro-7B) ──
-# Multimodal / Vision fallback for the A.R.T.Y framework.
+# ── R — Reasoning: Gemma 4 31B Dense AWQ 4-bit (Hotel Swap) ───────────────
+# The dense reasoning brain. ALL 31B params active on every token.
+# Maximum quality for evaluation and philosophical reasoning. ~18 GB VRAM.
+# Loaded during: Evaluation, Alignment, Envision phases.
+
+[inference.backends.recycler-dense]
+url = "http://127.0.0.1:8002"
+supports_tools = true
+supports_vision = false
+party_role = "R"
+always_resident = false
+
+# ── A₂ — Aesthetics/Vision: Janus Pro 7B (Hotel Swap) ─────────────────────
+# Vision-Language model for CRAP evaluation of UI screenshots.
+# Analyzes Contrast, Proximity, Alignment, Repetition in layouts. ~4 GB.
+# Loaded during: Contrast, Proximity phases.
+
 [inference.backends.janus-pro]
-url = "http://127.0.0.1:1234"
+url = "http://127.0.0.1:8003"
 supports_tools = false
 supports_vision = true
+party_role = "A"
+always_resident = false
 
-# ── A.R.T.Y. Hub (vLLM reverse proxy) ──
-# Routes to downstream vLLM instances for embeddings, coding, creative
-# Start via: ./scripts/launch/launch_arty_hub.sh
+# ── Fallback: llama-server / Ollama / LM Studio ───────────────────────────
+# Any OpenAI-compatible server the user has running.
+# "Lone Wolf" mode — single model handles all P-ART-Y roles.
+# See docs/LM_STUDIO_SETUP.md for recommended settings per hardware tier.
 
-[inference.backends.arty-hub]
-url = "http://127.0.0.1:8000"
-supports_tools = false
-supports_vision = false
+[inference.backends.llama-server]
+url = "http://127.0.0.1:8080"
+supports_tools = true
+supports_vision = true
+party_role = "T"
+always_resident = false
 
-# ── Yardmaster (Y) — Qwen REAP via vLLM ──
-# Part of the A.R.T.Y. Hub, routed through port 8000 to port 8009
-# The engineer that Pete is NOT. Writes Rust, builds React, runs cargo check.
-# Not yet serving — add model to launch_arty_hub.sh when ready
-
-[inference.backends.yardmaster-reap]
-url = "http://127.0.0.1:8000"
+[inference.backends.ollama]
+url = "http://127.0.0.1:11434"
 supports_tools = true
 supports_vision = false
+party_role = "T"
+always_resident = false
 
+[inference.backends.lm-studio]
+url = "http://127.0.0.1:1234"
+supports_tools = true
+supports_vision = true
+party_role = "T"
+always_resident = false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MODEL — Primary Tempo backbone
+# ═══════════════════════════════════════════════════════════════════════════════
 
 [model]
-model_dir = "~/trinity-models/sglang/LongCat-Next"
-default_model = "LongCat-Next-74B-MoE-NF4"
+model_dir = "~/trinity-models/vllm/gemma-4-E4B-it-AWQ-4bit"
+default_model = "Gemma-4-E4B-AWQ-4bit"
 n_gpu_layers = -1  # Full offload
 context_size = 131072
 batch_size = 512
 n_threads = 16
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# CREATIVE — Embedded + sidecar media pipeline
+# ═══════════════════════════════════════════════════════════════════════════════
+
 [creative]
-# LongCat DiNA handles image generation natively on port 8010
-longcat_image_url = "http://127.0.0.1:8010/v1/images/generations"
-longcat_tts_url = "http://127.0.0.1:8010/tts"
-longcat_audio_url = "http://127.0.0.1:8010/v1/audio/generations"
-# Legacy creative sidecars (optional, managed by A.R.T.Y. Hub)
-# flux_url = "http://127.0.0.1:8000"      # Routed via A.R.T.Y. → 8004
-# cogvideo_url = "http://127.0.0.1:8000"   # Routed via A.R.T.Y. → 8006
+# Image: FLUX.1-schnell via embedded Candle (GGUF Q4, ~7 GB) — no sidecar needed
+# Music: ACE-Step 1.5 via orchestrated Python sidecar (safetensors, 7.8GB)
+# TTS:   Kokoro via embedded ORT (ONNX, 338MB) — no sidecar needed
+# 3D:    TripoSR via optional Gradio sidecar
+flux_image_url = "http://127.0.0.1:8004/v1/images/generations"
+acestep_music_url = "http://127.0.0.1:8008/v1/audio/generations"
 hunyuan3d_url = "http://127.0.0.1:7860"
 auto_launch = false
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# MEMORY — RAG vector store (embedded ORT)
+# ═══════════════════════════════════════════════════════════════════════════════
+
 [memory]
 vector_store_path = "~/.trinity/vectors"
-embedding_model = "nomic-embed-text-v1.5-AWQ"
-embedding_url = "http://127.0.0.1:8000/v1/embeddings"
-embedding_dim = 768
+embedding_model = "all-MiniLM-L6-v2"
+# Embedded ONNX via ort crate — no vLLM dependency for embeddings
+embedding_url = "embedded://ort/all-MiniLM-L6-v2"
+embedding_dim = 384
 max_recall = 20
 
 [network]
