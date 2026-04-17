@@ -997,9 +997,9 @@ async fn tool_system_info() -> Result<String, String> {
 async fn tool_sidecar_status() -> Result<String, String> {
     let mut status = Vec::new();
 
-    let llm_ok = crate::inference::check_health("http://127.0.0.1:8001").await;
+    let llm_ok = crate::inference::check_health("http://127.0.0.1:1234").await;
     status.push(format!(
-        "Pete / Gemma 4 E4B AWQ (port 8001 — vLLM, text+vision+tools): {}",
+        "Signal Tower / LM Studio (port 1234 — local inference): {}",
         if llm_ok { "✅ running" } else { "❌ stopped" }
     ));
 

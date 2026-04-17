@@ -62,8 +62,16 @@ export PYTORCH_ROCM_ARCH="gfx1151"
 export TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1
 export VLLM_SKIP_WARMUP=true
 export HSA_OVERRIDE_GFX_VERSION=11.5.1
-export PYTORCH_HIP_ALLOC_CONF=expandable_segments:True
+export PYTORCH_HIP_ALLOC_CONF=garbage_collection_threshold:0.8\n# NOTE: expandable_segments not supported on gfx1151 (silently ignored)
 export NCCL_P2P_DISABLE=1
+
+# ── CPU Thread Restrictions (Antigravity coexistence on UMA) ──
+export OMP_NUM_THREADS=4
+export MKL_NUM_THREADS=4
+export TORCH_NUM_THREADS=4
+export NUMEXPR_MAX_THREADS=4
+export OPENBLAS_NUM_THREADS=4
+export VECLIB_MAXIMUM_THREADS=4
 
 /opt/venv/bin/vllm serve "$HOME/trinity-models/vllm/gemma-4-E4B-it-AWQ-4bit" \\
     --port 8001 \\

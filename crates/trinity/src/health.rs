@@ -140,7 +140,7 @@ pub async fn health_check(
         .is_ok();
 
     let tempo_ok = crate::http::QUICK
-        .get("http://127.0.0.1:8001/health")
+        .get("http://127.0.0.1:1234/health")
         .send()
         .await
         .map(|r| r.status().is_success())

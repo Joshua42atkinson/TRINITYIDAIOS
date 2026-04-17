@@ -35,7 +35,7 @@ impl Default for PeteConfig {
             use_gpu_acceleration: true,
             model_id: "Great_Recycler".into(),
             api_url: std::env::var("PETE_ENGINE_URL")
-                .unwrap_or_else(|_| "http://127.0.0.1:8001".into()),
+                .unwrap_or_else(|_| "http://127.0.0.1:1234".into()),
             max_tokens: 4096,
         }
     }
@@ -125,7 +125,7 @@ mod tests {
     fn test_default_config() {
         let config = PeteConfig::default();
         assert!(config.use_gpu_acceleration);
-        assert!(config.api_url.contains("8001"));
+        assert!(config.api_url.contains("1234"));
         assert_eq!(config.max_tokens, 4096);
     }
 

@@ -389,8 +389,9 @@ impl Default for ConductorConfig {
             model_path: PathBuf::from(home)
                 .join("trinity-models/vllm/gemma-4-E4B-it-AWQ-4bit"),
             context_size: 131072, // Gemma 4 E4B 128K context window
+            // Signal Tower: LM Studio on port 1234 (override with LLM_URL env var)
             server_url: std::env::var("LLM_URL")
-                .unwrap_or_else(|_| "http://127.0.0.1:8001".to_string()),
+                .unwrap_or_else(|_| "http://127.0.0.1:1234".to_string()),
             verbose: false,
         }
     }

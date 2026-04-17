@@ -82,9 +82,19 @@ export PYTORCH_ROCM_ARCH="gfx1151"
 export TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1
 export VLLM_SKIP_WARMUP=true
 export HSA_OVERRIDE_GFX_VERSION=11.5.1
-export PYTORCH_HIP_ALLOC_CONF=expandable_segments:True
+# NOTE: expandable_segments not supported on gfx1151 (silently ignored)
+# NOTE: VLLM_USE_V1 was removed in vLLM 0.19 — V1 engine is the only engine
 export NCCL_P2P_DISABLE=1
-export VLLM_USE_V1=0
+
+# ── CPU Thread Restrictions (Antigravity coexistence on UMA) ──
+# Without these, PyTorch spawns OMP_NUM_THREADS=nproc (32) per operator,
+# causing 170+ threads per vLLM process and massive context-switch overhead.
+export OMP_NUM_THREADS=4
+export MKL_NUM_THREADS=4
+export TORCH_NUM_THREADS=4
+export NUMEXPR_MAX_THREADS=4
+export OPENBLAS_NUM_THREADS=4
+export VECLIB_MAXIMUM_THREADS=4
 
 /opt/venv/bin/vllm serve "\$HOME/trinity-models/vllm/gemma-4-31B-it-AWQ-4bit" \\
     --port $PORT \\

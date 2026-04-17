@@ -152,19 +152,27 @@ Every design decision in Trinity serves exactly three audiences:
 
 ### 1.3 The P.A.R.T.Y. Framework
 
-Trinity's AI is organized into 5 roles across 2 sidecars — the **Dual Brain** architecture splits work between Pete's Omni-Brain (SGLang) and the A.R.T.Y. Support Hub (vLLM). This framework maps to the **P.A.R.T.Y.** protocol:
+Trinity's AI is organized into 5 roles across 2 layers — the **Agnostic Architecture** splits work between an external inference engine (P) and embedded ONNX models (ART). This framework maps to the **P.A.R.T.Y.** protocol:
 
-| Agent | Full Name | Role | Backend Sidecar |
-|-------|-----------|------|-----------------|
-| **P** (Pete) | Pete — Instructional Designer | The Great Recycler. DM of the Iron Road. Socratic mentor, LitRPG narrator. Pete does the majority of Trinity's work. **Pete is NOT a software engineer.** He breaks character as "Programmer Pete" to get things done, but delegates real engineering to Y. | Gemma 4 9B or LLaDA 2.1 Mini 8B (256K NTK) · vLLM (Port 8001) |
-| **A** (Aesthetics) | The Artist | Support visual and spatial generation. Native image gen via Janus Pro, video via CogVideo, 3D via TripoSR. | Janus Pro 7B, CogVideoX-2B, TripoSR · FastAPI (Port 8003) |
-| **R** (Research) | The Researcher | Embeddings & permanence. Balances Aesthetics (A) and Tempo (T) so that the information Pete delivers is balanced between visual and audio. | RAG embeddings (nomic-embed/ort) |
-| **T** (Tempo) | Kokoro / Acestep | Audio & music generation. The audio counterpart to Aesthetics. Voice narration, music vibe station settings. | Kokoro TTS · Engine (Port 8200) |
-| **Y** (Yardmaster) | RUST REAP | Software engineering subagent. The engineer that Pete is NOT. Writes Rust, builds React, runs cargo check. | Qwen3-Coder-REAP-25B · vLLM (Port 8000) |
+| Agent | Full Name | Role | Backend |
+|-------|-----------|------|---------|
+| **P** (Pete) | Pete — Instructional Designer | The Great Recycler. DM of the Iron Road. Socratic mentor, LitRPG narrator. Pete does the majority of Trinity's work. **Pete is NOT a software engineer.** He breaks character as "Programmer Pete" to get things done, but delegates real engineering to Y. | **LM Studio** (port 1234), Ollama, or any OpenAI-compatible server. User-managed — load whatever model fits your hardware. |
+| **A** (Aesthetics) | The Artist | Visual and spatial generation. Native image gen via Janus Pro ONNX, 4K upscaling via Real-ESRGAN. ComfyUI integration via MCP for advanced workflows. | Janus Pro 7B ONNX (embedded ORT) + ComfyUI (external MCP tool) |
+| **R** (Research) | The Researcher | Embeddings & permanence. Semantic search over user content, conversation history, and codebase for RAG grounding. | all-MiniLM-L6-v2 ONNX (embedded ORT) |
+| **T** (Tempo) | Kokoro TTS | Audio & voice narration. The audio counterpart to Aesthetics. Voice narration, music vibe station settings. | Kokoro TTS ONNX (embedded ORT, ~338 MB) |
+| **Y** (Yardmaster) | The User | **The Subject Matter Expert.** The human who brings domain expertise, creative vision, and intent. Pete scaffolds — the user creates. Trinity teaches the user to use tools like LM Studio, ComfyUI, and Bevy. | The human at the keyboard |
 
 > 📍 `main.rs:L220-268` — `installed_model_inventory()` lists all loaded models dynamically routing through EdgeGuard
 
-The **P.A.R.T.Y.** mnemonic establishes structural parity. Pete IS the Great Recycler. The A.R.T.Y. Hub handles everything Pete can't do: visual generation via Janus Pro, audio via Kokoro, embeddings via local ONNX, and software engineering via Qwen. By deploying isolated agnostic micro-services, the architecture guarantees massive stability and uptime, preventing monolithic backend crashes.
+The **P.A.R.T.Y.** mnemonic establishes structural parity. Pete IS the Great Recycler. The A.R.T. layer handles everything Pete can't do: visual generation via Janus Pro, audio via Kokoro, and embeddings via local ONNX. By deploying an agnostic architecture where the inference engine is user-managed, Trinity eliminates the burden of server administration and works on any machine.
+
+**Two Tiers of Operation:**
+
+| Tier | What Runs | Who Uses It | Experience |
+|------|-----------|-------------|------------|
+| **Standalone** | Trinity binary only (ORT embedded models) | Anyone with `cargo install` | Story mode, Socratic chat, VAAM, voice — no setup required |
+| **Enhanced** | Trinity + LM Studio (or any compatible server) | Power users, overnight sessions, institutional | Full reasoning depth, tool calling, code gen, advanced workflows |
+| **Server** | Trinity + vLLM (institutional deployment) | Purdue, multi-user classrooms | Batched inference, multi-student concurrent access |
 
 ### 1.4 The Three Operating Modes
 
@@ -320,56 +328,48 @@ crates/trinity/src/
 
 ### 1.9 The Hardware Platform
 
-Trinity is designed explicitly for the unified memory architecture of the **AMD Strix Halo APU**.
+Trinity is designed for the unified memory architecture of the **AMD Strix Halo APU**, but the agnostic architecture runs on any machine with 8+ GB RAM.
 
 | Component | Specification | Trinity Uses For |
 |-----------|--------------|-----------------|
-| **CPU** | Ryzen AI Max+ 395 (16C/32T Zen 5) | Server, I/O, Python Server orchestration |
-| **GPU** | Radeon 8060S (40 CUs RDNA 3.5, gfx1151) | vLLM Omni inference backend (ROCm) |
-| **NPU** | XDNA 2 (50 TOPS) | Planned: speculative decoding, rapid STT/TTS |
+| **CPU** | Ryzen AI Max+ 395 (16C/32T Zen 5) | Server, I/O, ORT inference, Unsloth fine-tuning |
+| **GPU** | Radeon 8060S (40 CUs RDNA 3.5, gfx1151) | LM Studio inference (llama.cpp), ComfyUI rendering |
+| **NPU** | XDNA 2 (50 TOPS) | Future: speculative decoding, rapid STT/TTS |
 | **Memory** | 128 GB unified LPDDR5x-8000 | Shared across CPU+GPU+NPU — zero copy overhead |
 
-**Why this matters**: A traditional PCIe GPU maxes out at 24GB. The unified 128GB memory allows an impossible deployment on a single machine: running the *entire P.A.R.T.Y. cluster simultaneously*.
+**Why this matters**: A traditional PCIe GPU maxes out at 24GB. The unified 128GB memory allows Trinity to run the full ART embedded layer alongside large LM Studio models without memory pressure.
 
-#### The Agnostic Micro-Sidecar Architecture (April 2026)
+#### The Agnostic Architecture (April 2026)
 
-Trinity maximizes the 128GB unified APU by routing inferences across isolated sidecars. The legacy system relied entirely on a monolithic LongCat model which proved highly unstable. Under the new Linux 7 architecture, Trinity runs an agnostic matrix:
+Trinity uses a **two-tier agnostic architecture** that separates the embedded ORT layer (runs anywhere) from the optional external inference engine (user-managed):
 
-| Port | Service | Model / Engine | Status |
-|------|---------|----------------|---------|
-| **8001** | **Primary Brain (Pete)** | Gemma 4 9B E4B / LLaDA 2.1 Mini 256K (vLLM) | Primary Socratic Engine |
-| **8000** | **Yardmaster (REAP)** | Qwen3-Coder-REAP-25B (vLLM) | Coding Subagent |
-| **8003** | **Aesthetics (Vision)** | Janus Pro 7B (FastAPI) | Local Image Generation & Vision Decoder |
-| **8200** | Audio Sidecar | Kokoro TTS | Apache 2.0, 6 voice presets |
-| **3000** | Trinity Server | Axum + React | Main application |
+| Layer | Component | Engine | Memory |
+|-------|-----------|--------|--------|
+| **ORT Embedded** | A — Janus Pro 7B (vision + images) | ONNX Runtime | ~4 GiB |
+| **ORT Embedded** | R — all-MiniLM-L6-v2 (RAG embeddings) | ONNX Runtime | ~90 MB |
+| **ORT Embedded** | T — Kokoro TTS (voice narration) | ONNX Runtime | ~338 MB |
+| **ORT Embedded** | ★ Story Model (~3B Opus-distilled) | ONNX Runtime | ~1.5 GiB |
+| **External** | P — LM Studio (port 1234) | llama.cpp | User's choice |
+| **External** | ComfyUI (MCP tool) | PyTorch | User's choice |
+| **Embedded** | Trinity Server (port 3000) | Axum | ~100 MB |
 
-#### Distrobox & Linux 7 Execution Environment
+#### ART Model Fine-Tuning Pipeline
 
-vLLM runs inside a **distrobox** container, mapping ports to `127.0.0.1`. Crucially, Trinity requires **Linux kernel 7.0+** because it resolves legacy HSA (Heterogeneous System Architecture) mapping bugs, allowing the Linux kernel to properly expose the entire 128GB LPDDR5X unified memory pool dynamically via `PagedAttention`. 
-* Ensure BIOS UMA Frame Buffer is set to `512MB` so the kernel dynamically allocates the rest.
+The ART embedded models are specialized for Trinity's specific use cases using a **Unsloth → ONNX** pipeline:
 
-- **Image**: `docker.io/kyuz0/vllm-therock-gfx1151:latest`
-- **vLLM Version**: `0.19.1rc1.dev1`
-- **GPU target**: gfx1151 (RDNA 3.5, Strix Halo)
-- **ROCm SDK**: `7.13.0`
+1. **Fine-tune with Unsloth** — Fast LoRA fine-tuning on consumer hardware. Each ART model is distilled from a larger teacher (Opus) for its specific role (Socratic dialog, vision critique, narrative prose).
+2. **Export to ONNX** — Convert the fine-tuned model to ONNX format for cross-platform ORT inference.
+3. **Quantize** — INT4 quantization via AMD Quark or ONNX quantization tools for minimal memory footprint.
+4. **Embed** — Ship the quantized ONNX model alongside the Trinity binary.
 
-#### ⚠️ Deprecation Notice: The Anti-LongCat Protocol
-> **RESOLVED (April 13, 2026):** Monolithic 50GB multimodal models (e.g., LongCat) proved irredeemably unstable for sustained game dev workflows. Trinity now strictly enforces agnostic micro-sidecar architectures (LLaDA for 256K massive context codebase grounding, Janus for images, Kokoro for sound). This drastically reduces cognitive load on the user to serve as a server admin.
+This pipeline ensures every ART model is purpose-built for its role rather than using a generic pretrained model.
 
-#### Static VRAM Budget Goal (128GB Unified)
+#### Legacy: vLLM Server Tier (Purdue Deployment)
 
-| Slot | Sidecar | Model | VRAM Target |
-|------|---------|-------|-------------|
-| **Pete (8001)** | vLLM | LLaDA 2.1 Mini (8B) or Gemma 4 | ~12 GiB |
-| **Yard (8000)** | vLLM | Qwen3-Coder | ~24 GiB |
-| **Visual (8003)**| FastAPI | Janus Pro 7B | ~14 GiB |
-| **Voice (8200)**| Kokoro | Kokoro TTS | ~2 GiB |
-| **Total** | | | **~52 GiB** | 
-
-This leaves nearly 70 GiB of safe headroom for OS overhead, the 256k NTK memory caches, and browser execution.
+> For multi-user institutional deployments requiring batched inference and concurrent student access, Trinity supports a vLLM server tier. This configuration uses the same OpenAI-compatible API but routes through dedicated GPU-backed vLLM instances. See `docs/archive/vllm_server_tier/` for distrobox setup, ROCm configuration, and the full P-ART-Y fleet port assignments.
 
 > 📍 `configs/runtime/default.toml` — Runtime backend configuration
-> 📍 `crates/trinity/src/inference_router.rs` — Multi-backend router (default = pete-gemma4 on 8001)
+> 📍 `crates/trinity/src/inference_router.rs` — Multi-backend router (default = lm-studio on 1234)
 
 ### 1.10 The Frontend & Javascript Phase-Out
 

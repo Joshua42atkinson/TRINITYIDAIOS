@@ -74,6 +74,14 @@ export TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1
 export VLLM_SKIP_WARMUP=true
 export HSA_OVERRIDE_GFX_VERSION=11.5.1
 
+# CPU Thread Restrictions (Antigravity coexistence on UMA)
+export OMP_NUM_THREADS=4
+export MKL_NUM_THREADS=4
+export TORCH_NUM_THREADS=4
+export NUMEXPR_MAX_THREADS=4
+export OPENBLAS_NUM_THREADS=4
+export VECLIB_MAXIMUM_THREADS=4
+
 /opt/venv/bin/vllm serve "$HOME/trinity-models/vllm/nomic-embed-text-v1.5-AWQ" \
     --port 8005 \
     --gpu-memory-utilization 0.05 \

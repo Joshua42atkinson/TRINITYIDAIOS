@@ -189,7 +189,7 @@ pub struct BackendConfig {
 }
 
 fn default_primary() -> String {
-    "tempo-e4b".to_string()
+    "lm-studio".to_string()
 }
 fn default_party_role() -> PartyRole {
     PartyRole::Tempo
@@ -365,57 +365,20 @@ impl InferenceRouter {
             .collect()
     }
 
-    /// Default backend list when no config is found
+    /// Default backend list when no config is found.
+    /// Agnostic architecture: LM Studio first, then fallbacks.
+    /// vLLM backends are configured via TOML for server-tier deployments.
     fn default_backends() -> Vec<InferenceBackend> {
         vec![
-            // ── T — Tempo: Gemma 4 E4B AWQ (always-on, ~6 GB) ──
+            // ── P — LM Studio: Primary Signal Tower (user-managed) ──
             InferenceBackend {
-                name: "tempo-e4b".to_string(),
-                kind: BackendKind::VllmOmni,
-                base_url: "http://127.0.0.1:8001".to_string(),
+                name: "lm-studio".to_string(),
+                kind: BackendKind::LmStudio,
+                base_url: "http://127.0.0.1:1234".to_string(),
                 supports_tools: true,
                 supports_vision: true,
-                party_role: PartyRole::Tempo,
+                party_role: PartyRole::Programming, // P = LM Studio in agnostic arch
                 always_resident: true,
-                model_name: None,
-                healthy: false,
-                last_checked: 0,
-            },
-            // ── P — Programming: Gemma 4 26B A4B AWQ (hotel swap, ~16 GB) ──
-            InferenceBackend {
-                name: "pete-coder".to_string(),
-                kind: BackendKind::VllmOmni,
-                base_url: "http://127.0.0.1:8000".to_string(),
-                supports_tools: true,
-                supports_vision: true,
-                party_role: PartyRole::Programming,
-                always_resident: false,
-                model_name: None,
-                healthy: false,
-                last_checked: 0,
-            },
-            // ── R — Reasoning: Gemma 4 31B Dense AWQ (hotel swap, ~18 GB) ──
-            InferenceBackend {
-                name: "recycler-dense".to_string(),
-                kind: BackendKind::VllmOmni,
-                base_url: "http://127.0.0.1:8002".to_string(),
-                supports_tools: true,
-                supports_vision: false,
-                party_role: PartyRole::Reasoning,
-                always_resident: false,
-                model_name: None,
-                healthy: false,
-                last_checked: 0,
-            },
-            // ── A — Aesthetics: Janus Pro 7B (hotel swap, ~4 GB) ──
-            InferenceBackend {
-                name: "janus-pro".to_string(),
-                kind: BackendKind::JanusPro,
-                base_url: "http://127.0.0.1:8003".to_string(),
-                supports_tools: false,
-                supports_vision: true,
-                party_role: PartyRole::Aesthetics,
-                always_resident: false,
                 model_name: None,
                 healthy: false,
                 last_checked: 0,
@@ -440,19 +403,6 @@ impl InferenceRouter {
                 base_url: "http://127.0.0.1:11434".to_string(),
                 supports_tools: true,
                 supports_vision: false,
-                party_role: PartyRole::Tempo,
-                always_resident: false,
-                model_name: None,
-                healthy: false,
-                last_checked: 0,
-            },
-            // ── Fallback: LM Studio ──
-            InferenceBackend {
-                name: "lm-studio".to_string(),
-                kind: BackendKind::LmStudio,
-                base_url: "http://127.0.0.1:1234".to_string(),
-                supports_tools: true,
-                supports_vision: true,
                 party_role: PartyRole::Tempo,
                 always_resident: false,
                 model_name: None,
@@ -718,9 +668,9 @@ mod tests {
     fn test_default_backends_created_when_no_config() {
         let router = InferenceRouter::from_config(Some("/nonexistent/path.toml"));
         assert!(!router.backends.is_empty(), "Should have default backends");
-        // Default primary is "tempo-e4b", the always-on fast brain
-        assert_eq!(router.active_name(), "tempo-e4b");
-        assert_eq!(router.active_url(), "http://127.0.0.1:8001");
+        // Default primary is "lm-studio", the user-managed Signal Tower
+        assert_eq!(router.active_name(), "lm-studio");
+        assert_eq!(router.active_url(), "http://127.0.0.1:1234");
     }
 
     #[test]
@@ -823,9 +773,9 @@ supports_vision = false
         let mut router = InferenceRouter::from_config(Some("/nonexistent.toml"));
         let original_count = router.backends.len();
 
-        // Set to an existing backend URL (Pete Coder / Programming on 8000)
-        router.set_active_url("http://127.0.0.1:8000".to_string());
-        assert_eq!(router.active_url(), "http://127.0.0.1:8000");
+        // Set to an existing backend URL (LM Studio on 1234)
+        router.set_active_url("http://127.0.0.1:1234".to_string());
+        assert_eq!(router.active_url(), "http://127.0.0.1:1234");
         assert_eq!(router.backends.len(), original_count); // no new backend added
     }
 
@@ -845,12 +795,12 @@ supports_vision = false
     fn test_status_serialization() {
         let router = InferenceRouter::from_config(Some("/nonexistent.toml"));
         let status = router.status();
-        assert_eq!(status.active_backend, "tempo-e4b");
+        assert_eq!(status.active_backend, "lm-studio");
         assert!(!status.backends.is_empty());
 
         // Should serialize to JSON without panic
         let json = serde_json::to_string(&status).unwrap();
-        assert!(json.contains("tempo-e4b"));
+        assert!(json.contains("lm-studio"));
     }
 
     #[test]
@@ -880,7 +830,7 @@ model_dir = "~/trinity-models/gguf"
         let router = InferenceRouter::from_config(Some(tmp.to_str().unwrap()));
         // Should use defaults when [inference] section is missing
         assert!(!router.backends.is_empty());
-        assert_eq!(router.config.primary, "tempo-e4b");
+        assert_eq!(router.config.primary, "lm-studio");
         assert_eq!(router.config.ctx_size, 262144);
 
         std::fs::remove_file(tmp).ok();
@@ -891,27 +841,15 @@ model_dir = "~/trinity-models/gguf"
         let router = InferenceRouter::from_config(Some("/nonexistent.toml"));
 
         // Verify P-ART-Y roles are assigned correctly in default backends
-        let tempo = router.get_backend_by_role(PartyRole::Tempo);
-        assert!(tempo.is_some());
-        assert_eq!(tempo.unwrap().name, "tempo-e4b");
-        assert!(tempo.unwrap().always_resident);
-
+        // In agnostic arch, LM Studio is the Programming (P) backend
         let programming = router.get_backend_by_role(PartyRole::Programming);
         assert!(programming.is_some());
-        assert_eq!(programming.unwrap().name, "pete-coder");
-        assert!(!programming.unwrap().always_resident);
+        assert_eq!(programming.unwrap().name, "lm-studio");
+        assert!(programming.unwrap().always_resident);
 
-        let reasoning = router.get_backend_by_role(PartyRole::Reasoning);
-        assert!(reasoning.is_some());
-        assert_eq!(reasoning.unwrap().name, "recycler-dense");
-
-        let aesthetics = router.get_backend_by_role(PartyRole::Aesthetics);
-        assert!(aesthetics.is_some());
-        assert_eq!(aesthetics.unwrap().name, "janus-pro");
-
-        // Fallbacks should all be Tempo role
+        // Fallbacks should be Tempo role
         let all_tempo = router.get_backends_by_role(PartyRole::Tempo);
-        assert!(all_tempo.len() >= 4); // tempo-e4b + llama-server + ollama + lm-studio
+        assert!(all_tempo.len() >= 2); // llama-server + ollama
     }
 
     #[test]
