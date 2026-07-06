@@ -1,33 +1,87 @@
-# Session Handoff — 2026-07-05 (Evening, Post-Crash Recovery + Docs Sync)
+# Session Handoff — 2026-07-06 (Afternoon, GPU Crash Diagnosis + Pivot Cleanup)
 
 > **Hardware:** AMD Ryzen AI Max+ 395 (Strix Halo), 128GB LPDDR5X, gfx1151
-> **Models:** DiffusionGemma 26B AWQ-INT4 (P) :8000, ComfyUI (A) :8188
+> **Brain:** LM Studio :1234 — user-selected LLM (currently Hermes 4 70B, swappable)
+> **Creative:** ComfyUI :8188
 > **Trinity:** Headless mode on :3000
 > **Phone:** Pixel 10 Pro XL via Tailscale `100.83.222.35:3000`
 
 ---
 
-## System State
+## System State (Pre-Reboot)
 
 ```
-P (DiffusionGemma 26B)  :8000  ⚠️  DOWN — needs restart with new crash fixes
-A (ComfyUI 0.15.1)      :8188  ⚠️  DOWN — needs hotel/studio after Trinity starts
-Trinity API             :3000  ⚠️  DOWN — needs restart after vLLM
-RAM: ~8GB/122GB used (Chrome closed, fresh boot)
-GPU power: locked to `high` (udev rule persists)
-tuned: accelerator-performance profile active
+LM Studio               :1234  ✅ UP — Hermes 4 70B loaded (user-selectable)
+ComfyUI 0.15.1          :8188  ✅ UP
+Trinity API             :3000  ✅ UP (cargo run, not release build)
+RAM: ~9GB/122GB used
+Kernel: 7.0.0-27-generic (staying on 7.x for ROCm/gfx1151)
 ```
 
-## Architecture Update
+**REBOOT PENDING** — MES firmware fix takes effect on next boot.
 
-The hotel has been restructured to **Studio/Solo/Closed** (3 modes, no more Swap):
-- **Studio:** P + A always resident (default) — Tier 2 models loaded on demand by ComfyUI
-- **Solo:** P only, A shut down (IDE agents welcome)
-- **Closed:** All models off (night shift / maintenance)
+## What Was Done This Session
 
-**Hermes 4 70B (H):** Managed externally by LM Studio on :8002. Not hotel-managed. Submits jobs to Trinity via POST /api/jobs.
+### 1. GPU Crash Diagnosis
+- **Root cause:** Known Strix Halo (gfx1151) kernel bug — VPE power-gating race → SMU hang → `flip_done timed out` → display freeze → hard reset
+- **MES firmware was 0x86** (known-bad series 0x83+)
+- **Fix applied:** Replaced `gc_11_5_1_mes_2.bin` with known-good 0x5d from linux-firmware commit `a54ce0ff`
+- **Kernel params:** Added `amdgpu.vm_fragment_size=9` (kept existing `amdgpu.cwsr_enable=0`)
+- **udev fix:** Repaired broken literal `\n` in `70-kfd.rules`
+- **Did NOT downgrade kernel** — staying on 7.0.0-27 (required for ROCm)
+- Backup of original firmware at `/lib/firmware/amdgpu/gc_11_5_1_mes_2.bin.zst.bak`
 
-**FACES Protocol:** Moved to Semantic Slime project. `trinity-faces` crate no longer in workspace.
+### 2. Pivot Cleanup (66,136 lines removed)
+- Deleted `trinity-daydream` crate (Bevy game client, superseded by trinity-xr)
+- Deleted old React frontend (superseded by PWA `phone.html`)
+- Deleted old vLLM/sidecar launch scripts
+- Trimmed `tools.rs` from 34 to ~18 builder-relevant tools
+- Gutted `music_streamer.rs`
+- Archived `examples/` and `quests/` to `ARCHIVE_VAULT/legacy-quests-examples/`
+
+### 3. Code Fixes
+- Fixed `70-kfd.rules` udev parse error
+- Reverted bad Hermes hardcode — Trinity uses whatever model is loaded in LM Studio
+- `inference.rs` and `monitor.rs` use first model from `/v1/models` (user-selected)
+
+### 4. Docs Updated
+- `context.md` — fully rewritten for LM Studio era (was stale, referencing DiffusionGemma/vLLM)
+- `SESSION-HANDOFF.md` — this file
+
+## Commits This Session
+
+```
+5446617 fix: don't hardcode Hermes — use whatever model user loads in LM Studio
+38100bf docs: update context.md for LM Studio/Hermes era, archive legacy examples/quests
+4e5e213 chore: pivot cleanup — remove legacy Iron Road/Daydream/frontend, fix Hermes model selection
+```
+
+## After Reboot — Verify
+
+1. **MES firmware:** `sudo cat /sys/kernel/debug/dri/1/amdgpu_firmware_info | grep MES` — should show 0x5d
+2. **Start services:** LM Studio → ComfyUI → Trinity (`cargo run -p trinity -- --headless`)
+3. **Verify health:** `curl localhost:3000/api/monitor/status` — all 3 services green
+4. **Continue Sprint 0** — 3 remaining PWA features:
+   - Mode switching (Phone/VR toggle)
+   - Lesson spec rendering as structured card
+   - Audio/3D/video preview inline in chat
+
+## What NOT to Touch (Still Working)
+
+- `agent.rs` agent loop mechanics
+- `inference.rs` content extraction fix
+- `inference_router.rs` multi-backend routing
+- `rag.rs` + `ort_embed.rs`
+- `persistence.rs` + `memory_store.rs`
+- `auth.rs`
+- `quests.rs` + `conductor_leader.rs`
+
+## Next P0 Sprint Items
+
+- **Sprint 0 (remaining):** 3 PWA features above
+- **Sprint 1:** Replace hotel_manager with LM Studio API (model load/unload/download)
+- **Sprint 2:** ID persona + creative/safety tools
+- **Sprint 3:** Port Bertrand spatial-engine-bevy to trinity-xr crate
 
 **Qwythos-9B (R):** Removed from architecture. Cloud API handles review when needed.
 
