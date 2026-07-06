@@ -182,7 +182,9 @@ P0 items (see `AGENTS.md` and `docs/active/MASTER_ARCHITECTURE.md` Section 6):
 5. **`generate_3d_model` tool** — ComfyUI TRELLIS (Sprint 2)
 6. **`review_content_safety` tool** — Hermes LLM review via LM Studio (Sprint 2)
 7. **End-to-end test** — Real teacher creates lesson through PWA (Sprint 2)
+8. **trinity-xr** — Port Bertrand spatial-engine-bevy to trinity-xr crate (Sprint 3)
+9. **Tauri desktop app** — Wrap PWA in Tauri, native service management, tray icon, one-click launch (Sprint 4)
 
 **Do not work on P1 or P2 items until P0 is done.**
 
-Workflows: `.windsurf/workflows/sprint0-pwa.md`, `sprint1-lm-studio.md`, `sprint2-id-tools.md`, `sprint3-trinity-xr.md`
+Workflows: `.windsurf/workflows/sprint0-pwa.md`, `sprint1-lm-studio.md`, `sprint2-id-tools.md`, `sprint3-trinity-xr.md`, `sprint4-tauri-desktop.md`
