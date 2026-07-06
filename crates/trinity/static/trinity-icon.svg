@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#050505" rx="96" ry="96"/>
+  <circle cx="256" cy="180" r="64" fill="#4f46e5" opacity="0.9"/>
+  <circle cx="160" cy="332" r="64" fill="#06b6d4" opacity="0.9"/>
+  <circle cx="352" cy="332" r="64" fill="#d946ef" opacity="0.9"/>
+  <path d="M256 244 L160 332 M256 244 L352 332 M160 332 L352 332" stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.4"/>
+  <text x="256" y="420" text-anchor="middle" font-family="system-ui, sans-serif" font-size="48" font-weight="700" fill="#ffffff" opacity="0.9">TRINITY</text>
+</svg>

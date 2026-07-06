@@ -10,7 +10,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 use axum::{extract::State, Json};
-use trinity_protocol::character_sheet::PortfolioArtifact;
+use trinity_quest::PortfolioArtifact;
 
 use crate::AppState;
 
@@ -28,7 +28,7 @@ pub async fn vault_portfolio_artifact(
     // academic domain increases. This is the isomorphism: academic output
     // directly maps to game skill progression.
     {
-        use trinity_protocol::character_sheet::SkillType;
+        use trinity_quest::SkillType;
         let skill_delta = (new_artifact.qm_score / 20.0).clamp(1.0, 5.0); // Higher QM = more skill
         let skill_type = match new_artifact.aligned_supra_badge.to_lowercase().as_str() {
             s if s.contains("foundation") => SkillType::CurriculumDesign,
@@ -72,7 +72,7 @@ pub async fn vault_portfolio_artifact(
 /// This is the Isomorphism bridge — academic rules become AI behavioral constraints.
 #[allow(dead_code)] // Called by agent prompt system at runtime
 pub fn generate_pete_system_prompt(
-    sheet: &trinity_protocol::CharacterSheet,
+    sheet: &trinity_quest::CharacterSheet,
     current_phase: &str,
 ) -> String {
     let vulnerability_directive = if sheet.vulnerability > 0.7 {

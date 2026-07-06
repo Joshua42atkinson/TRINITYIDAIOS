@@ -77,6 +77,7 @@ mod inference;
 mod inference_router;
 mod jobs;
 mod journal;
+mod monitor;
 mod music_streamer;
 mod narrative;
 mod persistence;
@@ -102,7 +103,7 @@ mod edge_guard;
 // Import Great Recycler from trinity-kernel
 use trinity_iron_road::book::BookOfTheBible;
 use trinity_iron_road::game_loop::CreepBestiary;
-use trinity_protocol::CharacterSheet;
+use trinity_quest::CharacterSheet;
 
 /// Operating mode — same backend, different UX
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -729,6 +730,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api_routes = Router::new()
         .route("/api/health", get(health::health_check))
         .route("/api/hardware", get(get_hardware_status))
+        .route("/api/monitor/status", get(monitor::monitor_status))
+        .route("/api/monitor/health", get(monitor::monitor_health))
         .route("/api/v1/trinity", post(trinity_api::trinity_chat))
         .route("/api/chat", post(chat))
         .route("/api/chat/stream", post(chat_stream))
@@ -989,10 +992,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Start Tauri App on the main thread
         info!("🌟 Starting Tauri Native App...");
-        tauri::Builder::default()
-            .plugin(tauri_plugin_shell::init())
-            .run(tauri::generate_context!())
-            .expect("error while running tauri application");
+        // tauri::Builder::default()
+            //.plugin()
+            // .run(tauri::generate_context!())
+            // .expect("error while running tauri application");
+            
+        // Prevent main thread from exiting since we're skipping Tauri for VibeOS PWA
+        std::future::pending::<()>().await;
     }
 
     Ok(())
@@ -1100,7 +1106,7 @@ async fn serve_audiobook_art(
 
 /// Get current character sheet
 async fn get_character_sheet(State(state): State<AppState>) -> Json<CharacterSheet> {
-    let sheet = state.player.character_sheet.read().await;
+    let sheet: tokio::sync::RwLockReadGuard<'_, trinity_quest::CharacterSheet> = state.player.character_sheet.read().await;
     Json(sheet.clone())
 }
 
@@ -1111,7 +1117,7 @@ async fn update_character_sheet(
     State(state): State<AppState>,
     Json(request): Json<serde_json::Value>,
 ) -> Result<Json<CharacterSheet>, (StatusCode, String)> {
-    let mut sheet = state.player.character_sheet.write().await;
+    let mut sheet: tokio::sync::RwLockWriteGuard<'_, trinity_quest::CharacterSheet> = state.player.character_sheet.write().await;
 
     if let Some(alias) = request.get("alias").and_then(|v| v.as_str()) {
         if !alias.is_empty() {
@@ -1121,14 +1127,14 @@ async fn update_character_sheet(
 
     if let Some(uc) = request.get("user_class") {
         if let Ok(user_class) =
-            serde_json::from_value::<trinity_protocol::character_sheet::UserClass>(uc.clone())
+            serde_json::from_value::<trinity_quest::UserClass>(uc.clone())
         {
             sheet.user_class = user_class;
         }
     }
 
     if let Some(g) = request.get("genre") {
-        if let Ok(genre) = serde_json::from_value::<trinity_protocol::vocabulary::Genre>(g.clone())
+        if let Ok(genre) = serde_json::from_value::<trinity_protocol::Genre>(g.clone())
         {
             sheet.genre = genre;
         }
@@ -1167,19 +1173,19 @@ async fn update_character_sheet(
     }
 
     if let Some(lp) = request.get("locomotive_profile") {
-        if let Ok(locomotive_profile) = serde_json::from_value::<trinity_protocol::character_sheet::LocomotiveProfile>(lp.clone()) {
+        if let Ok(locomotive_profile) = serde_json::from_value::<trinity_quest::LocomotiveProfile>(lp.clone()) {
             sheet.locomotive_profile = locomotive_profile;
         }
     }
 
     if let Some(audio_prefs) = request.get("audio_preferences") {
-        if let Ok(ap) = serde_json::from_value::<trinity_protocol::character_sheet::AudioPreferences>(audio_prefs.clone()) {
+        if let Ok(ap) = serde_json::from_value::<trinity_quest::AudioPreferences>(audio_prefs.clone()) {
             sheet.audio_preferences = ap;
         }
     }
 
     if let Some(creative_cfg) = request.get("creative_config") {
-        if let Ok(cc) = serde_json::from_value::<trinity_protocol::character_sheet::CreativeConfig>(creative_cfg.clone()) {
+        if let Ok(cc) = serde_json::from_value::<trinity_quest::CreativeConfig>(creative_cfg.clone()) {
             sheet.creative_config = cc;
         }
     }
@@ -1208,14 +1214,14 @@ async fn detect_hardware(State(state): State<AppState>) -> Json<serde_json::Valu
 
     // Determine concurrency mode based on RAM
     let mode = if total_gb >= 96.0 {
-        trinity_protocol::ConcurrencyMode::Guild
+        trinity_quest::ConcurrencyMode::Guild
     } else if total_gb >= 64.0 {
-        trinity_protocol::ConcurrencyMode::SmallSquad
+        trinity_quest::ConcurrencyMode::SmallSquad
     } else {
-        trinity_protocol::ConcurrencyMode::LoneWolf
+        trinity_quest::ConcurrencyMode::LoneWolf
     };
 
-    let mut sheet = state.player.character_sheet.write().await;
+    let mut sheet: tokio::sync::RwLockWriteGuard<'_, trinity_quest::CharacterSheet> = state.player.character_sheet.write().await;
     sheet.stamina_ram = total_gb as u32;
     sheet.mana_pool_vram = (total_gb * 0.75) as u32; // 75% available for models
     sheet.agility_compute = cpu_count;
@@ -1515,7 +1521,7 @@ When all objectives for {phase_label} are complete, narrate the station being cl
                 pearl_context = pearl_context,
                 objectives_text = objectives_text,
                 session_zero_context = {
-                    let sheet = state.player.character_sheet.read().await;
+                    let sheet: tokio::sync::RwLockReadGuard<'_, trinity_quest::CharacterSheet> = state.player.character_sheet.read().await;
                     let mut ctx = Vec::new();
                     if let Some(ref exp) = sheet.experience {
                         ctx.push(format!("Teaching Experience: {}", exp));
@@ -1563,7 +1569,7 @@ When all objectives for {phase_label} are complete, narrate the station being cl
 
     // Sync updated VAAM profile back to character sheet for persistence
     {
-        let mut sheet = state.player.character_sheet.write().await;
+        let mut sheet: tokio::sync::RwLockWriteGuard<'_, trinity_quest::CharacterSheet> = state.player.character_sheet.write().await;
         sheet.vaam_profile = state.vaam_bridge.profile.read().await.clone();
         let _ = character_sheet::save_character_sheet(&sheet);
     }
@@ -2461,8 +2467,8 @@ CURRENT OBJECTIVES:
                     &phase_label,
                     &blooms_level,
                     &msg_type,
-                    experience.as_deref(),
-                    audience.as_deref(),
+                    None,
+                    None,
                 );
 
                 if !lenses.is_empty() {
@@ -3905,7 +3911,7 @@ async fn orchestrate_quest(
     // Inject VAAM and Bestiary context into player_context for the Conductor
     let vaam_context = state.vaam_bridge.prompt_context().await;
     let bestiary_summary = state.player.bestiary.read().await.summary();
-    let sheet = state.player.character_sheet.read().await;
+    let sheet: tokio::sync::RwLockReadGuard<'_, trinity_quest::CharacterSheet> = state.player.character_sheet.read().await;
     let player_context = serde_json::json!({
         "message": request.message,
         "subject": game.quest.subject,
@@ -3973,7 +3979,7 @@ async fn compile_game_design_document(
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let request = body.map(|Json(r)| r).unwrap_or_default();
     let game = state.project.game_state.read().await;
-    let sheet = state.player.character_sheet.read().await;
+    let sheet: tokio::sync::RwLockReadGuard<'_, trinity_quest::CharacterSheet> = state.player.character_sheet.read().await;
     let bestiary = state.player.bestiary.read().await;
 
     let phases = [
@@ -4255,7 +4261,7 @@ async fn get_bestiary(State(state): State<AppState>) -> Json<serde_json::Value> 
 async fn ground_session(
     State(state): State<AppState>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let mut sheet = state.player.character_sheet.write().await;
+    let mut sheet: tokio::sync::RwLockWriteGuard<'_, trinity_quest::CharacterSheet> = state.player.character_sheet.write().await;
     sheet.ground();
     let _ = character_sheet::save_character_sheet(&sheet);
 
@@ -4282,7 +4288,7 @@ async fn set_session_intent(
     State(state): State<AppState>,
     Json(request): Json<IntentRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    use trinity_protocol::character_sheet::IntentPosture;
+    use trinity_quest::IntentPosture;
 
     let posture = match request.posture.to_lowercase().as_str() {
         "mastery" => IntentPosture::Mastery,
@@ -4295,7 +4301,7 @@ async fn set_session_intent(
         }
     };
 
-    let mut sheet = state.player.character_sheet.write().await;
+    let mut sheet: tokio::sync::RwLockWriteGuard<'_, trinity_quest::CharacterSheet> = state.player.character_sheet.write().await;
     sheet.set_intent(&request.purpose, posture);
     let _ = character_sheet::save_character_sheet(&sheet);
 
@@ -4340,7 +4346,7 @@ async fn scope_creep_decision(
                 // ── Scout Sniper RLHF: Scout gets paid ──
                 // Taming = productive scope expansion = high reward
                 // Player creates monsters, Pete processes them: coal → steam → maturity
-                let mut sheet = state.player.character_sheet.write().await;
+                let mut sheet: tokio::sync::RwLockWriteGuard<'_, trinity_quest::CharacterSheet> = state.player.character_sheet.write().await;
                 sheet.current_steam = (sheet.current_steam + 5.0).min(100.0);
                 sheet.track_friction = (sheet.track_friction - 3.0).max(0.0);
                 sheet.consecutive_negatives = 0;
@@ -4403,7 +4409,7 @@ async fn scope_creep_decision(
             // ── Scout Sniper RLHF: Sniper gets paid ──
             // Noping = good scope hygiene = small reward for discipline
             // Knowing what you are NOT is product maturity
-            let mut sheet = state.player.character_sheet.write().await;
+            let mut sheet: tokio::sync::RwLockWriteGuard<'_, trinity_quest::CharacterSheet> = state.player.character_sheet.write().await;
             sheet.current_steam = (sheet.current_steam + 2.0).min(100.0);
             sheet.track_friction = (sheet.track_friction - 1.0).max(0.0);
             sheet.recalculate_vulnerability();
@@ -4443,7 +4449,7 @@ async fn scope_creep_decision(
 /// GET /api/narrative/generate — creates LitRPG prose for the current game state
 async fn generate_narrative_endpoint(State(state): State<AppState>) -> Json<serde_json::Value> {
     let gs = state.project.game_state.read().await;
-    let sheet = state.player.character_sheet.read().await;
+    let sheet: tokio::sync::RwLockReadGuard<'_, trinity_quest::CharacterSheet> = state.player.character_sheet.read().await;
 
     let context = narrative::NarrativeContext {
         genre: sheet.genre,
@@ -4827,7 +4833,7 @@ async fn journal_create(
     Json(request): Json<JournalCreateRequest>,
 ) -> Result<Json<journal::JournalEntry>, (StatusCode, String)> {
     let game = state.project.game_state.read().await;
-    let sheet = state.player.character_sheet.read().await;
+    let sheet: tokio::sync::RwLockReadGuard<'_, trinity_quest::CharacterSheet> = state.player.character_sheet.read().await;
 
     let quest_snapshot = journal::QuestSnapshot {
         subject: game.quest.subject.clone(),

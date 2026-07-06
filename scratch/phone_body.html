@@ -1,0 +1,194 @@
+
+<body>
+
+<div class="conn-banner connecting" id="conn-banner"><span class="spinner"></span><span id="conn-banner-text">Finding Trinity...</span></div>
+
+<div class="header">
+  <svg class="logo-svg" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="16" cy="16" r="14" fill="none" stroke="#CFB991" stroke-width="1.5" opacity="0.4"/>
+    <path d="M16 4 L16 28 M4 16 L28 16 M7 7 L25 25 M25 7 L7 25" stroke="#CFB991" stroke-width="1" opacity="0.3"/>
+    <circle cx="16" cy="16" r="5" fill="#CFB991" opacity="0.15"/>
+    <circle cx="16" cy="16" r="2.5" fill="#4EC9B0"/>
+    <circle cx="16" cy="4" r="2" fill="#CFB991"/>
+    <circle cx="16" cy="28" r="2" fill="#CFB991"/>
+    <circle cx="4" cy="16" r="2" fill="#CFB991"/>
+    <circle cx="28" cy="16" r="2" fill="#CFB991"/>
+  </svg>
+  <span class="logo">TRINITY</span>
+  <span class="dot on" id="health-dot"></span>
+  <span class="label" id="health-label">checking...</span>
+  <span class="spacer"></span>
+  <span class="label" id="conn-label" style="font-size:10px;opacity:0.6"></span>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('chat')">💬 Chat</div>
+  <div class="tab" onclick="switchTab('quest')">🗺️ Quest</div>
+  <div class="tab" onclick="switchTab('memory')">🧠 Memory</div>
+  <div class="tab" onclick="switchTab('hotel')">🏨 Hotel</div>
+  <div class="tab" onclick="switchTab('assets')">🎨 Assets</div>
+</div>
+
+<!-- Chat View -->
+<div class="view active" id="view-chat">
+  <div id="mode-toggle" style="display:flex;gap:0;margin:8px 0;border-radius:8px;overflow:hidden;border:1px solid var(--border)">
+    <button id="mode-build" onclick="setMode('dev')" style="flex:1;padding:8px;border:none;background:var(--accent);color:#000;font-size:13px;font-weight:600">⚙️ Build <span id="model-badge" class="model-badge build">DiffusionGemma</span></button>
+    <button id="mode-research" onclick="setMode('ironroad')" style="flex:1;padding:8px;border:none;background:transparent;color:var(--text-dim);font-size:13px;font-weight:600">🔍 Research</button>
+  </div>
+  <div class="quick-actions" id="quick-actions">
+    <div class="chip" onclick="quickAction('/pearl ')">💎 Pearl</div>
+    <div class="chip" onclick="quickAction('/lore ')">📖 Lore</div>
+    <div class="chip" onclick="quickAction('/generate ')">🎨 Gen</div>
+    <div class="chip" onclick="quickAction('/quest ')">⚔️ Quest</div>
+    <div class="chip" onclick="quickAction('Read file:')">📄 Read</div>
+    <div class="chip" onclick="quickAction('Run shell command:')">⚡ Shell</div>
+    <div class="chip" onclick="quickAction('Write code to:')">✏️ Write</div>
+    <div class="chip" onclick="clearChat()">🗑️ Clear</div>
+  </div>
+  <div id="chat-messages"></div>
+  <div class="status-bar" id="chat-status"></div>
+</div>
+
+<!-- Quest View -->
+<div class="view" id="view-quest">
+  <div class="glass rag-card">
+    <h3 id="quest-phase-title">Loading quest...</h3>
+    <div id="quest-phase-info" style="font-size:13px;color:var(--text-dim);margin:8px 0"></div>
+    <div id="quest-objectives" style="margin:8px 0"></div>
+    <button onclick="advancePhase()" style="width:100%;padding:12px;background:var(--gold);color:#000;border:none;border-radius:8px;font-weight:700;font-size:14px;margin-top:8px">Advance to Next Phase →</button>
+  </div>
+  <div class="glass rag-card">
+    <h3>📊 PROGRESS</h3>
+    <div id="quest-progress" style="font-size:13px;color:var(--text-dim)"></div>
+  </div>
+  <div class="glass rag-card">
+    <h3>💎 PEARL</h3>
+    <div id="quest-pearl" style="font-size:13px;color:var(--text-dim)">No PEARL set. Tell TRINITY what you're building in chat.</div>
+  </div>
+  <div class="glass rag-card">
+    <h3>🛤️ ALL PHASES</h3>
+    <div id="quest-all-phases" style="font-size:12px;color:var(--text-dim)"></div>
+  </div>
+</div>
+
+<!-- Hotel View -->
+<div class="view" id="view-hotel">
+  <div class="glass hotel-card">
+    <h3>🏨 HOTEL MODE</h3>
+    <div class="hotel-mode">
+      <div class="hotel-btn team" onclick="hotelAction('studio')">STUDIO<br><small>P+A+H</small></div>
+      <div class="hotel-btn solo" onclick="hotelAction('solo')">SOLO<br><small>P only</small></div>
+      <div class="hotel-btn close" onclick="hotelAction('close')">CLOSED<br><small>All off</small></div>
+      <div class="hotel-btn swap" onclick="hotelAction('open')">OPEN<br><small>P+A</small></div>
+    </div>
+    <div class="hotel-status" id="hotel-status">
+      <div class="hotel-row"><span class="role">P</span><span class="name">DiffusionGemma</span><span class="port">:8000</span></div>
+      <div class="hotel-row"><span class="role">A</span><span class="name">ComfyUI Creative</span><span class="port">:8188</span></div>
+      <div class="hotel-row"><span class="role">H</span><span class="name">Hermes 4 70B</span><span class="port">:8002</span></div>
+    </div>
+  </div>
+  <div class="glass focus-card">
+    <h3>🎯 FOCUS MODE</h3>
+    <div class="focus-mode">
+      <div class="focus-btn creative" onclick="focusAction('creative')">🎨<br>Creative</div>
+      <div class="focus-btn code" onclick="focusAction('code')">💻<br>Code</div>
+      <div class="focus-btn night" onclick="focusAction('night')">🌙<br>Night</div>
+    </div>
+    <div id="focus-status" style="font-size:12px;color:var(--text-dim);margin-top:8px">Loading...</div>
+  </div>
+  <div class="glass hw-card">
+    <h3>📊 HARDWARE</h3>
+    <div class="hw-grid" id="hw-grid">
+      <div class="hw-item"><div class="label">CPU</div><div class="value" id="hw-cpu">--</div><div class="hw-bar"><div class="hw-bar-fill" id="hw-cpu-bar" style="width:0%;background:var(--blue)"></div></div></div>
+      <div class="hw-item"><div class="label">RAM</div><div class="value" id="hw-ram">--</div><div class="hw-bar"><div class="hw-bar-fill" id="hw-ram-bar" style="width:0%;background:var(--gold)"></div></div></div>
+      <div class="hw-item"><div class="label">GPU</div><div class="value" id="hw-gpu">--</div><div class="hw-bar"><div class="hw-bar-fill" id="hw-gpu-bar" style="width:0%;background:var(--accent)"></div></div></div>
+      <div class="hw-item"><div class="label">VRAM</div><div class="value" id="hw-vram">--</div><div class="hw-bar"><div class="hw-bar-fill" id="hw-vram-bar" style="width:0%;background:var(--green)"></div></div></div>
+    </div>
+  </div>
+  <div class="glass hw-card">
+    <h3>📋 JOB QUEUE</h3>
+    <div id="job-list"><div style="color:var(--text-dim);font-size:12px">No jobs. Submit via chat or API.</div></div>
+  </div>
+</div>
+
+<!-- Assets View -->
+<div class="view" id="view-assets">
+  <div class="glass img-card">
+    <h3>🎨 IMAGE GENERATION</h3>
+    <input type="text" id="img-prompt" placeholder="Describe an image...">
+    <input type="text" id="img-neg" placeholder="Negative prompt (optional)">
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input type="number" id="img-w" value="1024" placeholder="W" style="flex:1">
+      <input type="number" id="img-h" value="1024" placeholder="H" style="flex:1">
+    </div>
+    <button id="img-btn" onclick="generateImage()">Generate</button>
+    <div class="img-result" id="img-result"></div>
+  </div>
+  <div class="glass gen-card">
+    <h3>🎬 VIDEO GENERATION</h3>
+    <input type="text" id="vid-prompt" placeholder="Describe a video to generate...">
+    <button id="vid-btn" onclick="generateVideo()">Generate Video</button>
+    <div id="vid-result" style="margin-top:8px"></div>
+  </div>
+  <div class="glass gen-card">
+    <h3>🎵 MUSIC GENERATION</h3>
+    <select id="music-style">
+      <option value="ambient">Ambient</option>
+      <option value="cinematic">Cinematic</option>
+      <option value="orchestral">Orchestral</option>
+      <option value="electronic">Electronic</option>
+      <option value="lofi">Lo-Fi</option>
+    </select>
+    <input type="number" id="music-dur" value="15" placeholder="Duration (sec)" min="5" max="120">
+    <input type="text" id="music-prompt" placeholder="Music prompt (optional)">
+    <button id="music-btn" onclick="generateMusic()">Generate Music</button>
+    <div id="music-result" style="margin-top:8px"></div>
+  </div>
+  <div class="glass gen-card">
+    <h3>🧊 3D MESH GENERATION</h3>
+    <input type="text" id="mesh-prompt" placeholder="Describe a 3D object...">
+    <button id="mesh-btn" onclick="generateMesh()">Generate 3D</button>
+    <div id="mesh-result" style="margin-top:8px"></div>
+  </div>
+  <div class="glass rag-card">
+    <h3>🖼️ GALLERY</h3>
+    <div id="gallery-grid" class="gallery-grid"><div class="gallery-empty">Loading...</div></div>
+  </div>
+  <div class="glass rag-card">
+    <h3>📁 FILE BROWSER</h3>
+    <div class="file-path" id="file-path">/home/joshua/Workflow/TRINITYIDAIOS</div>
+    <div class="file-list" id="file-list">Loading...</div>
+  </div>
+</div>
+
+<!-- Memory View -->
+<div class="view" id="view-memory">
+  <div class="glass rag-card">
+    <h3>🧠 LONG-TERM MEMORY</h3>
+    <input type="text" id="mem-content" placeholder="Remember this...">
+    <button onclick="rememberFact()">Remember</button>
+    <div id="mem-list" style="margin-top:8px">Loading...</div>
+  </div>
+  <div class="glass rag-card">
+    <h3>📄 INGEST DOCUMENT</h3>
+    <input type="text" id="rag-title" placeholder="Title">
+    <textarea id="rag-content" placeholder="Paste text to ingest into RAG memory..."></textarea>
+    <button onclick="ingestDoc()">Ingest</button>
+    <div class="rag-stats" id="rag-stats">Loading stats...</div>
+  </div>
+  <div class="glass rag-card">
+    <h3>🔍 SEARCH MEMORY</h3>
+    <input type="text" id="rag-query" placeholder="Search query...">
+    <button onclick="searchRAG()">Search</button>
+    <div id="rag-results" style="margin-top:8px;font-size:13px;color:var(--text-dim)"></div>
+  </div>
+</div>
+
+<!-- Input Bar -->
+<div class="input-bar">
+  <button class="voice-btn" id="voice-btn" onclick="toggleVoice()" title="Voice input">🎤</button>
+  <textarea id="chat-input" rows="1" placeholder="Message TRINITY..." oninput="autoResize(this)"></textarea>
+  <button id="send-btn" onclick="sendMessage()">↑</button>
+  <button class="tts-btn" id="tts-btn" onclick="toggleTTS()" title="Read aloud">🔊</button>
+</div>
+

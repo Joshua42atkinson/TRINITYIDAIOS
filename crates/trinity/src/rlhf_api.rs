@@ -11,7 +11,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 use axum::{extract::State, response::Json};
-use trinity_protocol::character_sheet::ShadowStatus;
+use trinity_quest::ShadowStatus;
 
 use crate::AppState;
 

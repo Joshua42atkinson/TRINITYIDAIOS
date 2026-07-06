@@ -984,7 +984,7 @@ impl ConductorLeader {
     ) -> Result<OrchestrationResponse> {
         // Build an IdContract from quest context for QM evaluation
         let contract = Self::build_contract_from_context(request);
-        let qm_eval = trinity_protocol::QmRubricEvaluator::evaluate(&contract);
+        let qm_eval = trinity_quest::QmRubricEvaluator::evaluate(&contract);
 
         // Format QM results for Pete's evaluation prompt
         let qm_summary = format!(

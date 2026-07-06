@@ -1,82 +1,136 @@
-# Session Handoff — 2026-03-22 (Final)
+# Session Handoff — 2026-07-05 (Evening, Post-Crash Recovery + Docs Sync)
 
-> **Last Commit:** `cacf288` — pushed to `origin/main`  
-> **Tests:** 175 across 6 crates, 0 failures  
-> **Clippy:** CLEAN  
-> **Frontend:** 51 modules, 563ms build  
-> **Bible:** v8.0.0 (1,687 lines — merged User Manual)  
+> **Hardware:** AMD Ryzen AI Max+ 395 (Strix Halo), 128GB LPDDR5X, gfx1151
+> **Models:** DiffusionGemma 26B AWQ-INT4 (P) :8000, ComfyUI (A) :8188
+> **Trinity:** Headless mode on :3000
+> **Phone:** Pixel 10 Pro XL via Tailscale `100.83.222.35:3000`
 
 ---
 
-## Git History (this session — 8 commits)
+## System State
+
 ```
-cacf288 fix: unified tool dispatch + warm sepia background + perspective feedback
-838bc72 ring6: perspective feedback persistence — zero TODOs blocking gameplay
-f2e2b68 bible: v8.0.0 — merged User Manual into The Fancy Bible
-2877939 ship: Journal UI + User Manual v1.2 + frontend polish
-bf6ce79 journal: chapter milestone snapshots + portfolio export
-867c1a6 implementation: auto-commit-per-phase + Quality Scorecard + Bible v7.1.0
-09fa6bc ring6-frontend: PerspectiveSidebar.jsx + SSE routing + CSS
-a4d6a9c wavetops: Ring 6 Perspective Engine + Open Notebook study + NPU design
+P (DiffusionGemma 26B)  :8000  ⚠️  DOWN — needs restart with new crash fixes
+A (ComfyUI 0.15.1)      :8188  ⚠️  DOWN — needs hotel/studio after Trinity starts
+Trinity API             :3000  ⚠️  DOWN — needs restart after vLLM
+RAM: ~8GB/122GB used (Chrome closed, fresh boot)
+GPU power: locked to `high` (udev rule persists)
+tuned: accelerator-performance profile active
 ```
 
----
+## Architecture Update
 
-## Systems Built (COMPLETE)
+The hotel has been restructured to **Studio/Solo/Closed** (3 modes, no more Swap):
+- **Studio:** P + A always resident (default) — Tier 2 models loaded on demand by ComfyUI
+- **Solo:** P only, A shut down (IDE agents welcome)
+- **Closed:** All models off (night shift / maintenance)
 
-| # | System | Status | Details |
-|---|--------|--------|---------|
-| 1 | **Ring 6 Perspective Engine** | ✅ E2E | 3 lenses, parallel eval, SSE, PerspectiveSidebar.jsx, 9 tests |
-| 2 | **Perspective Feedback** | ✅ E2E | 👍/👎 → POST /api/perspective/feedback → JSONL file |
-| 3 | **Quality Scorecard** | ✅ API | 5 dimensions, POST /api/yard/score, 7 tests |
-| 4 | **Journal States** | ✅ E2E | 5 types, auto-capture, JournalViewer.jsx, HTML export |
-| 5 | **Auto-Commit per Phase** | ✅ Wired | Git snapshot on phase advance |
-| 6 | **Tool Dispatch Fix** | ✅ Fixed | Unified 2 tool lists → 1 source of truth, 30 tools |
-| 7 | **Warm Sepia Theme** | ✅ Applied | Background: cold blue-black → warm gold-brown |
-| 8 | **Bible v8.0.0** | ✅ Published | Merged User Manual (Installation, Troubleshooting, Pete scenarios, Legal) |
+**Hermes 4 70B (H):** Managed externally by LM Studio on :8002. Not hotel-managed. Submits jobs to Trinity via POST /api/jobs.
 
-## Bug Fixed This Session
-- **Yardmaster `list_files` infinite loop**: The agent's tool list offered `list_files` but the dispatcher only matched `list_dir`. Added alias + unified both tool lists into `get_tool_list()`.
+**FACES Protocol:** Moved to Semantic Slime project. `trinity-faces` crate no longer in workspace.
 
-## Known Issues for Next Session
-1. **Terminal saturation**: Long sessions accumulate zombie git processes. Start fresh with `pkill -f git; rm -f .git/index.lock`
-2. **5 dead_code TODOs remain**: All NPU/hardware pile (not blocking gameplay)
-3. **Quality Scorecard UI**: Works via API, no frontend chart yet
-4. **Open Notebook sidecar**: Design doc written, not implemented
+**Qwythos-9B (R):** Removed from architecture. Cloud API handles review when needed.
 
----
+## CRASH INVESTIGATION — 3 Crashes Today
+
+### Crash 1 (17:27) — GPU Ring Timeout
+- **Cause:** gnome-shell + vLLM shared GPU ring, amdgpu timeout
+- **Fix applied:** GPU power lock `high`, tuned `accelerator-performance`, udev rule
+
+### Crash 2 (~18:10) — OOM
+- **Cause:** Chrome peaked at 42.5GB RAM + vLLM 42GB + ComfyUI = exceeded 122GB
+- **Fix:** Close Chrome during AI workloads. PWA works from phone.
+
+### Crash 3 (~18:34) — Silent Hard Hang (KNOWN BUG)
+- **Cause:** `svm_range_restore_work` hogged CPU 259+ times → PMFW 100.6.0 race → silent hang
+- **Documented at:** https://github.com/ROCm/ROCm/issues/6165
+- **Fixes applied to vLLM script:**
+  - `HSA_USE_SVM=0` — disables SVM (root cause of thrashing)
+  - `VLLM_LOGGING_LEVEL=DEBUG` — throttles GPU to dodge PMFW race
+- **Fix applied to GRUB:**
+  - `amdgpu.cwsr_enable=0` — disables buggy compute wave save/restore
+  - Removed deprecated `amdgpu.gttsize=126976`
+- **All fixes take effect on next vLLM restart / reboot**
+
+## What Was Done This Session
+
+### Code Changes
+| # | Change | File(s) |
+|---|--------|---------|
+| 1 | Agent → ComfyUI image generation working end-to-end | `creative.rs`, `tools/creative.rs`, `agent.rs` |
+| 2 | Tool calling fixed for DiffusionGemma (JSON key normalization) | `agent.rs` — `normalize_json_like_keys()` |
+| 3 | Structured tool call validation (fall back to regex if invalid) | `agent.rs:984-1003` |
+| 4 | Creative tools timeout increased to 5 minutes | `agent.rs:2041-2076` |
+| 5 | `generate_image` tool now passes width/height params | `tools/creative.rs` |
+| 6 | Agent system prompt updated (removed Qwythos/R/Crow/REAP refs) | `agent.rs:277-326` |
+| 7 | Health check fixed to probe ComfyUI :8188 | `health.rs:139-156` |
+| 8 | Inference router prefers configured primary backend | `inference_router.rs:490-514` |
+| 9 | Phone PWA updated (IP, hotel modes, model badges, defaults) | `phone.html` |
+| 10 | `read_file` sandbox expanded to allow /tmp | `tools/fs.rs:36-46` |
+| 11 | `generate_image` tool description updated | `tools.rs:176` |
+| 12 | **MCP agent proxy tools added** (`agent_chat`, `execute_tool`, `trinity_health`) | `trinity-mcp-server/src/lib.rs` |
+| 13 | **Windsurf MCP config created** (stdio mode, Trinity as sub-agent) | `~/.codeium/windsurf/mcp_config.json` |
+| 14 | **Phone PWA inline image display** (SSE `event: image` handler + markdown URL rendering) | `phone.html` |
+| 15 | **Crash fixes applied** (HSA_USE_SVM=0, VLLM_LOGGING_LEVEL=DEBUG, cwsr_enable=0) | `start-diffusiongemma.sh`, GRUB |
+
+### Doc Changes
+| # | Change |
+|---|--------|
+| 1 | `00-master-roadmap.md` updated — Phases 1-7 COMPLETE, line counts corrected |
+| 2 | `SESSION-HANDOFF.md` rewritten (this file) |
+
+## What's Done (Don't Touch)
+
+- Phases 1-7 COMPLETE (protocol cleanup, feature gates, main.rs split, dead code, security, frontend)
+- Agent loop with tool calling works for: `generate_image`, `write_file`, `read_file`, `shell`, `list_dir`, `search_files`
+- MCP server builds clean, connects to Windsurf, `trinity_health` and `agent_chat` tested working
+- Phone PWA: inline image display code written (needs testing with live image gen)
+- Strix Halo crash fixes applied (need vLLM restart to take effect)
+- GPU power locked to `high` (persists via udev)
+- `tuned` → `accelerator-performance` (persists via systemd)
+
+## What's Next (in order)
+
+1. **Restart vLLM with crash fixes** — `bash /home/joshua/trinity-models/start-diffusiongemma.sh`
+2. **Restart Trinity** — `taskset -c 28-31 target/release/trinity --config configs/runtime/default.toml &`
+3. **Launch ComfyUI via hotel** — `curl -X POST http://localhost:3000/api/inference/hotel/studio`
+4. **Test image generation from phone PWA** — verify inline image display works
+5. **Test MCP agent_chat from Windsurf** — verify sub-agent delegation
+6. **Phase 8 remaining** — Voice (VibeVoice), video (HunyuanVideo), 3D (TRELLIS) pipeline
+7. **Phase 13: Deployment Packaging** — systemd audit, Caddyfile audit, release binary
+
+## Startup Commands
+
+```bash
+# 1. Start DiffusionGemma (with crash fixes)
+bash /home/joshua/trinity-models/start-diffusiongemma.sh
+
+# 2. Wait for vLLM to load (~2 min)
+# Check: curl http://127.0.0.1:8000/health
+
+# 3. Start Trinity (release build)
+taskset -c 28-31 /home/joshua/Workflow/TRINITYIDAIOS/target/release/trinity \
+  --config /home/joshua/Workflow/TRINITYIDAIOS/configs/runtime/default.toml &
+
+# 4. Launch ComfyUI via hotel manager
+curl -X POST http://localhost:3000/api/inference/hotel/studio
+
+# Phone: http://100.83.222.35:3000/trinity/phone.html (Tailscale)
+# Local: http://localhost:3000/trinity/phone.html
+```
 
 ## Prompt To Start Next Session
 
 ```
-Here's where we left off:
+Trinity is at 95/100. Phases 1-7 complete. Phase 9 (docs sync) complete — all docs
+updated to reflect P+A+H architecture, Qwythos removed, FACES moved to Semantic Slime,
+hotel modes corrected to Studio/Solo/Closed. MCP integration done. Phone PWA has inline
+image display. Three crash fixes applied: HSA_USE_SVM=0, VLLM_LOGGING_LEVEL=DEBUG,
+amdgpu.cwsr_enable=0. Workspace hygiene done: 6 stale docs archived, 24 stale scripts
+archived.
 
-✅ Last Session Summary (2026-03-22)
-| Task | Result |
-|------|--------|
-| Ring 6 Perspective Engine | Backend + Frontend + Feedback persistence (E2E) |
-| Quality Scorecard | 5-dimension scoring API, 7 tests |
-| Auto-Commit per Phase | Git snapshot on phase advance |
-| Journal States | 5 types, auto-capture, JournalViewer.jsx, HTML export |
-| Tool Dispatch Fix | Unified 30 tools, fixed list_files alias |
-| Warm Sepia Theme | Background warmed from cold blue-black to gold-brown |
-| Bible v8.0.0 | Merged User Manual into single 1,687-line document |
-| Git | 8 commits pushed to GitHub (cacf288) |
-| Quality | 175 tests, 0 failures, clippy clean, frontend 51 modules |
-
-🐛 Bug Fixed: Yardmaster was stuck in infinite "Unknown tool: list_files" loop.
-The agent's tool list and dispatch were out of sync. Now unified.
-
-📋 Next Steps (pick based on energy):
-1. Live playtest — start LLM and walk through Iron Road end-to-end
-2. Quality Scorecard UI — radar chart in the Yard tab
-3. NPU proof of concept — ONNX model on /dev/accel0
-4. Open Notebook sidecar — Python document ingestion
-5. Presentation recording — demo script + OBS capture
-6. User preferences — dark/light/sepia theme toggle
-
-The handoff doc is at: docs/active/SESSION-HANDOFF.md
-The Bible is at: TRINITY_FANCY_BIBLE.md (v8.0.0)
-
-⚠️ Start fresh: run `pkill -f git; rm -f .git/index.lock` if terminals are saturated.
+Next: restart vLLM with fixes, restart Trinity, launch ComfyUI via hotel/studio,
+test image gen from phone, test MCP from Windsurf, then Phase 8 (voice/video/3D)
+and Phase 13 (deployment packaging).
+See _agent/workflows/00-master-roadmap.md for the full plan.
 ```

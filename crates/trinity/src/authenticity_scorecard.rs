@@ -27,7 +27,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 use serde::{Deserialize, Serialize};
-use trinity_protocol::CharacterSheet;
+use trinity_quest::CharacterSheet;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthenticityScorecard {
@@ -73,7 +73,7 @@ pub fn score_authenticity(text: &str, document_id: &str, sheet: &CharacterSheet)
     let mut vaam_hits = 0;
     let expected_words = sheet.vaam_profile.word_weights.len().max(1);
     for word in sheet.vaam_profile.word_weights.keys() {
-        if lower.contains(&word.to_lowercase()) {
+        let lw: String = format!("{}", word).to_lowercase(); if lower.contains(&lw) {
             vaam_hits += 1;
         }
     }

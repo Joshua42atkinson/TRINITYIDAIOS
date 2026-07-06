@@ -123,9 +123,6 @@ pub enum AwakeningPhase {
     QuestBriefing,
 }
 
-#[cfg(feature = "bevy")]
-#[derive(Resource, Debug, Default, Clone)]
-pub struct ActiveCharacterSheet(pub Option<crate::character_sheet::CharacterSheet>);
 
 /// Global resource holding a contract that is pending user review.
 /// Set when Brain sends `BrainToBody::IdContractReady`.

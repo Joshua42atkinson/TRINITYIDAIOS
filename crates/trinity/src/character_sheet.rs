@@ -41,7 +41,7 @@
 
 use std::path::PathBuf;
 use tracing::{info, warn};
-use trinity_protocol::CharacterSheet;
+use trinity_quest::CharacterSheet;
 
 /// Get the path to the character sheet file
 fn character_sheet_path() -> Option<PathBuf> {

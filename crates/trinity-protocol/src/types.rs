@@ -436,3 +436,185 @@ pub enum AssessmentResponse {
     /// A lab project
     Lab(LabProject),
 }
+
+/// The four roles a Trinity user can play, selected during The Awakening.
+/// Trinity autonomously fills the skills of roles the user is NOT playing.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub enum UserClass {
+    /// "I know what needs to be taught." — Drives content selection and accuracy.
+    SubjectMatterExpert,
+    /// "I know how to scaffold the learning." — Drives ADDIE structure.
+    InstructionalDesigner,
+    /// "I know what success looks like." — Drives evaluation criteria.
+    Stakeholder,
+    /// "I experience what gets built." — Drives from the learner's perspective.
+    Player,
+}
+
+impl UserClass {
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            UserClass::SubjectMatterExpert => "Subject Matter Expert",
+            UserClass::InstructionalDesigner => "Instructional Designer",
+            UserClass::Stakeholder => "Stakeholder",
+            UserClass::Player => "Player",
+        }
+    }
+
+    pub fn emoji(&self) -> &'static str {
+        match self {
+            UserClass::SubjectMatterExpert => "🧑‍🏫",
+            UserClass::InstructionalDesigner => "🎓",
+            UserClass::Stakeholder => "📊",
+            UserClass::Player => "🎮",
+        }
+    }
+
+    pub fn tagline(&self) -> &'static str {
+        match self {
+            UserClass::SubjectMatterExpert => "I know what needs to be taught.",
+            UserClass::InstructionalDesigner => "I know how to scaffold the learning.",
+            UserClass::Stakeholder => "I know what success looks like.",
+            UserClass::Player => "I experience what gets built.",
+        }
+    }
+}
+
+/// Bloom's Taxonomy cognitive level. Used to calibrate the complexity of
+/// ID Contract milestones relative to the user's resonance level.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum BloomLevel {
+    /// Recall facts (lowest cognitive demand).
+    Remember,
+    /// Explain in own words.
+    Understand,
+    /// Use knowledge in new situations.
+    Apply,
+    /// Break down information into component parts.
+    Analyze,
+    /// Make judgments based on criteria.
+    Evaluate,
+    /// Produce new or original work (highest cognitive demand).
+    Create,
+}
+
+impl BloomLevel {
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            BloomLevel::Remember => "Remember",
+            BloomLevel::Understand => "Understand",
+            BloomLevel::Apply => "Apply",
+            BloomLevel::Analyze => "Analyze",
+            BloomLevel::Evaluate => "Evaluate",
+            BloomLevel::Create => "Create",
+        }
+    }
+
+    /// Suggested resonance level required to target this Bloom level.
+    pub fn minimum_resonance(&self) -> u32 {
+        match self {
+            BloomLevel::Remember => 1,
+            BloomLevel::Understand => 3,
+            BloomLevel::Apply => 8,
+            BloomLevel::Analyze => 15,
+            BloomLevel::Evaluate => 25,
+            BloomLevel::Create => 40,
+        }
+    }
+}
+
+/// The narrative genre for a project.
+/// Genre determines vocabulary sets, narrative style, and visual theme.
+/// Fixed at project creation - switching resets progress.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
+pub enum Genre {
+    /// Tech-noir, neon, gritty. Vocabulary: systems, networks, hacking.
+    #[default]
+    Cyberpunk,
+    /// Victorian, industrial, brass. Vocabulary: mechanics, steam, engineering.
+    Steampunk,
+    /// Hopeful, organic, bright. Vocabulary: sustainability, ecology, growth.
+    Solarpunk,
+    /// Gothic, mysterious, shadow. Vocabulary: magic, runes, transformation.
+    DarkFantasy,
+}
+
+impl Genre {
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Genre::Cyberpunk => "Cyberpunk",
+            Genre::Steampunk => "Steampunk",
+            Genre::Solarpunk => "Solarpunk",
+            Genre::DarkFantasy => "Dark Fantasy",
+        }
+    }
+
+    pub fn narrative_style(&self) -> &'static str {
+        match self {
+            Genre::Cyberpunk => "Neon-lit corridors of data. The machine speaks in static.",
+            Genre::Steampunk => "Brass gears turn with purpose. Steam carries ambition.",
+            Genre::Solarpunk => "Green shoots through concrete. Hope grows in cracks.",
+            Genre::DarkFantasy => "Shadows hold secrets. Runes glow with ancient intent.",
+        }
+    }
+
+    pub fn vocab_path(&self) -> &'static str {
+        match self {
+            Genre::Cyberpunk => "data/vocab/cyberpunk",
+            Genre::Steampunk => "data/vocab/steampunk",
+            Genre::Solarpunk => "data/vocab/solarpunk",
+            Genre::DarkFantasy => "data/vocab/dark_fantasy",
+        }
+    }
+}
+
+/// Vocabulary tier determines coal value and complexity.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
+pub enum VocabularyTier {
+    /// Common words, 1-5 Coal per correct usage
+    #[default]
+    Basic,
+    /// Intermediate complexity, 5-10 Coal
+    Intermediate,
+    /// Advanced concepts, 10-20 Coal
+    Advanced,
+    /// Expert-level, 20-50 Coal
+    Expert,
+}
+
+impl VocabularyTier {
+    pub fn coal_range(&self) -> (u32, u32) {
+        match self {
+            VocabularyTier::Basic => (1, 5),
+            VocabularyTier::Intermediate => (5, 10),
+            VocabularyTier::Advanced => (10, 20),
+            VocabularyTier::Expert => (20, 50),
+        }
+    }
+
+    pub fn default_coal(&self) -> u32 {
+        let (min, max) = self.coal_range();
+        (min + max) / 2
+    }
+}
+
+/// A single vocabulary word that can be detected and rewarded.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VocabularyWord {
+    /// The primary word/term
+    pub word: String,
+    /// Alternative forms that also count (e.g., "NPU" matches "neural processing unit")
+    pub aliases: Vec<String>,
+    /// Words that indicate correct usage context (e.g., ["thread", "parallel", "async"] for "NPU")
+    pub context_clues: Vec<String>,
+    /// Coal earned for correct usage
+    pub coal_value: u32,
+    /// Complexity tier
+    pub tier: VocabularyTier,
+    /// Cognitive level required
+    pub bloom_level: BloomLevel,
+    /// Optional definition for journal display
+    pub definition: Option<String>,
+    /// Tags for semantic grouping
+    pub tags: Vec<String>,
+}

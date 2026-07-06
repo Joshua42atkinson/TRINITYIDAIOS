@@ -2,48 +2,138 @@
 # TRINITY ID AI OS — Runtime Configuration
 # ═══════════════════════════════════════════════════════════════════════════════
 #
-#   The TRINITY inference layer uses an agnostic architecture:
+#   AMD Strix Halo (Ryzen AI Max+ 395) — 128GB LPDDR5X-8000 — gfx1151
+#   16 Zen 5 cores (32 threads, 5.19GHz boost) | 40 RDNA 3.5 CUs (2.9GHz)
+#   XDNA 2 NPU (50 TOPS) | L3: 64MB (2 instances) | L2: 16MB
 #
-#   ═══ P — External Inference (LM Studio / Ollama / Cloud) ═══
+#   ═══ THE HARDWARE TRINITY: Bus × Cores × Pages ═══
 #
-#   P — Pete's Brain (Port 1234): LM Studio or any OpenAI-compatible server
-#       Heavy reasoning, code generation, deep Socratic dialog.
-#       User-managed — load whatever model fits your hardware.
-#       LM Studio parallel=2 for inhale/exhale Great Recycler cycle.
+#   BUS — 256-bit memory, 8 channels (A-H), LPDDR5X-8000
+#     Theoretical: 256 GB/s (8000 MT/s × 32 bytes/transfer)
+#     Practical:   ~210 GB/s (~82% efficiency)
+#     This is the speed limit. Every token generated requires reading
+#     all active model weights from RAM through this bus.
 #
-#   ═══ ART — Embedded ORT Models (No Sidecar Required) ═══
+#   CORES — 16 Zen 5 cores, 32 threads, SMT
+#     L1d: 48KB/core | L2: 1MB/core | L3: 32MB/CCX (2 CCX)
+#     Max boost: 5.19 GHz | Min: 625 MHz
+#     Pinned: P=0-3, R=4-15, A=16-23, T=24-27, Host=28-31
 #
-#   A — Aesthetics: Janus Pro 7B ONNX (vision + images, ~4 GB)
-#       + 4K upscaler (Real-ESRGAN ONNX, ~64 MB)
+#   PAGES — 4KB pages, TTM pool of 33,554,432 pages = 128GB
+#     ttm.pages_limit=33554432     → 128GB dynamic GPU memory
+#     ttm.page_pool_size=33554432  → pre-allocated, zero fragmentation
+#     amdgpu.gttsize=126976        → 126GB GTT
 #
-#   R — Research: all-MiniLM-L6-v2 ONNX (~90 MB)
-#       RAG semantic search embeddings. Fully embedded via ort crate.
+#   ═══ BANDWIDTH → TOKEN SPEED (the real economy) ═══
 #
-#   T — Tempo: Kokoro TTS ONNX (~338 MB)
-#       Text-to-speech synthesis. Fully embedded via ort crate.
+#   Token generation is memory-bandwidth-bound:
+#     tokens/s ≈ practical_bandwidth / active_model_size
 #
-#   ★ — Story Model: Small (~3B) Opus-distilled ONNX (~1.5 GB)
-#       Minimum viable brain for standalone mode.
-#       Handles NPC dialog, narrative prose, Socratic questions.
-#       Quantized with AMD Quark to INT4 ONNX.
+#   DiffusionGemma 26B A4B (MoE):  2.5GB active  → ~84 tok/s
+#     (Only 4B of 26B params active per token — MoE advantage)
+#   Qwythos-9B (dense Q4):         5.6GB active   → ~37 tok/s
+#   zen-musician (dense Q4):       3.8GB active   → ~55 tok/s
+#   MiniMax-172B (MoE Q4):         ~10GB active   → ~21 tok/s
+#   Mistral-119B (dense Q4):       67GB active    → ~3 tok/s
 #
-#   ═══ Y — The User ═══
+#   The MoE advantage: DiffusionGemma reads only 2.5GB per token
+#   despite being a 26B model. This is why it's the workhorse.
 #
-#   The Subject Matter Expert. Pete scaffolds, the user creates.
+#   ═══ KERNEL TUNING (already applied) ═══
+#   ttm.pages_limit=33554432      → 128GB dynamic GPU memory pool
+#   ttm.page_pool_size=33554432   → 128GB pre-allocated page pool (zero fragmentation)
+#   amdgpu.gttsize=126976         → 126GB GTT limit
+#   iommu=pt                      → Passthrough IOMMU (consider amd_iommu=off for +6% Vulkan)
 #
-#   ═══ TIER SYSTEM ═══
+#   RECOMMENDED (not yet applied):
+#   amd_iommu=off                 → Disables IOMMU entirely, ~6% raw Vulkan speedup
+#   amdgpu.vm_fragment_size=8     → 2M VM allocation chunks for massive tensor mapping
 #
-#   Standalone: Trinity binary only (ORT models embedded)
-#       → Runs anywhere. Story mode, Socratic chat, VAAM all work.
+#   ═══ MEMORY BUDGET — Day Mode ═══
 #
-#   Enhanced: Trinity + LM Studio (or any OpenAI-compatible server)
-#       → Full reasoning depth, overnight sessions, tool calling.
+#   Physical: 8x 16GB LPDDR5X-8000 = 128GB (channels A-H, 256-bit bus)
+#   OS visible: 122GB (6GB reserved by BIOS/firmware)
+#   GPU static (BIOS): 512MB
+#   GPU dynamic (TTM): 120GB (pages_limit=33554432 × 4KB)
+#   Host OS + Trinity: 8GB (Rust binary, SQLite, RAG, kernel)
 #
-#   Server: Trinity + vLLM (Purdue institutional deployment)
-#       → Multi-user, batched inference. See docs/archive/vllm_server_tier/
+#   STATIC LOAD — Creative Production Studio
 #
-#   The InferenceRouter auto-detects backends on startup.
-#   Set LLM_URL env var to override with a specific endpoint.
+#   TIER 1 — ALWAYS RESIDENT (59 GB)
+#   P (Always-on, podman): DiffusionGemma 26B A4B AWQ-INT4  :8000  (42GB VRAM)
+#       16GB model + 26GB FP8 KV cache (32K context, 35% util)
+#       CPU: threads 0-3 (2 cores, CCX0) — GPU-bound, light CPU
+#       Handles text gen, vision understanding, code, storyboards
+#
+#   A (Always-on, hotel): ComfyUI with Janus-Pro-7B + VibeVoice  :8188  (17GB VRAM)
+#       Janus-Pro-7B FP16: 14GB — lesson diagrams, visual understanding, fretboard visuals
+#       VibeVoice-1.5B FP16: 3GB — multi-speaker voice acting, 90-min capacity
+#       CPU: threads 4-7 (2 cores, CCX0) — GPU-bound, light CPU for VAE
+#       Flags: --bf16-vae --disable-mmap --cache-none (critical for gfx1151)
+#       Env: HSA_OVERRIDE_GFX_VERSION=11.5.1, HSA_ENABLE_SDMA=0, HSA_USE_SVM=0
+#
+#   TIER 2 — SWAP ZONE (53 GB budget, ComfyUI manages internally)
+#     ComfyUI loads/unloads these models on demand within its own process.
+#     No hotel swap needed — ComfyUI handles model lifecycle.
+#
+#     HunyuanVideo        13GB  — cinematic video clips, technique demos
+#     TRELLIS             16GB  — 3D game assets → glTF → Godot
+#     LongCat-Image       28GB  — artistic illustrations (Troubadour mode)
+#     ACE-Step             8GB  — soundtrack, SFX (when torchaudio fixed)
+#     FLUX Q4            6.4GB  — alt image gen
+#     TripoSR            1.6GB  — fast 3D prototyping
+#
+#     Pairs that fit in 53GB:
+#       TRELLIS(16) + HunyuanVideo(13) = 29GB ✅
+#       LongCat(28) + ACE-Step(8) = 36GB ✅
+#       TRELLIS(16) + ACE-Step(8) + TripoSR(1.6) = 25.6GB ✅
+#
+#   PEAK VRAM: 42GB (P) + 17GB (A) + 53GB (T2) = 112GB of 120GB
+#   OS + Trinity host: ~8GB (threads 24-31, CCX1 SMT)
+#
+#   ═══ HOTEL MODES — Shift Management ═══
+#
+#   STUDIO mode (default):
+#     P + A always resident. Tier 2 models load on demand via ComfyUI.
+#     VRAM: 59GB (T1) + up to 53GB (T2) | CPU: 0-7 (T1), 8-15 (T2), 24-31 (host)
+#     This is the normal operating mode for creative production.
+#
+#   SOLO mode (POST /api/inference/hotel/solo):
+#     P only. A shut down. IDE agents welcome.
+#     VRAM: ~42GB | CPU: threads 0-3 (P) | Free for IDE: threads 4-27 (14 cores)
+#     Use when running Windsurf, Antigravity, Zed, Void, or other cloud IDE agents.
+#
+#   CLOSED mode (POST /api/inference/hotel/close):
+#     All models off. Full system available for IDE or LM Studio night shift.
+#     VRAM: 0GB | CPU: all 32 threads free | Full 120GB pool available
+#
+#   NIGHT mode:
+#     P + A resident + Tier 2 batch processing. No IDE agents.
+#     VRAM: up to 112GB | CPU: threads 0-15 | Host: threads 24-31
+#     Use for overnight batch generation (video rendering, 3D asset creation).
+#
+#   ═══ MEMORY BUDGET — Night Mode ═══
+#
+#   1. Kill podman: podman rm -f diffusiongemma-vllm
+#   2. Load big model in LM Studio (:1234):
+#      - MiniMax-M2.7-172B (91GB) — deepest reasoning, fills most of pool
+#      - Mistral-Small-4-119B (67GB) — balanced reasoning + tools
+#      - Qwen3.5-122B-A10B (47GB) — MoE, fast for its size
+#   3. Submit background jobs: POST /api/jobs with max_turns=200
+#   4. In morning: restart podman for day mode
+#
+#   LM Studio is configured as a fallback backend below.
+#   The InferenceRouter auto-detects whichever backends are running.
+#
+#   ═══ STARTUP ═══
+#
+#   Day:  bash ~/trinity-models/start-diffusiongemma.sh  (starts P only)
+#         cargo run  (starts Trinity, Hotel manages R/A/T-music)
+#
+#   Night: podman rm -f diffusiongemma-vllm
+#          # Load big model in LM Studio (MiniMax-172B / Mistral-119B)
+#          cargo run  (Trinity detects LM Studio on :1234)
+#
 # ═══════════════════════════════════════════════════════════════════════════════
 
 [node]
@@ -54,26 +144,77 @@ type = "Auto"  # Auto-detect Brain/Body
 # ═══════════════════════════════════════════════════════════════════════════════
 
 [inference]
-primary = "lm-studio"
+primary = "diffusiongemma"
 auto_detect = true
 ctx_size = 131072
 max_tokens = 16384
 
-# ── P — LM Studio: Primary Inference (Always-On when available) ────────────
-# The Signal Tower. User loads whatever model fits their hardware.
-# LM Studio serves OpenAI-compatible API on port 1234.
-# Recommended: parallel=2 for inhale/exhale Great Recycler cycle.
+# ── P — DiffusionGemma via vLLM/podman (Primary, Always-On) ──────────────
+# The workhorse. Code gen, tool calling, agentic loops, overnight jobs.
+# Started manually: bash ~/trinity-models/start-diffusiongemma.sh
+# NOT Hotel-managed — stays resident on :8000.
 
-[inference.backends.lm-studio]
-url = "http://127.0.0.1:1234"
+[inference.backends.diffusiongemma]
+url = "http://127.0.0.1:8000"
 supports_tools = true
 supports_vision = true
 party_role = "P"
 always_resident = true
 
-# ── Fallback: llama-server / Ollama ────────────────────────────────────────
-# Any OpenAI-compatible server the user has running.
-# "Lone Wolf" mode — single model handles all P-ART-Y roles.
+# ── R — Qwythos-9B via llama.cpp (Research, Hotel-swapped) ────────────────
+# Deep reasoning, research, evaluation, rubric analysis.
+# Launched by Hotel Manager from [hotel.R] config.
+
+[inference.backends.research]
+url = "http://127.0.0.1:8002"
+supports_tools = true
+supports_vision = false
+party_role = "R"
+always_resident = false
+
+# ── A — ComfyUI (Aesthetics, Hotel-swapped or always-on) ──────────────────
+# Image generation: FLUX schnell, SDXL Turbo, TripoSR, ACE-Step, HunyuanVideo.
+# creative.rs talks to :8188. Can be Hotel-launched or started manually.
+
+[inference.backends.aesthetics]
+url = "http://127.0.0.1:8188"
+supports_tools = false
+supports_vision = true
+party_role = "A"
+always_resident = false
+
+# ── T (music) — zen-musician via llama.cpp (Hotel-swapped) ────────────────
+# Music reasoning, theory, lyrics. Hotel-swapped on :8001.
+# For audio synthesis, ACE-Step runs inside ComfyUI on :8188.
+
+[inference.backends.tempo-music]
+url = "http://127.0.0.1:8001"
+supports_tools = false
+supports_vision = false
+party_role = "T"
+always_resident = false
+
+# ── Y — Yoke (Pixel 10 Pro XL, Remote) ────────────────────────────────────
+# gemma4-coding via llama.cpp NDK on phone.
+# Set YOKE_URL env var to your phone's IP, or edit URL below.
+# Example: http://192.168.1.100:8080
+
+[inference.backends.yoke]
+url = "http://127.0.0.1:8080"
+supports_tools = true
+supports_vision = false
+party_role = "Y"
+always_resident = true
+
+# ── Fallback: LM Studio / llama-server / Ollama ───────────────────────────
+# Any OpenAI-compatible server. "Lone Wolf" mode.
+
+[inference.backends.lm-studio]
+url = "http://127.0.0.1:1234"
+supports_tools = true
+supports_vision = true
+party_role = "T"
+always_resident = false
 
 [inference.backends.llama-server]
 url = "http://127.0.0.1:8080"
@@ -89,38 +230,60 @@ supports_vision = false
 party_role = "T"
 always_resident = false
 
-# ── Server Tier: vLLM (Purdue / Institutional) ────────────────────────────
-# These backends are for multi-user server deployments.
-# See docs/archive/vllm_server_tier/ for configuration details.
-# Uncomment when deploying on server hardware.
+# ═══════════════════════════════════════════════════════════════════════════════
+# HOTEL — P-ART-Y Model Launch Configuration
+# ═══════════════════════════════════════════════════════════════════════════════
+# The Hotel Manager reads these sections to launch models directly.
+# No external scripts — binary, args, env, and working_dir are all here.
+# The Hotel Manager kills the old port, spawns the binary, waits for health.
+#
+# P (DiffusionGemma) is NOT in the Hotel — it's always-resident via podman.
+# Start it before bed with: bash ~/trinity-models/start-diffusiongemma.sh
+#
+# A (ComfyUI) is always-resident in STUDIO mode — the Hotel starts it at boot
+# and keeps it running. ComfyUI internally manages Tier 2 model loading.
+#
+# R and T have been removed — cloud API handles review, ACE-Step + VibeVoice
+# handle audio. This frees ~19GB VRAM and simplifies the hotel to 2 residents.
 
-# [inference.backends.tempo-e4b]
-# url = "http://127.0.0.1:8001"
-# supports_tools = true
-# supports_vision = true
-# party_role = "T"
-# always_resident = true
+# ── A — Aesthetics via ComfyUI (ALWAYS RESIDENT) ──────────────────────────
+# ComfyUI at /home/joshua/ComfyUI with venv.
+# Resident models: Janus-Pro-7B (14GB) + VibeVoice-1.5B (3GB) = 17GB
+# Tier 2 models loaded on demand: HunyuanVideo, TRELLIS, LongCat, ACE-Step, FLUX, TripoSR
+# creative.rs talks to :8188 for all media generation.
 
-# [inference.backends.pete-coder]
-# url = "http://127.0.0.1:8000"
-# supports_tools = true
-# supports_vision = true
-# party_role = "P"
-# always_resident = false
+[hotel.A]
+name = "A (Aesthetics — ComfyUI)"
+port = 8188
+binary = "/home/joshua/ComfyUI/venv/bin/python"
+args = [
+    "main.py",
+    "--listen", "127.0.0.1",
+    "--port", "8188",
+    "--preview-method", "auto",
+    "--bf16-vae",
+    "--disable-mmap",
+    "--cache-none",
+]
+working_dir = "/home/joshua/ComfyUI"
+health_path = "/system_stats"
+health_timeout_secs = 120
+cpu_threads = "4-7"
+vram_budget_mb = 53248
+always_resident = true
 
-# [inference.backends.recycler-dense]
-# url = "http://127.0.0.1:8002"
-# supports_tools = true
-# supports_vision = false
-# party_role = "R"
-# always_resident = false
-
-# [inference.backends.janus-pro]
-# url = "http://127.0.0.1:8003"
-# supports_tools = false
-# supports_vision = true
-# party_role = "A"
-# always_resident = false
+[hotel.A.env]
+HIP_VISIBLE_DEVICES = "0"
+PYTORCH_ROCM_ARCH = "gfx1151"
+ROCM_PATH = "/opt/rocm"
+HIP_PLATFORM = "amd"
+HSA_OVERRIDE_GFX_VERSION = "11.5.1"
+HSA_ENABLE_SDMA = "0"
+HSA_USE_SVM = "0"
+HSA_NO_SCRATCH_RECLAIM = "1"
+TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL = "1"
+ROCBLAS_USE_HIPBLASLT = "1"
+GGML_HIP_ROCWMMA_FATTN = "1"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MODEL — Embedded ORT Story Model (Minimum Viable Brain)
@@ -141,13 +304,17 @@ n_threads = 4
 # ═══════════════════════════════════════════════════════════════════════════════
 
 [creative]
-# A — Aesthetics: Janus Pro 7B ONNX (embedded) + upscaler
-# T — Tempo: Kokoro TTS ONNX (embedded)
-# ComfyUI: External tool connected via MCP (user teaches themselves to use it)
-flux_image_url = "embedded://ort/janus-pro-7b"
-acestep_music_url = "http://127.0.0.1:8008/v1/audio/generations"
-hunyuan3d_url = "http://127.0.0.1:7860"
-auto_launch = false
+# A — Aesthetics: ComfyUI on :8188 (always resident in STUDIO mode)
+# Resident models: Janus-Pro-7B (image gen + understanding), VibeVoice-1.5B (TTS)
+# Tier 2 (loaded on demand): HunyuanVideo, TRELLIS, LongCat-Image, ACE-Step, FLUX, TripoSR
+# ComfyUI is at /home/joshua/ComfyUI with venv at /home/joshua/ComfyUI/venv
+# Custom nodes: comfyui_longcat_image, ACE-Step-ComfyUI, HunyuanVideoWrapper, VibeVoice-ComfyUI
+comfyui_url = "http://127.0.0.1:8188"
+flux_image_url = "http://127.0.0.1:8188"
+acestep_music_url = "http://127.0.0.1:8188"
+hunyuan3d_url = "http://127.0.0.1:8188"
+vibevoice_tts_url = "http://127.0.0.1:8188"
+auto_launch = true
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MEMORY — RAG vector store (embedded ORT)

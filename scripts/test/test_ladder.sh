@@ -16,7 +16,7 @@ set -uo pipefail
 
 AXUM_URL="http://localhost:3000"
 RECYCLER_URL="http://localhost:8001"
-PETE_URL="http://localhost:8002"
+TRINITY_URL="http://localhost:8002"
 MAX_LEVEL="${1:-7}"
 PASSED=0
 FAILED=0
@@ -63,15 +63,15 @@ else
     fail "Great Recycler not responding (HTTP $RECYCLER_HEALTH)"
 fi
 
-# vLLM Pete
-PETE_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" "$PETE_URL/v1/models" 2>/dev/null || echo "000")
-if [ "$PETE_HEALTH" = "200" ]; then
-    pass "Programmer Pete (vLLM) responding on port 8002"
+# vLLM TRINITY
+TRINITY_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" "$TRINITY_URL/v1/models" 2>/dev/null || echo "000")
+if [ "$TRINITY_HEALTH" = "200" ]; then
+    pass "Programmer TRINITY (vLLM) responding on port 8002"
 else
-    fail "Programmer Pete not responding (HTTP $PETE_HEALTH)"
+    fail "Programmer TRINITY not responding (HTTP $TRINITY_HEALTH)"
 fi
 
-if [ "$RECYCLER_HEALTH" != "200" ] && [ "$PETE_HEALTH" != "200" ]; then
+if [ "$RECYCLER_HEALTH" != "200" ] && [ "$TRINITY_HEALTH" != "200" ]; then
     echo -e "${RED}All LLMs offline. Levels 2+ require inference. Exiting.${NC}"
     echo -e "Passed: $PASSED / Failed: $FAILED"
     exit 1

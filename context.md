@@ -1,256 +1,180 @@
 # TRINITY ID AI OS — Project Context
 
-> **Last Updated:** April 17, 2026
-> **Hardware:** AMD Strix Halo APU — Radeon 8060S (`gfx1151`), 128GB Unified LPDDR5x
-> **Runtime:** Rust/Axum (:3000) + LM Studio (:1234) + ORT embedded models + Bevy XR
-> **Purpose:** LDT course + textbook as a LitRPG game — the user is the "player," winning = graduating with three deliverables (The EYE Package)
+> **Last Updated:** July 6, 2026
+> **Master Docs:** `AGENTS.md` (entry point) → `docs/active/MASTER_ARCHITECTURE.md` (full architecture) → `docs/active/SPATIAL_PIVOT_PLAN.md` (detailed plan)
+> **Hardware:** AMD Strix Halo APU — Radeon 8060S (`gfx1151`), 128GB Unified LPDDR5X
+> **Runtime:** Rust/Axum (:3000) + LM Studio (:1234) + vLLM Omni (:8000) + ComfyUI (:8188)
+> **Thesis:** Trinity is an AI instructional designer for spatial computing. Teacher chats → Trinity generates VR lessons. Chat is the portal. Agent is the ID.
 
 ---
 
 ## 1. What TRINITY Is
 
-TRINITY is a **prompting system that prompts both the USER and the AI systematically** for development structuring. It is an LDT (Learning Design & Technology) course and textbook all in its own, where the user is the "player" in a LitRPG game called **The Iron Road**.
+Trinity is an **AI instructional designer for spatial computing**. A teacher chats in plain language → Trinity generates a complete VR lesson (3D models, narration, quizzes, scenes) through an agent loop with tool calling.
 
-**Core Pedagogy:**
-- **ADDIECRAPEYE** — 12-station state machine (Analysis → Design → Development → Implementation → Evaluation → Contrast → Repetition → Alignment → Proximity → Envision → Yoke → Evolve) that prevents AI hallucination by anchoring output to rigorous checkpoints
-- **VAAM** (Vocabulary As A Mechanism) — abstract concepts mapped to 3D physical models via `PEARL` alignment
-- **Cognitive Thermodynamics** — Coal/Steam/Traction/Friction track user engagement and prevent overwhelm
+**Orchestration (Trinity is the brain):**
+- **Trinity** (:3000) = Orchestrator (agent loop, tools, memory, RAG, persistence, EYE)
+- **LM Studio** (:1234) = Brain — Hermes 4 70B loaded and running
+- **vLLM Omni** (:8000) = OFF for now (will activate for images/voice in P1)
+- **ComfyUI** (:8188) = All creative (images, voice, 3D, video, music)
+- **Blender** = 3D refinement (planned, headless Python API)
+- **trinity-xr** = VR client (planned, Bevy 0.18 + bevy_oxr, WebSocket to Trinity)
 
-**Three Deliverables (The EYE Package):**
-1. HTML5 Interactive Quiz
-2. HTML5 Adventure Game
-3. DOCX Professional Document
+**Sandbox/Cron (planned):** Hermes works autonomously in a sandbox. EYE evaluates before incorporating. Build workflows overnight, evaluate in the morning.
 
----
-
-## 2. System Architecture (Agnostic P-ART-Y)
-
-### Design Principle: Two-Tier Agnostic Architecture
-
-TRINITY uses an agnostic architecture with **embedded ORT models** (runs anywhere) and an **optional external inference engine** (user-managed). No server administration required.
-
-### P-ART-Y Role Map
-
-| Role | Name | What It Does | Backend |
-|------|------|-------------|---------|
-| **P** | Pete — LM Studio | The Great Recycler. DM of the Iron Road. Socratic mentor, LitRPG narrator. Does majority of Trinity's work. | **LM Studio** (port 1234) — user loads any model. Parallel=2 for inhale/exhale. |
-| **A** | Aesthetics | Vision + image generation. CRAP evaluation of UI layouts. | Janus Pro 7B ONNX (embedded ORT) + ComfyUI (MCP tool) |
-| **R** | Research | RAG embeddings + semantic search. Grounds Pete's responses in user content. | all-MiniLM-L6-v2 ONNX (embedded ORT) |
-| **T** | Tempo | Voice narration + TTS. Audio counterpart to Aesthetics. | Kokoro TTS ONNX (embedded ORT) |
-| **Y** | The User | **The Subject Matter Expert.** Pete scaffolds — the user creates. | Human at the keyboard |
-
-### Two Operating Tiers
-
-| Tier | What Runs | Experience |
-|------|-----------|------------|
-| **Standalone** | Trinity binary only (ORT embedded) | Story mode, Socratic chat, VAAM, voice — no setup |
-| **Enhanced** | Trinity + LM Studio | Full reasoning, tool calling, overnight sessions |
-
-### Port Map
-
-| Port | Service | Status |
-|------|---------|--------|
-| **1234** | LM Studio (Pete's Brain) | ✅ Primary inference |
-| **3000** | Trinity Axum Server | ✅ Always on |
-| embedded | Kokoro TTS (ORT) | ✅ Embedded |
-| embedded | all-MiniLM-L6-v2 (ORT) | ✅ Embedded |
-| embedded | Whisper STT (ORT) | ✅ Embedded |
-
-> **vLLM Server Tier:** For Purdue multi-user deployment, vLLM backends on ports 8000-8002 are available via `configs/runtime/default.toml`. See `docs/archive/vllm_server_tier/` for setup.
-
-### ART Model Fine-Tuning Pipeline
-
-Embedded ORT models are specialized using: **Unsloth → ONNX → AMD Quark INT4**
-
-Each ART model is fine-tuned from a larger teacher (Opus distillation) for its specific Trinity role, then quantized for minimal memory footprint.
-
----
-
-## 3. Launching Trinity
-
-```bash
-# Start Trinity server (connects to LM Studio on :1234)
-cargo run -p trinity
-
-# LM Studio: start headless with parallel=2
-lms server start --port 1234 --parallel 2
-
-# Or with a specific model
-lms load gemma-4-e4b --gpu max
+**The Pipeline:**
+```
+Teacher chats → Trinity agent (Socratic questions) → Asset generation (vLLM Omni + ComfyUI) → Scene assembly (Bevy OpenXR) → EYE evaluation → Deploy (SCORM/Godot/WebXR)
 ```
 
-### Environment Variables
+---
 
-| Variable | Purpose | Default |
-|----------|---------|---------|
-| `LLM_URL` | Override inference endpoint | `http://127.0.0.1:1234` |
-| `PETE_ENGINE_URL` | Override Pete's engine | `http://127.0.0.1:1234` |
+## 2. Three-Device Architecture
+
+| Device | Name | Role | Hardware | Connection |
+|--------|------|------|----------|------------|
+| **Phone** | PYTHAGORPHUS | The Director — human input, Socratic questioning, quest management | Pixel 10 Pro XL, 16GB RAM, Gemini Nano (AICore) | Tailscale `100.83.9.71` |
+| **Desktop** | TRINITY | The Engine — AI inference, orchestration, content generation | Strix Halo, 128GB VRAM, 50 TOPS NPU | Tailscale `100.83.222.35` |
+| **XR** | (future) | The Canvas — spatial review, EYE phase | XREAL Aura (Fall 2026) | WiFi6E |
+
+**Authority Flow:** Phone (commands) → Desktop (compute) → XR (spatial output)
 
 ---
 
-## 4. Key API Endpoints
+## 3. Studio Model Setup (Day Mode)
+
+Two models are always resident on the desktop in Studio mode:
+
+| Role | Model | Engine | Port | VRAM | Speed | Purpose |
+|------|-------|--------|------|------|-------|---------|
+| **P** | DiffusionGemma 26B AWQ-INT4 | vLLM (podman) | :8000 | ~42GB | ~84 tok/s (MoE) | Execution — story, code, tool calling, reasoning |
+| **A** | ComfyUI + Janus-Pro-7B + VibeVoice-1.5B | ComfyUI | :8188 | ~17GB | varies | Creative — image gen, voice, video, 3D on demand |
+
+**Total resident VRAM:** ~59GB of 128GB. Tier 2 models (HunyuanVideo, TRELLIS, LongCat, ACE-Step, FLUX, TripoSR) loaded on demand by ComfyUI within a 53GB budget.
+
+**Hermes 4 70B (H slot):** Managed externally by LM Studio on :8002 when needed for planning. Not hotel-managed — submitted jobs to Trinity via POST /api/jobs.
+
+### Computational Economy: Resident-But-Paused
+Models stay loaded in VRAM permanently. Only one model computes at a time — others sit idle (zero bus contention). The 210 GB/s memory bus is the constraint, not capacity.
+
+### Hotel Modes (API-controlled)
+- **Studio:** P + A always resident (default). `POST /api/inference/hotel/studio`
+- **Solo:** P only, A shut down (IDE agents welcome). `POST /api/inference/hotel/solo`
+- **Closed:** All models off (night shift / maintenance). `POST /api/inference/hotel/close`
+
+### Night Mode
+Close hotel, kill podman, load large models (MiniMax-M2.7-172B, Mistral-119B) in LM Studio for overnight background jobs. Submit via POST /api/jobs with max_turns=200.
+
+---
+
+## 4. Phone PWA
+
+**URL:** `http://100.83.222.35:3000/trinity/phone.html` (Tailscale) or `http://localhost:3000/trinity/phone.html` (local)
+**Features:**
+- Chat with streaming SSE responses (P: DiffusionGemma 26B)
+- Voice input (Web Speech API — 🎤 button)
+- Text-to-speech for responses (🔊 button)
+- Hotel status monitoring (P/A health, Studio/Solo/Closed modes)
+- Image generation (ComfyUI via agent tool calling)
+- Inline image display in chat (SSE `event: image` handler)
+- RAG memory (ingest + search)
+- Persistent memory (SQLite-backed)
+- Focus Mode controls (Creative/Code/Night)
+
+**Native app (archived, 70% built):** `ARCHIVE_VAULT/Phone/trinity-ndk/` — Bevy/Rust Android app with Gemini Nano integration, inference router, desktop proxy. Needs Bevy 0.16→0.18 upgrade and APK rebuild.
+
+---
+
+## 5. Key API Endpoints
 
 | Endpoint | Purpose |
 |----------|---------|
-| `GET /api/health` | Full subsystem health (LLM, DB, creative, voice, CowCatcher) |
+| `GET /api/health` | Full subsystem health |
+| `POST /api/chat/yardmaster` | Agent chat with tool calling (SSE streaming) |
+| `POST /api/chat/stream` | Chat streaming |
 | `GET /api/inference/status` | Active inference router status |
-| `POST /api/chat` | Iron Road SSE chat (Socratic + Narration) |
-| `POST /api/agent/chat` | Yardmaster agentic tool-calling loop |
-| `POST /api/models/switch` | Switch active model |
-| `GET /api/quest/state` | Current ADDIECRAPEYE phase + objectives |
+| `GET /api/inference/hotel` | Hotel status (read-only) |
+| `POST /api/inference/hotel/studio` | Launch P + A (Studio mode) |
+| `POST /api/inference/hotel/solo` | P only (Solo mode) |
+| `POST /api/inference/hotel/close` | All models off (Closed mode) |
+| `POST /api/creative/image` | Image generation via ComfyUI |
+| `GET /api/creative/status` | ComfyUI health probe |
+| `POST /api/rag/search` | RAG semantic search |
+| `GET /api/rag/stats` | RAG statistics |
+| `POST /api/jobs` | Submit background job |
+| `POST /api/jobs/chain` | Submit job chain (overnight workflow) |
+| `GET /api/focus` | Focus mode status |
+| `POST /api/focus/creative` | Creative focus (kill IDEs, start studio) |
+| `POST /api/focus/code` | Code focus (kill models, keep IDEs) |
+| `POST /api/focus/night` | Night shift (kill everything) |
 
 ---
 
-## 5. Model Storage
+## 6. Launching Trinity
 
-### Active (LM Studio)
-Models live in `~/.lmstudio/models/` — managed by LM Studio GUI.
+```bash
+# One-command startup
+bash ~/trinity-models/start-diffusiongemma.sh  # P: vLLM on :8000
+~/Workflow/TRINITYIDAIOS/target/release/trinity --headless &  # Trinity on :3000
+curl -X POST http://localhost:3000/api/inference/hotel/studio  # Launch A: ComfyUI on :8188
 
-### Active (ORT Embedded)
-| Model | Location | Size |
-|-------|----------|------|
-| all-MiniLM-L6-v2 | `~/.trinity/models/` | ~90 MB |
-| Kokoro TTS | `~/.trinity/models/` | ~338 MB |
-| Whisper STT | `~/.trinity/models/` | ~150 MB |
+# Or use the startup script:
+./scripts/launch/trinity_day.sh
 
-### Legacy (Archived)
-| Path | Status |
-|------|--------|
-| `~/trinity-models/vllm/` | AWQ models for vLLM server tier — archive or delete |
-| `~/trinity-models/omni/LongCat-*` | **Delete** — deprecated, ~383 GB |
-
-> **⚠️ Model Consolidation Needed:** Scan system for scattered AI models and consolidate into `~/.lmstudio/models/` for GGUF models and `~/.trinity/models/` for ONNX models.
+# Phone: http://100.83.222.35:3000/trinity/phone.html (Tailscale)
+# Local: http://localhost:3000/trinity/phone.html
+```
 
 ---
 
-## 6. What Is Working (L5 — Don't Touch)
-
-These subsystems are mature. Refactoring them gains nothing:
+## 7. What Is Working (Don't Touch)
 
 | Component | File(s) | Why It's Done |
 |-----------|---------|---------------|
-| OpenAI-compatible inference client | `inference.rs` | Dynamic model resolution, streaming, tool calling |
-| Multi-backend inference router | `inference_router.rs` | PartyRole enum, auto-detect, failover, LM Studio primary |
-| Conductor phase system | `conductor_leader.rs` | 12 Socratic prompts, Bloom's mapping, RLHF injection |
-| Agentic tool loop | `agent.rs` | 38 tools, parallel execution, SSE streaming |
-| Quest state machine | `quests.rs` | ADDIECRAPEYE phase gating, XP/Coal/Steam, PEARL alignment |
-| EYE Package export | `export.rs` | HTML5 Quiz, Adventure, DOCX, ZIP — all working |
-| CowCatcher telemetry | `cow_catcher.rs` | Obstacle tracking, severity, auto-restart logic |
-| VAAM vocabulary engine | `vaam.rs`, `vaam_bridge.rs` | Word scanning, Coal rewards, cognitive load |
-| Scope Creep interceptor | `scope_creep.rs` | Auto-detect in both chat paths, PEARL semantic check |
-| Character Sheet | `character_sheet.rs` | Shadow status, friction/traction, Gemini Protocol |
-| Config system | `configs/runtime/default.toml` | LM Studio primary, ORT embedded, vLLM optional |
+| Inference routing | `agent.rs` | Routes to P (DiffusionGemma) for execution |
+| Content extraction fix | `inference.rs` | Prefers `content` over `reasoning_content` |
+| OpenAI-compatible inference client | `inference.rs` | Streaming, tool calling, dynamic model resolution |
+| Multi-backend inference router | `inference_router.rs` | Auto-detect, failover, health probing, P-ART-Y roles |
+| Hotel manager | `hotel_manager.rs` | Studio/Solo/Closed modes, P+A lifecycle, CPU pinning (will be replaced by LM Studio) |
+| Conductor phase system | `conductor_leader.rs` | 12 Socratic prompts, Bloom's mapping |
+| Agentic tool loop | `agent.rs` | Tool calling, SSE streaming, memory injection |
+| Quest state machine | `quests.rs` | ADDIECRAPEYE phase gating, XP/Coal/Steam |
+| EYE Package export | `export.rs` | HTML5 Quiz, Adventure, DOCX, ZIP |
+| Auth + rate limiting | `auth.rs` | Bearer token on dangerous endpoints, sliding window |
+| ORT in-process embeddings | `ort_embed.rs` | nomic-embed-text INT8 ONNX, CPU execution |
+| Persistent memory | `memory_store.rs` | SQLite-backed, API routes, agent loop integration |
+| RAG semantic search | `rag.rs` | ORT-first, Ollama fallback, hash fallback |
+| PWA with voice/TTS | `phone.html` | Chat, voice input, read-aloud, hotel controls, image gen, focus modes |
+| **Master architecture doc** | `docs/active/MASTER_ARCHITECTURE.md` | Project ecosystem, 7-stage workflow, orchestration decision, maturity model |
+| **Spatial pivot plan** | `docs/active/SPATIAL_PIVOT_PLAN.md` | 21-section plan: XR UI, XREAL Aura, gap analysis, monetization, two-audience framework |
+| **AGENTS.md** | `AGENTS.md` | Entry point for AI agents — drift prevention, P0 focus, rules |
+| **Sprint workflows** | `.windsurf/workflows/` | Sprint 1 (LM Studio), Sprint 2 (ID tools), Sprint 3 (trinity-xr) |
 
 ---
 
-## 7. Work Queue (Prioritized)
+## 8. Dead Code Removed (July 3, 2026)
 
-### 🔴 P0 — Blocking Demo
+2,861 lines of dead code were removed from compilation. See `docs/active/MASTER_TASK_LIST.md` for details.
 
-| # | Task | Effort |
-|---|------|--------|
-| 1 | **Model consolidation scan**: find all AI models on system, move GGUF → `~/.lmstudio/models/`, ONNX → `~/.trinity/models/` | 1 hour |
-| 2 | **End-to-end test**: Trinity ↔ LM Studio — full Socratic conversation, quest advance, phase change | 2 hours |
-| 3 | **Onboarding flow**: Pete's first playable — user types name, gets PEARL, starts Analysis, completes one objective | 4 hours |
-| 4 | **Story Engine (ORT)**: `story_engine.rs` — small ONNX model for standalone mode fallback | 4 hours |
-
-### 🟡 P1 — Important for Polish
-
-| # | Task | Effort |
-|---|------|--------|
-| 5 | **ComfyUI MCP integration**: connect as Hook Book tool, Trinity teaches user to use it | 3 hours |
-| 6 | **LM Studio headless overnight script**: `trinity-overnight.sh` for autonomous worldbuilding | 2 hours |
-| 7 | **Quest objective content**: `/fill-objectives` for all 12 ADDIECRAPEYE phases | 2 hours |
-| 8 | **Fix React components**: update any referencing old vLLM fleet APIs | 2 hours |
-
-### 🟢 P2 — Future
-
-| # | Task | Effort |
-|---|------|--------|
-| 9 | **Unsloth fine-tuning**: Story Model (~3B) with Opus distillation | 8 hours |
-| 10 | **Janus Pro ONNX export**: vision critique for CRAP evaluation | 4 hours |
-| 11 | **Graphify integration**: codebase graph for 70x token reduction | 3 hours |
-| 12 | **90-second demo recording** | 1 hour |
+FACES Protocol was moved to the Semantic Slime project (`/home/joshua/Semantic Slime/`) on July 5, 2026. The `trinity-faces` crate no longer exists in this workspace.
 
 ---
 
-## 8. Workflow Reference
+## 9. What's Next — P0 Sprint Focus
 
-| Workflow | Phase | Purpose |
-|----------|-------|---------|
-| `/session-start` | Pre-Analysis | Check services, build Trinity, open browser |
-| `/build-and-test` | Pre-Analysis | Build, test, verify server health |
-| `/first-playable` | Analysis → Development | Pete's onboarding + gameplay loop |
-| `/wire-pete-socratic` | Design → Development | Validate AI responses respect current phase |
-| `/fill-objectives` | All phases | Populate quest objectives for all 12 phases |
-| `/fix-frontend-component` | CRAP phases | Update a single React component, build-verify |
-| `/fix-rust-backend` | Development → Yoke | Fix backend logic, compile-verify |
-| `/research-implementation` | Envision → Yoke | Implement architectural data sourcing |
-| `/commit-wrap` | Evolve | Run tests, commit, update docs |
+**Current level: Level 0. Goal: Level 1 — teacher creates lesson through chat.**
 
----
+P0 items (see `AGENTS.md` and `docs/active/MASTER_ARCHITECTURE.md` Section 6):
 
-## 9. File Map (Where Things Live)
+0. **PWA as the Face** — manifest, service worker, SME interview mode, teacher quick actions, onboarding, lesson display (Sprint 0)
+1. **LM Studio integration** — Switch to LM Studio :1234, Hermes 4 70B as brain (Sprint 1)
+2. **ID system prompt** — Add instructional designer persona to agent.rs (Sprint 2)
+3. **`generate_image` tool** — ComfyUI Janus-Pro/LongCat (Sprint 2)
+4. **`generate_voice` tool** — ComfyUI VibeVoice (Sprint 2)
+5. **`generate_3d_model` tool** — ComfyUI TRELLIS (Sprint 2)
+6. **`review_content_safety` tool** — Hermes LLM review via LM Studio (Sprint 2)
+7. **End-to-end test** — Real teacher creates lesson through PWA (Sprint 2)
 
-```
-trinity-genesis/
-├── crates/trinity/src/              # Rust backend (THE code)
-│   ├── main.rs                      # Routes, AppState, all API endpoints
-│   ├── agent.rs                     # Yardmaster agentic loop + 38 tools
-│   ├── inference_router.rs          # Multi-backend router (LM Studio primary)
-│   ├── inference.rs                 # OpenAI-compatible streaming client
-│   ├── conductor_leader.rs          # ADDIECRAPEYE state machine + Socratic prompts
-│   ├── health.rs                    # /api/health endpoint
-│   ├── cow_catcher.rs               # Obstacle telemetry
-│   ├── tools.rs                     # Tool execution engine
-│   ├── creative.rs                  # Image/video/3D generation dispatch
-│   ├── voice.rs                     # Kokoro TTS integration
-│   ├── rag.rs                       # RAG search + embeddings (ORT)
-│   ├── export.rs                    # EYE Package export
-│   ├── vaam.rs / vaam_bridge.rs     # Vocabulary mining
-│   └── scope_creep.rs               # Scope creep interception
-├── crates/trinity-daydream/         # Bevy 0.18 3D LitRPG / XR Studio
-├── crates/trinity-protocol/         # Shared types (26 modules)
-├── crates/trinity-quest/            # Quest engine
-├── crates/trinity-iron-road/        # Book writing + VAAM
-├── crates/trinity-voice/            # Voice pipeline
-├── crates/trinity-mcp-server/       # MCP server for agentic extensibility
-├── configs/runtime/default.toml     # Runtime config (LM Studio primary)
-├── docs/core_bibles/                # TRINITY_FANCY_BIBLE.md + field manuals
-├── docs/archive/vllm_server_tier/   # vLLM config for Purdue (preserved)
-├── scripts/launch/                  # Launch scripts
-└── context.md                       # ← YOU ARE HERE
-```
+**Do not work on P1 or P2 items until P0 is done.**
 
----
-
-## 10. DAYDREAM XR Architecture
-
-The `trinity-daydream` crate dual-targets **desktop** and **XR headsets** from a single codebase using Cargo feature flags.
-
-### Build Targets
-
-| Target | Feature | Command |
-|--------|---------|---------|
-| Desktop (windowed) | `desktop` | `cargo run --features desktop -p trinity-daydream` |
-| XR (OpenXR headset) | `xr` | `cargo run --features xr -p trinity-daydream` |
-| Android (Quest 3S) | `xr` | `./scripts/build_xr.sh` |
-
-### Device Triangle
-
-```
-         GMKtek Strix Halo (128GB)
-         ┌─────────────────────┐
-         │ Trinity Axum :3000   │
-         │ LM Studio :1234      │
-         │ ORT Embedded Models  │
-         └──────┬────────┬──────┘
-                │WiFi 7  │WiFi 7
-         ┌──────▼──┐  ┌──▼──────────┐
-         │ Pixel 10│  │ Quest 3S    │
-         │ Mini    │  │ DAYDREAM XR │
-         │ Trinity │  │ (future)    │
-         └─────────┘  └─────────────┘
-```
-
-All devices connect to the same Axum API. The XR headset uses `TRINITY_SERVER_URL` env var to find the GMKtek on the LAN.
+Workflows: `.windsurf/workflows/sprint0-pwa.md`, `sprint1-lm-studio.md`, `sprint2-id-tools.md`, `sprint3-trinity-xr.md`

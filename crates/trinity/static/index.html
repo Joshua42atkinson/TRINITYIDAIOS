@@ -852,7 +852,7 @@
             <!-- Subject Picker -->
             <div class="ir-card glass" id="ir-picker">
                 <h3 style="color: var(--gold);">Choose Your Subject</h3>
-                <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px;line-height:1.6;">Build a gamified lesson plan with Pete, your AI instructional design coach. Every word becomes a Semantic Creep in the sandbox.</p>
+                <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px;line-height:1.6;">Build a gamified lesson plan with TRINITY, your AI instructional design coach. Every word becomes a Semantic Creep in the sandbox.</p>
                 <input type="text" class="subject-input" id="subject-input" placeholder="e.g. Ecosystems" style="width:100%; padding:12px 16px; background:rgba(0,0,0,0.5); border:1px solid var(--border-glass); border-radius:8px; color:white; font-family:'Inter',sans-serif; font-size:14px; outline:none; transition:0.2s; margin-bottom:12px;">
                 <select class="grade-select" id="grade-select" style="width:100%; padding:12px 16px; background:rgba(0,0,0,0.5); border:1px solid var(--border-glass); border-radius:8px; color:white; margin-bottom:12px; font-family:'Inter',sans-serif; font-size:14px; outline:none; transition:0.2s; -webkit-appearance:none; cursor:pointer;">
                     <option value="K-2">K-2 Early Childhood</option>
@@ -932,10 +932,10 @@
             </div>
         </div>
 
-        <!-- Pete Chat -->
+        <!-- TRINITY Chat -->
         <div class="ir-chat">
             <div class="chat-messages" id="ir-messages">
-                <div class="chat-msg ai"><div class="speaker" style="color:var(--gold);">PETE</div>Welcome to the Iron Road. Choose a subject on the left and we'll build a lesson plan together using ADDIE.</div>
+                <div class="chat-msg ai"><div class="speaker" style="color:var(--gold);">TRINITY</div>Welcome to the Iron Road. Choose a subject on the left and we'll build a lesson plan together using ADDIE.</div>
             </div>
             <!-- Scope Hope/Nope card container (SSE-driven) -->
             <div id="scope-cards" style="padding: 0 16px;"></div>
@@ -1104,12 +1104,12 @@ function updateQuestOverlay(data) {
             CURRENT PHASE: <span style="color:var(--accent); font-weight:bold; letter-spacing:1px;">${phase.toUpperCase()}</span>
         </div>
         <p style="font-size:13px; color:var(--text); line-height:1.5; margin-bottom:16px; font-style:italic; opacity:0.9;">
-            ${data.phase_description || 'Your journey through the Iron Road continues. PETE is guiding your progress.'}
+            ${data.phase_description || 'Your journey through the Iron Road continues. TRINITY is guiding your progress.'}
         </p>
         <div class="quest-objective-box">
             <div class="quest-objective-title">Active Objective</div>
             <div class="quest-objective-desc">
-                ${data.objectives && data.objectives.length > 0 ? data.objectives[0].description : 'Consult with Pete to determine your next step.'}
+                ${data.objectives && data.objectives.length > 0 ? data.objectives[0].description : 'Consult with TRINITY to determine your next step.'}
             </div>
         </div>
         ${isComplete ? '<div style="margin-top:16px; color:var(--green); font-size:12px; font-weight:800; text-align:center; letter-spacing:2px; text-shadow: 0 0 10px var(--green);">QUEST COMPLETE</div>' : ''}
@@ -1244,10 +1244,10 @@ function startIronRoad() {
     document.getElementById('ir-phases').style.display = 'block';
     document.getElementById('ir-bestiary').style.display = 'block';
     document.getElementById('ir-input').disabled = false;
-    document.getElementById('ir-input').placeholder = 'Talk with Pete about your lesson...';
+    document.getElementById('ir-input').placeholder = 'Talk with TRINITY about your lesson...';
     document.getElementById('ir-send').disabled = false;
     updateIRProgress();
-    addIRMsg('ai', 'PETE', `Let's build a ${ir.grade} lesson on <b>${subject}</b>.\n\n${PHASE_PROMPTS[0].replace('{subject}', subject)}`);
+    addIRMsg('ai', 'TRINITY', `Let's build a ${ir.grade} lesson on <b>${subject}</b>.\n\n${PHASE_PROMPTS[0].replace('{subject}', subject)}`);
     pollBestiary(); setInterval(pollBestiary, 10000);
     // Notify server
     fetch('/api/quest/subject', {method:'POST', headers:{'Content-Type':'application/json'},
@@ -1281,7 +1281,7 @@ async function sendIR() {
     if (thinkingNode) thinkingNode.style.animation = 'pulse 1.5s infinite';
 
     const ctx = `[Subject: ${ir.subject} | Grade: ${ir.grade} | Phase: ${PHASES[ir.phase]} (${ir.phase+1}/12)]
-You are Pete, an instructional design coach. Guide through the ${PHASES[ir.phase]} phase. Be practical, 2-3 paragraphs. If ready to advance, say so.
+You are TRINITY, an instructional design coach. Guide through the ${PHASES[ir.phase]} phase. Be practical, 2-3 paragraphs. If ready to advance, say so.
 Teacher: ${text}`;
 
     try {
@@ -1299,8 +1299,8 @@ Teacher: ${text}`;
             updateCircuitHighlight(data.detected_circuit.order);
         }
 
-        addIRMsg('ai', 'PETE', reply);
-        ir.notes[ir.phase] += `[Pete]: ${reply}\n`;
+        addIRMsg('ai', 'TRINITY', reply);
+        ir.notes[ir.phase] += `[TRINITY]: ${reply}\n`;
         
         if (reply.toLowerCase().match(/next phase|move on|advance|ready to/)) {
             if (ir.phase < 11) {
@@ -1345,7 +1345,7 @@ async function generateGameTemplate() {
                 .join('<br>');
             const vocabCount = gdd.vocabulary_bestiary?.total_terms || 0;
             
-            addIRMsg('ai', 'PETE', 
+            addIRMsg('ai', 'TRINITY', 
                 `📄 <b>Game Design Document Compiled!</b><br><br>` +
                 `<b>Title:</b> ${gdd.title}<br>` +
                 `<b>Subject:</b> ${gdd.subject}<br>` +
@@ -1373,13 +1373,13 @@ async function advancePhase() {
             ir.phase++;
             if (ir.phase >= 12) {
                 addIRMsg('system', '', `<div class="phase-banner complete">═══ ALL 12 ADDIECRAPEYE PHASES COMPLETE ═══</div>`);
-                addIRMsg('ai', 'PETE', `Congratulations! Your lesson plan for <b>${ir.subject}</b> is complete.`);
+                addIRMsg('ai', 'TRINITY', `Congratulations! Your lesson plan for <b>${ir.subject}</b> is complete.`);
                 addIRMsg('system', '', `<span class="advance-btn" onclick="generateGameTemplate()" style="color:var(--purdue-gold); font-size:16px;">📄 Compile Game Design Document</span>`);
                 const bar = document.getElementById('ir-progress');
                 if (bar) bar.style.background = 'var(--green)';
             } else {
                 addIRMsg('system', '', `<div class="phase-banner">═══ PHASE ${ir.phase+1}: ${PHASES[ir.phase].toUpperCase()} ═══</div>`);
-                addIRMsg('ai', 'PETE', PHASE_PROMPTS[ir.phase].replace('{subject}', ir.subject));
+                addIRMsg('ai', 'TRINITY', PHASE_PROMPTS[ir.phase].replace('{subject}', ir.subject));
             }
             updateIRProgress();
             pollQuestState();
@@ -1681,7 +1681,7 @@ async function triggerArt(action) {
             resetArtBadge(oldText);
             return;
         } else if (action === 'avatar_sync') {
-            const id = prompt("Avatar ID to synchronize:", "pete_001");
+            const id = prompt("Avatar ID to synchronize:", "trinity_001");
             if (!id) { resetArtBadge(oldText); return; }
             addBeastLog('SYSTEM', `Avatar sync for ${id} — feature coming soon`);
         }
@@ -1762,7 +1762,7 @@ async function pollBevyState() {
 
                 let color = 'var(--accent)';
                 let tag = 'OS';
-                if (ent.id.includes('Pete') || ent.id.includes('Dungeon')) { color = 'var(--gold)'; tag = 'ID'; }
+                if (ent.id.includes('TRINITY') || ent.id.includes('Dungeon')) { color = 'var(--gold)'; tag = 'ID'; }
                 if (ent.id.includes('ART') || ent.id.includes('Aesthetic')) { color = 'var(--purple)'; tag = 'AI'; }
                 if (ent.id.includes('Encounter') || ent.id.includes('Balancing')) { color = 'var(--red)'; tag = 'DM'; }
                 
@@ -1976,7 +1976,7 @@ async function submitSetup() {
             document.getElementById('setupModal').classList.remove('show');
             updateStats(sheet);
             const welcomeMsg = `Welcome to TRINITY, ${alias}. I see you are joining as a ${uclass.replace(/([A-Z])/g, ' $1').trim()}. Your workspace has been initialized. What subject shall we tackle on the Iron Road today?`;
-            addIRMsg('ai', 'PETE', welcomeMsg);
+            addIRMsg('ai', 'TRINITY', welcomeMsg);
             
             // Re-fetch chat API context
             if (window.ir) {

@@ -4,7 +4,7 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 #
 # PURPOSE: Serial startup of all Trinity services in correct dependency order:
-#   1. Pete / Gemma 4 E4B AWQ (vLLM on :8001)
+#   1. TRINITY / Gemma 4 E4B AWQ (vLLM on :8001)
 #   2. A.R.T.Y. Hub (FastAPI reverse proxy on :8000)
 #   3. Trinity Rust Backend (Axum on :3000)
 #   4. Open browser
@@ -33,7 +33,7 @@ BOLD='\033[1m'
 NC='\033[0m'
 
 # Ports
-PETE_PORT=8001
+TRINITY_PORT=8001
 ARTY_PORT=8000
 NOMIC_PORT=8005
 TRINITY_PORT=3000
@@ -71,10 +71,10 @@ print_status() {
     echo -e "${BOLD}${CYAN}  Trinity ID AI OS — Service Status${NC}"
     echo -e "${BOLD}${CYAN}═══════════════════════════════════════════════════${NC}\n"
 
-    if check_port $PETE_PORT; then
-        echo -e "  ${GREEN}✅${NC} Pete / Gemma 4 E4B AWQ          :${PETE_PORT}"
+    if check_port $TRINITY_PORT; then
+        echo -e "  ${GREEN}✅${NC} TRINITY / Gemma 4 E4B AWQ          :${TRINITY_PORT}"
     else
-        echo -e "  ${RED}❌${NC} Pete / Gemma 4 E4B AWQ          :${PETE_PORT}  (offline)"
+        echo -e "  ${RED}❌${NC} TRINITY / Gemma 4 E4B AWQ          :${TRINITY_PORT}  (offline)"
     fi
 
     if check_port $ARTY_PORT; then
@@ -137,31 +137,31 @@ echo -e "${BOLD}${BLUE}   TRINITY ID AI OS — Desktop Ignition${NC}"
 echo -e "${BOLD}${BLUE}   One-Click Launch Sequence${NC}"
 echo -e "${BOLD}${BLUE}═══════════════════════════════════════════════════════${NC}\n"
 
-# ── Stage 1: Pete / Gemma 4 E4B AWQ (vLLM :8001) ─────────────────────────────
+# ── Stage 1: TRINITY / Gemma 4 E4B AWQ (vLLM :8001) ─────────────────────────────
 
 if [ "$SKIP_AI" = false ]; then
-    echo -e "${BOLD}[1/3] Pete / Gemma 4 E4B AWQ${NC}"
+    echo -e "${BOLD}[1/3] TRINITY / Gemma 4 E4B AWQ${NC}"
 
-    if check_port $PETE_PORT; then
-        echo -e "   ${GREEN}Already running on :${PETE_PORT}${NC}"
+    if check_port $TRINITY_PORT; then
+        echo -e "   ${GREEN}Already running on :${TRINITY_PORT}${NC}"
     else
-        LAUNCH_SCRIPT="$SCRIPT_DIR/launch_pete.sh"
+        LAUNCH_SCRIPT="$SCRIPT_DIR/launch_trinity.sh"
         if [ -f "$LAUNCH_SCRIPT" ]; then
             echo -e "   Launching via distrobox → vllm..."
             # Launch in background — vLLM takes 15-60s to load the model
             bash "$LAUNCH_SCRIPT" &
-            PETE_PID=$!
+            TRINITY_PID=$!
 
             # Wait up to 120s for model to load
-            if wait_for_port $PETE_PORT "Pete/Gemma 4" 120; then
-                echo -e "   ${GREEN}Pete is online!${NC}"
+            if wait_for_port $TRINITY_PORT "TRINITY/Gemma 4" 120; then
+                echo -e "   ${GREEN}TRINITY is online!${NC}"
             else
-                echo -e "   ${YELLOW}Proceeding without Pete — model may still be loading${NC}"
-                echo -e "   ${YELLOW}Monitor: curl http://127.0.0.1:${PETE_PORT}/health${NC}"
+                echo -e "   ${YELLOW}Proceeding without TRINITY — model may still be loading${NC}"
+                echo -e "   ${YELLOW}Monitor: curl http://127.0.0.1:${TRINITY_PORT}/health${NC}"
             fi
         else
             echo -e "   ${YELLOW}Launch script not found: $LAUNCH_SCRIPT${NC}"
-            echo -e "   ${YELLOW}Start manually: ./scripts/launch/launch_pete.sh${NC}"
+            echo -e "   ${YELLOW}Start manually: ./scripts/launch/launch_trinity.sh${NC}"
         fi
     fi
 

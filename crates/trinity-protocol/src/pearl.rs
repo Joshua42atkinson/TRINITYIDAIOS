@@ -78,9 +78,9 @@ impl PearlMedium {
     /// Used by the conductor to suggest party assignments.
     pub fn suggested_tools(&self) -> &[&str] {
         match self {
-            PearlMedium::Game => &["scaffold_bevy_game", "comfyui_image", "musicgpt"],
-            PearlMedium::Storyboard => &["comfyui_image", "narrative_engine"],
-            PearlMedium::Simulation => &["scaffold_bevy_game", "comfyui_image"],
+            PearlMedium::Game => &["generate_image", "generate_music"],
+            PearlMedium::Storyboard => &["generate_image", "narrative_engine"],
+            PearlMedium::Simulation => &["generate_image", "generate_music"],
             PearlMedium::LessonPlan => &["narrative_engine", "gdd_compile"],
             PearlMedium::Assessment => &["gdd_compile", "qm_rubric"],
             PearlMedium::Book => &["narrative_engine", "comfyui_image"],

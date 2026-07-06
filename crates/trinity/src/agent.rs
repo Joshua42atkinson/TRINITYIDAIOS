@@ -380,7 +380,7 @@ pub async fn run_agent_loop(
     db_pool: sqlx::SqlitePool,
     session_id: String,
     game_state: trinity_quest::SharedGameState,
-    character_sheet: std::sync::Arc<tokio::sync::RwLock<trinity_protocol::CharacterSheet>>,
+    character_sheet: std::sync::Arc<tokio::sync::RwLock<trinity_quest::CharacterSheet>>,
 ) {
         let max_turns = request.max_turns.min(65);
         let max_tokens = request.max_tokens;
@@ -562,12 +562,12 @@ pub async fn run_agent_loop(
                 sheet.consecutive_negatives = sheet.consecutive_negatives.saturating_add(1);
                 
                 let mut changed = false;
-                if sheet.consecutive_negatives >= 3 && sheet.shadow_status != trinity_protocol::character_sheet::ShadowStatus::Active {
-                    sheet.shadow_status = trinity_protocol::character_sheet::ShadowStatus::Active;
+                if sheet.consecutive_negatives >= 3 && sheet.shadow_status != trinity_quest::ShadowStatus::Active {
+                    sheet.shadow_status = trinity_quest::ShadowStatus::Active;
                     info!("🌑 Shadow activated — negative sentiment detected");
                     changed = true;
-                } else if sheet.shadow_status == trinity_protocol::character_sheet::ShadowStatus::Clear {
-                    sheet.shadow_status = trinity_protocol::character_sheet::ShadowStatus::Stirring;
+                } else if sheet.shadow_status == trinity_quest::ShadowStatus::Clear {
+                    sheet.shadow_status = trinity_quest::ShadowStatus::Stirring;
                     info!("🌘 Shadow stirring — frustration detected");
                     changed = true;
                 }
@@ -586,8 +586,8 @@ pub async fn run_agent_loop(
                 if sheet.consecutive_negatives > 0 {
                     sheet.consecutive_negatives = sheet.consecutive_negatives.saturating_sub(1);
                     
-                    if sheet.consecutive_negatives == 0 && sheet.shadow_status != trinity_protocol::character_sheet::ShadowStatus::Clear {
-                        sheet.shadow_status = trinity_protocol::character_sheet::ShadowStatus::Clear;
+                    if sheet.consecutive_negatives == 0 && sheet.shadow_status != trinity_quest::ShadowStatus::Clear {
+                        sheet.shadow_status = trinity_quest::ShadowStatus::Clear;
                         info!("☀️ Shadow cleared — positive engagement restored");
                         let shadow_json = serde_json::json!({ "status": sheet.shadow_status }).to_string();
                         let _ = tx.send(format!("event: shadow_status\ndata: {}\n\n", shadow_json)).await;
@@ -1112,8 +1112,8 @@ pub async fn run_agent_loop(
                 // Only fire on substantive exchanges (skip greetings/brief replies)
                 if msg_type == crate::perspective::MessageType::Substantive {
                     let sheet = state.player.character_sheet.read().await;
-                    let experience = sheet.experience.as_ref().filter(|e| !e.is_empty()).cloned();
-                    let audience = sheet.audience.as_ref().filter(|a| !a.is_empty()).cloned();
+                    let experience = sheet.experience.clone();
+                    let audience = sheet.audience.clone();
                     drop(sheet);
                     let gs = game_state.read().await;
                     let phase_label = gs.quest.current_phase.label().to_string();

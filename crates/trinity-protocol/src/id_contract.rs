@@ -12,7 +12,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::character_sheet::{BloomLevel, UserClass};
+use crate::types::{BloomLevel, UserClass};
 
 /// The Instructional Design Contract — the formal bounded lesson plan that
 /// Trinity negotiates with the user before any content is built.

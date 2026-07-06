@@ -500,7 +500,7 @@ pub async fn generate_tempo(
     // Auto-vault to portfolio
     {
         let mut sheet = state.player.character_sheet.write().await;
-        let artifact = trinity_protocol::character_sheet::PortfolioArtifact {
+        let artifact = trinity_quest::PortfolioArtifact {
             artifact_id: uuid::Uuid::new_v4(),
             title: request.prompt.clone(),
             hooks_cast: Vec::new(),
@@ -565,7 +565,7 @@ pub async fn generate_video(
     })?;
 
     let mut sheet = state.player.character_sheet.write().await;
-    sheet.ldt_portfolio.artifact_vault.push(trinity_protocol::character_sheet::PortfolioArtifact {
+    sheet.ldt_portfolio.artifact_vault.push(trinity_quest::PortfolioArtifact {
         artifact_id: uuid::Uuid::new_v4(),
         title: request.prompt.clone(),
         hooks_cast: Vec::new(),
@@ -680,7 +680,7 @@ pub async fn generate_3d_mesh(
     if mesh_path.is_some() {
         // Auto-vault to portfolio
         let mut sheet = state.player.character_sheet.write().await;
-        let artifact = trinity_protocol::character_sheet::PortfolioArtifact {
+        let artifact = trinity_quest::PortfolioArtifact {
             artifact_id: uuid::Uuid::new_v4(),
             title: request.prompt.clone(),
             hooks_cast: Vec::new(),
@@ -857,24 +857,24 @@ pub async fn update_creative_settings(
     // Update visual style
     if let Some(visual) = request.visual_style.as_deref() {
         sheet.creative_config.visual_style = match visual {
-            "cyberpunk" => trinity_protocol::character_sheet::VisualStyle::Cyberpunk,
-            "fantasy" => trinity_protocol::character_sheet::VisualStyle::Fantasy,
-            "minimalist" => trinity_protocol::character_sheet::VisualStyle::Minimalist,
-            "retro" => trinity_protocol::character_sheet::VisualStyle::Retro,
-            "noir" => trinity_protocol::character_sheet::VisualStyle::Noir,
-            _ => trinity_protocol::character_sheet::VisualStyle::Steampunk,
+            "cyberpunk" => trinity_quest::VisualStyle::Cyberpunk,
+            "fantasy" => trinity_quest::VisualStyle::Fantasy,
+            "minimalist" => trinity_quest::VisualStyle::Minimalist,
+            "retro" => trinity_quest::VisualStyle::Retro,
+            "noir" => trinity_quest::VisualStyle::Noir,
+            _ => trinity_quest::VisualStyle::Steampunk,
         };
     }
 
     // Update music style
     if let Some(music) = request.music_style.as_deref() {
         sheet.creative_config.music_style = match music {
-            "lofi" => trinity_protocol::character_sheet::MusicStyle::Lofi,
-            "electronic" => trinity_protocol::character_sheet::MusicStyle::Electronic,
-            "jazz" => trinity_protocol::character_sheet::MusicStyle::Jazz,
-            "ambient" => trinity_protocol::character_sheet::MusicStyle::Ambient,
-            "classical" => trinity_protocol::character_sheet::MusicStyle::Classical,
-            _ => trinity_protocol::character_sheet::MusicStyle::Orchestral,
+            "lofi" => trinity_quest::MusicStyle::Lofi,
+            "electronic" => trinity_quest::MusicStyle::Electronic,
+            "jazz" => trinity_quest::MusicStyle::Jazz,
+            "ambient" => trinity_quest::MusicStyle::Ambient,
+            "classical" => trinity_quest::MusicStyle::Classical,
+            _ => trinity_quest::MusicStyle::Orchestral,
         };
     }
 

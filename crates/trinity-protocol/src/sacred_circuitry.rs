@@ -40,8 +40,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::character_sheet::BloomLevel;
-use crate::vocabulary::{VocabularyTier, VocabularyWord};
+use crate::types::{BloomLevel, VocabularyTier, VocabularyWord};
 
 /// The 15 Sacred Circuitry concepts — cognitive scaffolding for AI attention.
 ///

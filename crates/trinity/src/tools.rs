@@ -193,16 +193,12 @@ pub fn get_tool_list() -> Vec<ToolInfo> {
         ToolInfo { name: "read_file".into(), description: "Read a file's contents. Args: path".into(), params: vec!["path".into()] },
         ToolInfo { name: "list_dir".into(), description: "List directory contents. Args: path (default: workspace root)".into(), params: vec!["path".into()] },
         ToolInfo { name: "search_files".into(), description: "Search for text in files using grep. Args: query, path (default: crates/)".into(), params: vec!["query".into(), "path".into()] },
-        ToolInfo { name: "quest_status".into(), description: "Get current quest state: ADDIECRAPEYE phase, objectives, coal/steam/XP, hero stage".into(), params: vec![] },
-        ToolInfo { name: "cowcatcher_log".into(), description: "View recent Cow Catcher obstacle logs — timeouts, compilation errors, crashes".into(), params: vec![] },
-        ToolInfo { name: "sidecar_status".into(), description: "Check status of AI sidecars and available models".into(), params: vec![] },
         ToolInfo { name: "process_list".into(), description: "List running processes with CPU/memory usage (ps aux sorted by memory)".into(), params: vec![] },
         ToolInfo { name: "system_info".into(), description: "System memory, disk, GPU status, and running services".into(), params: vec![] },
         ToolInfo { name: "load_session_context".into(), description: "Load the most recent session summary for context bootstrapping".into(), params: vec![] },
         // === State-Modifying (Ring 1: NeedsApproval) ===
         ToolInfo { name: "write_file".into(), description: "Write/overwrite file (auto-backup). Args: path, content".into(), params: vec!["path".into(), "content".into()] },
         ToolInfo { name: "cargo_check".into(), description: "Run 'cargo check' to verify compilation. Args: crate_name (optional, default: trinity)".into(), params: vec!["crate_name".into()] },
-        ToolInfo { name: "quest_advance".into(), description: "Advance or retreat the quest phase. Args: direction ('next' or 'back')".into(), params: vec!["direction".into()] },
         ToolInfo { name: "work_log".into(), description: "Write a session work report. Args: title, content, status ('in_progress'|'complete')".into(), params: vec!["title".into(), "content".into(), "status".into()] },
         ToolInfo { name: "task_queue".into(), description: "Manage task queue. Args: action ('read'|'add'|'complete'|'next'), task, index".into(), params: vec!["action".into(), "task".into(), "index".into()] },
         ToolInfo { name: "save_session_summary".into(), description: "Save session summary for cross-session continuity. Args: title, summary, next_steps, files_changed".into(), params: vec!["title".into(), "summary".into(), "next_steps".into(), "files_changed".into()] },
@@ -214,21 +210,12 @@ pub fn get_tool_list() -> Vec<ToolInfo> {
         ToolInfo { name: "analyze_image".into(), description: "Analyze any image using LLM vision. Args: image_path, question".into(), params: vec!["image_path".into(), "question".into()] },
         ToolInfo { name: "analyze_screen_obs".into(), description: "Agentic Vision Hook: Takes a live screenshot of the user's desktop window (simulating OBS stream capture) and uses vLLM-Omni to answer your query. Essential for debugging UI frameworks or verifying results autonomously. Args: prompt".into(), params: vec!["prompt".into()] },
         ToolInfo { name: "scout_sniper".into(), description: "Generate ADDIECRAPEYE quest chain for a feature. Args: target, scope ('analyze'|'plan'|'full')".into(), params: vec!["target".into(), "scope".into()] },
-        ToolInfo { name: "zombie_check".into(), description: "Find and kill zombie cargo/rustc/vllm processes. Args: kill (bool)".into(), params: vec!["kill".into()] },
         // === Destructive (Ring 1: Destructive) ===
         ToolInfo { name: "shell".into(), description: "Execute a shell command (sandboxed, Ring 5). Args: command, cwd, dry_run".into(), params: vec!["command".into(), "cwd".into(), "dry_run".into()] },
         ToolInfo { name: "python_exec".into(), description: "Execute Python code (sandboxed). Args: code, requirements (pip packages)".into(), params: vec!["code".into(), "requirements".into()] },
-        ToolInfo { name: "scaffold_bevy_game".into(), description: "Create Bevy game project. Args: name, title, subject, vocabulary, objectives".into(), params: vec!["name".into(), "title".into(), "subject".into(), "vocabulary".into(), "objectives".into()] },
         ToolInfo { name: "scaffold_elearning_module".into(), description: "Build a Vite+React+Rust elearning platform from a lesson plan. Args: name, title, lesson_plan_path".into(), params: vec!["name".into(), "title".into(), "lesson_plan_path".into()] },
-        ToolInfo { name: "generate_mesh3d".into(), description: "Generate 3D mesh via Hunyuan3D-2.1. Args: prompt, format (glb|obj)".into(), params: vec!["prompt".into(), "format".into()] },
-        ToolInfo { name: "blender_render".into(), description: "Render a 3D scene via Blender CLI. Args: scene_path, output_format (png|mp4)".into(), params: vec!["scene_path".into(), "output_format".into()] },
-        ToolInfo { name: "avatar_pipeline".into(), description: "Create NPC avatar: backstory, portrait, voice, entity. Args: concept, style".into(), params: vec!["concept".into(), "style".into()] },
-        ToolInfo { name: "sidecar_start".into(), description: "Start a model sidecar. Args: model (pete|aesthetics|research|tempo)".into(), params: vec!["model".into()] },
         ToolInfo { name: "daydream_command".into(), description: "HIGH LEVEL: Scaffold 3D learning concepts. Schemas: {command: 'SpawnConcept'|'SetTerrain'|'PlaceWaypoint'|'PlaySound'|'AnimateEntity'|'SpawnUiButton'|'SpawnDialogueTree', params: {id, label, position, python_script (optional PyO3 code changing transform/velocity/delta_time)}}.".into(), params: vec!["command".into(), "params".into()] },
-        ToolInfo { name: "project_archive".into(), description: "Archive project to DAYDREAM. Args: path, reason".into(), params: vec!["path".into(), "reason".into()] },
         ToolInfo { name: "generate_image".into(), description: "Generate image via vLLM Omni. Routes to /api/creative/image → vLLM :8000/v1/images/generations. Args: prompt, width, height".into(), params: vec!["prompt".into()] },
-        ToolInfo { name: "generate_music".into(), description: "Generate procedural music/audio. Args: prompt, style (orchestral|lofi|electronic|jazz|ambient|classical), duration_secs".into(), params: vec!["prompt".into(), "style".into(), "duration_secs".into()] },
-        ToolInfo { name: "generate_video".into(), description: "Generate video via HunyuanVideo. Args: prompt, duration_secs (default 4), fps (default 24)".into(), params: vec!["prompt".into(), "duration_secs".into()] },
         ToolInfo { name: "update_vibe".into(), description: "Dynamically set the system vibe. Args: visual_style, music_style, narrator_mood (Neutral|Warm|Urgent|Sarcastic|Celebratory|Contemplative)".into(), params: vec!["visual_style".into(), "music_style".into(), "narrator_mood".into()] },
     ]
 }
@@ -244,24 +231,12 @@ fn home_dir() -> PathBuf {
     })
 }
 
-fn gguf_model_path(filename: &str) -> PathBuf {
-    home_dir().join("trinity-models/gguf").join(filename)
-}
-
-fn safetensor_model_path(dirname: &str) -> PathBuf {
-    home_dir().join("trinity-models/safetensors").join(dirname)
-}
 
 
-fn resolve_sidecar_role(model: &str) -> Option<&'static str> {
-    match model {
-        "pete" | "conductor" | "p" => Some("pete"),
-        "aesthetics" | "art" | "artist" | "a" => Some("aesthetics"),
-        "research" | "brakeman" | "evaluator" | "r" => Some("research"),
-        "tempo" | "engineer" | "yardman" | "t" => Some("tempo"),
-        _ => None,
-    }
-}
+
+
+
+
 
 #[allow(dead_code)] // Used by sidecar_start tool when binary is present
 fn sidecar_binary() -> Option<PathBuf> {
@@ -309,20 +284,11 @@ async fn run_tool(tool: &str, params: &serde_json::Value) -> Result<String, Stri
         "list_dir" | "list_files" => tool_list_dir(params).await,
         "shell" => tool_shell(params).await,
         "cargo_check" => tool_cargo_check(params).await,
-        "quest_status" => tool_quest_status().await,
-        "quest_advance" => tool_quest_advance(params).await,
-        "cowcatcher_log" => tool_cowcatcher_log().await,
         "search_files" => tool_search_files(params).await,
-        "avatar_pipeline" => tool_avatar_pipeline(params).await,
         "generate_image" => tool_generate_image(params).await,
         "process_list" => tool_process_list().await,
         "system_info" => tool_system_info().await,
-        "sidecar_status" => tool_sidecar_status().await,
-        "sidecar_start" => tool_sidecar_start(params).await,
-        "scaffold_bevy_game" => tool_scaffold_bevy_game(params).await,
         "scaffold_elearning_module" => tool_scaffold_elearning_module(params).await,
-        "daydream_command" => tool_daydream_command(params).await,
-        "project_archive" => tool_project_archive(params).await,
         "work_log" => tool_work_log(params).await,
         "task_queue" => tool_task_queue(params).await,
         "python_exec" => tool_python_exec(params).await,
@@ -330,14 +296,9 @@ async fn run_tool(tool: &str, params: &serde_json::Value) -> Result<String, Stri
         "generate_rubric" => tool_generate_rubric(params).await,
         "generate_quiz" => tool_generate_quiz(params).await,
         "curriculum_map" => tool_curriculum_map(params).await,
-        "zombie_check" => tool_zombie_check(params).await,
         "analyze_document" => tool_analyze_document(params).await,
         "analyze_image" => tool_analyze_image(params).await,
         "analyze_screen_obs" => tool_analyze_screen_obs(params).await,
-        "generate_music" => tool_generate_music(params).await,
-        "generate_video" => tool_generate_video(params).await,
-        "generate_mesh3d" => tool_generate_mesh3d(params).await,
-        "blender_render" => tool_blender_render(params).await,
         "scout_sniper" => tool_scout_sniper(params).await,
         "save_session_summary" => tool_save_session_summary(params).await,
         "load_session_context" => tool_load_session_context(params).await,
@@ -612,58 +573,7 @@ async fn tool_search_files(params: &serde_json::Value) -> Result<String, String>
     }
 }
 
-async fn tool_avatar_pipeline(params: &serde_json::Value) -> Result<String, String> {
-    let concept = params
-        .get("concept")
-        .and_then(|c| c.as_str())
-        .ok_or("Missing 'concept' parameter (e.g. 'a grizzled steam engineer')")?;
-    let style = params
-        .get("style")
-        .and_then(|s| s.as_str())
-        .unwrap_or("steampunk");
 
-    info!("🎭 Avatar Pipeline: {} (style: {})", concept, style);
-
-    let script = workspace_root().join("scripts/launch/avatar_pipeline.py");
-    if !script.exists() {
-        return Err("Avatar pipeline script not found".to_string());
-    }
-
-    let venv_python = home_dir().join("trinity-ai-env/bin/python3");
-    let legacy_venv = home_dir().join("trinity-vllm-env/bin/python3");
-    let python = if venv_python.exists() {
-        venv_python.to_string_lossy().to_string()
-    } else if legacy_venv.exists() {
-        legacy_venv.to_string_lossy().to_string()
-    } else {
-        "python3".to_string()
-    };
-
-    let output = Command::new(&python)
-        .arg(&script)
-        .arg(concept)
-        .arg("--style")
-        .arg(style)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .await
-        .map_err(|e| format!("Avatar pipeline failed to start: {}", e))?;
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    let mut result = stdout.to_string();
-    if !stderr.is_empty() {
-        result.push_str("\n--- stderr ---\n");
-        result.push_str(&stderr);
-    }
-
-    if result.len() > 10_000 {
-        result = format!("{}...\n[truncated]", &result[..10_000]);
-    }
-
-    Ok(result)
-}
 
 async fn tool_generate_image(params: &serde_json::Value) -> Result<String, String> {
     let prompt = params
@@ -711,196 +621,13 @@ async fn tool_generate_image(params: &serde_json::Value) -> Result<String, Strin
     }
 }
 
-async fn tool_generate_music(params: &serde_json::Value) -> Result<String, String> {
-    let prompt = params
-        .get("prompt")
-        .and_then(|p| p.as_str())
-        .ok_or("Missing 'prompt' parameter")?;
-    let style = params
-        .get("style")
-        .and_then(|s| s.as_str())
-        .unwrap_or("ambient");
-    let duration_secs = params
-        .get("duration_secs")
-        .and_then(|d| d.as_u64())
-        .unwrap_or(15) as u32;
 
-    info!("🎵 Generating music: {} (style: {}, {}s)", prompt, style, duration_secs);
 
-    // Call creative.rs tempo endpoint via internal HTTP
-    let client = &*crate::http::LONG;
-    let body = serde_json::json!({
-        "prompt": prompt,
-        "style": style,
-        "duration_secs": duration_secs,
-    });
 
-    let response = client
-        .post("http://127.0.0.1:3000/api/creative/tempo")
-        .json(&body)
-        .timeout(std::time::Duration::from_secs(120))
-        .send()
-        .await
-        .map_err(|e| format!("Music generation failed: {}", e))?;
 
-    if !response.status().is_success() {
-        return Err(format!(
-            "Music generation error: {}",
-            response.text().await.unwrap_or_default()
-        ));
-    }
 
-    let result: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
-    let audio_path = result["audio_path"]
-        .as_str()
-        .unwrap_or("unknown");
-    Ok(format!("Music generated: {}", audio_path))
-}
 
-async fn tool_generate_video(params: &serde_json::Value) -> Result<String, String> {
-    let prompt = params
-        .get("prompt")
-        .and_then(|p| p.as_str())
-        .ok_or("Missing 'prompt' parameter")?;
-    let duration_secs = params
-        .get("duration_secs")
-        .and_then(|d| d.as_u64())
-        .unwrap_or(4) as u32;
-    let fps = params
-        .get("fps")
-        .and_then(|f| f.as_u64())
-        .unwrap_or(24) as u32;
 
-    info!("🎬 Generating video: {} ({}s @ {}fps)", prompt, duration_secs, fps);
-
-    let client = &*crate::http::LONG;
-    let body = serde_json::json!({
-        "prompt": prompt,
-        "duration_secs": duration_secs,
-        "fps": fps,
-        "height": 720,
-    });
-
-    let response = client
-        .post("http://127.0.0.1:3000/api/creative/video")
-        .json(&body)
-        .timeout(std::time::Duration::from_secs(300))
-        .send()
-        .await
-        .map_err(|e| format!("Video generation failed: {}", e))?;
-
-    if !response.status().is_success() {
-        return Err(format!(
-            "Video generation error: {}",
-            response.text().await.unwrap_or_default()
-        ));
-    }
-
-    let result: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
-    let video_path = result["video_path"]
-        .as_str()
-        .unwrap_or("unknown");
-    Ok(format!("Video generated: {}", video_path))
-}
-
-async fn tool_generate_mesh3d(params: &serde_json::Value) -> Result<String, String> {
-    let prompt = params
-        .get("prompt")
-        .and_then(|p| p.as_str())
-        .ok_or("Missing 'prompt' parameter")?;
-    let format = params
-        .get("format")
-        .and_then(|f| f.as_str())
-        .unwrap_or("glb");
-
-    info!("🧊 Generating 3D mesh: {} (format: {})", prompt, format);
-
-    let client = &*crate::http::LONG;
-    let body = serde_json::json!({
-        "prompt": prompt,
-        "format": format,
-    });
-
-    let response = client
-        .post("http://127.0.0.1:3000/api/creative/mesh3d")
-        .json(&body)
-        .timeout(std::time::Duration::from_secs(300))
-        .send()
-        .await
-        .map_err(|e| format!("3D mesh generation failed: {}", e))?;
-
-    if !response.status().is_success() {
-        return Err(format!(
-            "3D mesh generation error: {}",
-            response.text().await.unwrap_or_default()
-        ));
-    }
-
-    let result: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
-    let mesh_path = result["mesh_path"]
-        .as_str()
-        .unwrap_or("unknown");
-    Ok(format!("3D mesh generated: {}", mesh_path))
-}
-
-async fn tool_blender_render(params: &serde_json::Value) -> Result<String, String> {
-    let scene_path = params
-        .get("scene_path")
-        .and_then(|p| p.as_str())
-        .ok_or("Missing 'scene_path' parameter (path to .blend or .glb file)")?;
-    let output_format = params
-        .get("output_format")
-        .and_then(|f| f.as_str())
-        .unwrap_or("png");
-
-    let scene = validate_path(scene_path)?;
-    if !scene.exists() {
-        return Err(format!("Scene file not found: {}", scene_path));
-    }
-
-    info!("🎨 Blender render: {} → {}", scene_path, output_format);
-
-    // Check Blender is installed
-    let blender_check = Command::new("which")
-        .arg("blender")
-        .stdout(Stdio::piped())
-        .output()
-        .await
-        .map(|o| o.status.success())
-        .unwrap_or(false);
-
-    if !blender_check {
-        return Err("Blender not found. Install Blender to enable 3D rendering.".to_string());
-    }
-
-    // Output path
-    let home = home_dir();
-    let output_dir = home.join(".local/share/trinity/workspace/assets/renders");
-    let _ = tokio::fs::create_dir_all(&output_dir).await;
-    let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
-    let output_file = output_dir.join(format!("render_{}.{}", timestamp, output_format));
-
-    let output = Command::new("blender")
-        .args([
-            "-b",  // background mode
-            scene_path,
-            "-o", &output_file.to_string_lossy(),
-            "-f", "1",  // render frame 1
-            "-F", if output_format == "mp4" { "FFMPEG" } else { "PNG" },
-        ])
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .await
-        .map_err(|e| format!("Blender render failed to start: {}", e))?;
-
-    if output.status.success() {
-        Ok(format!("Render complete: {}", output_file.display()))
-    } else {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        Err(format!("Blender render failed: {}", stderr.chars().take(500).collect::<String>()))
-    }
-}
 
 async fn tool_process_list() -> Result<String, String> {
     let output = Command::new("ps")
@@ -994,48 +721,9 @@ async fn tool_system_info() -> Result<String, String> {
     Ok(info.join("\n"))
 }
 
-async fn tool_sidecar_status() -> Result<String, String> {
-    let mut status = Vec::new();
 
-    let llm_ok = crate::inference::check_health("http://127.0.0.1:1234").await;
-    status.push(format!(
-        "Signal Tower / LM Studio (port 1234 — local inference): {}",
-        if llm_ok { "✅ running" } else { "❌ stopped" }
-    ));
 
-    let arty_ok = crate::inference::check_health("http://127.0.0.1:8000").await;
-    status.push(format!(
-        "A.R.T.Y. Hub (port 8000 — vLLM reverse proxy): {}",
-        if arty_ok { "✅ running" } else { "⬚ not started" }
-    ));
 
-    let embed_ok = crate::inference::check_health("http://127.0.0.1:8005").await;
-    status.push(format!(
-        "  R (Research): nomic-embed (port 8005 — embeddings for RAG): {}",
-        if embed_ok { "✅ running" } else { "⬚ not started" }
-    ));
-
-    status.push(
-        "Active Models: Gemma-4-E4B-AWQ (Pete/Recycler), nomic-embed-text-v1.5 (RAG)".to_string()
-    );
-
-    Ok(status.join("\n"))
-}
-
-async fn tool_sidecar_start(params: &serde_json::Value) -> Result<String, String> {
-    let model = params
-        .get("model")
-        .and_then(|m| m.as_str())
-        .ok_or("Missing 'model' parameter")?;
-
-    if let Some(role) = resolve_sidecar_role(model) {
-        return Err(format!(
-            "Sidecar role '{}' is not available. Launch vLLM via terminal.",
-            role
-        ));
-    }
-    Err(format!("Sidecar model auto-start is only supported via vLLM terminal commands."))
-}
 
 fn human_size(bytes: u64) -> String {
     if bytes < 1024 {
@@ -1154,34 +842,16 @@ async fn tool_cargo_check(params: &serde_json::Value) -> Result<String, String> 
 }
 
 /// Quest status — reads current game state (stateless fallback; agent.rs has the real one)
-async fn tool_quest_status() -> Result<String, String> {
-    // This is the fallback for HTTP endpoint calls.
-    // The agent loop in agent.rs overrides this with the real stateful version.
-    Ok("⚠️ quest_status is only available through the agent chat loop (Yardmaster tab). Use POST /api/quest for the REST API.".to_string())
-}
+
 
 /// Quest advance — advances quest phase (stateless fallback; agent.rs has the real one)
-async fn tool_quest_advance(params: &serde_json::Value) -> Result<String, String> {
-    let _direction = params
-        .get("direction")
-        .and_then(|d| d.as_str())
-        .unwrap_or("next");
-    Ok("⚠️ quest_advance is only available through the agent chat loop (Yardmaster tab). Use POST /api/quest/advance for the REST API.".to_string())
-}
+
 
 /// Cow Catcher log — view recent obstacles (stateless fallback; agent.rs has the real one)
-async fn tool_cowcatcher_log() -> Result<String, String> {
-    Ok(
-        "⚠️ cowcatcher_log is only available through the agent chat loop (Yardmaster tab)."
-            .to_string(),
-    )
-}
+
 
 /// Daydream LitRPG abstraction engine.
-async fn tool_daydream_command(params: &serde_json::Value) -> Result<String, String> {
-    let command = params.get("command").and_then(|c| c.as_str()).unwrap_or("");
-    Ok(format!("[DAYDREAM_ENGINE] Command '{}' dispatched to native Bevy child process.", command))
-}
+
 
 async fn tool_scaffold_elearning_module(params: &serde_json::Value) -> Result<String, String> {
     let name = params.get("name").and_then(|n| n.as_str()).unwrap_or("truth_module");
@@ -1240,201 +910,10 @@ async fn tool_scaffold_elearning_module(params: &serde_json::Value) -> Result<St
 
 /// Scaffold a new Bevy game from the Trinity template
 /// Copies template files, replaces placeholders with GDD values, creates config.json
-async fn tool_scaffold_bevy_game(params: &serde_json::Value) -> Result<String, String> {
-    let name = params["name"].as_str().unwrap_or("my_game");
-    let title = params["title"].as_str().unwrap_or("My Trinity Game");
-    let subject = params["subject"].as_str().unwrap_or("General");
-    let author = params["author"].as_str().unwrap_or("Trinity Player");
 
-    // Parse vocabulary entries
-    let vocabulary: Vec<serde_json::Value> =
-        params["vocabulary"].as_array().cloned().unwrap_or_else(|| {
-            vec![serde_json::json!({"word": "example", "definition": "A sample vocabulary word"})]
-        });
-
-    // Parse learning objectives
-    let objectives: Vec<String> = params["objectives"]
-        .as_array()
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|v| v.as_str().map(String::from))
-                .collect()
-        })
-        .unwrap_or_else(|| vec!["Demonstrate understanding of key vocabulary".to_string()]);
-
-    // Set up paths
-    let game_dir = home_dir()
-        .join(".local/share/trinity/workspace/games")
-        .join(name);
-
-    if game_dir.exists() {
-        return Err(format!(
-            "Game project already exists at {:?}. Use project_archive to archive it first.",
-            game_dir
-        ));
-    }
-
-    // Create directory structure
-    let src_dir = game_dir.join("src");
-    let assets_dir = game_dir.join("assets");
-    std::fs::create_dir_all(&src_dir).map_err(|e| format!("Failed to create src dir: {}", e))?;
-    std::fs::create_dir_all(&assets_dir)
-        .map_err(|e| format!("Failed to create assets dir: {}", e))?;
-
-    // Template directory
-    let genre = params["genre"].as_str().unwrap_or("exploration");
-    let template_dir = workspace_root().join(format!("templates/bevy_{}", genre));
-    if !template_dir.exists() {
-        return Err(format!(
-            "Template directory not found at {:?}",
-            template_dir
-        ));
-    }
-
-    // Generate vocabulary entries for config.rs
-    let vocab_entries: String = vocabulary.iter().map(|v| {
-        let word = v["word"].as_str().unwrap_or("word");
-        let definition = v["definition"].as_str().unwrap_or("definition");
-        format!("                VocabEntry {{ word: \"{}\".to_string(), definition: \"{}\".to_string() }},", word, definition)
-    }).collect::<Vec<_>>().join("\n");
-
-    // Generate learning objectives for config.rs
-    let obj_entries: String = objectives
-        .iter()
-        .map(|o| format!("                \"{}\".to_string(),", o))
-        .collect::<Vec<_>>()
-        .join("\n");
-
-    // Process each template file
-    let template_files = [
-        ("Cargo.toml.template", "Cargo.toml"),
-        ("src/main.rs.template", "src/main.rs"),
-        ("src/game_state.rs.template", "src/game_state.rs"),
-        ("src/player.rs.template", "src/player.rs"),
-        ("src/ui.rs.template", "src/ui.rs"),
-        ("src/config.rs.template", "src/config.rs"),
-    ];
-
-    // Sanitize name for Cargo.toml (lowercase, underscores)
-    let cargo_name = name.to_lowercase().replace(['-', ' '], "_");
-
-    for (template_name, output_name) in template_files {
-        let template_path = template_dir.join(template_name);
-        if !template_path.exists() {
-            info!("⚠️ Template file not found: {:?}, skipping", template_path);
-            continue;
-        }
-
-        let content = std::fs::read_to_string(&template_path)
-            .map_err(|e| format!("Failed to read template {:?}: {}", template_path, e))?;
-
-        let processed = content
-            .replace("{{GAME_NAME}}", &cargo_name)
-            .replace("{{GAME_TITLE}}", title)
-            .replace(
-                "{{GAME_DESCRIPTION}}",
-                &format!("{} — {} educational game", title, subject),
-            )
-            .replace("{{SUBJECT}}", subject)
-            .replace("{{AUTHOR}}", author)
-            .replace("{{VOCABULARY_ENTRIES}}", &vocab_entries)
-            .replace("{{LEARNING_OBJECTIVES}}", &obj_entries);
-
-        let output_path = game_dir.join(output_name);
-        std::fs::write(&output_path, &processed)
-            .map_err(|e| format!("Failed to write {:?}: {}", output_path, e))?;
-    }
-
-    // Write config.json to assets/ for runtime loading
-    let config_json = serde_json::json!({
-        "game_title": title,
-        "subject": subject,
-        "author": author,
-        "vocabulary": vocabulary,
-        "learning_objectives": objectives,
-    });
-    let config_path = assets_dir.join("config.json");
-    std::fs::write(
-        &config_path,
-        serde_json::to_string_pretty(&config_json).unwrap_or_default(),
-    )
-    .map_err(|e| format!("Failed to write config.json: {}", e))?;
-
-    info!("🎮 Bevy game scaffolded: {} at {:?}", title, game_dir);
-
-    Ok(format!(
-        "✅ Bevy game '{}' created at {}\n\
-         Files: Cargo.toml, src/main.rs, src/game_state.rs, src/player.rs, src/ui.rs, src/config.rs\n\
-         Config: assets/config.json\n\
-         Vocabulary: {} words\n\
-         Objectives: {}\n\n\
-         To build: cd {} && cargo check\n\
-         To run: cd {} && cargo run",
-        title, game_dir.display(),
-        vocabulary.len(),
-        objectives.len(),
-        game_dir.display(), game_dir.display()
-    ))
-}
 
 /// Archive a project to DAYDREAM (scope creep → scope hope recycling)
-async fn tool_project_archive(params: &serde_json::Value) -> Result<String, String> {
-    let path = params["path"].as_str().ok_or("Missing 'path' parameter")?;
-    let reason = params["reason"].as_str().unwrap_or("scope management");
 
-    let project_path = PathBuf::from(path);
-    if !project_path.exists() {
-        return Err(format!("Project path does not exist: {}", path));
-    }
-
-    // DAYDREAM archive directory
-    let archive_base = home_dir().join(".local/share/trinity/daydream");
-    std::fs::create_dir_all(&archive_base)
-        .map_err(|e| format!("Failed to create DAYDREAM archive: {}", e))?;
-
-    // Create timestamped archive name
-    let project_name = project_path
-        .file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_else(|| "unnamed".to_string());
-    let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
-    let archive_name = format!("{}_{}", project_name, timestamp);
-    let archive_path = archive_base.join(&archive_name);
-
-    // Move the project
-    std::fs::rename(&project_path, &archive_path)
-        .map_err(|e| format!("Failed to move to archive: {}", e))?;
-
-    // Write archive metadata
-    let metadata = serde_json::json!({
-        "original_path": path,
-        "archive_reason": reason,
-        "archived_at": chrono::Utc::now().to_rfc3339(),
-        "project_name": project_name,
-    });
-    let meta_path = archive_path.join(".daydream_meta.json");
-    std::fs::write(
-        &meta_path,
-        serde_json::to_string_pretty(&metadata).unwrap_or_default(),
-    )
-    .ok();
-
-    info!(
-        "🌙 Project archived to DAYDREAM: {} → {:?} (reason: {})",
-        path, archive_path, reason
-    );
-
-    Ok(format!(
-        "🌙 Project archived to DAYDREAM\n\
-         Original: {}\n\
-         Archive: {}\n\
-         Reason: {}\n\n\
-         To restore, move back from the DAYDREAM archive.",
-        path,
-        archive_path.display(),
-        reason
-    ))
-}
 
 // ═══════════════════════════════════════════════════
 // WORK LOG — Persists session reports for next-day EYE review
@@ -2173,91 +1652,7 @@ async fn tool_curriculum_map(params: &serde_json::Value) -> Result<String, Strin
 // ═══════════════════════════════════════════════════
 
 /// Find and optionally kill zombie cargo/rustc/cc processes that block builds
-async fn tool_zombie_check(params: &serde_json::Value) -> Result<String, String> {
-    let should_kill = params
-        .get("kill")
-        .and_then(|k| k.as_str())
-        .map(|s| s == "true" || s == "yes" || s == "1")
-        .unwrap_or(false);
 
-    // Patterns to match zombie build processes
-    let zombie_patterns = [
-        ("cargo", "cargo build"),
-        ("cargo", "cargo check"),
-        ("cargo", "cargo test"),
-        ("rustc", "rustc"),
-        ("cc", "cc "),
-        ("ld", "ld "),
-    ];
-
-    let mut found = Vec::new();
-
-    for (name, pattern) in &zombie_patterns {
-        let output = Command::new("pgrep")
-            .args(["-f", "-a", pattern])
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .output()
-            .await;
-
-        if let Ok(output) = output {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            for line in stdout.lines() {
-                if let Some(pid_str) = line.split_whitespace().next() {
-                    if let Ok(pid) = pid_str.parse::<u32>() {
-                        // Don't kill our own process or the current cargo invocation
-                        let current_pid = std::process::id();
-                        if pid != current_pid {
-                            found.push((pid, name.to_string(), line.trim().to_string()));
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    if found.is_empty() {
-        return Ok("✅ No zombie build processes found. Build path is clear.".to_string());
-    }
-
-    let mut report = format!("🧟 Found {} potential zombie process(es):\n\n", found.len());
-    for (pid, name, cmdline) in &found {
-        report.push_str(&format!(
-            "  PID {} [{}]: {}\n",
-            pid,
-            name,
-            if cmdline.len() > 80 {
-                &cmdline[..80]
-            } else {
-                cmdline
-            }
-        ));
-    }
-
-    if should_kill {
-        let mut killed = 0;
-        for (pid, _, _) in &found {
-            let kill_result = Command::new("kill")
-                .args(["-9", &pid.to_string()])
-                .output()
-                .await;
-            if let Ok(output) = kill_result {
-                if output.status.success() {
-                    killed += 1;
-                }
-            }
-        }
-        report.push_str(&format!(
-            "\n💀 Killed {}/{} zombie processes. Build path should be clear now.",
-            killed,
-            found.len()
-        ));
-    } else {
-        report.push_str("\n⚠️ Use zombie_check(kill='true') to kill them, or run: pkill -9 -f 'cargo build|cargo check|rustc'");
-    }
-
-    Ok(report)
-}
 
 // ============================================================================
 // RESEARCHER TOOLS — Qianfan-OCR + Primary Vision

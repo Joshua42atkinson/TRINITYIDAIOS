@@ -1,0 +1,19 @@
+{
+  "name": "Trinity ID",
+  "short_name": "Trinity",
+  "description": "AI instructional designer for spatial computing. Build VR lessons by chatting with Hermes.",
+  "start_url": "/trinity/phone.html",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "orientation": "portrait",
+  "scope": "/trinity/",
+  "icons": [
+    {
+      "src": "/trinity/trinity-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

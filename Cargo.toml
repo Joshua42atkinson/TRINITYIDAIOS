@@ -3,15 +3,6 @@ members = [
     # ── Core System ──
     "crates/trinity",                  # Headless HTTP server + Tauri host (Layer 1)
     "crates/trinity-protocol",         # Shared types, ADDIE enums, CharacterSheet (Layer 2)
-
-    # ── Game Engine ──
-    "crates/trinity-quest",            # Quest board, XP/Coal/Steam economy
-    "crates/trinity-iron-road",        # Book writing, narrative, VAAM, bestiary
-    "crates/trinity-voice",            # Supertonic TTS, SSML, VAAM vocal emphasis
-
-    # ── Native Extensions ──
-    "crates/trinity-daydream",         # Bevy 0.18.1 3D LitRPG / XR Studio (Layer 3)
-    "crates/trinity-mcp-server",       # Model Context Protocol for IDE integration
 ]
 
 exclude = [

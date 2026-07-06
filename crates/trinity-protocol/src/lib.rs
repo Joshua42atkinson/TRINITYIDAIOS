@@ -65,78 +65,43 @@
 //! 3. **Clarity**: Type names should be self-documenting (e.g., `ThinkResult`, `ActionRequest`).
 
 pub mod artifact;
-pub mod asset_generation;
 pub mod brain;
 pub mod bridge;
-pub mod character_sheet;
-pub mod daydream_commands;
 pub mod diffusion;
 pub mod id_contract;
 pub mod memory;
 pub mod ontology;
-pub mod pearl;
 pub mod production;
-pub mod profile;
-pub mod qm_rubric;
 pub mod sacred_circuitry;
-pub mod semantic_creep;
 pub mod sidecars;
 pub mod state;
 pub mod stream;
 pub mod task;
-pub mod trinity_mcp_server;
+pub mod pearl;
 pub mod tutorial_events;
 pub mod types;
 pub mod vaam_profile;
 pub mod vocabulary;
-pub mod yardmaster_generator;
 
 pub use artifact::{
     AgentMode, Artifact, GraphEdge, GraphNode, NodeStatus, PlanTask, StepItem, StepStatus,
 };
-pub use asset_generation::{
-    AssessmentType, BehaviorAnalysis, BehaviorToContentMapper, ComplexityLevel, ContentTemplate,
-    InteractionPattern, InteractionType, ResourceType, ScoringCriteria, SectionType,
-    TemplateSection, TemplateStructure, Yardmaster, YardmasterType,
-};
 pub use brain::BrainServiceClient;
-pub use character_sheet::{
-    BloomLevel, CharacterSheet, ConcurrencyMode,
-    SkillType, UserClass,
-};
 pub use diffusion::*;
 pub use id_contract::{ActionMap, ContractStatus, IdContract, LearningObjective, QuestMilestone};
 pub use memory::MemoryServiceClient;
 pub use ontology::MaterialIntegrity;
 pub use pearl::{Pearl, PearlEvaluation, PearlMedium, PearlPhase};
 pub use production::*;
-pub use profile::{
-    AddiePhase, Bestiary, CreepAlignment, Journal, JournalEntry, JournalEntryType, ProjectProfile,
-    QuestBoardState, QuestStatus, QuestSummary, ScopeCreepMonster, SteamResult, UserProfile,
-    VocabularyUpdate,
-};
-pub use qm_rubric::{QmCriterion, QmEvaluation, QmRubricEvaluator};
 pub use sacred_circuitry::{
     format_circuit_event, foundation_vocabulary, scan_ai_alignment, Circuit,
     CircuitAlignmentResult, CircuitQuadrant, CircuitryState,
 };
-pub use semantic_creep::{
-    battle as creep_battle, CreepElement, CreepRole, CreepState, CreepStats, SemanticCreep,
-};
 pub use stream::{AgentConfig, AgentStatus, ModelTier, OrchestratorConfig, StreamEvent};
 pub use task::*;
-pub use trinity_mcp_server::{
-    ChangeResult, McpError, PerformanceMetrics, SafeModificationEngine, SafetyValidator,
-    StyleUpdate, TrinityMcpService, UiAnalysisResult, UiChange, UiStateMirror, UsageAnalytics,
-    ValidationResult,
-};
 pub use types::*;
 pub use vaam_profile::{Agreement, CommunicationStyle, VaamProfile, WordWeight};
 pub use vocabulary::{
-    Genre, MasteryUpdate, TierProgress, VocabularyDatabase, VocabularyMastery, VocabularyPack,
-    VocabularySet, VocabularySuggestion, VocabularyTier, VocabularyWord, WordDetection,
-};
-pub use yardmaster_generator::{
-    ContentTone, GeneratedAssessment, GeneratedContent, GeneratedInteraction, GeneratedSection,
-    GenerationParameters, YardmasterGenerator,
+    MasteryUpdate, TierProgress, VocabularyDatabase, VocabularyMastery, VocabularyPack,
+    VocabularySet, VocabularySuggestion, WordDetection,
 };

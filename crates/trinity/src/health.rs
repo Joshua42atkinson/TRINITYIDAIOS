@@ -91,6 +91,10 @@ pub fn mark_startup() {
     START_TIME.get_or_init(std::time::Instant::now);
 }
 
+pub fn uptime_secs() -> u64 {
+    START_TIME.get().map(|t| t.elapsed().as_secs()).unwrap_or(0)
+}
+
 /// GET /api/health — honest subsystem health check
 pub async fn health_check(
     State(state): State<AppState>,

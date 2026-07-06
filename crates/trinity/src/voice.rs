@@ -54,7 +54,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
-use trinity_protocol::character_sheet::VoiceEmotion;
+use trinity_quest::VoiceEmotion;
 
 use crate::AppState;
 

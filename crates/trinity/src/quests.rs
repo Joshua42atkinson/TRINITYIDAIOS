@@ -304,7 +304,7 @@ pub async fn advance_phase(
         // Sync Quest progress to Character Sheet skills
         {
             let mut sheet = state.player.character_sheet.write().await;
-            use trinity_protocol::SkillType;
+            use trinity_quest::SkillType;
 
             // Map the completed phase to skill increases
             match game.quest.current_phase {
