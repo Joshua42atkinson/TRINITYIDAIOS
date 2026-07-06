@@ -151,14 +151,8 @@ async fn gather_services() -> Vec<ServiceHealth> {
                     if *name == "LM Studio" {
                         if let Ok(body) = res.json::<serde_json::Value>().await {
                             if let Some(data) = body.get("data").and_then(|d| d.as_array()) {
-                                // Prefer Hermes model if loaded, else first
-                                let preferred = data.iter().find(|m| {
-                                    m.get("id").and_then(|v| v.as_str())
-                                        .map(|s| s.to_lowercase().contains("hermes"))
-                                        .unwrap_or(false)
-                                }).or(data.first());
-                                if let Some(model) = preferred {
-                                    health.model = model
+                                if let Some(first) = data.first() {
+                                    health.model = first
                                         .get("id")
                                         .and_then(|v| v.as_str())
                                         .map(|s| s.to_string());

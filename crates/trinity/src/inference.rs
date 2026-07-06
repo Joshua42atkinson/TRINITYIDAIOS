@@ -67,17 +67,7 @@ async fn resolve_model_name(base_url: &str) -> String {
             if let Ok(body) = resp.json::<serde_json::Value>().await {
                 body.get("data")
                     .and_then(|d| d.as_array())
-                    .and_then(|arr| {
-                        // Prefer Hermes model if loaded, else first
-                        arr.iter()
-                            .find(|m| {
-                                m.get("id")
-                                    .and_then(|v| v.as_str())
-                                    .map(|s| s.to_lowercase().contains("hermes"))
-                                    .unwrap_or(false)
-                            })
-                            .or(arr.first())
-                    })
+                    .and_then(|arr| arr.first())
                     .and_then(|m| m.get("id"))
                     .and_then(|id| id.as_str())
                     .map(|s| s.to_string())

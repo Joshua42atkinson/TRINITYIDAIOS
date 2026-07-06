@@ -3,7 +3,7 @@
 > **Last Updated:** July 6, 2026
 > **Master Docs:** `AGENTS.md` (entry point) → `docs/active/MASTER_ARCHITECTURE.md` (full architecture) → `docs/active/SPATIAL_PIVOT_PLAN.md` (detailed plan)
 > **Hardware:** AMD Strix Halo APU — Radeon 8060S (`gfx1151`), 128GB Unified LPDDR5X
-> **Runtime:** Rust/Axum (:3000) + LM Studio (:1234, Hermes 4 70B) + ComfyUI (:8188). vLLM Omni OFF.
+> **Runtime:** Rust/Axum (:3000) + LM Studio (:1234, user-selected LLM) + ComfyUI (:8188). vLLM Omni OFF.
 > **Thesis:** Trinity is an AI instructional designer for spatial computing. Teacher chats → Trinity generates VR lessons. Chat is the portal. Agent is the ID.
 
 ---
@@ -14,7 +14,7 @@ Trinity is an **AI instructional designer for spatial computing**. A teacher cha
 
 **Orchestration (Trinity is the brain):**
 - **Trinity** (:3000) = Orchestrator (agent loop, tools, memory, RAG, persistence, EYE)
-- **LM Studio** (:1234) = Brain — Hermes 4 70B (nousresearch/hermes-4-70b) loaded and running
+- **LM Studio** (:1234) = Brain — whatever LLM the user loads (currently Hermes 4 70B, but swappable per task)
 - **vLLM Omni** (:8000) = OFF (replaced by LM Studio + ComfyUI)
 - **ComfyUI** (:8188) = All creative (images, voice, 3D, video, music)
 - **Blender** = 3D refinement (planned, headless Python API)
@@ -45,11 +45,11 @@ Teacher chats → Trinity agent (Socratic questions) → Asset generation (vLLM 
 
 | Role | Model | Engine | Port | Purpose |
 |------|-------|--------|------|---------|
-| **Brain** | Hermes 4 70B | LM Studio | :1234 | LLM inference, tool calling, reasoning, planning |
+| **Brain** | User-selected (currently Hermes 4 70B) | LM Studio | :1234 | LLM inference, tool calling, reasoning, planning |
 | **Creative** | ComfyUI (Janus-Pro, VibeVoice, TRELLIS, etc.) | ComfyUI | :8188 | Image gen, voice, 3D, video on demand |
 | **Embeddings** | nomic-embed-text-v1.5 | LM Studio | :1234 | RAG semantic search (in-process ORT fallback) |
 
-**Hermes 4 70B** is the sole LLM brain. vLLM and hotel_manager are being phased out (Sprint 1).
+The LLM brain is whatever the user loads in LM Studio — Hermes 4 70B today, swappable per task. vLLM and hotel_manager are being phased out (Sprint 1).
 **ComfyUI** handles all creative generation. Models loaded on demand within VRAM budget.
 
 ### GPU Stability (Strix Halo gfx1151)
@@ -66,7 +66,7 @@ Teacher chats → Trinity agent (Socratic questions) → Asset generation (vLLM 
 **URL:** `http://100.83.222.35:3000/trinity/phone.html` (Tailscale) or `http://localhost:3000/trinity/phone.html` (local)
 **Sprint 0 PWA features (completed):**
 - PWA installable (manifest.json, service worker, icon)
-- Chat with streaming SSE responses (Hermes 4 70B via LM Studio)
+- Chat with streaming SSE responses (LLM via LM Studio — whatever is loaded)
 - Voice input (Web Speech API — 🎤 button)
 - Text-to-speech for responses (🔊 button)
 - System status monitoring (Trinity/LM Studio/ComfyUI health)
@@ -137,11 +137,11 @@ cd ~/Workflow/TRINITYIDAIOS && cargo run -p trinity -- --headless &
 
 | Component | File(s) | Why It's Done |
 |-----------|---------|---------------|
-| Inference routing | `agent.rs` | Routes to LM Studio (Hermes 4 70B) for execution |
+| Inference routing | `agent.rs` | Routes to LM Studio (user-selected LLM) for execution |
 | Content extraction fix | `inference.rs` | Prefers `content` over `reasoning_content` |
-| OpenAI-compatible inference client | `inference.rs` | Streaming, tool calling, dynamic model resolution (prefers Hermes) |
+| OpenAI-compatible inference client | `inference.rs` | Streaming, tool calling, dynamic model resolution (uses whatever LM Studio has loaded) |
 | Multi-backend inference router | `inference_router.rs` | Auto-detect, failover, health probing, P-ART-Y roles |
-| Hermes model preference | `inference.rs`, `monitor.rs` | Prefers hermes-4-70b over other loaded models |
+| Model resolution | `inference.rs`, `monitor.rs` | Uses first model from LM Studio /v1/models (whatever user loaded) |
 | Conductor phase system | `conductor_leader.rs` | 12 Socratic prompts, Bloom's mapping |
 | Agentic tool loop | `agent.rs` | Tool calling, SSE streaming, memory injection |
 | Quest state machine | `quests.rs` | ADDIECRAPEYE phase gating, XP/Coal/Steam |
@@ -175,7 +175,7 @@ FACES Protocol was moved to the Semantic Slime project (`/home/joshua/Semantic S
 P0 items (see `AGENTS.md` and `docs/active/MASTER_ARCHITECTURE.md` Section 6):
 
 0. **PWA as the Face** — manifest, service worker, SME interview, quick actions, onboarding, lesson display, mode switching, previews (Sprint 0) — **5 of 9 done, 3 remaining**
-1. **LM Studio integration** — Switch inference router to LM Studio :1234 (Sprint 1) — **Hermes already loaded and working**
+1. **LM Studio integration** — Switch inference router to LM Studio :1234 (Sprint 1) — **working, user selects model in LM Studio**
 2. **ID system prompt** — Add instructional designer persona to agent.rs (Sprint 2)
 3. **`generate_image` tool** — ComfyUI (Sprint 2) — **working**
 4. **`generate_voice` tool** — ComfyUI VibeVoice (Sprint 2)
