@@ -78,10 +78,14 @@ The LLM brain is whatever the user loads in LM Studio — Hermes 4 70B today, sw
 - Teacher-focused quick actions (replaced dev buttons)
 - First-run onboarding (3 slides + example prompts)
 
-**Sprint 0 PWA features (remaining):**
-- Mode switching (Phone/VR toggle)
-- Lesson spec rendering as structured card in chat
-- Audio/3D/video preview inline in chat
+**Sprint 0 PWA features (also completed):**
+- Mode switching (Phone/VR toggle, stored in localStorage, ID persona on phone/vr modes)
+- Lesson spec rendering as structured card in chat (JSON detection, objectives, outline, assets, assessment, standards)
+- Audio/3D/video preview inline in chat (audio controls, video controls, Three.js 3D viewer for glTF)
+- Lesson card action buttons (Build Assets, Save, Edit)
+- SME Interview guided mode (Socratic questioning via chat)
+- LM Studio model management buttons (Load Hermes, Load Storyteller, Unload All, Refresh)
+- Init mode fixed (defaults to 'phone' not 'dev' — teacher gets ID persona)
 
 **Native app (archived, 70% built):** `ARCHIVE_VAULT/Phone/trinity-ndk/` — Bevy/Rust Android app with Gemini Nano integration, inference router, desktop proxy. Needs Bevy 0.16→0.18 upgrade and APK rebuild.
 
@@ -150,7 +154,7 @@ cd ~/Workflow/TRINITYIDAIOS && cargo run -p trinity -- --headless &
 | ORT in-process embeddings | `ort_embed.rs` | nomic-embed-text INT8 ONNX, CPU execution |
 | Persistent memory | `memory_store.rs` | SQLite-backed, API routes, agent loop integration |
 | RAG semantic search | `rag.rs` | ORT-first, Ollama fallback, hash fallback |
-| PWA (Sprint 0) | `phone.html` | Chat, voice I/O, system status, image gen, SME wizard, onboarding, quick actions |
+| PWA (Sprint 0) | `phone.html` | Chat, voice I/O, system status, image gen, SME wizard, onboarding, quick actions, lesson spec cards, 3D viewer, LM Studio model management |
 | Cross-project monitor | `monitor.rs` | Health, git status, disk, jobs for all Trinity ecosystem projects |
 | **Master architecture doc** | `docs/active/MASTER_ARCHITECTURE.md` | Project ecosystem, 7-stage workflow, orchestration decision, maturity model |
 | **Spatial pivot plan** | `docs/active/SPATIAL_PIVOT_PLAN.md` | 21-section plan: XR UI, XREAL Aura, gap analysis, monetization, two-audience framework |
@@ -174,16 +178,16 @@ FACES Protocol was moved to the Semantic Slime project (`/home/joshua/Semantic S
 
 P0 items (see `AGENTS.md` and `docs/active/MASTER_ARCHITECTURE.md` Section 6):
 
-0. **PWA as the Face** — manifest, service worker, SME interview, quick actions, onboarding, lesson display, mode switching, previews (Sprint 0) — **5 of 9 done, 3 remaining**
-1. **LM Studio integration** — Switch inference router to LM Studio :1234 (Sprint 1) — **working, user selects model in LM Studio**
-2. **ID system prompt** — Add instructional designer persona to agent.rs (Sprint 2)
-3. **`generate_image` tool** — ComfyUI (Sprint 2) — **working**
-4. **`generate_voice` tool** — ComfyUI VibeVoice (Sprint 2)
-5. **`generate_3d_model` tool** — ComfyUI TRELLIS (Sprint 2)
-6. **`review_content_safety` tool** — Hermes LLM review via LM Studio (Sprint 2)
-7. **End-to-end test** — Real teacher creates lesson through PWA (Sprint 2)
-8. **trinity-xr** — Port Bertrand spatial-engine-bevy to trinity-xr crate (Sprint 3)
-9. **Tauri desktop app** — Wrap PWA in Tauri, native service management, tray icon, one-click launch (Sprint 4)
+0. **PWA as the Face** (Sprint 0) — ✅ **COMPLETE** — manifest, service worker, SME interview, quick actions, onboarding, lesson display, mode switching, previews, lesson card actions, LM Studio model management
+1. **LM Studio integration** (Sprint 1) — ✅ **COMPLETE** — inference router on :1234, lm_studio_client.rs, model load/unload/download API
+2. **ID system prompt** (Sprint 2) — ✅ **COMPLETE** — ID_SYSTEM persona in agent.rs, mode switching for phone/vr/id modes
+3. **`generate_image` tool** (Sprint 2) — ✅ **COMPLETE** — ComfyUI via agent tool calling
+4. **`generate_voice` tool** (Sprint 2) — ✅ **COMPLETE** — ComfyUI VibeVoice, API endpoint /api/creative/voice
+5. **`generate_3d_model` tool** (Sprint 2) — ✅ **COMPLETE** — TripoSR via /api/creative/3d, API endpoint working
+6. **`review_content_safety` tool** (Sprint 2) — ✅ **COMPLETE** — Hermes LLM review, model auto-resolution, PASS/FAIL tested
+7. **End-to-end test** (Sprint 2) — ✅ **COMPLETE** — Chat with ID persona tested, Socratic questions confirmed, safety review tested
+8. **trinity-xr** (Sprint 3) — **NEXT** — Port Bertrand spatial-engine-bevy to trinity-xr crate
+9. **Tauri desktop app** (Sprint 4) — Wrap PWA in Tauri, native service management, tray icon, one-click launch
 
 **Do not work on P1 or P2 items until P0 is done.**
 

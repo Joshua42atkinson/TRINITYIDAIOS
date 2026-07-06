@@ -112,12 +112,13 @@ pub fn tool_permission(name: &str) -> ToolPermission {
         | "analyze_document"
         | "update_vibe"
         | "analyze_image"
-        | "analyze_screen_obs" => ToolPermission::NeedsApproval,
+        | "analyze_screen_obs"
+        | "review_content_safety" => ToolPermission::NeedsApproval,
 
         // System-level or external-facing
         "shell" | "python_exec" | "sidecar_start" | "scaffold_bevy_game" | "scaffold_elearning_module" | "project_archive"
         | "avatar_pipeline" | "generate_image" | "generate_music" | "generate_video"
-        | "generate_mesh3d" | "blender_render" => ToolPermission::Destructive,
+        | "generate_mesh3d" | "generate_3d_model" | "generate_voice" | "blender_render" => ToolPermission::Destructive,
 
         _ => ToolPermission::Destructive, // unknown = most restrictive
     }
@@ -217,6 +218,9 @@ pub fn get_tool_list() -> Vec<ToolInfo> {
         ToolInfo { name: "daydream_command".into(), description: "HIGH LEVEL: Scaffold 3D learning concepts. Schemas: {command: 'SpawnConcept'|'SetTerrain'|'PlaceWaypoint'|'PlaySound'|'AnimateEntity'|'SpawnUiButton'|'SpawnDialogueTree', params: {id, label, position, python_script (optional PyO3 code changing transform/velocity/delta_time)}}.".into(), params: vec!["command".into(), "params".into()] },
         ToolInfo { name: "generate_image".into(), description: "Generate image via vLLM Omni. Routes to /api/creative/image → vLLM :8000/v1/images/generations. Args: prompt, width, height".into(), params: vec!["prompt".into()] },
         ToolInfo { name: "update_vibe".into(), description: "Dynamically set the system vibe. Args: visual_style, music_style, narrator_mood (Neutral|Warm|Urgent|Sarcastic|Celebratory|Contemplative)".into(), params: vec!["visual_style".into(), "music_style".into(), "narrator_mood".into()] },
+        ToolInfo { name: "generate_3d_model".into(), description: "Generate a 3D model (glTF) via ComfyUI TRELLIS/TripoSR. Args: prompt, style (realistic|stylized|lowpoly)".into(), params: vec!["prompt".into(), "style".into()] },
+        ToolInfo { name: "generate_voice".into(), description: "Generate voice narration via ComfyUI VibeVoice. Args: text, speaker (narrator|male|female), emotion (neutral|warm|excited)".into(), params: vec!["text".into(), "speaker".into(), "emotion".into()] },
+        ToolInfo { name: "review_content_safety".into(), description: "Review content for K-12 safety (violence, bias, accuracy, age-appropriateness). Args: content, target_age (e.g. '5th grade')".into(), params: vec!["content".into(), "target_age".into()] },
     ]
 }
 
@@ -303,6 +307,9 @@ async fn run_tool(tool: &str, params: &serde_json::Value) -> Result<String, Stri
         "save_session_summary" => tool_save_session_summary(params).await,
         "load_session_context" => tool_load_session_context(params).await,
         "update_vibe" => tool_update_vibe(params).await,
+        "generate_3d_model" => tool_generate_3d_model(params).await,
+        "generate_voice" => tool_generate_voice(params).await,
+        "review_content_safety" => tool_review_content_safety(params).await,
         _ => Err(format!("Unknown tool: {}", tool)),
     }
 }
@@ -619,6 +626,186 @@ async fn tool_generate_image(params: &serde_json::Value) -> Result<String, Strin
     } else {
         Ok(format!("Image generated: {}", image_path))
     }
+}
+
+async fn tool_generate_3d_model(params: &serde_json::Value) -> Result<String, String> {
+    let prompt = params
+        .get("prompt")
+        .and_then(|p| p.as_str())
+        .ok_or("Missing 'prompt' parameter")?;
+    let style = params
+        .get("style")
+        .and_then(|s| s.as_str())
+        .unwrap_or("stylized");
+
+    info!("🧊 Generating 3D model: {} (style: {})", prompt, style);
+
+    let client = &*crate::http::LONG;
+    let body = serde_json::json!({ "prompt": prompt, "style": style });
+    let response = client
+        .post("http://127.0.0.1:3000/api/creative/3d")
+        .json(&body)
+        .timeout(std::time::Duration::from_secs(300))
+        .send()
+        .await
+        .map_err(|e| format!("3D model generation failed to connect: {}", e))?;
+
+    let status = response.status();
+    if !status.is_success() {
+        let body = response.text().await.unwrap_or_default();
+        return Err(format!("3D model generation returned error ({}): {}", status, body));
+    }
+
+    let result: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
+    let path = result["mesh_path"]
+        .as_str()
+        .or_else(|| result["model_path"].as_str())
+        .or_else(|| result["path"].as_str())
+        .unwrap_or("unknown");
+    Ok(format!("3D model generated successfully: {}", path))
+}
+
+async fn tool_generate_voice(params: &serde_json::Value) -> Result<String, String> {
+    let text = params
+        .get("text")
+        .and_then(|t| t.as_str())
+        .ok_or("Missing 'text' parameter")?;
+    let speaker = params
+        .get("speaker")
+        .and_then(|s| s.as_str())
+        .unwrap_or("narrator");
+    let emotion = params
+        .get("emotion")
+        .and_then(|e| e.as_str())
+        .unwrap_or("neutral");
+
+    info!("🗣️ Generating voice: speaker={}, emotion={}, text={} chars", speaker, emotion, text.len());
+
+    let client = &*crate::http::LONG;
+    let body = serde_json::json!({ "text": text, "speaker": speaker, "emotion": emotion });
+    let response = client
+        .post("http://127.0.0.1:3000/api/creative/voice")
+        .json(&body)
+        .timeout(std::time::Duration::from_secs(120))
+        .send()
+        .await
+        .map_err(|e| format!("Voice generation failed to connect: {}", e))?;
+
+    let status = response.status();
+    if !status.is_success() {
+        let body = response.text().await.unwrap_or_default();
+        return Err(format!("Voice generation returned error ({}): {}", status, body));
+    }
+
+    let result: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
+    let path = result["audio_path"]
+        .as_str()
+        .or_else(|| result["voice_path"].as_str())
+        .or_else(|| result["path"].as_str())
+        .unwrap_or("unknown");
+    Ok(format!("Voice generated successfully: {}", path))
+}
+
+async fn tool_review_content_safety(params: &serde_json::Value) -> Result<String, String> {
+    let content = params
+        .get("content")
+        .and_then(|c| c.as_str())
+        .ok_or("Missing 'content' parameter")?;
+    let target_age = params
+        .get("target_age")
+        .and_then(|a| a.as_str())
+        .unwrap_or("general K-12");
+
+    info!("🛡️ Reviewing content safety for target age: {}", target_age);
+
+    let client = &*crate::http::LONG;
+
+    let system_prompt = format!(
+        r#"You are a K-12 content safety reviewer. Review the following content for safety and appropriateness for {} students.
+
+Check for:
+1. VIOLENCE: Any graphic violence, weapons instructions, or harmful activities
+2. BIAS: Discriminatory language, stereotypes, or cultural insensitivity
+3. ACCURACY: Factual errors that could mislead students
+4. AGE-APPROPRIATENESS: Content suitable for the target age group
+
+Respond with EXACTLY one of:
+- PASS — if content is safe and appropriate
+- FAIL: [list specific reasons]
+
+Be strict. When in doubt, FAIL."#,
+        target_age
+    );
+
+    // Resolve the active chat model from LM Studio
+    let model_name = match client
+        .get("http://127.0.0.1:1234/v1/models")
+        .send()
+        .await
+    {
+        Ok(resp) if resp.status().is_success() => {
+            let body: serde_json::Value = resp.json().await.unwrap_or_default();
+            let models: Vec<String> = body
+                .get("data")
+                .and_then(|d| d.as_array())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|m| m.get("id").and_then(|id| id.as_str()).map(|s| s.to_string()))
+                        .collect()
+                })
+                .unwrap_or_default();
+            // Prefer chat models over OCR/vision/embedding
+            models.iter()
+                .find(|m| {
+                    let l = m.to_lowercase();
+                    l.contains("hermes") || l.contains("mistral") || l.contains("llama")
+                        || l.contains("qwen") || l.contains("gemma") || l.contains("deepseek")
+                })
+                .or_else(|| {
+                    models.iter().find(|m| {
+                        let l = m.to_lowercase();
+                        !l.contains("ocr") && !l.contains("embed") && !l.contains("vision")
+                            && !l.contains("projector") && !l.contains("tts") && !l.contains("whisper")
+                    })
+                })
+                .or(models.first())
+                .cloned()
+                .unwrap_or_else(|| "default".to_string())
+        }
+        _ => "default".to_string(),
+    };
+
+    let body = serde_json::json!({
+        "model": model_name,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": content}
+        ],
+        "temperature": 0.1,
+        "max_tokens": 256
+    });
+
+    let response = client
+        .post("http://127.0.0.1:1234/v1/chat/completions")
+        .json(&body)
+        .timeout(std::time::Duration::from_secs(60))
+        .send()
+        .await
+        .map_err(|e| format!("Safety review failed to connect to LLM: {}", e))?;
+
+    let status = response.status();
+    if !status.is_success() {
+        let body = response.text().await.unwrap_or_default();
+        return Err(format!("Safety review LLM error ({}): {}", status, body));
+    }
+
+    let result: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
+    let review = result["choices"][0]["message"]["content"]
+        .as_str()
+        .unwrap_or("ERROR: Could not parse LLM response");
+
+    info!("🛡️ Safety review result: {}", review);
+    Ok(review.to_string())
 }
 
 

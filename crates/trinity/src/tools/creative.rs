@@ -134,3 +134,81 @@ pub async fn tool_update_vibe(params: &serde_json::Value) -> Result<String, Stri
         creative_cfg.get("music_style").and_then(|v| v.as_str()).unwrap_or("Unchanged"),
         audio_prefs.get("narrator_mood").and_then(|v| v.as_str()).unwrap_or("Unchanged")))
 }
+
+pub async fn tool_generate_3d_model(params: &serde_json::Value) -> Result<String, String> {
+    let prompt = params
+        .get("prompt")
+        .and_then(|p| p.as_str())
+        .ok_or("Missing 'prompt' parameter")?;
+    let style = params
+        .get("style")
+        .and_then(|s| s.as_str())
+        .unwrap_or("stylized");
+
+    info!("🧊 Generating 3D model: {} (style: {})", prompt, style);
+
+    let client = &*crate::http::LONG;
+    let body = serde_json::json!({ "prompt": prompt, "style": style });
+    let response = client
+        .post("http://127.0.0.1:3000/api/creative/3d")
+        .json(&body)
+        .timeout(std::time::Duration::from_secs(300))
+        .send()
+        .await
+        .map_err(|e| format!("3D model generation failed to connect: {}", e))?;
+
+    let status = response.status();
+    if !status.is_success() {
+        let body = response.text().await.unwrap_or_default();
+        return Err(format!("3D model generation returned error ({}): {}", status, body));
+    }
+
+    let result: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
+    let path = result["mesh_path"]
+        .as_str()
+        .or_else(|| result["model_path"].as_str())
+        .or_else(|| result["path"].as_str())
+        .unwrap_or("unknown");
+    Ok(format!("3D model generated successfully: {}", path))
+}
+
+pub async fn tool_generate_voice(params: &serde_json::Value) -> Result<String, String> {
+    let text = params
+        .get("text")
+        .and_then(|t| t.as_str())
+        .ok_or("Missing 'text' parameter")?;
+    let speaker = params
+        .get("speaker")
+        .and_then(|s| s.as_str())
+        .unwrap_or("narrator");
+    let emotion = params
+        .get("emotion")
+        .and_then(|e| e.as_str())
+        .unwrap_or("neutral");
+
+    info!("🗣️ Generating voice: speaker={}, emotion={}, text={} chars", speaker, emotion, text.len());
+
+    let client = &*crate::http::LONG;
+    let body = serde_json::json!({ "text": text, "speaker": speaker, "emotion": emotion });
+    let response = client
+        .post("http://127.0.0.1:3000/api/creative/voice")
+        .json(&body)
+        .timeout(std::time::Duration::from_secs(120))
+        .send()
+        .await
+        .map_err(|e| format!("Voice generation failed to connect: {}", e))?;
+
+    let status = response.status();
+    if !status.is_success() {
+        let body = response.text().await.unwrap_or_default();
+        return Err(format!("Voice generation returned error ({}): {}", status, body));
+    }
+
+    let result: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
+    let path = result["audio_path"]
+        .as_str()
+        .or_else(|| result["voice_path"].as_str())
+        .or_else(|| result["path"].as_str())
+        .unwrap_or("unknown");
+    Ok(format!("Voice generated successfully: {}", path))
+}

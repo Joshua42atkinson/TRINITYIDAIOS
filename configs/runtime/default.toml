@@ -144,77 +144,36 @@ type = "Auto"  # Auto-detect Brain/Body
 # ═══════════════════════════════════════════════════════════════════════════════
 
 [inference]
-primary = "diffusiongemma"
+primary = "lm-studio"
 auto_detect = true
 ctx_size = 131072
 max_tokens = 16384
 
-# ── P — DiffusionGemma via vLLM/podman (Primary, Always-On) ──────────────
-# The workhorse. Code gen, tool calling, agentic loops, overnight jobs.
-# Started manually: bash ~/trinity-models/start-diffusiongemma.sh
-# NOT Hotel-managed — stays resident on :8000.
-
-[inference.backends.diffusiongemma]
-url = "http://127.0.0.1:8000"
-supports_tools = true
-supports_vision = true
-party_role = "P"
-always_resident = true
-
-# ── R — Qwythos-9B via llama.cpp (Research, Hotel-swapped) ────────────────
-# Deep reasoning, research, evaluation, rubric analysis.
-# Launched by Hotel Manager from [hotel.R] config.
-
-[inference.backends.research]
-url = "http://127.0.0.1:8002"
-supports_tools = true
-supports_vision = false
-party_role = "R"
-always_resident = false
-
-# ── A — ComfyUI (Aesthetics, Hotel-swapped or always-on) ──────────────────
-# Image generation: FLUX schnell, SDXL Turbo, TripoSR, ACE-Step, HunyuanVideo.
-# creative.rs talks to :8188. Can be Hotel-launched or started manually.
-
-[inference.backends.aesthetics]
-url = "http://127.0.0.1:8188"
-supports_tools = false
-supports_vision = true
-party_role = "A"
-always_resident = false
-
-# ── T (music) — zen-musician via llama.cpp (Hotel-swapped) ────────────────
-# Music reasoning, theory, lyrics. Hotel-swapped on :8001.
-# For audio synthesis, ACE-Step runs inside ComfyUI on :8188.
-
-[inference.backends.tempo-music]
-url = "http://127.0.0.1:8001"
-supports_tools = false
-supports_vision = false
-party_role = "T"
-always_resident = false
-
-# ── Y — Yoke (Pixel 10 Pro XL, Remote) ────────────────────────────────────
-# gemma4-coding via llama.cpp NDK on phone.
-# Set YOKE_URL env var to your phone's IP, or edit URL below.
-# Example: http://192.168.1.100:8080
-
-[inference.backends.yoke]
-url = "http://127.0.0.1:8080"
-supports_tools = true
-supports_vision = false
-party_role = "Y"
-always_resident = true
-
-# ── Fallback: LM Studio / llama-server / Ollama ───────────────────────────
-# Any OpenAI-compatible server. "Lone Wolf" mode.
+# ── Primary: LM Studio (:1234) — User-selected LLM ───────────────────────
+# The brain. Whatever model the user loads in LM Studio is what Trinity uses.
+# LM Studio handles model load/unload/download via its REST API.
+# Trinity proxies these through /api/models/* endpoints.
 
 [inference.backends.lm-studio]
 url = "http://127.0.0.1:1234"
 supports_tools = true
 supports_vision = true
 party_role = "T"
+always_resident = true
+
+# ── Secondary: vLLM Omni (:8000) — Creative general ──────────────────────
+# Images + TTS voice inline in chat. One model, started manually.
+# NOT the primary brain — LM Studio is. This is for creative generation only.
+
+[inference.backends.vllm-omni]
+url = "http://127.0.0.1:8000"
+supports_tools = false
+supports_vision = true
+party_role = "A"
 always_resident = false
+
+# ── Fallback: llama-server / Ollama ───────────────────────────────────────
+# Any OpenAI-compatible server. Auto-detected if running.
 
 [inference.backends.llama-server]
 url = "http://127.0.0.1:8080"

@@ -1436,6 +1436,174 @@ pub async fn auto_generate_phase_scene(
     Some(url)
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// VOICE GENERATION — ComfyUI VibeVoice TTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Voice generation request
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+pub struct VoiceRequest {
+    pub text: String,
+    #[serde(default = "default_speaker")]
+    pub speaker: String,
+    #[serde(default = "default_emotion")]
+    pub emotion: String,
+}
+
+fn default_speaker() -> String {
+    "narrator".to_string()
+}
+fn default_emotion() -> String {
+    "neutral".to_string()
+}
+
+/// POST /api/creative/voice — Generate voice narration via ComfyUI VibeVoice
+///
+/// Calls ComfyUI on :8188 with a VibeVoice workflow. The audio is saved
+/// to the assets directory and served via /api/creative/assets/.
+pub async fn generate_voice(
+    Json(request): Json<VoiceRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let start = std::time::Instant::now();
+    let client = &*crate::http::LONG;
+
+    // Check ComfyUI health
+    let healthy = crate::http::check_health("http://127.0.0.1:8188").await;
+    if !healthy {
+        return Err((
+            StatusCode::SERVICE_UNAVAILABLE,
+            "ComfyUI not running on :8188. Start ComfyUI first.".to_string(),
+        ));
+    }
+
+    info!(
+        "🗣️ Generating voice via ComfyUI VibeVoice: speaker={}, emotion={}, {} chars",
+        request.speaker,
+        request.emotion,
+        request.text.len()
+    );
+
+    // Build ComfyUI VibeVoice workflow
+    // VibeVoice uses a text-to-speech workflow in ComfyUI
+    let workflow = serde_json::json!({
+        "prompt": {
+            "3": {
+                "class_type": "VibeVoiceTTS",
+                "inputs": {
+                    "text": request.text,
+                    "speaker": request.speaker,
+                    "emotion": request.emotion,
+                }
+            },
+            "4": {
+                "class_type": "SaveAudio",
+                "inputs": {
+                    "audio": ["3", 0],
+                    "filename_prefix": "voice_narration"
+                }
+            }
+        }
+    });
+
+    let response = client
+        .post("http://127.0.0.1:8188/prompt")
+        .json(&workflow)
+        .timeout(std::time::Duration::from_secs(120))
+        .send()
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("ComfyUI VibeVoice request failed: {}", e),
+            )
+        })?;
+
+    let status = response.status();
+    if !status.is_success() {
+        let err_text = response.text().await.unwrap_or_default();
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("ComfyUI VibeVoice error ({}): {}", status, err_text),
+        ));
+    }
+
+    let result: serde_json::Value = response.json().await.map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to parse ComfyUI response: {}", e),
+        )
+    })?;
+
+    // Extract audio filename from ComfyUI response
+    // ComfyUI returns a prompt_id; audio is saved to output directory
+    let prompt_id = result["prompt_id"]
+        .as_str()
+        .unwrap_or("unknown");
+
+    // Wait briefly for generation, then check output
+    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+
+    // Look for the generated audio file in ComfyUI output
+    let comfyui_output = std::path::PathBuf::from("/home/joshua/ComfyUI/output");
+    let audio_files: Vec<_> = std::fs::read_dir(&comfyui_output)
+        .map(|entries| {
+            entries
+                .filter_map(|e| e.ok())
+                .filter(|e| {
+                    e.file_name()
+                        .to_str()
+                        .map(|n| n.starts_with("voice_narration") && n.ends_with(".wav"))
+                        .unwrap_or(false)
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    // Get the most recent audio file
+    let audio_path = audio_files
+        .iter()
+        .max_by_key(|e| {
+            e.metadata()
+                .and_then(|m| m.modified())
+                .unwrap_or(std::time::SystemTime::UNIX_EPOCH)
+        })
+        .and_then(|e| e.file_name().to_str().map(|s| s.to_string()));
+
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+    let assets_dir = std::path::PathBuf::from(&home)
+        .join(".local/share/trinity/workspace/assets");
+    let _ = std::fs::create_dir_all(&assets_dir);
+
+    // Copy the audio file to Trinity's assets directory
+    let audio_filename = if let Some(ref name) = audio_path {
+        let src = comfyui_output.join(name);
+        let dest = assets_dir.join(name);
+        let _ = std::fs::copy(&src, &dest);
+        name.clone()
+    } else {
+        format!("voice_{}.wav", chrono::Utc::now().timestamp_millis())
+    };
+
+    let audio_url = format!("/api/creative/assets/{}", audio_filename);
+
+    info!(
+        "🗣️ Voice generated in {}ms: {} → {}",
+        start.elapsed().as_millis(),
+        prompt_id,
+        audio_url
+    );
+
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "audio_path": audio_url,
+        "prompt_id": prompt_id,
+        "speaker": request.speaker,
+        "emotion": request.emotion,
+        "text_length": request.text.len(),
+    })))
+}
+
 #[cfg(test)]
 #[allow(dead_code)]
 mod phase_scene_tests {

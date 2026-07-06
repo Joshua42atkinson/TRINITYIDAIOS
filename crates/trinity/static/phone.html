@@ -68,7 +68,7 @@ body {
 .header .label { font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
 .header .spacer { flex: 1; }
 
-.header-icons { display: flex; gap: 12px; }
+.header-icons { display: flex; gap: 12px; align-items: center; }
 .header-icon { 
   color: var(--text-dim); font-size: 18px; cursor: pointer; transition: 0.2s;
   background: rgba(255,255,255,0.05); border-radius: 50%; width: 36px; height: 36px;
@@ -76,6 +76,22 @@ body {
 }
 .header-icon:hover { color: var(--gold); background: rgba(207,185,145,0.1); border-color: var(--border); }
 .header-icon:active { transform: scale(0.9); }
+
+.mode-toggle { display: flex; gap: 0; border-radius: 20px; overflow: hidden; border: 1px solid var(--border); }
+.mode-btn { background: transparent; color: var(--text-dim); border: none; padding: 6px 12px; font-size: 12px; cursor: pointer; transition: 0.2s; font-family: inherit; }
+.mode-btn.active { background: var(--accent); color: #000; font-weight: 600; }
+.mode-btn:not(.active):hover { color: var(--text); background: rgba(255,255,255,0.05); }
+
+.lesson-card { background: rgba(15,15,18,0.8); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px; margin-top: 8px; }
+.lesson-card-header { font-size: 11px; color: var(--accent); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+.lesson-card-title { font-size: 18px; font-weight: 700; color: var(--gold); margin-bottom: 8px; }
+.lesson-card-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--text-dim); margin-bottom: 12px; }
+.lesson-card-section { margin-top: 12px; }
+.lesson-card-label { font-size: 11px; color: var(--accent); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.lesson-card-section ul { padding-left: 20px; font-size: 13px; color: var(--text); line-height: 1.6; }
+.lesson-card-section ul li { margin-bottom: 4px; }
+.lesson-card-assets { display: flex; flex-wrap: wrap; gap: 6px; }
+.asset-chip { background: rgba(78,201,176,0.1); border: 1px solid rgba(78,201,176,0.3); border-radius: 12px; padding: 4px 10px; font-size: 12px; color: var(--accent); }
 
 /* Main Chat Area */
 #main-container {
@@ -304,6 +320,10 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
   </div>
   <span class="spacer"></span>
   <div class="header-icons">
+    <div class="mode-toggle" id="mode-toggle">
+      <button class="mode-btn active" id="mode-phone" onclick="setMode('phone')">📱 Phone</button>
+      <button class="mode-btn" id="mode-vr" onclick="setMode('vr')">🥽 VR</button>
+    </div>
     <div class="header-icon" onclick="openModal('hotelModal')" title="System Status">⚡</div>
     <div class="header-icon" onclick="openModal('assetsModal')" title="Assets & Memory">📂</div>
   </div>
@@ -327,7 +347,8 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
 
 <div class="quick-actions-wrapper">
     <div class="quick-actions" id="quick-actions">
-        <div class="chip" onclick="resetWizard(); openModal('lessonModal')">� New Lesson</div>
+        <div class="chip" onclick="resetWizard(); openModal('lessonModal')">📝 New Lesson</div>
+        <div class="chip" onclick="startSMEInterview()">🎤 Interview SME</div>
         <div class="chip" onclick="quickAction('/generate ')">🎨 Image</div>
         <div class="chip" onclick="quickAction('/voice ')">🗣️ Voice</div>
         <div class="chip" onclick="quickAction('/3d ')">🧊 3D Model</div>
@@ -335,6 +356,7 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
         <div class="chip" onclick="clearChat()">🗑️ Clear</div>
     </div>
 </div>
+
 
 <div class="input-bar">
     <button id="voice-btn" class="voice-btn" onclick="toggleVoice()">🎙️</button>
@@ -365,10 +387,10 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
             <div class="os-card">
                 <h3>Service Mesh</h3>
                 <div class="hotel-mode">
-                    <div class="hotel-btn team" onclick="hotelAction('studio')">STUDIO<br><span style="font-size:10px;opacity:0.7;font-weight:400">All Services</span></div>
-                    <div class="hotel-btn swap" onclick="hotelAction('open')">OPEN<br><span style="font-size:10px;opacity:0.7;font-weight:400">Core + AI</span></div>
-                    <div class="hotel-btn solo" onclick="hotelAction('solo')">SOLO<br><span style="font-size:10px;opacity:0.7;font-weight:400">Core Only</span></div>
-                    <div class="hotel-btn close" onclick="hotelAction('close')">CLOSED<br><span style="font-size:10px;opacity:0.7;font-weight:400">Offline</span></div>
+                    <div class="hotel-btn team" onclick="loadModel('nousresearch/hermes-4-70b')">🧠 LOAD HERMES<br><span style="font-size:10px;opacity:0.7;font-weight:400">Primary Brain</span></div>
+                    <div class="hotel-btn swap" onclick="loadModel('g3-12b-storyteller')">📖 LOAD STORYTELLER<br><span style="font-size:10px;opacity:0.7;font-weight:400">Creative Writing</span></div>
+                    <div class="hotel-btn solo" onclick="unloadModel()">⬇️ UNLOAD ALL<br><span style="font-size:10px;opacity:0.7;font-weight:400">Free VRAM</span></div>
+                    <div class="hotel-btn close" onclick="pollHealth()">🔄 REFRESH<br><span style="font-size:10px;opacity:0.7;font-weight:400">Check Status</span></div>
                 </div>
                 <div class="hotel-status" id="hotel-status">
                     <div class="hotel-row"><span class="role">🧠</span><span class="name">Trinity Server</span><span class="port">:3000</span></div>
@@ -744,6 +766,9 @@ function startLessonBuild() {
   const prompt = `Create a lesson plan for "${wizardState.subject}" for grade level ${wizardState.grade || 'unspecified'}. Duration: ${wizardState.duration || 'unspecified'}. Include interactive elements: ${interactive}. Align with standards: ${standards}. Please return a structured lesson spec with title, learning objectives, outline, assets needed, assessment plan, and standards alignment.`;
   closeModal('lessonModal');
   document.getElementById('chat-input').value = prompt;
+  currentMode = 'phone';
+  localStorage.setItem('trinity-mode', 'phone');
+  setMode('phone');
   sendMessage();
 }
 
@@ -777,6 +802,92 @@ function resetWizard() {
   document.getElementById('wiz-subject').value = '';
   document.querySelectorAll('.wizard-chip').forEach((c) => c.classList.remove('selected'));
   updateWizardUI();
+}
+
+// ── SME Interview Mode ──
+function startSMEInterview() {
+  currentMode = 'phone';
+  localStorage.setItem('trinity-mode', 'phone');
+  setMode('phone');
+  const prompt = "I'd like to conduct an SME interview. I have a subject matter expert who will describe their domain. Please ask them Socratic questions one at a time to extract: learning objectives, key concepts, common misconceptions, real-world applications, and assessment ideas. After the interview, generate a structured lesson spec.";
+  document.getElementById('chat-input').value = prompt;
+  sendMessage();
+}
+
+// ── Lesson Card Actions ──
+function buildLesson(btn) {
+  const card = btn.closest('.lesson-card');
+  if (!card) return;
+  const spec = JSON.parse(card.dataset.lessonSpec || '{}');
+  const title = spec.title || spec.lesson_title || 'this lesson';
+  const prompt = `Please build all assets for the lesson "${title}". Generate images, 3D models, and voice narration as needed based on the lesson spec. Use the creative tools available.`;
+  document.getElementById('chat-input').value = prompt;
+  sendMessage();
+}
+
+function saveLesson(btn) {
+  const card = btn.closest('.lesson-card');
+  if (!card) return;
+  const spec = JSON.parse(card.dataset.lessonSpec || '{}');
+  const title = spec.title || spec.lesson_title || 'Untitled Lesson';
+  fetch(API + '/api/memory', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ content: JSON.stringify(spec), category: 'lesson' })
+  }).then(() => {
+    btn.textContent = '✓ Saved!';
+    setTimeout(() => btn.textContent = '💾 Save', 2000);
+  }).catch(() => {
+    btn.textContent = '⚠️ Failed';
+    setTimeout(() => btn.textContent = '💾 Save', 2000);
+  });
+}
+
+function editLesson(btn) {
+  const card = btn.closest('.lesson-card');
+  if (!card) return;
+  const spec = JSON.parse(card.dataset.lessonSpec || '{}');
+  const title = spec.title || spec.lesson_title || 'this lesson';
+  const prompt = `Please revise the lesson spec for "${title}". What specifically would you like to change? (You can describe changes to objectives, duration, assets, assessment, etc.)`;
+  document.getElementById('chat-input').value = prompt;
+  document.getElementById('chat-input').focus();
+}
+
+// ── LM Studio Model Management ──
+async function loadModel(modelId) {
+  try {
+    const res = await fetch(API + '/api/models/load', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ model_id: modelId })
+    });
+    const data = await res.json();
+    if (data.success !== false) {
+      setTimeout(() => pollHealth(), 3000);
+    } else {
+      alert('Failed to load model: ' + (data.error || 'Unknown error'));
+    }
+  } catch(e) {
+    alert('Model load failed: ' + e.message);
+  }
+}
+
+async function unloadModel() {
+  try {
+    const res = await fetch(API + '/api/models/lm-studio', { headers: authHeaders() });
+    const data = await res.json();
+    const models = data.models || [];
+    for (const m of models) {
+      await fetch(API + '/api/models/unload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ model_id: m.id || m.model_id || m })
+      });
+    }
+    setTimeout(() => pollHealth(), 2000);
+  } catch(e) {
+    alert('Unload failed: ' + e.message);
+  }
 }
 
 // ── First-Run Onboarding ──
@@ -813,27 +924,24 @@ function finishOnboarding() {
 }
 
 function renderChatContent(div, text) {
-  // Split text into segments: markdown images, code blocks, and plain text
-  // First, handle markdown-style image references: ![alt](url)
+  // Check for lesson spec JSON first
+  if (tryRenderLessonSpec(div, text)) return;
+
+  // Split text into segments: markdown images, audio/video/3d URLs, and plain text
   const imgPattern = /!\[([^\]]*)\]\(([^)]+)\)/g;
-  // Also detect bare image URLs from /api/creative/assets/
   const urlPattern = /(\/api\/creative\/assets\/[^\s\)]+)/g;
 
-  // Remove existing content
   div.innerHTML = '';
 
   let lastIndex = 0;
-  let hasImage = false;
   let match;
 
-  // First pass: find markdown images
   const imgMatches = [...text.matchAll(imgPattern)];
-  // Second pass: find bare asset URLs
   const urlMatches = [...text.matchAll(urlPattern)];
 
   const allMatches = [
     ...imgMatches.map(m => ({ start: m.index, end: m.index + m[0].length, url: m[2], alt: m[1], type: 'md' })),
-    ...urlMatches.map(m => ({ start: m.index, end: m.index + m[0].length, url: m[0], alt: 'Generated image', type: 'bare' }))
+    ...urlMatches.map(m => ({ start: m.index, end: m.index + m[0].length, url: m[0], alt: 'Generated asset', type: 'bare' }))
   ].sort((a, b) => a.start - b.start);
 
   // Deduplicate overlapping matches (prefer markdown)
@@ -847,27 +955,251 @@ function renderChatContent(div, text) {
   }
 
   for (const m of filtered) {
-    // Text before the image
     if (m.start > lastIndex) {
       const textNode = document.createTextNode(text.slice(lastIndex, m.start));
       div.appendChild(textNode);
     }
-    // The image
-    const img = document.createElement('img');
-    img.src = m.url.startsWith('http') ? m.url : API + m.url;
-    img.alt = m.alt;
-    img.loading = 'lazy';
-    img.style.cssText = 'max-width:100%;border-radius:8px;margin-top:6px;display:block;';
-    div.appendChild(img);
-    hasImage = true;
+    const url = m.url.startsWith('http') ? m.url : API + m.url;
+    const lower = url.toLowerCase();
+    if (lower.match(/\.(mp3|wav|ogg|flac|m4a)(\?|$)/)) {
+      const audio = document.createElement('audio');
+      audio.src = url; audio.controls = true;
+      audio.style.cssText = 'width:100%;border-radius:8px;margin-top:6px;display:block;';
+      div.appendChild(audio);
+    } else if (lower.match(/\.(mp4|webm|mov|avi)(\?|$)/)) {
+      const video = document.createElement('video');
+      video.src = url; video.controls = true;
+      video.style.cssText = 'width:100%;border-radius:8px;margin-top:6px;display:block;';
+      div.appendChild(video);
+    } else if (lower.match(/\.(glb|gltf|obj|fbx|stl)(\?|$)/)) {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'margin-top:6px;padding:12px;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:8px;cursor:pointer;';
+      wrapper.innerHTML = '<span style="font-size:24px">🧊</span><span style="color:var(--accent);font-size:13px">3D Model — Click to view</span>';
+      wrapper.onclick = () => open3DViewer(url);
+      div.appendChild(wrapper);
+    } else {
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = m.alt;
+      img.loading = 'lazy';
+      img.style.cssText = 'max-width:100%;border-radius:8px;margin-top:6px;display:block;';
+      div.appendChild(img);
+    }
     lastIndex = m.end;
   }
 
-  // Remaining text
   if (lastIndex < text.length) {
     const remaining = text.slice(lastIndex);
     div.appendChild(document.createTextNode(remaining));
   }
+}
+
+// ── Lesson Spec Rendering ──
+function tryRenderLessonSpec(div, text) {
+  // Try to find a JSON lesson spec in the text
+  let spec = null;
+  let specText = null;
+  try {
+    // Look for fenced JSON block
+    const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (fenceMatch) {
+      const parsed = JSON.parse(fenceMatch[1].trim());
+      if (parsed && (parsed.title || parsed.lesson_title || parsed.subject || parsed.objectives || parsed.learning_objectives)) {
+        spec = parsed;
+        specText = fenceMatch[0];
+      }
+    }
+    // Also try bare JSON object
+    if (!spec) {
+      const jsonMatch = text.match(/\{[\s\S]*"title"[\s\S]*"objectives"[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed && (parsed.title || parsed.lesson_title)) {
+          spec = parsed;
+          specText = jsonMatch[0];
+        }
+      }
+    }
+  } catch(e) { /* not JSON, fall through */ }
+  if (!spec) return false;
+
+  div.innerHTML = '';
+
+  // Render text before spec
+  const specIdx = text.indexOf(specText);
+  if (specIdx > 0) {
+    div.appendChild(document.createTextNode(text.slice(0, specIdx).trim() + '\n'));
+  }
+
+  // Build lesson card
+  const card = document.createElement('div');
+  card.className = 'lesson-card';
+  card.innerHTML = '';
+  card.dataset.lessonSpec = JSON.stringify(spec);
+
+  const title = spec.title || spec.lesson_title || 'Untitled Lesson';
+  const subject = spec.subject || '';
+  const grade = spec.grade_level || spec.grade || '';
+  const duration = spec.duration || '';
+  const objectives = spec.objectives || spec.learning_objectives || [];
+  const outline = spec.outline || spec.lesson_outline || spec.sections || [];
+  const assets = spec.assets_needed || spec.assets || [];
+  const assessment = spec.assessment_plan || spec.assessment || '';
+  const standards = spec.standards_alignment || spec.standards || '';
+
+  let html = '<div class="lesson-card-header">📋 Lesson Spec</div>';
+  html += `<div class="lesson-card-title">${escapeHtml(title)}</div>`;
+  if (subject || grade || duration) {
+    html += '<div class="lesson-card-meta">';
+    if (subject) html += `<span>📚 ${escapeHtml(subject)}</span>`;
+    if (grade) html += `<span>🎓 ${escapeHtml(String(grade))}</span>`;
+    if (duration) html += `<span>⏱️ ${escapeHtml(String(duration))}</span>`;
+    html += '</div>';
+  }
+  if (objectives && objectives.length) {
+    html += '<div class="lesson-card-section"><div class="lesson-card-label">Learning Objectives</div><ul>';
+    objectives.forEach(o => { html += `<li>${escapeHtml(typeof o === 'string' ? o : JSON.stringify(o))}</li>`; });
+    html += '</ul></div>';
+  }
+  if (outline && outline.length) {
+    html += '<div class="lesson-card-section"><div class="lesson-card-label">Outline</div><ul>';
+    outline.forEach(s => {
+      const label = typeof s === 'string' ? s : (s.title || s.name || JSON.stringify(s));
+      html += `<li>${escapeHtml(label)}</li>`;
+    });
+    html += '</ul></div>';
+  }
+  if (assets && assets.length) {
+    html += '<div class="lesson-card-section"><div class="lesson-card-label">Assets Needed</div><div class="lesson-card-assets">';
+    assets.forEach(a => {
+      const label = typeof a === 'string' ? a : (a.type || a.name || JSON.stringify(a));
+      html += `<span class="asset-chip">${escapeHtml(label)}</span>`;
+    });
+    html += '</div></div>';
+  }
+  if (assessment) {
+    html += `<div class="lesson-card-section"><div class="lesson-card-label">Assessment</div><div>${escapeHtml(typeof assessment === 'string' ? assessment : JSON.stringify(assessment))}</div></div>`;
+  }
+  if (standards) {
+    html += `<div class="lesson-card-section"><div class="lesson-card-label">Standards Alignment</div><div>${escapeHtml(typeof standards === 'string' ? standards : JSON.stringify(standards))}</div></div>`;
+  }
+  card.innerHTML = html;
+
+  // Add action buttons
+  const actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;';
+  actions.innerHTML = `
+    <button class="os-btn" style="flex:1;min-width:120px;" onclick="buildLesson(this)">🔨 Build Assets</button>
+    <button class="os-btn secondary" style="flex:1;min-width:120px;background:rgba(255,255,255,0.1);color:var(--text);" onclick="saveLesson(this)">💾 Save</button>
+    <button class="os-btn secondary" style="flex:1;min-width:80px;background:rgba(255,255,255,0.1);color:var(--text);" onclick="editLesson(this)">✏️ Edit</button>
+  `;
+  card.appendChild(actions);
+  div.appendChild(card);
+
+  // Render text after spec
+  const afterIdx = specIdx + specText.length;
+  if (afterIdx < text.length) {
+    const after = text.slice(afterIdx).trim();
+    if (after) {
+      div.appendChild(document.createElement('br'));
+      div.appendChild(document.createTextNode(after));
+    }
+  }
+  return true;
+}
+
+// ── 3D Model Viewer ──
+let viewer3DModal = null;
+function open3DViewer(url) {
+  let modal = document.getElementById('viewer3d-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'viewer3d-modal';
+    modal.className = 'modal-overlay';
+    modal.style.display = 'flex';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width:90vw;max-height:90vh;">
+        <div class="modal-header">
+          <span class="modal-title">3D MODEL VIEWER</span>
+          <button class="modal-close" onclick="document.getElementById('viewer3d-modal').style.display='none'">✕</button>
+        </div>
+        <div class="modal-body" style="padding:0;position:relative;min-height:400px;">
+          <div id="viewer3d-container" style="width:100%;height:60vh;"></div>
+          <div id="viewer3d-fallback" style="display:none;padding:20px;text-align:center;">
+            <div style="font-size:48px;margin-bottom:12px;">🧊</div>
+            <div style="color:var(--text-dim);margin-bottom:12px;">3D viewer library not loaded.</div>
+            <a href="${'URL_PLACEHOLDER'}" target="_blank" style="color:var(--accent);">Open model file</a>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+  modal.style.display = 'flex';
+  const container = document.getElementById('viewer3d-container');
+  const fallback = document.getElementById('viewer3d-fallback');
+  const fullUrl = url.startsWith('http') ? url : API + url;
+
+  // Try Three.js via CDN
+  if (typeof THREE === 'undefined') {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js';
+    script.onload = () => {
+      const gltfScript = document.createElement('script');
+      gltfScript.src = 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js';
+      gltfScript.onload = () => initThreeScene(container, fullUrl, fallback);
+      gltfScript.onerror = () => showFallback(fallback, fullUrl);
+      document.head.appendChild(gltfScript);
+    };
+    script.onerror = () => showFallback(fallback, fullUrl);
+    document.head.appendChild(script);
+  } else {
+    initThreeScene(container, fullUrl, fallback);
+  }
+}
+
+function showFallback(fallback, url) {
+  fallback.style.display = 'block';
+  const link = fallback.querySelector('a');
+  if (link) link.href = url;
+}
+
+function initThreeScene(container, url, fallback) {
+  if (typeof THREE === 'undefined' || !THREE.GLTFLoader) { showFallback(fallback, url); return; }
+  container.innerHTML = '';
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0a0a);
+  const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+  camera.position.set(0, 1, 3);
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  container.appendChild(renderer.domElement);
+  const light = new THREE.HemisphereLight(0xffffff, 0x333333, 1.5);
+  scene.add(light);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+  dirLight.position.set(5, 10, 7);
+  scene.add(dirLight);
+
+  const loader = new THREE.GLTFLoader();
+  loader.load(url, (gltf) => {
+    const model = gltf.scene;
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const scale = 2 / maxDim;
+    model.scale.setScalar(scale);
+    model.position.sub(center.multiplyScalar(scale));
+    scene.add(model);
+    let rotY = 0;
+    function animate() {
+      requestAnimationFrame(animate);
+      rotY += 0.005;
+      model.rotation.y = rotY;
+      renderer.render(scene, camera);
+    }
+    animate();
+  }, undefined, () => showFallback(fallback, url));
 }
 
 function addImgMsg(url) {
@@ -881,34 +1213,23 @@ function addImgMsg(url) {
   window.scrollTo(0, document.body.scrollHeight);
 }
 
-let currentMode = 'dev';
-
+let currentMode = localStorage.getItem('trinity-mode') || 'phone';
 function setMode(mode) {
   currentMode = mode;
-  const btnR = document.getElementById('mode-research');
-  const btnB = document.getElementById('mode-build');
+  localStorage.setItem('trinity-mode', mode);
+  const btnP = document.getElementById('mode-phone');
+  const btnV = document.getElementById('mode-vr');
   const input = document.getElementById('chat-input');
-  if (mode === 'ironroad') {
-    btnR.style.background = 'var(--accent)'; btnR.style.color = '#000';
-    btnB.style.background = 'transparent'; btnB.style.color = 'var(--text-dim)';
-    input.placeholder = 'Ask TRINITY (Socratic mode)...';
+  if (mode === 'vr') {
+    btnV.classList.add('active'); btnP.classList.remove('active');
+    input.placeholder = 'Describe a VR scene for Trinity to build...';
   } else {
-    btnB.style.background = 'var(--accent)'; btnB.style.color = '#000';
-    btnR.style.background = 'transparent'; btnR.style.color = 'var(--text-dim)';
-    input.placeholder = 'Tell TRINITY what to build...';
-  }
-  // Update model badge
-  const badge = document.getElementById('model-badge');
-  if (badge) {
-    if (mode === 'ironroad') {
-      badge.className = 'model-badge research';
-      badge.textContent = 'Hermes / LM Studio';
-    } else {
-      badge.className = 'model-badge build';
-      badge.textContent = 'DiffusionGemma 26B';
-    }
+    btnP.classList.add('active'); btnV.classList.remove('active');
+    input.placeholder = 'Type a message...';
   }
 }
+// Restore mode on load
+try { setMode(localStorage.getItem('trinity-mode') || 'phone'); } catch(e) {}
 
 async function sendMessage() {
   const input = document.getElementById('chat-input');
@@ -1729,7 +2050,7 @@ function speak(text) {
     return; // Don't load the rest — nothing to talk to
   }
   
-  setMode('dev');
+  setMode(localStorage.getItem('trinity-mode') || 'phone');
   loadChatHistory();
   pollHealth();
   setInterval(pollHealth, 15000);

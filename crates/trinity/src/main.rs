@@ -88,6 +88,7 @@ mod quests;
 mod rag;
 mod vllm_fleet;
 mod hotel_manager;
+mod lm_studio_client;
 mod scope_creep;
 mod sidecar_monitor;
 mod skills;
@@ -749,6 +750,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/models/active", get(active_model))
         .route("/api/model/status", get(model_status))
         .route("/api/models/switch", post(switch_model))
+        // LM Studio Model Management — proxy to LM Studio :1234
+        .route("/api/models/lm-studio", get(lm_studio_list_models))
+        .route("/api/models/load", post(lm_studio_load_model))
+        .route("/api/models/unload", post(lm_studio_unload_model))
+        .route("/api/models/download", post(lm_studio_download_model))
+        .route("/api/models/download/status", get(lm_studio_download_status))
         .route("/api/ingest", post(ingest_document))
         .route("/api/tools", get(tools::list_tools))
         .route("/api/projects/community", get(api_community_templates))
@@ -823,6 +830,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/creative/tempo", post(creative::generate_tempo))
         .route("/api/creative/vibe", post(vibe_music))
         .route("/api/creative/mesh3d", post(creative::generate_3d_mesh))
+        .route("/api/creative/3d", post(creative::generate_3d_mesh))
+        .route("/api/creative/voice", post(creative::generate_voice))
         .route("/api/creative/logs", get(creative::get_creative_logs))
         .route("/api/creative/assets", get(creative::list_assets))
         .route("/api/creative/assets/:filename", get(creative::serve_asset))
@@ -3366,6 +3375,108 @@ async fn switch_model(
         "previous": { "backend": old_name, "url": old_url },
         "current": { "backend": new_name, "url": new_url },
     })))
+}
+
+// ── LM Studio Model Management Proxy ──────────────────────────────────────────
+
+/// GET /api/models/lm-studio — list models loaded in LM Studio
+async fn lm_studio_list_models() -> Json<serde_json::Value> {
+    match lm_studio_client::list_models().await {
+        Ok(list) => Json(serde_json::json!({
+            "object": list.object,
+            "data": list.data,
+        })),
+        Err(e) => {
+            warn!("LM Studio list_models failed: {}", e);
+            Json(serde_json::json!({
+                "error": e,
+                "data": [],
+            }))
+        }
+    }
+}
+
+/// POST /api/models/load — load a model in LM Studio
+/// Body: { "model_id": "model-identifier" }
+async fn lm_studio_load_model(
+    Json(body): Json<serde_json::Value>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let model_id = body["model_id"]
+        .as_str()
+        .or_else(|| body["model"].as_str())
+        .ok_or((StatusCode::BAD_REQUEST, "Missing 'model_id' field".to_string()))?;
+
+    match lm_studio_client::load_model(model_id).await {
+        Ok(()) => Ok(Json(serde_json::json!({
+            "status": "loaded",
+            "model": model_id,
+        }))),
+        Err(e) => {
+            warn!("LM Studio load_model failed: {}", e);
+            Err((StatusCode::INTERNAL_SERVER_ERROR, e))
+        }
+    }
+}
+
+/// POST /api/models/unload — unload a model from LM Studio
+/// Body: { "model_id": "model-identifier" }
+async fn lm_studio_unload_model(
+    Json(body): Json<serde_json::Value>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let model_id = body["model_id"]
+        .as_str()
+        .or_else(|| body["model"].as_str())
+        .ok_or((StatusCode::BAD_REQUEST, "Missing 'model_id' field".to_string()))?;
+
+    match lm_studio_client::unload_model(model_id).await {
+        Ok(()) => Ok(Json(serde_json::json!({
+            "status": "unloaded",
+            "model": model_id,
+        }))),
+        Err(e) => {
+            warn!("LM Studio unload_model failed: {}", e);
+            Err((StatusCode::INTERNAL_SERVER_ERROR, e))
+        }
+    }
+}
+
+/// POST /api/models/download — download a model to LM Studio
+/// Body: { "repo": "huggingface/repo" }
+async fn lm_studio_download_model(
+    Json(body): Json<serde_json::Value>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let repo = body["repo"]
+        .as_str()
+        .or_else(|| body["hf_repo"].as_str())
+        .ok_or((StatusCode::BAD_REQUEST, "Missing 'repo' field".to_string()))?;
+
+    match lm_studio_client::download_model(repo).await {
+        Ok(()) => Ok(Json(serde_json::json!({
+            "status": "download_started",
+            "repo": repo,
+        }))),
+        Err(e) => {
+            warn!("LM Studio download_model failed: {}", e);
+            Err((StatusCode::INTERNAL_SERVER_ERROR, e))
+        }
+    }
+}
+
+/// GET /api/models/download/status — check model download progress
+async fn lm_studio_download_status() -> Json<serde_json::Value> {
+    match lm_studio_client::download_status().await {
+        Ok(status) => Json(serde_json::json!({
+            "completed": status.completed,
+            "progress": status.progress,
+            "error": status.error,
+        })),
+        Err(e) => {
+            warn!("LM Studio download_status failed: {}", e);
+            Json(serde_json::json!({
+                "error": e,
+            }))
+        }
+    }
 }
 
 /// GET /api/inference/status — full inference router status

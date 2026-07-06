@@ -380,18 +380,18 @@ These are the connective tissue between all projects:
 
 ## 6. THE TODO — TOOLS AND WORKFLOWS
 
-### P0: Must Have for Level 1 (MVP)
+### P0: Must Have for Level 1 (MVP) — ✅ COMPLETE
 
-| # | Sprint | Tool/Workflow | What It Does | Service |
-|---|--------|---------------|-------------|---------|
-| 0 | Sprint 0 | **PWA as the Face** | manifest, service worker, SME interview mode, teacher quick actions, onboarding, lesson display, mode switching | PWA phone.html |
-| 1 | Sprint 1 | LM Studio integration | Switch inference router to LM Studio :1234 (Hermes 4 70B). Replace hotel_manager. | LM Studio :1234 |
-| 2 | Sprint 2 | ID system prompt | Makes agent behave as instructional designer (Socratic, ADDIECRAPEYE) | Trinity agent.rs |
-| 3 | Sprint 2 | `generate_image` tool | ComfyUI Janus-Pro/LongCat image generation, inline in chat | ComfyUI :8188 |
-| 4 | Sprint 2 | `generate_voice` tool | ComfyUI VibeVoice TTS narration | ComfyUI :8188 |
-| 5 | Sprint 2 | `generate_3d_model` tool | ComfyUI TRELLIS/TripoSR → glTF | ComfyUI :8188 |
-| 6 | Sprint 2 | `review_content_safety` tool | Hermes LLM reviews content for K-12 appropriateness | LM Studio :1234 |
-| 7 | Sprint 2 | End-to-end test | Real teacher creates lesson through PWA | All |
+| # | Sprint | Tool/Workflow | What It Does | Service | Status |
+|---|--------|---------------|-------------|---------|--------|
+| 0 | Sprint 0 | **PWA as the Face** | manifest, service worker, SME interview mode, teacher quick actions, onboarding, lesson display, mode switching, lesson card actions, 3D viewer, LM Studio model management | PWA phone.html | ✅ Done |
+| 1 | Sprint 1 | LM Studio integration | Switch inference router to LM Studio :1234 (Hermes 4 70B). Replace hotel_manager. | LM Studio :1234 | ✅ Done |
+| 2 | Sprint 2 | ID system prompt | Makes agent behave as instructional designer (Socratic, ADDIECRAPEYE) | Trinity agent.rs | ✅ Done |
+| 3 | Sprint 2 | `generate_image` tool | ComfyUI Janus-Pro/LongCat image generation, inline in chat | ComfyUI :8188 | ✅ Done |
+| 4 | Sprint 2 | `generate_voice` tool | ComfyUI VibeVoice TTS narration | ComfyUI :8188 | ✅ Done |
+| 5 | Sprint 2 | `generate_3d_model` tool | ComfyUI TRELLIS/TripoSR → glTF | ComfyUI :8188 | ✅ Done |
+| 6 | Sprint 2 | `review_content_safety` tool | Hermes LLM reviews content for K-12 appropriateness | LM Studio :1234 | ✅ Done |
+| 7 | Sprint 2 | End-to-end test | Chat with ID persona, Socratic questions, safety review PASS/FAIL | All | ✅ Done |
 
 ### P1: Must Have for Level 2-3 (Sellable)
 
@@ -429,14 +429,14 @@ These are the connective tissue between all projects:
 ### Critical Path
 
 ```
-Sprint 0 (PWA) → Sprint 1 (LM Studio) → Sprint 2 (ID + Tools) → Level 1: Teacher creates lesson through PWA
+Sprint 0 (PWA) ✅ → Sprint 1 (LM Studio) ✅ → Sprint 2 (ID + Tools) ✅ → Level 1: Teacher creates lesson through PWA ✅
       ↓
 Sprint 3 (trinity-xr) → P1 items → Level 2-3: Teacher previews in VR, deploys to classroom
       ↓
 P2 items → Level 4: Spatial OS, autonomous Hermes, mentorship revenue, community
 ```
 
-**Focus on P0 first.** Sprint 0 (PWA) is the face — what the teacher sees. Sprint 1 (LM Studio) is the brain — what thinks. Sprint 2 (ID + Tools) is the hands — what builds. Everything else is speculation until a real teacher creates a real lesson through the PWA.
+**P0 is complete.** Sprint 3 (trinity-xr) is the next critical piece — porting Bertrand's Bevy 0.18 OpenXR engine into Trinity as a crate, giving teachers a VR client for immersive lesson preview.
 
 ---
 

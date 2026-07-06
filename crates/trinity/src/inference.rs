@@ -65,13 +65,48 @@ async fn resolve_model_name(base_url: &str) -> String {
     {
         Ok(resp) if resp.status().is_success() => {
             if let Ok(body) = resp.json::<serde_json::Value>().await {
-                body.get("data")
+                let models: Vec<String> = body
+                    .get("data")
                     .and_then(|d| d.as_array())
-                    .and_then(|arr| arr.first())
-                    .and_then(|m| m.get("id"))
-                    .and_then(|id| id.as_str())
-                    .map(|s| s.to_string())
-                    .unwrap_or_else(|| "default".to_string())
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|m| m.get("id").and_then(|id| id.as_str()).map(|s| s.to_string()))
+                            .collect()
+                    })
+                    .unwrap_or_default();
+
+                if models.is_empty() {
+                    "default".to_string()
+                } else {
+                    // Prefer chat-capable models over OCR/vision/embedding models
+                    // when LM Studio has multiple models loaded
+                    let preferred = models.iter().find(|m| {
+                        let lower = m.to_lowercase();
+                        // Strong chat model preferences
+                        lower.contains("hermes")
+                            || lower.contains("mistral")
+                            || lower.contains("llama")
+                            || lower.contains("qwen")
+                            || lower.contains("gemma")
+                            || lower.contains("deepseek")
+                            || lower.contains("command-r")
+                    });
+
+                    // Exclude obvious non-chat models
+                    let chat_model = preferred.or_else(|| {
+                        models.iter().find(|m| {
+                            let lower = m.to_lowercase();
+                            !lower.contains("ocr")
+                                && !lower.contains("embed")
+                                && !lower.contains("vision")
+                                && !lower.contains("projector")
+                                && !lower.contains("tts")
+                                && !lower.contains("whisper")
+                        })
+                    });
+
+                    chat_model.or(models.first()).cloned().unwrap_or_else(|| "default".to_string())
+                }
             } else {
                 "default".to_string()
             }

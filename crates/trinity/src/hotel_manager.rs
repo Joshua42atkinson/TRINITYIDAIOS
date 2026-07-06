@@ -1,9 +1,14 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// TRINITY ID AI OS — Hotel Manager
+// TRINITY ID AI OS — Hotel Manager [DEPRECATED]
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // FILE:        hotel_manager.rs
 // PURPOSE:     Manage P-ART-Y model hot-swapping via the Hotel Swap Protocol
+//
+// ⚠️  DEPRECATED — Sprint 1: Replaced by lm_studio_client.rs + LM Studio API.
+//     Model load/unload/download is now proxied through LM Studio's REST API.
+//     This file will be deleted after P0 is proven working.
+//     Do NOT add new functionality here. Use lm_studio_client.rs instead.
 //
 // 🪟 THE LIVING CODE TEXTBOOK (P-ART-Y Infrastructure):
 // This file orchestrates the physical loading and unloading of AI models.
