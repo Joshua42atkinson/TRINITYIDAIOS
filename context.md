@@ -3,7 +3,7 @@
 > **Last Updated:** July 6, 2026
 > **Master Docs:** `AGENTS.md` (entry point) → `docs/active/MASTER_ARCHITECTURE.md` (full architecture) → `docs/active/SPATIAL_PIVOT_PLAN.md` (detailed plan)
 > **Hardware:** AMD Strix Halo APU — Radeon 8060S (`gfx1151`), 128GB Unified LPDDR5X
-> **Runtime:** Rust/Axum (:3000) + LM Studio (:1234) + vLLM Omni (:8000) + ComfyUI (:8188)
+> **Runtime:** Rust/Axum (:3000) + LM Studio (:1234, Hermes 4 70B) + ComfyUI (:8188). vLLM Omni OFF.
 > **Thesis:** Trinity is an AI instructional designer for spatial computing. Teacher chats → Trinity generates VR lessons. Chat is the portal. Agent is the ID.
 
 ---
@@ -14,8 +14,8 @@ Trinity is an **AI instructional designer for spatial computing**. A teacher cha
 
 **Orchestration (Trinity is the brain):**
 - **Trinity** (:3000) = Orchestrator (agent loop, tools, memory, RAG, persistence, EYE)
-- **LM Studio** (:1234) = Brain — Hermes 4 70B loaded and running
-- **vLLM Omni** (:8000) = OFF for now (will activate for images/voice in P1)
+- **LM Studio** (:1234) = Brain — Hermes 4 70B (nousresearch/hermes-4-70b) loaded and running
+- **vLLM Omni** (:8000) = OFF (replaced by LM Studio + ComfyUI)
 - **ComfyUI** (:8188) = All creative (images, voice, 3D, video, music)
 - **Blender** = 3D refinement (planned, headless Python API)
 - **trinity-xr** = VR client (planned, Bevy 0.18 + bevy_oxr, WebSocket to Trinity)
@@ -41,45 +41,47 @@ Teacher chats → Trinity agent (Socratic questions) → Asset generation (vLLM 
 
 ---
 
-## 3. Studio Model Setup (Day Mode)
+## 3. Model Setup (Current)
 
-Two models are always resident on the desktop in Studio mode:
+| Role | Model | Engine | Port | Purpose |
+|------|-------|--------|------|---------|
+| **Brain** | Hermes 4 70B | LM Studio | :1234 | LLM inference, tool calling, reasoning, planning |
+| **Creative** | ComfyUI (Janus-Pro, VibeVoice, TRELLIS, etc.) | ComfyUI | :8188 | Image gen, voice, 3D, video on demand |
+| **Embeddings** | nomic-embed-text-v1.5 | LM Studio | :1234 | RAG semantic search (in-process ORT fallback) |
 
-| Role | Model | Engine | Port | VRAM | Speed | Purpose |
-|------|-------|--------|------|------|-------|---------|
-| **P** | DiffusionGemma 26B AWQ-INT4 | vLLM (podman) | :8000 | ~42GB | ~84 tok/s (MoE) | Execution — story, code, tool calling, reasoning |
-| **A** | ComfyUI + Janus-Pro-7B + VibeVoice-1.5B | ComfyUI | :8188 | ~17GB | varies | Creative — image gen, voice, video, 3D on demand |
+**Hermes 4 70B** is the sole LLM brain. vLLM and hotel_manager are being phased out (Sprint 1).
+**ComfyUI** handles all creative generation. Models loaded on demand within VRAM budget.
 
-**Total resident VRAM:** ~59GB of 128GB. Tier 2 models (HunyuanVideo, TRELLIS, LongCat, ACE-Step, FLUX, TripoSR) loaded on demand by ComfyUI within a 53GB budget.
-
-**Hermes 4 70B (H slot):** Managed externally by LM Studio on :8002 when needed for planning. Not hotel-managed — submitted jobs to Trinity via POST /api/jobs.
-
-### Computational Economy: Resident-But-Paused
-Models stay loaded in VRAM permanently. Only one model computes at a time — others sit idle (zero bus contention). The 210 GB/s memory bus is the constraint, not capacity.
-
-### Hotel Modes (API-controlled)
-- **Studio:** P + A always resident (default). `POST /api/inference/hotel/studio`
-- **Solo:** P only, A shut down (IDE agents welcome). `POST /api/inference/hotel/solo`
-- **Closed:** All models off (night shift / maintenance). `POST /api/inference/hotel/close`
-
-### Night Mode
-Close hotel, kill podman, load large models (MiniMax-M2.7-172B, Mistral-119B) in LM Studio for overnight background jobs. Submit via POST /api/jobs with max_turns=200.
+### GPU Stability (Strix Halo gfx1151)
+- Kernel: 7.0.0-27-generic (required for ROCm/gfx1151)
+- `amdgpu.cwsr_enable=0` — disables Compute Wave Save Restore (known MES hang workaround)
+- `amdgpu.vm_fragment_size=9` — improves GPU memory allocation
+- MES firmware: downgraded to 0x5d (from buggy 0x86) to fix GPU hangs
+- `70-kfd.rules` — fixed broken udev rule (literal \n parse error)
 
 ---
 
 ## 4. Phone PWA
 
 **URL:** `http://100.83.222.35:3000/trinity/phone.html` (Tailscale) or `http://localhost:3000/trinity/phone.html` (local)
-**Features:**
-- Chat with streaming SSE responses (P: DiffusionGemma 26B)
+**Sprint 0 PWA features (completed):**
+- PWA installable (manifest.json, service worker, icon)
+- Chat with streaming SSE responses (Hermes 4 70B via LM Studio)
 - Voice input (Web Speech API — 🎤 button)
 - Text-to-speech for responses (🔊 button)
-- Hotel status monitoring (P/A health, Studio/Solo/Closed modes)
+- System status monitoring (Trinity/LM Studio/ComfyUI health)
 - Image generation (ComfyUI via agent tool calling)
 - Inline image display in chat (SSE `event: image` handler)
 - RAG memory (ingest + search)
 - Persistent memory (SQLite-backed)
-- Focus Mode controls (Creative/Code/Night)
+- SME interview wizard (6-step guided lesson creation)
+- Teacher-focused quick actions (replaced dev buttons)
+- First-run onboarding (3 slides + example prompts)
+
+**Sprint 0 PWA features (remaining):**
+- Mode switching (Phone/VR toggle)
+- Lesson spec rendering as structured card in chat
+- Audio/3D/video preview inline in chat
 
 **Native app (archived, 70% built):** `ARCHIVE_VAULT/Phone/trinity-ndk/` — Bevy/Rust Android app with Gemini Nano integration, inference router, desktop proxy. Needs Bevy 0.16→0.18 upgrade and APK rebuild.
 
@@ -113,15 +115,19 @@ Close hotel, kill podman, load large models (MiniMax-M2.7-172B, Mistral-119B) in
 ## 6. Launching Trinity
 
 ```bash
-# One-command startup
-bash ~/trinity-models/start-diffusiongemma.sh  # P: vLLM on :8000
-~/Workflow/TRINITYIDAIOS/target/release/trinity --headless &  # Trinity on :3000
-curl -X POST http://localhost:3000/api/inference/hotel/studio  # Launch A: ComfyUI on :8188
+# 1. Start LM Studio (GUI or headless) — load Hermes 4 70B
+/home/joshua/.local/share/applications/lm-studio-wrapper.sh &
+
+# 2. Start ComfyUI
+cd ~/ComfyUI && ./venv/bin/python main.py --port 8188 --listen 127.0.0.1 &
+
+# 3. Start Trinity
+cd ~/Workflow/TRINITYIDAIOS && cargo run -p trinity -- --headless &
 
 # Or use the startup script:
 ./scripts/launch/trinity_day.sh
 
-# Phone: http://100.83.222.35:3000/trinity/phone.html (Tailscale)
+# PWA: http://100.83.222.35:3000/trinity/phone.html (Tailscale)
 # Local: http://localhost:3000/trinity/phone.html
 ```
 
@@ -131,11 +137,11 @@ curl -X POST http://localhost:3000/api/inference/hotel/studio  # Launch A: Comfy
 
 | Component | File(s) | Why It's Done |
 |-----------|---------|---------------|
-| Inference routing | `agent.rs` | Routes to P (DiffusionGemma) for execution |
+| Inference routing | `agent.rs` | Routes to LM Studio (Hermes 4 70B) for execution |
 | Content extraction fix | `inference.rs` | Prefers `content` over `reasoning_content` |
-| OpenAI-compatible inference client | `inference.rs` | Streaming, tool calling, dynamic model resolution |
+| OpenAI-compatible inference client | `inference.rs` | Streaming, tool calling, dynamic model resolution (prefers Hermes) |
 | Multi-backend inference router | `inference_router.rs` | Auto-detect, failover, health probing, P-ART-Y roles |
-| Hotel manager | `hotel_manager.rs` | Studio/Solo/Closed modes, P+A lifecycle, CPU pinning (will be replaced by LM Studio) |
+| Hermes model preference | `inference.rs`, `monitor.rs` | Prefers hermes-4-70b over other loaded models |
 | Conductor phase system | `conductor_leader.rs` | 12 Socratic prompts, Bloom's mapping |
 | Agentic tool loop | `agent.rs` | Tool calling, SSE streaming, memory injection |
 | Quest state machine | `quests.rs` | ADDIECRAPEYE phase gating, XP/Coal/Steam |
@@ -144,7 +150,8 @@ curl -X POST http://localhost:3000/api/inference/hotel/studio  # Launch A: Comfy
 | ORT in-process embeddings | `ort_embed.rs` | nomic-embed-text INT8 ONNX, CPU execution |
 | Persistent memory | `memory_store.rs` | SQLite-backed, API routes, agent loop integration |
 | RAG semantic search | `rag.rs` | ORT-first, Ollama fallback, hash fallback |
-| PWA with voice/TTS | `phone.html` | Chat, voice input, read-aloud, hotel controls, image gen, focus modes |
+| PWA (Sprint 0) | `phone.html` | Chat, voice I/O, system status, image gen, SME wizard, onboarding, quick actions |
+| Cross-project monitor | `monitor.rs` | Health, git status, disk, jobs for all Trinity ecosystem projects |
 | **Master architecture doc** | `docs/active/MASTER_ARCHITECTURE.md` | Project ecosystem, 7-stage workflow, orchestration decision, maturity model |
 | **Spatial pivot plan** | `docs/active/SPATIAL_PIVOT_PLAN.md` | 21-section plan: XR UI, XREAL Aura, gap analysis, monetization, two-audience framework |
 | **AGENTS.md** | `AGENTS.md` | Entry point for AI agents — drift prevention, P0 focus, rules |
@@ -152,9 +159,10 @@ curl -X POST http://localhost:3000/api/inference/hotel/studio  # Launch A: Comfy
 
 ---
 
-## 8. Dead Code Removed (July 3, 2026)
+## 8. Dead Code Removed
 
-2,861 lines of dead code were removed from compilation. See `docs/active/MASTER_TASK_LIST.md` for details.
+- **July 3:** 2,861 lines of dead code removed from compilation
+- **July 6:** 66,136 lines removed — trinity-daydream crate, old React frontend, old vLLM/sidecar scripts, trimmed tools.rs. Archived examples/ and quests/ to ARCHIVE_VAULT/.
 
 FACES Protocol was moved to the Semantic Slime project (`/home/joshua/Semantic Slime/`) on July 5, 2026. The `trinity-faces` crate no longer exists in this workspace.
 
@@ -166,10 +174,10 @@ FACES Protocol was moved to the Semantic Slime project (`/home/joshua/Semantic S
 
 P0 items (see `AGENTS.md` and `docs/active/MASTER_ARCHITECTURE.md` Section 6):
 
-0. **PWA as the Face** — manifest, service worker, SME interview mode, teacher quick actions, onboarding, lesson display (Sprint 0)
-1. **LM Studio integration** — Switch to LM Studio :1234, Hermes 4 70B as brain (Sprint 1)
+0. **PWA as the Face** — manifest, service worker, SME interview, quick actions, onboarding, lesson display, mode switching, previews (Sprint 0) — **5 of 9 done, 3 remaining**
+1. **LM Studio integration** — Switch inference router to LM Studio :1234 (Sprint 1) — **Hermes already loaded and working**
 2. **ID system prompt** — Add instructional designer persona to agent.rs (Sprint 2)
-3. **`generate_image` tool** — ComfyUI Janus-Pro/LongCat (Sprint 2)
+3. **`generate_image` tool** — ComfyUI (Sprint 2) — **working**
 4. **`generate_voice` tool** — ComfyUI VibeVoice (Sprint 2)
 5. **`generate_3d_model` tool** — ComfyUI TRELLIS (Sprint 2)
 6. **`review_content_safety` tool** — Hermes LLM review via LM Studio (Sprint 2)
