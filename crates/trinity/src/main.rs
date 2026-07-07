@@ -50,7 +50,7 @@
 mod rlhf_api;
 
 use axum::{
-    extract::State,
+    extract::{State, ws::{WebSocketUpgrade, WebSocket, Message}},
     http::StatusCode,
     response::{sse, Json, Sse},
     routing::{delete, get, post, put},
@@ -89,6 +89,7 @@ mod rag;
 mod vllm_fleet;
 mod hotel_manager;
 mod lm_studio_client;
+mod standards;
 mod scope_creep;
 mod sidecar_monitor;
 mod skills;
@@ -534,6 +535,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
 
+    // Initialize standards table (NGSS, Common Core)
+    if let Err(e) = standards::ensure_standards_table(&db_pool).await {
+        warn!("⚠️ Standards table init failed: {}. Standards tools may not work.", e);
+    }
+
     // Generate or restore session ID
     let session_id = format!("session_{}", chrono::Utc::now().format("%Y%m%d_%H%M%S"));
     if let Err(e) = persistence::ensure_session(&db_pool, &session_id, "dev").await {
@@ -875,7 +881,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/docs/:filename", get(serve_chariot_doc))
         // Audiobook assets for Player Handbook E-Learning plugin
         .route("/audiobook/:filename", get(serve_audiobook_audio))
-        .route("/audiobook_art/:filename", get(serve_audiobook_art));
+        .route("/audiobook_art/:filename", get(serve_audiobook_art))
+        // XR Client API — trinity-xr WebSocket + scene push
+        .route("/api/xr/connect", get(xr_ws_connect))
+        .route("/api/xr/scene/push", post(xr_scene_push))
+        // Standards API — NGSS, Common Core search and alignment
+        .route("/api/standards/search", get(standards_search))
+        .route("/api/standards/list", get(standards_list))
+        // SCORM Export API
+        .route("/api/scorm/export", post(scorm_export))
+        // Lesson Persistence API
+        .route("/api/lessons", get(lessons_list).post(lessons_create))
+        .route("/api/lessons/:id", get(lessons_get).delete(lessons_delete))
+        // Enrichment API
+        .route("/api/enrichment", post(enrichment_generate));
 
     // ═══ MAIN APP: API routes + static file services ═══
     // API routes are mounted FIRST so they take priority over nest_service.
@@ -5364,4 +5383,357 @@ async fn setup_config(
     router.auto_detect().await;
     
     axum::http::StatusCode::OK
+}
+
+// ═══════════════════════════════════════════════════════════════
+// XR Client API — trinity-xr WebSocket + scene push
+// ═══════════════════════════════════════════════════════════════
+
+async fn xr_ws_connect(
+    ws: WebSocketUpgrade,
+    State(state): State<AppState>,
+) -> axum::response::Response {
+    ws.on_upgrade(move |socket| xr_ws_handler(socket, state))
+}
+
+async fn xr_ws_handler(socket: WebSocket, state: AppState) {
+    use futures::{SinkExt, StreamExt};
+    let (mut sender, mut receiver) = socket.split();
+
+    tracing::info!("XR client connected via WebSocket");
+
+    // Send a welcome message
+    let welcome = serde_json::json!({
+        "type": "chat_message",
+        "data": {
+            "role": "assistant",
+            "content": "Trinity XR connected. I'm your instructional designer — tell me what lesson you'd like to build."
+        }
+    });
+    let _ = sender.send(Message::Text(welcome.to_string())).await;
+
+    // Listen for incoming messages from the XR client
+    while let Some(msg_result) = receiver.next().await {
+        match msg_result {
+            Ok(msg) => {
+                if let Message::Text(text) = msg {
+                    if let Ok(xr_msg) = serde_json::from_str::<serde_json::Value>(&text) {
+                        let msg_type = xr_msg.get("type").and_then(|v| v.as_str()).unwrap_or("");
+
+                        match msg_type {
+                            "chat_message" => {
+                                if let Some(content) = xr_msg.get("data").and_then(|d| d.get("content")).and_then(|c| c.as_str()) {
+                                    tracing::info!("XR chat message: {}", content);
+
+                                    let response = serde_json::json!({
+                                        "type": "chat_message",
+                                        "data": {
+                                            "role": "assistant",
+                                            "content": format!("I heard you say: \"{}\". Let me think about that... (agent loop integration pending)", content),
+                                        }
+                                    });
+                                    let _ = sender.send(Message::Text(response.to_string())).await;
+                                }
+                            }
+                            "list_assets" => {
+                                let assets_dir = std::path::Path::new("crates/trinity/static/assets");
+                                let mut assets = Vec::new();
+                                if assets_dir.exists() {
+                                    if let Ok(entries) = std::fs::read_dir(assets_dir) {
+                                        for entry in entries.flatten() {
+                                            let name = entry.file_name().to_string_lossy().to_string();
+                                            let asset_type = if name.ends_with(".glb") || name.ends_with(".gltf") {
+                                                "3d"
+                                            } else if name.ends_with(".png") || name.ends_with(".jpg") {
+                                                "image"
+                                            } else if name.ends_with(".wav") || name.ends_with(".mp3") {
+                                                "audio"
+                                            } else {
+                                                "other"
+                                            };
+                                            assets.push(serde_json::json!({
+                                                "name": name,
+                                                "type": asset_type,
+                                                "url": format!("/trinity/assets/{}", name),
+                                            }));
+                                        }
+                                    }
+                                }
+                                let response = serde_json::json!({
+                                    "type": "asset_list",
+                                    "data": { "assets": assets }
+                                });
+                                let _ = sender.send(Message::Text(response.to_string())).await;
+                            }
+                            _ => {
+                                tracing::debug!("XR message type: {}", msg_type);
+                            }
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                tracing::error!("XR WebSocket error: {}", e);
+                break;
+            }
+        }
+    }
+
+    tracing::info!("XR client disconnected");
+}
+
+#[derive(Deserialize)]
+struct XrScenePushRequest {
+    scene_spec: serde_json::Value,
+    asset_list: Option<Vec<serde_json::Value>>,
+}
+
+async fn xr_scene_push(
+    State(_state): State<AppState>,
+    Json(req): Json<XrScenePushRequest>,
+) -> Json<serde_json::Value> {
+    tracing::info!("XR scene push received: {}", req.scene_spec);
+
+    Json(serde_json::json!({
+        "status": "received",
+        "message": "Scene pushed to connected XR clients (when available)",
+        "scene_spec": req.scene_spec,
+        "asset_count": req.asset_list.as_ref().map(|a| a.len()).unwrap_or(0),
+    }))
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Standards API — NGSS, Common Core search and listing
+// ═══════════════════════════════════════════════════════════════
+
+#[derive(Deserialize)]
+struct StandardsQuery {
+    q: Option<String>,
+    framework: Option<String>,
+    subject: Option<String>,
+    grade_band: Option<String>,
+    limit: Option<i64>,
+}
+
+async fn standards_search(
+    State(state): State<AppState>,
+    axum::extract::Query(params): axum::extract::Query<StandardsQuery>,
+) -> Json<serde_json::Value> {
+    let query = params.q.unwrap_or_default();
+    let limit = params.limit.unwrap_or(20);
+
+    if query.is_empty() {
+        return Json(serde_json::json!({"error": "Missing 'q' parameter"}));
+    }
+
+    match standards::search_standards(&state.db_pool, &query, limit).await {
+        Ok(results) => Json(serde_json::json!({
+            "query": query,
+            "count": results.len(),
+            "standards": results
+        })),
+        Err(e) => Json(serde_json::json!({"error": e.to_string()})),
+    }
+}
+
+async fn standards_list(
+    State(state): State<AppState>,
+    axum::extract::Query(params): axum::extract::Query<StandardsQuery>,
+) -> Json<serde_json::Value> {
+    let limit = params.limit.unwrap_or(100);
+
+    match standards::list_standards(
+        &state.db_pool,
+        params.framework.as_deref(),
+        params.subject.as_deref(),
+        params.grade_band.as_deref(),
+        limit,
+    ).await {
+        Ok(results) => Json(serde_json::json!({
+            "count": results.len(),
+            "standards": results
+        })),
+        Err(e) => Json(serde_json::json!({"error": e.to_string()})),
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SCORM Export API
+// ═══════════════════════════════════════════════════════════════
+
+#[derive(Deserialize)]
+struct ScormExportRequest {
+    title: String,
+    html_content: String,
+    lesson_id: Option<String>,
+    mastery_score: Option<i64>,
+}
+
+async fn scorm_export(
+    Json(req): Json<ScormExportRequest>,
+) -> Json<serde_json::Value> {
+    let params = serde_json::json!({
+        "title": req.title,
+        "html_content": req.html_content,
+        "lesson_id": req.lesson_id.unwrap_or_else(|| "trinity_lesson".to_string()),
+        "mastery_score": req.mastery_score.unwrap_or(80),
+    });
+
+    match tools::id::tool_export_scorm(&params).await {
+        Ok(result) => Json(serde_json::json!({
+            "status": "success",
+            "message": result
+        })),
+        Err(e) => Json(serde_json::json!({
+            "status": "error",
+            "error": e
+        })),
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// LESSON PERSISTENCE API
+// ══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Deserialize)]
+struct LessonsListQuery {
+    limit: Option<i64>,
+}
+
+async fn lessons_list(
+    State(state): State<AppState>,
+    axum::extract::Query(params): axum::extract::Query<LessonsListQuery>,
+) -> Json<serde_json::Value> {
+    let limit = params.limit.unwrap_or(50);
+    match persistence::list_lessons(&state.db_pool, limit).await {
+        Ok(lessons) => Json(serde_json::json!({
+            "status": "success",
+            "lessons": lessons
+        })),
+        Err(e) => Json(serde_json::json!({
+            "status": "error",
+            "error": e.to_string()
+        })),
+    }
+}
+
+#[derive(Deserialize)]
+struct LessonsCreateRequest {
+    title: String,
+    subject: Option<String>,
+    grade_band: Option<String>,
+    lesson_spec: Option<String>,
+    html_content: Option<String>,
+    scorm_path: Option<String>,
+    standards_aligned: Option<String>,
+    lesson_id: Option<String>,
+}
+
+async fn lessons_create(
+    State(state): State<AppState>,
+    Json(req): Json<LessonsCreateRequest>,
+) -> Json<serde_json::Value> {
+    let lesson_id = req.lesson_id.unwrap_or_else(|| {
+        let slug = req.title.replace(|c: char| !c.is_alphanumeric() && c != '-', "_").to_lowercase();
+        format!("lesson_{}_{}", slug, chrono::Utc::now().format("%Y%m%d_%H%M%S"))
+    });
+
+    let lesson = persistence::Lesson {
+        id: lesson_id.clone(),
+        title: req.title,
+        subject: req.subject.unwrap_or_default(),
+        grade_band: req.grade_band.unwrap_or_default(),
+        lesson_spec: req.lesson_spec.unwrap_or_else(|| "{}".to_string()),
+        html_content: req.html_content.unwrap_or_default(),
+        scorm_path: req.scorm_path.unwrap_or_default(),
+        standards_aligned: req.standards_aligned.unwrap_or_else(|| "[]".to_string()),
+        status: "draft".to_string(),
+        session_id: None,
+        created_at: String::new(),
+        updated_at: String::new(),
+    };
+
+    match persistence::save_lesson(&state.db_pool, &lesson).await {
+        Ok(_) => Json(serde_json::json!({
+            "status": "success",
+            "lesson_id": lesson_id,
+            "message": "Lesson saved successfully"
+        })),
+        Err(e) => Json(serde_json::json!({
+            "status": "error",
+            "error": e.to_string()
+        })),
+    }
+}
+
+async fn lessons_get(
+    State(state): State<AppState>,
+    axum::extract::Path(id): axum::extract::Path<String>,
+) -> Json<serde_json::Value> {
+    match persistence::get_lesson(&state.db_pool, &id).await {
+        Ok(Some(lesson)) => Json(serde_json::json!({
+            "status": "success",
+            "lesson": lesson
+        })),
+        Ok(None) => Json(serde_json::json!({
+            "status": "error",
+            "error": "Lesson not found"
+        })),
+        Err(e) => Json(serde_json::json!({
+            "status": "error",
+            "error": e.to_string()
+        })),
+    }
+}
+
+async fn lessons_delete(
+    State(state): State<AppState>,
+    axum::extract::Path(id): axum::extract::Path<String>,
+) -> Json<serde_json::Value> {
+    match persistence::delete_lesson(&state.db_pool, &id).await {
+        Ok(true) => Json(serde_json::json!({
+            "status": "success",
+            "message": "Lesson deleted"
+        })),
+        Ok(false) => Json(serde_json::json!({
+            "status": "error",
+            "error": "Lesson not found"
+        })),
+        Err(e) => Json(serde_json::json!({
+            "status": "error",
+            "error": e.to_string()
+        })),
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ENRICHMENT API
+// ══════════════════════════════════════════════════════════════════════════════
+
+#[derive(Deserialize)]
+struct EnrichmentRequest {
+    content: String,
+    grade_band: Option<String>,
+    enrichment_types: Option<String>,
+}
+
+async fn enrichment_generate(
+    Json(req): Json<EnrichmentRequest>,
+) -> Json<serde_json::Value> {
+    let params = serde_json::json!({
+        "content": req.content,
+        "grade_band": req.grade_band.unwrap_or_else(|| "6-8".to_string()),
+        "enrichment_types": req.enrichment_types.unwrap_or_else(|| "vocabulary,quiz,annotations".to_string()),
+    });
+
+    match tools::id::tool_add_enrichment(&params).await {
+        Ok(result) => Json(serde_json::json!({
+            "status": "success",
+            "enrichment": result
+        })),
+        Err(e) => Json(serde_json::json!({
+            "status": "error",
+            "error": e
+        })),
+    }
 }

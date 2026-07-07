@@ -45,6 +45,8 @@ use std::process::Stdio;
 use tokio::process::Command;
 use tracing::info;
 
+pub mod id;
+
 use crate::AppState;
 
 /// Tool request from the AI or user
@@ -113,7 +115,7 @@ pub fn tool_permission(name: &str) -> ToolPermission {
         | "update_vibe"
         | "analyze_image"
         | "analyze_screen_obs"
-        | "review_content_safety" => ToolPermission::NeedsApproval,
+        | "review_content_safety" | "align_standards" | "export_scorm" | "save_lesson" | "list_lessons" | "add_enrichment" | "assemble_scene" => ToolPermission::NeedsApproval,
 
         // System-level or external-facing
         "shell" | "python_exec" | "sidecar_start" | "scaffold_bevy_game" | "scaffold_elearning_module" | "project_archive"
@@ -219,8 +221,16 @@ pub fn get_tool_list() -> Vec<ToolInfo> {
         ToolInfo { name: "generate_image".into(), description: "Generate image via vLLM Omni. Routes to /api/creative/image → vLLM :8000/v1/images/generations. Args: prompt, width, height".into(), params: vec!["prompt".into()] },
         ToolInfo { name: "update_vibe".into(), description: "Dynamically set the system vibe. Args: visual_style, music_style, narrator_mood (Neutral|Warm|Urgent|Sarcastic|Celebratory|Contemplative)".into(), params: vec!["visual_style".into(), "music_style".into(), "narrator_mood".into()] },
         ToolInfo { name: "generate_3d_model".into(), description: "Generate a 3D model (glTF) via ComfyUI TRELLIS/TripoSR. Args: prompt, style (realistic|stylized|lowpoly)".into(), params: vec!["prompt".into(), "style".into()] },
+        ToolInfo { name: "generate_video".into(), description: "Generate a video via ComfyUI HunyuanVideo. Args: prompt, duration_secs (default 5), fps (default 24), height (default 720)".into(), params: vec!["prompt".into(), "duration_secs".into(), "fps".into(), "height".into()] },
+        ToolInfo { name: "blender_render".into(), description: "Process a 3D file through Blender headless — mesh cleanup (remove doubles, recalc normals) and export to glTF/GLB/FBX/OBJ. Args: scene_path, output_format (glb|gltf|fbx|obj), output_path, cleanup (true|false)".into(), params: vec!["scene_path".into(), "output_format".into(), "output_path".into(), "cleanup".into()] },
         ToolInfo { name: "generate_voice".into(), description: "Generate voice narration via ComfyUI VibeVoice. Args: text, speaker (narrator|male|female), emotion (neutral|warm|excited)".into(), params: vec!["text".into(), "speaker".into(), "emotion".into()] },
         ToolInfo { name: "review_content_safety".into(), description: "Review content for K-12 safety (violence, bias, accuracy, age-appropriateness). Args: content, target_age (e.g. '5th grade')".into(), params: vec!["content".into(), "target_age".into()] },
+        ToolInfo { name: "align_standards".into(), description: "Align lesson content to academic standards (NGSS, Common Core). Uses LLM semantic matching against standards DB. Args: content, framework (NGSS|Common Core), grade_band (K-2|3-5|6-8|9-12)".into(), params: vec!["content".into(), "framework".into(), "grade_band".into()] },
+        ToolInfo { name: "export_scorm".into(), description: "Export a lesson as a SCORM 1.2 package (ZIP with imsmanifest.xml + lesson.html). Args: title, html_content, lesson_id, mastery_score".into(), params: vec!["title".into(), "html_content".into(), "lesson_id".into(), "mastery_score".into()] },
+        ToolInfo { name: "save_lesson".into(), description: "Save a lesson to the Trinity database for persistence. Args: title, lesson_spec (JSON), subject, grade_band, html_content, scorm_path, standards_aligned, lesson_id".into(), params: vec!["title".into(), "lesson_spec".into(), "subject".into(), "grade_band".into()] },
+        ToolInfo { name: "list_lessons".into(), description: "List saved lessons from the database. Args: limit (default 10)".into(), params: vec!["limit".into()] },
+        ToolInfo { name: "add_enrichment".into(), description: "Generate enrichment materials (vocabulary cards, quiz questions, annotations) from lesson content via LLM. Args: content, grade_band (K-2|3-5|6-8|9-12), enrichment_types (vocabulary,quiz,annotations)".into(), params: vec!["content".into(), "grade_band".into(), "enrichment_types".into()] },
+        ToolInfo { name: "assemble_scene".into(), description: "Assemble a scene from assets — produces a structured scene manifest (JSON) with object placements, lighting, and metadata. Push to XR or export for Bevy/Godot/WebXR. Args: lesson_title, assets (array of {path, type, label, position, rotation, scale}), scene_format".into(), params: vec!["lesson_title".into(), "assets".into(), "scene_format".into()] },
     ]
 }
 
@@ -308,8 +318,16 @@ async fn run_tool(tool: &str, params: &serde_json::Value) -> Result<String, Stri
         "load_session_context" => tool_load_session_context(params).await,
         "update_vibe" => tool_update_vibe(params).await,
         "generate_3d_model" => tool_generate_3d_model(params).await,
+        "generate_video" => tool_generate_video(params).await,
+        "blender_render" => tool_blender_render(params).await,
         "generate_voice" => tool_generate_voice(params).await,
         "review_content_safety" => tool_review_content_safety(params).await,
+        "align_standards" => id::tool_align_standards(params).await,
+        "export_scorm" => id::tool_export_scorm(params).await,
+        "save_lesson" => id::tool_save_lesson(params).await,
+        "list_lessons" => id::tool_list_lessons(params).await,
+        "add_enrichment" => id::tool_add_enrichment(params).await,
+        "assemble_scene" => id::tool_assemble_scene(params).await,
         _ => Err(format!("Unknown tool: {}", tool)),
     }
 }
@@ -663,6 +681,209 @@ async fn tool_generate_3d_model(params: &serde_json::Value) -> Result<String, St
         .or_else(|| result["path"].as_str())
         .unwrap_or("unknown");
     Ok(format!("3D model generated successfully: {}", path))
+}
+
+async fn tool_generate_video(params: &serde_json::Value) -> Result<String, String> {
+    let prompt = params
+        .get("prompt")
+        .and_then(|p| p.as_str())
+        .ok_or("Missing 'prompt' parameter")?;
+    let duration_secs = params
+        .get("duration_secs")
+        .and_then(|d| d.as_u64())
+        .unwrap_or(5);
+    let fps = params
+        .get("fps")
+        .and_then(|f| f.as_u64())
+        .unwrap_or(24);
+    let height = params
+        .get("height")
+        .and_then(|h| h.as_u64())
+        .unwrap_or(720) as u32;
+
+    info!("🎬 Generating video: {} ({}s @ {}fps, {}p)", prompt, duration_secs, fps, height);
+
+    let client = &*crate::http::LONG;
+    let body = serde_json::json!({
+        "prompt": prompt,
+        "duration_secs": duration_secs,
+        "fps": fps,
+        "height": height,
+    });
+
+    let response = client
+        .post("http://127.0.0.1:3000/api/creative/video")
+        .json(&body)
+        .timeout(std::time::Duration::from_secs(600))
+        .send()
+        .await
+        .map_err(|e| format!("Video generation failed to connect: {}", e))?;
+
+    let status = response.status();
+    if !status.is_success() {
+        let body = response.text().await.unwrap_or_default();
+        return Err(format!("Video generation returned error ({}): {}", status, body));
+    }
+
+    let result: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
+    let path = result["video_path"]
+        .as_str()
+        .or_else(|| result["path"].as_str())
+        .unwrap_or("unknown");
+    Ok(format!("Video generated successfully: {}", path))
+}
+
+async fn tool_blender_render(params: &serde_json::Value) -> Result<String, String> {
+    let scene_path = params
+        .get("scene_path")
+        .and_then(|s| s.as_str())
+        .ok_or("Missing 'scene_path' parameter (path to .blend or input mesh file)")?;
+    let output_format = params
+        .get("output_format")
+        .and_then(|f| f.as_str())
+        .unwrap_or("glb");
+    let output_path = params
+        .get("output_path")
+        .and_then(|o| o.as_str())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| {
+            let stem = std::path::Path::new(scene_path)
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("output");
+            format!("/tmp/trinity_blender_{}.{}", stem, output_format)
+        });
+    let cleanup = params
+        .get("cleanup")
+        .and_then(|c| c.as_bool())
+        .unwrap_or(true);
+
+    info!("🌀 Blender render: {} → {} (format: {}, cleanup: {})", scene_path, output_path, output_format, cleanup);
+
+    // Build a Python script for Blender headless execution
+    let py_script = if cleanup {
+        format!(r#"
+import bpy
+import sys
+import os
+
+# Load the input file
+input_path = sys.argv[-2]
+output_path = sys.argv[-1]
+
+if input_path.endswith('.blend'):
+    bpy.ops.wm.open_mainfile(filepath=input_path)
+else:
+    # Import mesh file (obj, fbx, etc.)
+    ext = os.path.splitext(input_path)[1].lower()
+    if ext == '.obj':
+        bpy.ops.wm.obj_import(filepath=input_path)
+    elif ext == '.fbx':
+        bpy.ops.import_scene.fbx(filepath=input_path)
+    elif ext == '.glb' or ext == '.gltf':
+        bpy.ops.import_scene.gltf(filepath=input_path)
+    elif ext == '.stl':
+        bpy.ops.wm.stl_import(filepath=input_path)
+    else:
+        print(f"Unknown format: {{ext}}")
+        sys.exit(1)
+
+# Mesh cleanup: remove doubles, recalculate normals, decimate if high poly
+for obj in bpy.data.objects:
+    if obj.type == 'MESH':
+        bpy.context.view_layer.objects.active = obj
+        obj.select_set(True)
+        # Remove duplicate vertices
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='SELECT')
+        bpy.ops.mesh.remove_doubles(threshold=0.0001)
+        # Recalculate normals
+        bpy.ops.mesh.normals_make_consistent(inside=False)
+        bpy.ops.object.mode_set(mode='OBJECT')
+        obj.select_set(False)
+
+# Export to target format
+ext = os.path.splitext(output_path)[1].lower()
+if ext == '.glb':
+    bpy.ops.export_scene.gltf(filepath=output_path, export_format='GLB')
+elif ext == '.gltf':
+    bpy.ops.export_scene.gltf(filepath=output_path, export_format='GLTF_SEPARATE')
+elif ext == '.fbx':
+    bpy.ops.export_scene.fbx(filepath=output_path)
+elif ext == '.obj':
+    bpy.ops.wm.obj_export(filepath=output_path)
+else:
+    bpy.ops.export_scene.gltf(filepath=output_path, export_format='GLB')
+
+print(f"BLENDER_OK: {{output_path}}")
+"#)
+    } else {
+        format!(r#"
+import bpy
+import sys
+import os
+
+input_path = sys.argv[-2]
+output_path = sys.argv[-1]
+
+if input_path.endswith('.blend'):
+    bpy.ops.wm.open_mainfile(filepath=input_path)
+else:
+    ext = os.path.splitext(input_path)[1].lower()
+    if ext == '.obj':
+        bpy.ops.wm.obj_import(filepath=input_path)
+    elif ext == '.fbx':
+        bpy.ops.import_scene.fbx(filepath=input_path)
+    elif ext == '.glb' or ext == '.gltf':
+        bpy.ops.import_scene.gltf(filepath=input_path)
+    elif ext == '.stl':
+        bpy.ops.wm.stl_import(filepath=input_path)
+    else:
+        print(f"Unknown format: {{ext}}")
+        sys.exit(1)
+
+ext = os.path.splitext(output_path)[1].lower()
+if ext == '.glb':
+    bpy.ops.export_scene.gltf(filepath=output_path, export_format='GLB')
+elif ext == '.gltf':
+    bpy.ops.export_scene.gltf(filepath=output_path, export_format='GLTF_SEPARATE')
+elif ext == '.fbx':
+    bpy.ops.export_scene.fbx(filepath=output_path)
+elif ext == '.obj':
+    bpy.ops.wm.obj_export(filepath=output_path)
+else:
+    bpy.ops.export_scene.gltf(filepath=output_path, export_format='GLB')
+
+print(f"BLENDER_OK: {{output_path}}")
+"#)
+    };
+
+    // Write the Python script to a temp file
+    let py_path = format!("/tmp/trinity_blender_script_{}.py", uuid::Uuid::new_v4());
+    std::fs::write(&py_path, &py_script)
+        .map_err(|e| format!("Failed to write Blender script: {}", e))?;
+
+    // Run Blender headless
+    let output = std::process::Command::new("blender")
+        .args(&["--background", "--python", &py_path, "--", scene_path, &output_path])
+        .output()
+        .map_err(|e| format!("Failed to run Blender: {}", e))?;
+
+    // Clean up script
+    let _ = std::fs::remove_file(&py_path);
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Blender failed: {}", stderr));
+    }
+
+    // Verify output file exists
+    if !std::path::Path::new(&output_path).exists() {
+        return Err(format!("Blender completed but output file not found: {}", output_path));
+    }
+
+    info!("🌀 Blender output: {}", output_path);
+    Ok(format!("Blender render complete:\n  Input: {}\n  Output: {}\n  Format: {}\n  Cleanup: {}", scene_path, output_path, output_format, cleanup))
 }
 
 async fn tool_generate_voice(params: &serde_json::Value) -> Result<String, String> {

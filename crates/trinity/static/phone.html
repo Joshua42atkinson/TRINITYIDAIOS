@@ -298,6 +298,9 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
 .tool-card .tool-name { font-weight: 700; color: var(--accent); display: flex; align-items: center; gap: 6px; }
 .tool-card .tool-name::before { content: '⚙️'; font-size: 14px; }
 .tool-card .tool-result { color: var(--text-dim); margin-top: 8px; white-space: pre-wrap; max-height: 150px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; }
+
+.hint-chip { cursor: pointer; opacity: 0.7; transition: opacity 0.2s, background 0.2s; }
+.hint-chip:hover { opacity: 1; background: rgba(207,185,145,0.15); }
 </style>
 </head>
 <body>
@@ -339,6 +342,8 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
                 <div class="chip" style="text-align:left;" onclick="useExample('Cell structure for 8th grade biology')">🧬 Cell structure for 8th grade biology</div>
                 <div class="chip" style="text-align:left;" onclick="useExample('Civil War timeline for 11th grade')">📜 Civil War timeline for 11th grade</div>
                 <div class="chip" style="text-align:left;" onclick="useExample('Fractions for 3rd grade with interactive quiz')">🔢 Fractions for 3rd grade with interactive quiz</div>
+                <div class="chip" style="text-align:left;" onclick="useExample('Create a lesson on photosynthesis for 6th grade, then align it to NGSS standards')">📐 Photosynthesis + NGSS alignment</div>
+                <div class="chip" style="text-align:left;" onclick="useExample('Build a lesson on the solar system for 4th grade and export it as SCORM')">📦 Solar system + SCORM export</div>
             </div>
         </div>
     </div>
@@ -353,6 +358,7 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
         <div class="chip" onclick="quickAction('/voice ')">🗣️ Voice</div>
         <div class="chip" onclick="quickAction('/3d ')">🧊 3D Model</div>
         <div class="chip" onclick="quickAction('Search memory: ')">🔍 Memory</div>
+        <div class="chip" onclick="openModal('helpModal')">❓ Help</div>
         <div class="chip" onclick="clearChat()">🗑️ Clear</div>
     </div>
 </div>
@@ -519,7 +525,12 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
                 <p>Tap "New Lesson" to answer a few questions. Trinity captures SME knowledge and builds a lesson spec automatically.</p>
             </div>
             <div class="onboarding-slide" data-slide="3">
-                <div class="icon">🔒</div>
+                <div class="icon">�</div>
+                <h2>Standards &amp; SCORM</h2>
+                <p>Align lessons to NGSS and Common Core standards. Export SCORM packages for any LMS — Canvas, Moodle, Google Classroom.</p>
+            </div>
+            <div class="onboarding-slide" data-slide="4">
+                <div class="icon">�🔒</div>
                 <h2>Your Hardware, Your Data</h2>
                 <p>Lessons live on your private Strix Halo server. No cloud, no subscription, no per-token costs.</p>
             </div>
@@ -527,10 +538,54 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--g
                 <div class="dot active" data-slide="1"></div>
                 <div class="dot" data-slide="2"></div>
                 <div class="dot" data-slide="3"></div>
+                <div class="dot" data-slide="4"></div>
             </div>
             <div class="wizard-nav">
                 <button class="os-btn secondary" id="onboarding-back" onclick="onboardingPrev()" style="display:none;">Back</button>
                 <button class="os-btn" id="onboarding-next" onclick="onboardingNext()">Next</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Help — Quick Command Reference -->
+<div class="modal-overlay" id="helpModal" onclick="if(event.target===this) closeModal('helpModal')">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span class="modal-title">WHAT CAN TRINITY DO?</span>
+            <button class="modal-close" onclick="closeModal('helpModal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="os-card">
+                <h3>📝 Lesson Creation</h3>
+                <div style="font-size:13px;color:var(--text-dim);line-height:1.8;">
+                    <div><strong style="color:var(--gold);">"Create a lesson on [topic] for [grade]"</strong> — Generate a full lesson plan</div>
+                    <div><strong style="color:var(--gold);">"New Lesson"</strong> — Guided wizard (subject, grade, duration, standards)</div>
+                    <div><strong style="color:var(--gold);">"Interview SME"</strong> — Socratic questions to extract expert knowledge</div>
+                </div>
+            </div>
+            <div class="os-card">
+                <h3>🎨 Creative Tools</h3>
+                <div style="font-size:13px;color:var(--text-dim);line-height:1.8;">
+                    <div><strong style="color:var(--blue);">/generate [prompt]</strong> — Generate an image</div>
+                    <div><strong style="color:var(--blue);">/voice [text]</strong> — Generate voice narration</div>
+                    <div><strong style="color:var(--blue);">/3d [prompt]</strong> — Generate a 3D model (glTF)</div>
+                </div>
+            </div>
+            <div class="os-card">
+                <h3>📐 Standards &amp; Export</h3>
+                <div style="font-size:13px;color:var(--text-dim);line-height:1.8;">
+                    <div><strong style="color:var(--accent);">"Align this lesson to NGSS for 6-8"</strong> — Match to academic standards</div>
+                    <div><strong style="color:var(--accent);">"Export as SCORM"</strong> — Package for Canvas, Moodle, or any LMS</div>
+                    <div><strong style="color:var(--accent);">"Review for safety"</strong> — Check content for K-12 appropriateness</div>
+                </div>
+            </div>
+            <div class="os-card">
+                <h3>🔍 Memory &amp; Context</h3>
+                <div style="font-size:13px;color:var(--text-dim);line-height:1.8;">
+                    <div><strong style="color:var(--green);">"Search memory: [topic]"</strong> — Find past conversations</div>
+                    <div><strong style="color:var(--green);">"Remember that..."</strong> — Store info for future sessions</div>
+                </div>
             </div>
         </div>
     </div>
@@ -892,7 +947,7 @@ async function unloadModel() {
 
 // ── First-Run Onboarding ──
 let onboardingSlide = 1;
-const TOTAL_ONBOARDING_SLIDES = 3;
+const TOTAL_ONBOARDING_SLIDES = 4;
 
 function updateOnboardingUI() {
   document.querySelectorAll('.onboarding-slide').forEach((el) => el.classList.remove('active'));
@@ -1306,7 +1361,8 @@ async function sendMessage() {
             if (json.status === 'tool' && json.message) {
               const toolDiv = document.createElement('div');
               toolDiv.style.cssText = 'color:var(--blue);font-family:monospace;font-size:11px;padding:2px 0;';
-              toolDiv.textContent = '🔧 ' + json.message;
+              const friendlyLabel = getToolLabel(json.tool || json.message);
+              toolDiv.textContent = friendlyLabel;
               aiDiv.appendChild(toolDiv);
               window.scrollTo(0, document.body.scrollHeight);
               continue;
@@ -1354,6 +1410,105 @@ async function sendMessage() {
   document.getElementById('chat-status').textContent = '';
   isStreaming = false;
   document.getElementById('send-btn').disabled = false;
+
+  // Show contextual hint chips after agent responds
+  if (fullResponse.trim()) {
+    showHintChips(aiDiv, fullResponse);
+  }
+}
+
+// ── User-friendly tool status labels ──
+function getToolLabel(rawTool) {
+  const labels = {
+    'generate_image': '🎨 Generating image...',
+    'generate_voice': '🗣️ Generating voice narration...',
+    'generate_3d_model': '🧊 Generating 3D model...',
+    'generate_video': '🎬 Generating video...',
+    'blender_render': '🌀 Processing in Blender...',
+    'review_content_safety': '🛡️ Reviewing content safety...',
+    'align_standards': '📐 Aligning to academic standards...',
+    'export_scorm': '📦 Exporting SCORM package...',
+    'add_enrichment': '📚 Generating enrichment materials...',
+    'assemble_scene': '🏗️ Assembling scene...',
+    'save_lesson': '💾 Saving lesson...',
+    'list_lessons': '📋 Listing saved lessons...',
+    'generate_lesson_plan': '📝 Creating lesson plan...',
+    'generate_quiz': '❓ Generating quiz...',
+    'generate_rubric': '📊 Creating rubric...',
+    'curriculum_map': '🗺️ Building curriculum map...',
+    'read_file': '📖 Reading file...',
+    'write_file': '✏️ Writing file...',
+    'list_dir': '📂 Listing directory...',
+    'search_files': '🔍 Searching files...',
+    'cargo_check': '🔧 Running cargo check...',
+    'analyze_document': '📋 Analyzing document...',
+    'save_session_summary': '💾 Saving session...',
+    'load_session_context': '📂 Loading session context...',
+  };
+  // Try exact match, then try matching "Running X..." format
+  if (labels[rawTool]) return labels[rawTool];
+  const match = rawTool.match(/Running (\w+)/);
+  if (match && labels[match[1]]) return labels[match[1]];
+  return '🔧 ' + rawTool;
+}
+
+// ── Contextual hint chips after agent responses ──
+function showHintChips(aiDiv, response) {
+  const hints = [];
+  const lower = response.toLowerCase();
+
+  // Detect lesson plan in response
+  if (lower.includes('lesson') && (lower.includes('objective') || lower.includes('outline') || lower.includes('spec'))) {
+    hints.push({ icon: '🎨', text: 'Generate images', prompt: 'Generate images for this lesson' });
+    hints.push({ icon: '📐', text: 'Align standards', prompt: 'Align this lesson to NGSS standards for the appropriate grade band' });
+    hints.push({ icon: '🛡️', text: 'Safety review', prompt: 'Review this lesson content for K-12 safety' });
+  }
+
+  // Detect lesson spec / card
+  if (lower.includes('lesson_spec') || lower.includes('lesson_title') || lower.includes('learning_objectives')) {
+    hints.push({ icon: '📦', text: 'Export SCORM', prompt: 'Export this lesson as a SCORM package' });
+    hints.push({ icon: '🗣️', text: 'Add narration', prompt: 'Generate voice narration for this lesson' });
+  }
+
+  // Detect image was generated
+  if (aiDiv.querySelector('img')) {
+    hints.push({ icon: '🧊', text: 'Make 3D model', prompt: 'Generate a 3D model based on the image that was just created' });
+  }
+
+  // Detect quiz in response
+  if (lower.includes('quiz') || lower.includes('question')) {
+    hints.push({ icon: '📦', text: 'Export SCORM', prompt: 'Export this lesson with the quiz as a SCORM package' });
+  }
+
+  // Always show these as general follow-ups
+  if (hints.length === 0) {
+    hints.push({ icon: '📝', text: 'New lesson', prompt: '' });
+    hints.push({ icon: '🎨', text: 'Generate image', prompt: 'Generate an image for a lesson' });
+  }
+
+  if (hints.length === 0) return;
+
+  const hintContainer = document.createElement('div');
+  hintContainer.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05);';
+
+  for (const hint of hints.slice(0, 4)) {
+    const chip = document.createElement('div');
+    chip.className = 'chip hint-chip';
+    chip.style.cssText = 'font-size:11px;padding:4px 10px;';
+    chip.textContent = hint.icon + ' ' + hint.text;
+    if (hint.prompt) {
+      chip.onclick = () => {
+        document.getElementById('chat-input').value = hint.prompt;
+        sendMessage();
+      };
+    } else if (hint.text === 'New lesson') {
+      chip.onclick = () => { resetWizard(); openModal('lessonModal'); };
+    }
+    hintContainer.appendChild(chip);
+  }
+
+  aiDiv.appendChild(hintContainer);
+  window.scrollTo(0, document.body.scrollHeight);
 }
 
 // Enter to send (shift+enter for newline)

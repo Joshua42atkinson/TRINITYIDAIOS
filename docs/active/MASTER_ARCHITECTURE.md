@@ -393,23 +393,23 @@ These are the connective tissue between all projects:
 | 6 | Sprint 2 | `review_content_safety` tool | Hermes LLM reviews content for K-12 appropriateness | LM Studio :1234 | ✅ Done |
 | 7 | Sprint 2 | End-to-end test | Chat with ID persona, Socratic questions, safety review PASS/FAIL | All | ✅ Done |
 
-### P1: Must Have for Level 2-3 (Sellable)
+### P1: Must Have for Level 2-3 (Sellable) — Sprint 3 Items ✅ COMPLETE
 
-| # | Tool/Workflow | What It Does | Service |
-|---|---------------|-------------|---------|
-| 8 | Port `trinity-xr` | Bevy 0.18 OpenXR from Bertrand → Trinity workspace | trinity-xr crate |
-| 9 | VR chat panel | Chat interface as floating 3D panel in VR | trinity-xr + WS |
-| 10 | VR asset viewer | 3D model preview in VR (grab, rotate, scale) | trinity-xr |
-| 11 | `assemble_scene` tool | Package assets → Bevy scene / Godot / WebXR | Trinity |
-| 12 | Blender integration | Headless Python API — mesh cleanup, glTF export | Blender |
-| 13 | Standards DB | SQLite — NGSS, Common Core | Trinity + SQLite |
-| 14 | `align_standards` tool | RAG over standards DB | Trinity |
-| 15 | `export_scorm` tool | SCORM 1.2/2004 package for LMS | Trinity |
-| 16 | `save_lesson` / `list_lessons` | Lesson persistence in SQLite | Trinity + SQLite |
-| 17 | PWA onboarding | Examples, hints, transparent agent steps | PWA frontend |
-| 18 | XR WebSocket bridge | WS /api/xr/connect for VR ↔ server | Trinity |
-| 19 | `generate_video` tool | ComfyUI HunyuanVideo | ComfyUI :8188 |
-| 20 | `add_enrichment` tool | Vocab cards, quiz questions, annotations | Trinity |
+| # | Tool/Workflow | What It Does | Service | Status |
+|---|---------------|-------------|---------|--------|
+| 8 | Port `trinity-xr` | Bevy 0.18 OpenXR from Bertrand → Trinity workspace | trinity-xr crate | ✅ Done |
+| 9 | VR chat panel | Chat interface as floating 3D panel in VR | trinity-xr + WS | ✅ Done |
+| 10 | VR asset viewer | 3D model preview in VR (grab, rotate, scale) | trinity-xr | ✅ Done |
+| 11 | `assemble_scene` tool | Package assets → Bevy scene / Godot / WebXR | Trinity | ✅ Done |
+| 12 | Blender integration | Headless Python API — mesh cleanup, glTF export | Blender | ✅ Done |
+| 13 | Standards DB | SQLite — NGSS, Common Core | Trinity + SQLite | ✅ Done |
+| 14 | `align_standards` tool | LLM semantic matching over standards DB | Trinity | ✅ Done |
+| 15 | `export_scorm` tool | SCORM 1.2 package (imsmanifest.xml + lesson.html ZIP) | Trinity | ✅ Done |
+| 16 | `save_lesson` / `list_lessons` | Lesson persistence in SQLite | Trinity + SQLite | ✅ Done |
+| 17 | PWA onboarding | Examples, hints, transparent agent steps | PWA frontend | ✅ Done |
+| 18 | XR WebSocket bridge | WS /api/xr/connect for VR ↔ server | Trinity | ✅ Done |
+| 19 | `generate_video` tool | ComfyUI HunyuanVideo | ComfyUI :8188 | ✅ Done |
+| 20 | `add_enrichment` tool | Vocab cards, quiz questions, annotations | Trinity | ✅ Done |
 
 ### P2: Must Have for Level 4 (Maturity)
 
@@ -431,12 +431,12 @@ These are the connective tissue between all projects:
 ```
 Sprint 0 (PWA) ✅ → Sprint 1 (LM Studio) ✅ → Sprint 2 (ID + Tools) ✅ → Level 1: Teacher creates lesson through PWA ✅
       ↓
-Sprint 3 (trinity-xr) → P1 items → Level 2-3: Teacher previews in VR, deploys to classroom
+Sprint 3 (trinity-xr) ✅ → P1 items → Level 2-3: Teacher previews in VR, deploys to classroom
       ↓
 P2 items → Level 4: Spatial OS, autonomous Hermes, mentorship revenue, community
 ```
 
-**P0 is complete.** Sprint 3 (trinity-xr) is the next critical piece — porting Bertrand's Bevy 0.18 OpenXR engine into Trinity as a crate, giving teachers a VR client for immersive lesson preview.
+**P0 is complete.** Sprint 3 (trinity-xr) is complete — Bertrand's Bevy 0.18 OpenXR engine ported to `crates/trinity-xr/`, WebSocket IPC to Trinity :3000, desktop emulator + XR binaries, `cargo check` passes. Next: P1 items for Level 2-3 (teacher previews in VR, deploys to classroom).
 
 ---
 

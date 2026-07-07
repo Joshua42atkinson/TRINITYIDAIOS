@@ -3,6 +3,8 @@ members = [
     # ── Core System ──
     "crates/trinity",                  # Headless HTTP server + Tauri host (Layer 1)
     "crates/trinity-protocol",         # Shared types, ADDIE enums, CharacterSheet (Layer 2)
+    # ── XR Client ──
+    "crates/trinity-xr",               # Bevy 0.18 OpenXR spatial workspace (Sprint 3)
 ]
 
 exclude = [

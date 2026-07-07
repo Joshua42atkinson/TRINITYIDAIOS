@@ -1056,3 +1056,135 @@ pub async fn list_community_templates(pool: &SqlitePool) -> anyhow::Result<Vec<P
         .collect())
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// LESSON PERSISTENCE
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// Lesson summary for listing
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LessonSummary {
+    pub id: String,
+    pub title: String,
+    pub subject: String,
+    pub grade_band: String,
+    pub status: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+/// Full lesson record
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Lesson {
+    pub id: String,
+    pub title: String,
+    pub subject: String,
+    pub grade_band: String,
+    pub lesson_spec: String,
+    pub html_content: String,
+    pub scorm_path: String,
+    pub standards_aligned: String,
+    pub status: String,
+    pub session_id: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+/// Save a lesson (insert or update by id)
+pub async fn save_lesson(pool: &SqlitePool, lesson: &Lesson) -> anyhow::Result<()> {
+    sqlx::query(
+        r#"
+        INSERT INTO trinity_lessons (id, title, subject, grade_band, lesson_spec, html_content, scorm_path, standards_aligned, status, session_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ON CONFLICT(id) DO UPDATE SET
+            title = excluded.title,
+            subject = excluded.subject,
+            grade_band = excluded.grade_band,
+            lesson_spec = excluded.lesson_spec,
+            html_content = excluded.html_content,
+            scorm_path = excluded.scorm_path,
+            standards_aligned = excluded.standards_aligned,
+            status = excluded.status,
+            updated_at = CURRENT_TIMESTAMP
+        "#,
+    )
+    .bind(&lesson.id)
+    .bind(&lesson.title)
+    .bind(&lesson.subject)
+    .bind(&lesson.grade_band)
+    .bind(&lesson.lesson_spec)
+    .bind(&lesson.html_content)
+    .bind(&lesson.scorm_path)
+    .bind(&lesson.standards_aligned)
+    .bind(&lesson.status)
+    .bind(&lesson.session_id)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// List lessons (most recent first)
+pub async fn list_lessons(pool: &SqlitePool, limit: i64) -> anyhow::Result<Vec<LessonSummary>> {
+    let rows = sqlx::query_as::<
+        _,
+        (String, String, String, String, String, String, String),
+    >(
+        "SELECT id, title, subject, grade_band, status, created_at, updated_at FROM trinity_lessons ORDER BY datetime(updated_at) DESC LIMIT ?",
+    )
+    .bind(limit)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows
+        .into_iter()
+        .map(
+            |(id, title, subject, grade_band, status, created_at, updated_at)| LessonSummary {
+                id, title, subject, grade_band, status, created_at, updated_at,
+            },
+        )
+        .collect())
+}
+
+/// Get a single lesson by id
+pub async fn get_lesson(pool: &SqlitePool, lesson_id: &str) -> anyhow::Result<Option<Lesson>> {
+    let row = sqlx::query_as::<
+        _,
+        (
+            String, String, String, String, String, String, String, String, String,
+            Option<String>, String, String,
+        ),
+    >(
+        "SELECT id, title, subject, grade_band, lesson_spec, html_content, scorm_path, standards_aligned, status, session_id, created_at, updated_at FROM trinity_lessons WHERE id = ?",
+    )
+    .bind(lesson_id)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(row.map(
+        |(
+            id,
+            title,
+            subject,
+            grade_band,
+            lesson_spec,
+            html_content,
+            scorm_path,
+            standards_aligned,
+            status,
+            session_id,
+            created_at,
+            updated_at,
+        )| Lesson {
+            id, title, subject, grade_band, lesson_spec, html_content, scorm_path, standards_aligned, status, session_id, created_at, updated_at,
+        },
+    ))
+}
+
+/// Delete a lesson by id
+pub async fn delete_lesson(pool: &SqlitePool, lesson_id: &str) -> anyhow::Result<bool> {
+    let result = sqlx::query("DELETE FROM trinity_lessons WHERE id = ?")
+        .bind(lesson_id)
+        .execute(pool)
+        .await?;
+    Ok(result.rows_affected() > 0)
+}
+

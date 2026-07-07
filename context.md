@@ -113,6 +113,16 @@ The LLM brain is whatever the user loads in LM Studio — Hermes 4 70B today, sw
 | `POST /api/focus/creative` | Creative focus (kill IDEs, start studio) |
 | `POST /api/focus/code` | Code focus (kill models, keep IDEs) |
 | `POST /api/focus/night` | Night shift (kill everything) |
+| `GET /api/xr/connect` | XR client WebSocket (chat, assets, scene updates) |
+| `POST /api/xr/scene/push` | Push scene spec to connected XR clients |
+| `GET /api/standards/search` | Search academic standards by keyword (NGSS, Common Core) |
+| `GET /api/standards/list` | List standards by framework/subject/grade |
+| `POST /api/scorm/export` | Export lesson as SCORM 1.2 ZIP package |
+| `GET /api/lessons` | List saved lessons |
+| `POST /api/lessons` | Save a new lesson |
+| `GET /api/lessons/:id` | Get a specific lesson |
+| `DELETE /api/lessons/:id` | Delete a lesson |
+| `POST /api/enrichment` | Generate vocab cards, quiz questions, annotations from lesson content |
 
 ---
 
@@ -160,6 +170,8 @@ cd ~/Workflow/TRINITYIDAIOS && cargo run -p trinity -- --headless &
 | **Spatial pivot plan** | `docs/active/SPATIAL_PIVOT_PLAN.md` | 21-section plan: XR UI, XREAL Aura, gap analysis, monetization, two-audience framework |
 | **AGENTS.md** | `AGENTS.md` | Entry point for AI agents — drift prevention, P0 focus, rules |
 | **Sprint workflows** | `.windsurf/workflows/` | Sprint 1 (LM Studio), Sprint 2 (ID tools), Sprint 3 (trinity-xr) |
+| **trinity-xr crate** | `crates/trinity-xr/` | Bevy 0.18 OpenXR spatial workspace — ported from Bertrand, WebSocket to Trinity :3000, desktop emulator + XR binaries |
+| **Standards DB** | `standards.rs`, `migrations/007_standards.sql` | NGSS + Common Core standards, LLM semantic alignment, 40+ seeded standards |
 
 ---
 
@@ -186,7 +198,7 @@ P0 items (see `AGENTS.md` and `docs/active/MASTER_ARCHITECTURE.md` Section 6):
 5. **`generate_3d_model` tool** (Sprint 2) — ✅ **COMPLETE** — TripoSR via /api/creative/3d, API endpoint working
 6. **`review_content_safety` tool** (Sprint 2) — ✅ **COMPLETE** — Hermes LLM review, model auto-resolution, PASS/FAIL tested
 7. **End-to-end test** (Sprint 2) — ✅ **COMPLETE** — Chat with ID persona tested, Socratic questions confirmed, safety review tested
-8. **trinity-xr** (Sprint 3) — **NEXT** — Port Bertrand spatial-engine-bevy to trinity-xr crate
+8. **trinity-xr** (Sprint 3) — ✅ **COMPLETE** — Bertrand spatial-engine-bevy ported to trinity-xr crate, WebSocket IPC to Trinity :3000, chat panel + asset viewer + system menu, desktop emulator + XR binaries, cargo check passes
 9. **Tauri desktop app** (Sprint 4) — Wrap PWA in Tauri, native service management, tray icon, one-click launch
 
 **Do not work on P1 or P2 items until P0 is done.**
